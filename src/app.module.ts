@@ -6,6 +6,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MailModule } from './modules/mail/mail.module';
 import { TwilioModule } from './modules/twilio/twilio.module';
+import { todayModule } from './modules/today/today.module';
+import { KitchanModule } from './modules/kitchan/kitchan.module';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { TwilioModule } from './modules/twilio/twilio.module';
     AuthModule,
     MailModule,
     TwilioModule,
+    todayModule,
+    KitchanModule,
   ],
   controllers: [AppController],
   providers: [AppService],

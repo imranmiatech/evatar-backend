@@ -10,6 +10,7 @@ import { MailService } from '../mail/mail.service';
 import { SigninDto } from './dto/signin.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import type { CurrentUserPayload } from '../../common/auth/current-user.decorator';
 
 @Injectable()
 export class AuthService {
@@ -142,6 +143,40 @@ export class AuthService {
       user: result,
       ...tokens,
     };
+  }
+
+  async me(user: CurrentUserPayload) {
+    const profile = await this.prisma.user.findUnique({
+      where: { id: user.userId },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        profilePictureUrl: true,
+        preferredLanguage: true,
+        role: true,
+        isEmailVerified: true,
+        isPhoneVerified: true,
+        isActive: true,
+        termsAccepted: true,
+        verificationStatus: true,
+        rejectionReason: true,
+        reviewedBy: true,
+        reviewedAt: true,
+        vendorApplicantId: true,
+        createdAt: true,
+        updatedAt: true,
+        parentProfile: true,
+        nannyProfile: true,
+      },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('User not found');
+    }
+
+    return profile;
   }
 
   async forgotPassword(dto: ForgotPasswordDto) {

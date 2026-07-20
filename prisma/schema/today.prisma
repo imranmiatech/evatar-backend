@@ -1,0 +1,159 @@
+model Child {
+  id             String       @id @default(cuid())
+  parentUserId   String
+  parentUser     User         @relation("ParentChildren", fields: [parentUserId], references: [id], onDelete: Cascade)
+  name           String
+  weight         String?
+  birthDate      DateTime?
+  gender         ChildGender?
+  avatarUrl      String?
+  allergies      String[]     @default([])
+  dietaryNotes   String?
+  medicalNotes   String?
+  personality    String?
+  sleepRoutine   String?
+  favoriteThings String[]     @default([])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  dayPlans   DayPlan[]
+  nannyLinks NannyChildLink[]
+  kitchenAccesses KitchenAccess[]
+  kitchenInventoryItems KitchenInventoryItem[]
+  shoppingLists ShoppingList[]
+  shoppingVouchers ShoppingVoucher[]
+  groceryOrders GroceryOrder[]
+  kitchenSchedules KitchenSchedule[]
+  kitchenAuditLogs KitchenAuditLog[]
+
+  @@index([parentUserId])
+}
+
+model NannyChildLink {
+  id             String   @id @default(cuid())
+  nannyUserId    String
+  nannyUser      User     @relation("NannyChildren", fields: [nannyUserId], references: [id], onDelete: Cascade)
+  childId        String
+  child          Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  canViewStory   Boolean  @default(true)
+  canUpdateProof Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  @@unique([nannyUserId, childId])
+  @@index([childId])
+}
+
+model DayPlan {
+  id              String           @id @default(cuid())
+  childId         String
+  child           Child            @relation(fields: [childId], references: [id], onDelete: Cascade)
+  date            DateTime
+  mode            DayPlanBuildMode
+  status          DayPlanStatus    @default(DRAFT)
+  guidedAnswers   Json?
+  aiInput         Json?
+  aiOutput        Json?
+  title           String?
+  summary         String?
+  createdByUserId String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  activities   DayActivity[]
+  bedtimeStory BedtimeStory?
+
+  @@unique([childId, date])
+  @@index([childId, date])
+  @@index([status])
+}
+
+model DayActivity {
+  id           String         @id @default(cuid())
+  dayPlanId    String
+  dayPlan      DayPlan        @relation(fields: [dayPlanId], references: [id], onDelete: Cascade)
+  category     String
+  title        String
+  description  String?
+  startTime    DateTime?
+  endTime      DateTime?
+  status       ActivityStatus @default(PLANNED)
+  nannyNote    String?
+  parentNote   String?
+  proofMediaId String?
+  imageUrl      String?
+  detail        Json?
+  templateId    String?
+  sortOrder    Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([dayPlanId, sortOrder])
+  @@index([status])
+}
+
+model ActivityTemplate {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  category    String
+  title       String
+  description String
+  imageUrl    String?
+  detail      Json
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model BedtimeStory {
+  id               String   @id @default(cuid())
+  dayPlanId        String   @unique
+  dayPlan          DayPlan  @relation(fields: [dayPlanId], references: [id], onDelete: Cascade)
+  title            String
+  storyText        String
+  imagePrompt      String?
+  coverImageUrl    String?
+  aiProvider       String?
+  aiModel          String?
+  parentAudioUrl   String?
+  parentAudioKey   String?
+  audioDurationSec Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model MediaAsset {
+  id          String    @id @default(cuid())
+  ownerUserId String
+  ownerUser   User      @relation("UserMediaAssets", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  type        MediaType
+  url         String
+  storageKey  String
+  mimeType    String?
+  sizeBytes   Int?
+  durationSec Int?
+  createdAt   DateTime  @default(now())
+
+  @@index([ownerUserId, type])
+}
+
+model NannyProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  headline           String?
+  bio                String?
+  hourlyRateCents    Int?
+  completedJobs      Int      @default(0)
+  repeatFamilies     Int      @default(0)
+  skills             String[] @default([])
+  training           String[] @default([])
+  languages          String[] @default([])
+  portfolioImageUrls String[] @default([])
+  experience         Json?
+  perks              Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}

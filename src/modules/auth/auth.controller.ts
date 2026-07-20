@@ -1,11 +1,14 @@
-import { Body, Controller, Post, Res } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { SigninDto } from './dto/signin.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import type { Response } from 'express';
+import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
+import { CurrentUser } from '../../common/auth/current-user.decorator';
+import type { CurrentUserPayload } from '../../common/auth/current-user.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -33,14 +36,14 @@ export class AuthController {
     // Set cookies
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'development',
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 120 * 60 * 1000, // 120 minutes
     });
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'development',
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
@@ -51,6 +54,16 @@ export class AuthController {
       accessToken, // Optional: return in body as well for mobile clients
       refreshToken, // Optional
     };
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current logged-in user profile' })
+  @ApiResponse({ status: 200, description: 'Current user profile returned successfully.' })
+  @ApiResponse({ status: 401, description: 'Missing, invalid, or expired access token.' })
+  async me(@CurrentUser() user: CurrentUserPayload) {
+    return this.authService.me(user);
   }
 
   @Post('forgot-password')
