@@ -14,9 +14,7 @@ import { CurrentUser } from '../../common/auth/current-user.decorator';
 import type { CurrentUserPayload } from '../../common/auth/current-user.decorator';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import {
-  AddActivityDto,
   CompleteAiResultDto,
-  CompleteProofDto,
   CompleteRecordingDto,
   CreateChildDto,
   CreateGuidedDayPlanDto,
@@ -26,11 +24,9 @@ import {
   RequestAiGenerationDto,
   UpdateGuidedAnswersDto,
   UpdateBedtimeStoryDto,
-  UpdateActivityDto,
   UpdateChildDto,
 } from './dto';
 import { CreateBedtimeStoryDto } from './dto/story-recording.dto';
-import type { AddActivityFromTemplateBody } from './types/today.types';
 import { todayService } from './today.service';
 
 @ApiTags('Today')
@@ -195,44 +191,6 @@ export class todayController {
     return this.todayService.completeAiResult(user, dayPlanId, dto);
   }
 
-  @Post('day-plans/:dayPlanId/activities')
-  @ApiOperation({ summary: 'Add manual activity to a day plan' })
-  addActivity(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('dayPlanId') dayPlanId: string,
-    @Body() dto: AddActivityDto,
-  ) {
-    return this.todayService.addActivity(user, dayPlanId, dto);
-  }
-
-  @Get('activity-templates')
-  @ApiOperation({ summary: 'List reusable manual activity/recipe templates' })
-  listActivityTemplates(@Query('category') category?: string) {
-    return this.todayService.listActivityTemplates(category);
-  }
-
-  @Get('activity-templates/:templateId')
-  @ApiOperation({ summary: 'Get recipe/activity detail template' })
-  getActivityTemplate(@Param('templateId') templateId: string) {
-    return this.todayService.getActivityTemplate(templateId);
-  }
-
-  @Post('day-plans/:dayPlanId/activities/from-template/:templateId')
-  @ApiOperation({ summary: 'Add a manual activity from a reusable template' })
-  addActivityFromTemplate(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('dayPlanId') dayPlanId: string,
-    @Param('templateId') templateId: string,
-    @Body() body: AddActivityFromTemplateBody,
-  ) {
-    return this.todayService.addActivityFromTemplate(
-      user,
-      dayPlanId,
-      templateId,
-      body,
-    );
-  }
-
   @Post('day-plans/:dayPlanId/ready')
   @ApiOperation({ summary: 'Mark manual day plan ready' })
   markDayPlanReady(
@@ -240,25 +198,6 @@ export class todayController {
     @Param('dayPlanId') dayPlanId: string,
   ) {
     return this.todayService.markDayPlanReady(user, dayPlanId);
-  }
-
-  @Patch('activities/:activityId')
-  @ApiOperation({ summary: 'Update activity details/status' })
-  updateActivity(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('activityId') activityId: string,
-    @Body() dto: UpdateActivityDto,
-  ) {
-    return this.todayService.updateActivity(user, activityId, dto);
-  }
-
-  @Delete('activities/:activityId')
-  @ApiOperation({ summary: 'Delete activity' })
-  deleteActivity(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('activityId') activityId: string,
-  ) {
-    return this.todayService.deleteActivity(user, activityId);
   }
 
   @Get('children/:childId/bedtime-stories')
@@ -347,33 +286,6 @@ export class todayController {
     @Param('childId') childId: string,
   ) {
     return this.todayService.getNannyToday(user, childId);
-  }
-
-  @Patch('nanny/activities/:activityId/status')
-  @ApiOperation({ summary: 'Nanny updates activity status and note' })
-  nannyUpdateActivityStatus(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('activityId') activityId: string,
-    @Body() dto: UpdateActivityDto,
-  ) {
-    return this.todayService.nannyUpdateActivityStatus(
-      user,
-      activityId,
-      dto.status ?? 'COMPLETED',
-      dto.nannyNote,
-    );
-  }
-
-  @Post('nanny/activities/:activityId/proof-complete')
-  @ApiOperation({
-    summary: 'Nanny attaches proof image/video metadata to activity',
-  })
-  completeActivityProof(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('activityId') activityId: string,
-    @Body() dto: CompleteProofDto,
-  ) {
-    return this.todayService.completeActivityProof(user, activityId, dto);
   }
 
   @Get('nanny/bedtime-stories/:storyId/playback')

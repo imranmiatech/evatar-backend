@@ -5,6 +5,7 @@ import {
   IsDateString,
   IsInt,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   ValidateNested,
@@ -25,6 +26,41 @@ export class ManualActivityDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @ApiPropertyOptional({
+    example:
+      'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80',
+  })
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
+
+  @ApiPropertyOptional({
+    example: {
+      developmentalBenefits: [
+        {
+          title: 'Gross motor development',
+          body: 'Supports balance, reaching, and movement control.',
+        },
+      ],
+      howToDoIt: [
+        'Pick a color together.',
+        'Search safely within sight.',
+        'Name each discovery.',
+      ],
+      caregiverPrompts: ['What color did you find?', 'Where else can we see it?'],
+      progressionLevels: [
+        {
+          level: 'Level 1',
+          body: 'Name basic colors and point to matching objects.',
+        },
+      ],
+      safetyNotes: ['Stay within sight', 'Avoid sharp objects'],
+    },
+  })
+  @IsObject()
+  @IsOptional()
+  detail?: Record<string, unknown>;
 
   @ApiPropertyOptional({ example: '2026-07-19T08:00:00.000Z' })
   @IsDateString()

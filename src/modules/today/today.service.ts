@@ -7,9 +7,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CurrentUserPayload } from '../../common/auth/current-user.decorator';
 import {
-  AddActivityDto,
   CompleteAiResultDto,
-  CompleteProofDto,
   CompleteRecordingDto,
   CreateChildDto,
   CreateGuidedDayPlanDto,
@@ -18,11 +16,9 @@ import {
   CreateNannyLinkDto,
   RequestAiGenerationDto,
   UpdateBedtimeStoryDto,
-  UpdateActivityDto,
   UpdateChildDto,
 } from './dto';
 import { CreateBedtimeStoryDto } from './dto/story-recording.dto';
-import type { AddActivityFromTemplateBody } from './types/today.types';
 
 @Injectable()
 export class todayService {
@@ -296,88 +292,6 @@ export class todayService {
       data: { status: 'READY' } as any,
       include: this.dayPlanInclude(),
     });
-  }
-
-  async addActivity(
-    user: CurrentUserPayload,
-    dayPlanId: string,
-    dto: AddActivityDto,
-  ) {
-    await this.ensureCanManageDayPlan(user, dayPlanId);
-
-    return this.prisma.dayActivity.create({
-      data: this.mapActivityInput(dayPlanId, dto, dto.sortOrder ?? 0) as any,
-    });
-  }
-
-  async listActivityTemplates(category?: string) {
-    return this.prisma.activityTemplate.findMany({
-      where: {
-        isActive: true,
-        category: category || undefined,
-      },
-      orderBy: [{ category: 'asc' }, { title: 'asc' }],
-    });
-  }
-
-  async getActivityTemplate(templateId: string) {
-    return this.prisma.activityTemplate.findUniqueOrThrow({
-      where: { id: templateId },
-    });
-  }
-
-  async addActivityFromTemplate(
-    user: CurrentUserPayload,
-    dayPlanId: string,
-    templateId: string,
-    body: AddActivityFromTemplateBody,
-  ) {
-    await this.ensureCanManageDayPlan(user, dayPlanId);
-    const template = await this.getActivityTemplate(templateId);
-
-    return this.prisma.dayActivity.create({
-      data: {
-        dayPlanId,
-        category: template.category,
-        title: template.title,
-        description: template.description,
-        imageUrl: template.imageUrl,
-        detail: template.detail,
-        templateId: template.id,
-        startTime: body.startTime ? new Date(body.startTime) : undefined,
-        endTime: body.endTime ? new Date(body.endTime) : undefined,
-        sortOrder: body.sortOrder ?? 0,
-      } as any,
-    });
-  }
-
-  async updateActivity(
-    user: CurrentUserPayload,
-    activityId: string,
-    dto: UpdateActivityDto,
-  ) {
-    await this.ensureCanManageActivity(user, activityId);
-
-    return this.prisma.dayActivity.update({
-      where: { id: activityId },
-      data: {
-        category: dto.category,
-        title: dto.title,
-        description: dto.description,
-        startTime: dto.startTime ? new Date(dto.startTime) : undefined,
-        endTime: dto.endTime ? new Date(dto.endTime) : undefined,
-        status: dto.status as any,
-        nannyNote: dto.nannyNote,
-        parentNote: dto.parentNote,
-        sortOrder: dto.sortOrder,
-      },
-    });
-  }
-
-  async deleteActivity(user: CurrentUserPayload, activityId: string) {
-    await this.ensureCanManageActivity(user, activityId);
-    await this.prisma.dayActivity.delete({ where: { id: activityId } });
-    return { message: 'Activity deleted successfully' };
   }
 
   async getBedtimeStory(user: CurrentUserPayload, dayPlanId: string) {
@@ -679,68 +593,6 @@ export class todayService {
     return plan;
   }
 
-  async nannyUpdateActivityStatus(
-    user: CurrentUserPayload,
-    activityId: string,
-    status: string,
-    nannyNote?: string,
-  ) {
-    const activity = await this.prisma.dayActivity.findUniqueOrThrow({
-      where: { id: activityId },
-      include: { dayPlan: true },
-    });
-    const link = await this.ensureCanReadChildAsNanny(
-      user,
-      activity.dayPlan.childId,
-    );
-
-    if (!link.canUpdateProof && user.role !== 'ADMIN') {
-      throw new ForbiddenException('Nanny cannot update proof for this child');
-    }
-
-    return this.prisma.dayActivity.update({
-      where: { id: activityId },
-      data: {
-        status: status as any,
-        nannyNote,
-      },
-    });
-  }
-
-  async completeActivityProof(
-    user: CurrentUserPayload,
-    activityId: string,
-    dto: CompleteProofDto,
-  ) {
-    const activity = await this.prisma.dayActivity.findUniqueOrThrow({
-      where: { id: activityId },
-      include: { dayPlan: true },
-    });
-    const link = await this.ensureCanReadChildAsNanny(
-      user,
-      activity.dayPlan.childId,
-    );
-
-    if (!link.canUpdateProof && user.role !== 'ADMIN') {
-      throw new ForbiddenException('Nanny cannot update proof for this child');
-    }
-
-    const media = await this.prisma.mediaAsset.create({
-      data: {
-        ownerUserId: user.userId,
-        type: 'IMAGE',
-        url: dto.mediaUrl,
-        storageKey: dto.storageKey,
-        mimeType: dto.mimeType,
-      } as any,
-    });
-
-    return this.prisma.dayActivity.update({
-      where: { id: activityId },
-      data: { proofMediaId: media.id },
-    });
-  }
-
   async getNannyStoryPlayback(user: CurrentUserPayload, storyId: string) {
     const story = await this.prisma.bedtimeStory.findUniqueOrThrow({
       where: { id: storyId },
@@ -866,23 +718,6 @@ export class todayService {
     return dayPlan;
   }
 
-  private async ensureCanManageActivity(
-    user: CurrentUserPayload,
-    activityId: string,
-  ) {
-    const activity = await this.prisma.dayActivity.findUnique({
-      where: { id: activityId },
-      include: { dayPlan: true },
-    });
-
-    if (!activity) {
-      throw new NotFoundException('Activity not found');
-    }
-
-    await this.ensureCanManageChild(user, activity.dayPlan.childId);
-    return activity;
-  }
-
   private async ensureNoPlanForDate(childId: string, date: string) {
     const existingPlan = await this.prisma.dayPlan.findFirst({
       where: {
@@ -906,6 +741,8 @@ export class todayService {
       category: activity.category,
       title: activity.title,
       description: activity.description,
+      imageUrl: activity.imageUrl,
+      detail: activity.detail as any,
       startTime: activity.startTime ? new Date(activity.startTime) : undefined,
       endTime: activity.endTime ? new Date(activity.endTime) : undefined,
       sortOrder: activity.sortOrder ?? index,
