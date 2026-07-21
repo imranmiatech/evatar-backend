@@ -1,0 +1,60 @@
+model Recipe {
+  id             String         @id @default(uuid())
+  title          String
+  imageUrl       String?
+  recipeMealType RecipeMealType
+  minAgeMonths   Int?
+  maxAgeMonths   Int?
+  prepTimeMin    Int?
+  cookTimeMin    Int?
+  difficulty     Difficulty?
+  servings       String?
+
+  // Additional Info
+  nutritionalFocus String[]
+  safetyNotes      String?  @db.Text
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  ingredients    RecipeIngredient[]
+  steps          RecipeStep[]
+  childSchedules ChildSchedule[]
+
+  // Back relations
+  schedules         KitchenSchedule[]
+  shoppingListItems ShoppingListItem[]
+  voucherItems      ShoppingVoucherItem[]
+  orderItems        GroceryOrderItem[]
+
+  @@index([recipeMealType])
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id       String @id @default(cuid())
+  recipeId String
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  name       String
+  amount     String
+  substitute String?
+  isOptional Boolean @default(false)
+
+  @@index([recipeId])
+  @@map("recipe_ingredients")
+}
+
+model RecipeStep {
+  id       String @id @default(cuid())
+  recipeId String
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  stepNumber  Int
+  description String @db.Text
+
+  @@index([recipeId])
+  @@map("recipe_steps")
+}

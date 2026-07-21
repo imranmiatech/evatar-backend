@@ -19,74 +19,16 @@ model KitchenAccess {
   @@index([childId])
 }
 
-model Recipe {
-  id              String         @id @default(cuid())
-  slug            String         @unique
-  title           String
-  category        String
-  mealType        RecipeMealType @default(OTHER)
-  description     String
-  imageUrl        String?
-  prepTimeMinutes Int?
-  cookTimeMinutes Int?
-  servings        Int?
-  minAgeMonths    Int?
-  maxAgeMonths    Int?
-  tags            String[]       @default([])
-  nutrition       Json?
-  safetyNotes     String[]       @default([])
-  isPublished     Boolean        @default(true)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-
-  ingredients RecipeIngredient[]
-  steps       RecipeStep[]
-  schedules   KitchenSchedule[]
-  shoppingListItems ShoppingListItem[]
-  voucherItems ShoppingVoucherItem[]
-  orderItems   GroceryOrderItem[]
-
-  @@index([mealType])
-  @@index([category])
-  @@index([isPublished])
-}
-
-model RecipeIngredient {
-  id              String   @id @default(cuid())
-  recipeId        String
-  recipe          Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  name            String
-  quantity        Float?
-  unit            String?
-  isOptional      Boolean  @default(false)
-  inventoryName   String?
-  allergenWarning String?
-  sortOrder       Int      @default(0)
-
-  @@index([recipeId, sortOrder])
-}
-
-model RecipeStep {
-  id        String @id @default(cuid())
-  recipeId  String
-  recipe    Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  title     String?
-  body      String
-  sortOrder Int    @default(0)
-
-  @@index([recipeId, sortOrder])
-}
-
 model KitchenInventoryItem {
   id                  String                 @id @default(cuid())
   childId             String
   child               Child                  @relation(fields: [childId], references: [id], onDelete: Cascade)
-  parentUserId         String
-  parentUser           User                  @relation("KitchenInventoryParent", fields: [parentUserId], references: [id], onDelete: Cascade)
-  createdByUserId      String
-  createdByUser        User                  @relation("KitchenInventoryCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
-  lastUpdatedByUserId  String?
-  lastUpdatedByUser    User?                 @relation("KitchenInventoryUpdatedBy", fields: [lastUpdatedByUserId], references: [id], onDelete: SetNull)
+  parentUserId        String
+  parentUser          User                   @relation("KitchenInventoryParent", fields: [parentUserId], references: [id], onDelete: Cascade)
+  createdByUserId     String
+  createdByUser       User                   @relation("KitchenInventoryCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  lastUpdatedByUserId String?
+  lastUpdatedByUser   User?                  @relation("KitchenInventoryUpdatedBy", fields: [lastUpdatedByUserId], references: [id], onDelete: SetNull)
   name                String
   unit                String?
   quantity            Float?
@@ -151,41 +93,41 @@ model ShoppingListItem {
 }
 
 model KitchenStore {
-  id          String   @id @default(cuid())
-  name        String
-  phoneNumber String?
-  address     String?
-  deliveryFeeCents Int @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(cuid())
+  name             String
+  phoneNumber      String?
+  address          String?
+  deliveryFeeCents Int      @default(0)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   vouchers ShoppingVoucher[]
   orders   GroceryOrder[]
 }
 
 model ShoppingVoucher {
-  id              String                @id @default(cuid())
-  voucherCode     String                @unique
-  childId         String
-  child           Child                 @relation(fields: [childId], references: [id], onDelete: Cascade)
-  parentUserId    String
-  parentUser      User                  @relation("ShoppingVoucherParent", fields: [parentUserId], references: [id], onDelete: Cascade)
-  createdByUserId String
-  createdByUser   User                  @relation("ShoppingVoucherCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
-  shoppingListId  String?
-  shoppingList    ShoppingList?         @relation(fields: [shoppingListId], references: [id], onDelete: SetNull)
-  storeId         String?
-  store           KitchenStore?         @relation(fields: [storeId], references: [id], onDelete: SetNull)
-  status          ShoppingVoucherStatus @default(DRAFT)
-  messageToParent String?
-  messageToStore  String?
-  allergyWarnings String[]              @default([])
+  id                String                @id @default(cuid())
+  voucherCode       String                @unique
+  childId           String
+  child             Child                 @relation(fields: [childId], references: [id], onDelete: Cascade)
+  parentUserId      String
+  parentUser        User                  @relation("ShoppingVoucherParent", fields: [parentUserId], references: [id], onDelete: Cascade)
+  createdByUserId   String
+  createdByUser     User                  @relation("ShoppingVoucherCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  shoppingListId    String?
+  shoppingList      ShoppingList?         @relation(fields: [shoppingListId], references: [id], onDelete: SetNull)
+  storeId           String?
+  store             KitchenStore?         @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  status            ShoppingVoucherStatus @default(DRAFT)
+  messageToParent   String?
+  messageToStore    String?
+  allergyWarnings   String[]              @default([])
   substitutionRules Json?
-  sentToParentAt  DateTime?
-  sentToStoreAt   DateTime?
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  sentToParentAt    DateTime?
+  sentToStoreAt     DateTime?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
 
   items ShoppingVoucherItem[]
   order GroceryOrder?
@@ -195,48 +137,48 @@ model ShoppingVoucher {
 }
 
 model ShoppingVoucherItem {
-  id                 String            @id @default(cuid())
-  voucherId          String
-  voucher            ShoppingVoucher   @relation(fields: [voucherId], references: [id], onDelete: Cascade)
-  shoppingListItemId String?
-  shoppingListItem   ShoppingListItem? @relation(fields: [shoppingListItemId], references: [id], onDelete: SetNull)
-  recipeId           String?
-  recipe             Recipe?           @relation(fields: [recipeId], references: [id], onDelete: SetNull)
-  name               String
-  unit               String?
-  quantity           Float?
+  id                  String            @id @default(cuid())
+  voucherId           String
+  voucher             ShoppingVoucher   @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  shoppingListItemId  String?
+  shoppingListItem    ShoppingListItem? @relation(fields: [shoppingListItemId], references: [id], onDelete: SetNull)
+  recipeId            String?
+  recipe              Recipe?           @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  name                String
+  unit                String?
+  quantity            Float?
   estimatedPriceCents Int?
-  note               String?
-  sortOrder          Int               @default(0)
+  note                String?
+  sortOrder           Int               @default(0)
 
   @@index([voucherId])
 }
 
 model GroceryOrder {
-  id              String             @id @default(cuid())
-  orderNumber     String             @unique
-  voucherId       String?            @unique
-  voucher         ShoppingVoucher?    @relation(fields: [voucherId], references: [id], onDelete: SetNull)
-  childId         String
-  child           Child              @relation(fields: [childId], references: [id], onDelete: Cascade)
-  parentUserId    String
-  parentUser      User               @relation("GroceryOrderParent", fields: [parentUserId], references: [id], onDelete: Cascade)
-  createdByUserId String
-  createdByUser   User               @relation("GroceryOrderCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
-  storeId         String?
-  store           KitchenStore?       @relation(fields: [storeId], references: [id], onDelete: SetNull)
-  paymentMethodId String?
-  paymentMethod   PaymentMethod?      @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
-  status          GroceryOrderStatus  @default(VOUCHER_SENT)
-  subtotalCents   Int                 @default(0)
+  id               String             @id @default(cuid())
+  orderNumber      String             @unique
+  voucherId        String?            @unique
+  voucher          ShoppingVoucher?   @relation(fields: [voucherId], references: [id], onDelete: SetNull)
+  childId          String
+  child            Child              @relation(fields: [childId], references: [id], onDelete: Cascade)
+  parentUserId     String
+  parentUser       User               @relation("GroceryOrderParent", fields: [parentUserId], references: [id], onDelete: Cascade)
+  createdByUserId  String
+  createdByUser    User               @relation("GroceryOrderCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  storeId          String?
+  store            KitchenStore?      @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  paymentMethodId  String?
+  paymentMethod    PaymentMethod?     @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
+  status           GroceryOrderStatus @default(VOUCHER_SENT)
+  subtotalCents    Int                @default(0)
   deliveryFeeCents Int                @default(0)
-  discountCents   Int                 @default(0)
-  totalCents      Int                 @default(0)
-  trackingEvents  Json?
-  confirmedAt     DateTime?
-  deliveredAt     DateTime?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  discountCents    Int                @default(0)
+  totalCents       Int                @default(0)
+  trackingEvents   Json?
+  confirmedAt      DateTime?
+  deliveredAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
   items GroceryOrderItem[]
 
@@ -245,35 +187,35 @@ model GroceryOrder {
 }
 
 model GroceryOrderItem {
-  id        String       @id @default(cuid())
-  orderId   String
-  order     GroceryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  recipeId  String?
-  recipe    Recipe?      @relation(fields: [recipeId], references: [id], onDelete: SetNull)
-  name      String
-  unit      String?
-  quantity  Float?
-  priceCents Int         @default(0)
-  createdAt DateTime     @default(now())
+  id         String       @id @default(cuid())
+  orderId    String
+  order      GroceryOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  recipeId   String?
+  recipe     Recipe?      @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  name       String
+  unit       String?
+  quantity   Float?
+  priceCents Int          @default(0)
+  createdAt  DateTime     @default(now())
 
   @@index([orderId])
 }
 
 model PaymentMethod {
-  id             String              @id @default(cuid())
-  parentUserId   String
-  parentUser     User                @relation("PaymentMethodParent", fields: [parentUserId], references: [id], onDelete: Cascade)
-  type           PaymentMethodType
-  status         PaymentMethodStatus @default(ACTIVE)
-  label          String
-  brand          String?
-  last4          String?
-  expiryMonth    Int?
-  expiryYear     Int?
-  providerRef    String?
-  isDefault      Boolean             @default(false)
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  id           String              @id @default(cuid())
+  parentUserId String
+  parentUser   User                @relation("PaymentMethodParent", fields: [parentUserId], references: [id], onDelete: Cascade)
+  type         PaymentMethodType
+  status       PaymentMethodStatus @default(ACTIVE)
+  label        String
+  brand        String?
+  last4        String?
+  expiryMonth  Int?
+  expiryYear   Int?
+  providerRef  String?
+  isDefault    Boolean             @default(false)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 
   orders GroceryOrder[]
 
@@ -292,7 +234,7 @@ model KitchenSchedule {
   recipe          Recipe?        @relation(fields: [recipeId], references: [id], onDelete: SetNull)
   dayActivityId   String?
   date            DateTime
-  mealType        RecipeMealType @default(OTHER)
+  mealType        RecipeMealType
   title           String
   notes           String?
   startTime       DateTime?

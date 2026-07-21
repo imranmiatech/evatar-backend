@@ -1,0 +1,71 @@
+model Activity {
+  id           String       @id @default(uuid())
+  title        String
+  imageUrl     String?
+  activityType ActivityType
+
+  // Stats & Filters
+  minAgeMonths Int?
+  maxAgeMonths Int?
+  durationMin  Int?
+  durationMax  Int?
+  energyLevel  EnergyLevel?
+  location     ActivityLocation[]
+
+  // Descriptions
+  connectionMoment String?  @db.Text
+  whyThisActivity  String?  @db.Text
+  caregiverPrompts String[]
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  benefits       ActivityBenefit[]
+  steps          ActivityStep[]
+  progressions   ActivityProgression[]
+  childSchedules ChildSchedule[]
+
+  @@index([title])
+  @@index([activityType])
+  @@index([minAgeMonths, maxAgeMonths])
+  @@map("activities")
+}
+
+model ActivityBenefit {
+  id         String   @id @default(cuid())
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String
+  iconUrl     String?
+
+  @@index([activityId])
+  @@map("activity_benefits")
+}
+
+model ActivityStep {
+  id         String   @id @default(cuid())
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  stepNumber  Int
+  description String @db.Text
+
+  @@index([activityId])
+  @@map("activity_steps")
+}
+
+model ActivityProgression {
+  id         String   @id @default(cuid())
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  level       Int
+  description String @db.Text
+
+  @@index([activityId])
+  @@map("activity_progressions")
+}

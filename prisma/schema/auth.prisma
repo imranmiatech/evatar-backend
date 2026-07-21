@@ -41,6 +41,7 @@ model User {
   kitchenSchedulesAsParent KitchenSchedule[] @relation("KitchenScheduleParent")
   kitchenSchedulesCreated KitchenSchedule[] @relation("KitchenScheduleCreatedBy")
   kitchenAuditLogs KitchenAuditLog[] @relation("KitchenAuditUser")
+  childSchedules ChildSchedule[] @relation("UserChildSchedules")
 
   @@index([role])
   @@index([verificationStatus])

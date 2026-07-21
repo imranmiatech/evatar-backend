@@ -85,7 +85,12 @@ enum RecipeMealType {
     LUNCH
     DINNER
     SNACK
-    OTHER
+    FAMILY
+}
+
+enum ActivityType {
+    INDOOR
+    OUTDOOR
 }
 
 enum ShoppingListItemStatus {
@@ -125,4 +130,60 @@ enum PaymentMethodType {
 enum PaymentMethodStatus {
     ACTIVE
     ARCHIVED
+}
+
+enum ActivityLocation {
+    INDOOR
+    OUTDOOR
+    GROUP
+}
+
+enum EnergyLevel {
+    LOW
+    MEDIUM
+    MEDIUM_HIGH
+    HIGH
+}
+
+enum Difficulty {
+    EASY
+    MEDIUM
+    HARD
+}
+
+enum DayOfWeek {
+    MON
+    TUE
+    WED
+    THU
+    FRI
+    SAT
+    SUN
+}
+
+enum HealthCondition {
+    NONE
+    FOOD_ALLERGIES
+    MOBILITY_CONSIDERATIONS
+    PHYSICAL_CHALLENGES
+}
+
+enum Gender {
+    BOY
+    GIRL
+    OTHER
+}
+
+enum ScheduleMode {
+    LIBRARY
+    CUSTOM
+}
+
+enum ScheduleCategory {
+    RECIPE
+    ACTIVITY
+    HOME_STUDY
+    NAP
+    BEDTIME
+    OTHER
 }
