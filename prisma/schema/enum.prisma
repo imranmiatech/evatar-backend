@@ -187,3 +187,9 @@ enum ScheduleCategory {
     BEDTIME
     OTHER
 }
+
+enum SupportTicketStatus {
+    PENDING
+    REPLIED
+    RESOLVED
+}

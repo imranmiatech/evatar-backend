@@ -3,6 +3,7 @@ model User {
   fullName           String
   email              String             @unique
   phoneNumber        String?            @unique
+  relationShip       String?
   passwordHash       String
   profilePictureUrl  String?
   preferredLanguage  String?            @default("en")
@@ -19,29 +20,32 @@ model User {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
-  parentProfile   ParentProfile?
-  nannyProfile    NannyProfile?
-  otpCodes        OtpCode[]
-  kycDocuments    KycDocument[]
-  children        Child[]          @relation("ParentChildren")
-  nannyChildLinks NannyChildLink[] @relation("NannyChildren")
-  mediaAssets     MediaAsset[]     @relation("UserMediaAssets")
-  kitchenAccessAsParent KitchenAccess[] @relation("KitchenAccessParent")
-  kitchenAccessAsNanny  KitchenAccess[] @relation("KitchenAccessNanny")
+  parentProfile            ParentProfile?
+  nannyProfile             NannyProfile?
+  accountDeletion          AccountDeletion?
+  otpCodes                 OtpCode[]
+  kycDocuments             KycDocument[]
+  children                 Child[]                @relation("ParentChildren")
+  nannyChildLinks          NannyChildLink[]       @relation("NannyChildren")
+  mediaAssets              MediaAsset[]           @relation("UserMediaAssets")
+  kitchenAccessAsParent    KitchenAccess[]        @relation("KitchenAccessParent")
+  kitchenAccessAsNanny     KitchenAccess[]        @relation("KitchenAccessNanny")
   kitchenInventoryAsParent KitchenInventoryItem[] @relation("KitchenInventoryParent")
-  kitchenInventoryCreated KitchenInventoryItem[] @relation("KitchenInventoryCreatedBy")
-  kitchenInventoryUpdated KitchenInventoryItem[] @relation("KitchenInventoryUpdatedBy")
-  shoppingListsAsParent ShoppingList[] @relation("ShoppingListParent")
-  shoppingListsCreated ShoppingList[] @relation("ShoppingListCreatedBy")
-  shoppingVouchersAsParent ShoppingVoucher[] @relation("ShoppingVoucherParent")
-  shoppingVouchersCreated ShoppingVoucher[] @relation("ShoppingVoucherCreatedBy")
-  groceryOrdersAsParent GroceryOrder[] @relation("GroceryOrderParent")
-  groceryOrdersCreated GroceryOrder[] @relation("GroceryOrderCreatedBy")
-  paymentMethods PaymentMethod[] @relation("PaymentMethodParent")
-  kitchenSchedulesAsParent KitchenSchedule[] @relation("KitchenScheduleParent")
-  kitchenSchedulesCreated KitchenSchedule[] @relation("KitchenScheduleCreatedBy")
-  kitchenAuditLogs KitchenAuditLog[] @relation("KitchenAuditUser")
-  childSchedules ChildSchedule[] @relation("UserChildSchedules")
+  kitchenInventoryCreated  KitchenInventoryItem[] @relation("KitchenInventoryCreatedBy")
+  kitchenInventoryUpdated  KitchenInventoryItem[] @relation("KitchenInventoryUpdatedBy")
+  shoppingListsAsParent    ShoppingList[]         @relation("ShoppingListParent")
+  shoppingListsCreated     ShoppingList[]         @relation("ShoppingListCreatedBy")
+  shoppingVouchersAsParent ShoppingVoucher[]      @relation("ShoppingVoucherParent")
+  shoppingVouchersCreated  ShoppingVoucher[]      @relation("ShoppingVoucherCreatedBy")
+  groceryOrdersAsParent    GroceryOrder[]         @relation("GroceryOrderParent")
+  groceryOrdersCreated     GroceryOrder[]         @relation("GroceryOrderCreatedBy")
+  paymentMethods           PaymentMethod[]        @relation("PaymentMethodParent")
+  kitchenSchedulesAsParent KitchenSchedule[]      @relation("KitchenScheduleParent")
+  kitchenSchedulesCreated  KitchenSchedule[]      @relation("KitchenScheduleCreatedBy")
+  kitchenAuditLogs         KitchenAuditLog[]      @relation("KitchenAuditUser")
+  childSchedules           ChildSchedule[]        @relation("UserChildSchedules")
+  supportTickets           SupportTicket[]
+  ticketMessages           TicketMessage[]
 
   @@index([role])
   @@index([verificationStatus])
