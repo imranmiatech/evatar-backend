@@ -11,6 +11,9 @@ import { JwtAuthModule } from './common/configs/jwt-auth.module';
 import { ParentModule } from './modules/parent/parent.module';
 import { NanyModule } from './modules/nany/nany.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { UserModule } from './modules/user/user.module';
+import { SettingModule } from './modules/setting/setting.module';
+import { SupportModule } from './modules/support/support.module';
 
 @Module({
   imports: [
@@ -24,6 +27,9 @@ import { AdminModule } from './modules/admin/admin.module';
     ParentModule,
     NanyModule,
     AdminModule,
+    UserModule,
+    SettingModule,
+    SupportModule,
   ],
   controllers: [AppController],
   providers: [AppService],

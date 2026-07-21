@@ -126,3 +126,9 @@ enum PaymentMethodStatus {
     ACTIVE
     ARCHIVED
 }
+
+enum SupportTicketStatus {
+    PENDING
+    REPLIED
+    RESOLVED
+}

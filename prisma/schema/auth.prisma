@@ -3,6 +3,7 @@ model User {
   fullName           String
   email              String             @unique
   phoneNumber        String?            @unique
+  relationShip       String?
   passwordHash       String
   profilePictureUrl  String?
   preferredLanguage  String?            @default("en")
@@ -21,6 +22,7 @@ model User {
 
   parentProfile   ParentProfile?
   nannyProfile    NannyProfile?
+  accountDeletion AccountDeletion?
   otpCodes        OtpCode[]
   kycDocuments    KycDocument[]
   children        Child[]          @relation("ParentChildren")
@@ -41,6 +43,8 @@ model User {
   kitchenSchedulesAsParent KitchenSchedule[] @relation("KitchenScheduleParent")
   kitchenSchedulesCreated KitchenSchedule[] @relation("KitchenScheduleCreatedBy")
   kitchenAuditLogs KitchenAuditLog[] @relation("KitchenAuditUser")
+  supportTickets SupportTicket[]
+  ticketMessages TicketMessage[]
 
   @@index([role])
   @@index([verificationStatus])
@@ -74,3 +78,4 @@ model ParentProfile {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
+

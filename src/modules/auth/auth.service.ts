@@ -127,6 +127,10 @@ export class AuthService {
       throw new BadRequestException('User not found');
     }
 
+    if (!user.isActive) {
+      throw new BadRequestException('Account has been deleted or deactivated.');
+    }
+
     const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
 
     if (!isPasswordValid) {

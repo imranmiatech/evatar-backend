@@ -1,0 +1,8 @@
+model AccountDeletion {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason    String
+  details   String?
+  createdAt DateTime @default(now())
+}
