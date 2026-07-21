@@ -89,7 +89,6 @@ export class ActivityController {
   constructor(private readonly activityService: ActivityService) {}
 
   @Get('activity/parent/children/:childId/feed')
-  @ApiTags('Parent Activity')
   @ApiOperation({
     summary: 'Parent activity feed for Activity screen list/detail',
   })
@@ -149,7 +148,6 @@ export class ActivityController {
   }
 
   @Post(['activity/day-plans/:dayPlanId', 'day-plans/:dayPlanId/activities'])
-  @ApiTags('Parent Activity')
   @ApiOperation({ summary: 'Parent adds manual activity to a day plan' })
   @ApiBody({ type: AddActivityDto })
   addActivity(
@@ -161,7 +159,6 @@ export class ActivityController {
   }
 
   @Patch(['activity/:activityId', 'activities/:activityId'])
-  @ApiTags('Parent Activity')
   @ApiOperation({ summary: 'Parent updates activity details/status' })
   @ApiBody({ type: UpdateActivityDto })
   updateActivity(
@@ -173,7 +170,6 @@ export class ActivityController {
   }
 
   @Delete(['activity/:activityId', 'activities/:activityId'])
-  @ApiTags('Parent Activity')
   @ApiOperation({ summary: 'Parent deletes an activity' })
   deleteActivity(
     @CurrentUser() user: CurrentUserPayload,
@@ -199,7 +195,6 @@ export class ActivityController {
     'activity/day-plans/:dayPlanId/from-template/:templateId',
     'day-plans/:dayPlanId/activities/from-template/:templateId',
   ])
-  @ApiTags('Parent Activity')
   @ApiOperation({ summary: 'Parent adds activity from a reusable template' })
   @ApiBody({ type: AddActivityFromTemplateDto })
   addActivityFromTemplate(
