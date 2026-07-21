@@ -6,9 +6,9 @@ import { SigninDto } from './dto/signin.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import type { Response } from 'express';
-import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
-import { CurrentUser } from '../../common/auth/current-user.decorator';
-import type { CurrentUserPayload } from '../../common/auth/current-user.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')

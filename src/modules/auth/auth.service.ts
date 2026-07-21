@@ -5,12 +5,12 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { SignupDto } from './dto/signup.dto';
 import * as bcrypt from 'bcrypt';
 import { OtpPurpose, UserRole } from '@prisma/client';
-import { TwilioService } from '../twilio/twilio.service';
-import { MailService } from '../mail/mail.service';
+import { TwilioService } from '../../common/twilio/twilio.service';
+import { MailService } from '../../common/mail/mail.service';
 import { SigninDto } from './dto/signin.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import type { CurrentUserPayload } from '../../common/auth/current-user.decorator';
+import type { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 
 @Injectable()
 export class AuthService {
@@ -286,12 +286,12 @@ export class AuthService {
     const payload = { sub: userId, role };
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-        expiresIn: (this.configService.get<string>('JWT_ACCESS_EXPIRATION') || '15m') as any,
+        secret: this.configService.get<string>('JWT_SECRET'),
+        expiresIn: (this.configService.get<string>('ACCESS_TOKEN_EXPIRES_IN') || '15m') as any,
       }),
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-        expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRATION') || '7d') as any,
+        secret: this.configService.get<string>('JWT_SECRET'),
+        expiresIn: (this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN') || '30d') as any,
       }),
     ]);
 

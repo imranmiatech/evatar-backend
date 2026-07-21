@@ -4,8 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import type { CurrentUserPayload } from '../../common/auth/current-user.decorator';
+import { PrismaService } from '../../../prisma/prisma.service';
+import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
 import {
   AddRecipeToScheduleDto,
   CreateInventoryItemDto,

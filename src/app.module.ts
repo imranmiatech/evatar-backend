@@ -4,10 +4,13 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { MailModule } from './modules/mail/mail.module';
-import { TwilioModule } from './modules/twilio/twilio.module';
-import { todayModule } from './modules/today/today.module';
-import { KitchanModule } from './modules/kitchan/kitchan.module';
+import { MailModule } from './common/mail/mail.module';
+import { TwilioModule } from './common/twilio/twilio.module';
+import { StorageModule } from './common/storage/storage.module';
+import { JwtAuthModule } from './common/configs/jwt-auth.module';
+import { ParentModule } from './modules/parent/parent.module';
+import { NanyModule } from './modules/nany/nany.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -16,8 +19,11 @@ import { KitchanModule } from './modules/kitchan/kitchan.module';
     AuthModule,
     MailModule,
     TwilioModule,
-    todayModule,
-    KitchanModule,
+    StorageModule,
+    JwtAuthModule,
+    ParentModule,
+    NanyModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
