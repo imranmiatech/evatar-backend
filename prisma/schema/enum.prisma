@@ -214,3 +214,21 @@ enum ItemUnit {
   PACK
   OTHER
 }
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentGateway {
+  STRIPE
+  SSLCOMMERZ
+  BKASH
+  NAGAD
+  CASH
+  OTHER
+}
+

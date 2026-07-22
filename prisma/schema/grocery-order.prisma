@@ -24,6 +24,7 @@ model GroceryOrder {
   updatedAt DateTime @updatedAt
 
   items GroceryOrderItem[]
+  transactions Transaction[]
 
   @@map("grocery_orders")
 }
