@@ -64,7 +64,7 @@ enum MediaType {
     VIDEO
 }
 
-enum KitchenInventoryStatus {
+enum KitchenInventoryItemStatus {
     MISSING
     LOW
     IN_STOCK
@@ -73,10 +73,11 @@ enum KitchenInventoryStatus {
 enum KitchenItemCategory {
     PRODUCE
     DAIRY
+    BAKERY
     PANTRY
-    PROTEIN
-    BABY_FOOD
-    SNACK
+    BABY
+    FRUIT
+    MEAT
     OTHER
 }
 

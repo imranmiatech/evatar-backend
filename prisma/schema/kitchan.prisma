@@ -20,27 +20,26 @@ model KitchenAccess {
 }
 
 model KitchenInventoryItem {
-  id                  String                 @id @default(cuid())
+  id                  String                     @id @default(cuid())
   childId             String
-  child               Child                  @relation(fields: [childId], references: [id], onDelete: Cascade)
+  child               Child                      @relation(fields: [childId], references: [id], onDelete: Cascade)
   parentUserId        String
-  parentUser          User                   @relation("KitchenInventoryParent", fields: [parentUserId], references: [id], onDelete: Cascade)
+  parentUser          User                       @relation("KitchenInventoryParent", fields: [parentUserId], references: [id], onDelete: Cascade)
   createdByUserId     String
-  createdByUser       User                   @relation("KitchenInventoryCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  createdByUser       User                       @relation("KitchenInventoryCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
   lastUpdatedByUserId String?
-  lastUpdatedByUser   User?                  @relation("KitchenInventoryUpdatedBy", fields: [lastUpdatedByUserId], references: [id], onDelete: SetNull)
+  lastUpdatedByUser   User?                      @relation("KitchenInventoryUpdatedBy", fields: [lastUpdatedByUserId], references: [id], onDelete: SetNull)
   name                String
   unit                String?
   quantity            Float?
-  category            KitchenItemCategory    @default(OTHER)
-  status              KitchenInventoryStatus @default(IN_STOCK)
-  currentStockPercent Int                    @default(100)
-  thresholdPercent    Int                    @default(25)
+  category            KitchenItemCategory        @default(OTHER)
+  status              KitchenInventoryItemStatus @default(IN_STOCK)
+  currentStockPercent Int                        @default(100)
   expiryDate          DateTime?
   lastStockedAt       DateTime?
   notes               String?
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime               @updatedAt
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
 
   shoppingListItems ShoppingListItem[]
 
