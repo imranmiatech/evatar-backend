@@ -16,15 +16,15 @@ model Child {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  dayPlans   DayPlan[]
-  nannyLinks NannyChildLink[]
-  kitchenAccesses KitchenAccess[]
+  dayPlans              DayPlan[]
+  nannyLinks            NannyChildLink[]
+  kitchenAccesses       KitchenAccess[]
   kitchenInventoryItems KitchenInventoryItem[]
-  shoppingLists ShoppingList[]
-  shoppingVouchers ShoppingVoucher[]
-  groceryOrders GroceryOrder[]
-  kitchenSchedules KitchenSchedule[]
-  kitchenAuditLogs KitchenAuditLog[]
+  shoppingLists         ShoppingList[]
+  shoppingVouchers      ShoppingVoucher[]
+  groceryOrders         GroceryOrder[]
+  kitchenSchedules      KitchenSchedule[]
+  kitchenAuditLogs      KitchenAuditLog[]
 
   @@index([parentUserId])
 }
@@ -80,9 +80,9 @@ model DayActivity {
   nannyNote    String?
   parentNote   String?
   proofMediaId String?
-  imageUrl      String?
-  detail        Json?
-  templateId    String?
+  imageUrl     String?
+  detail       Json?
+  templateId   String?
   sortOrder    Int            @default(0)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt

@@ -12,11 +12,11 @@ model SupportTicket {
 }
 
 model TicketMessage {
-  id        String        @id @default(cuid())
-  ticketId  String
-  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  senderId  String
-  sender    User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  id             String        @id @default(cuid())
+  ticketId       String
+  ticket         SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
   message        String?
   attachmentUrl  String?
   attachmentType String?

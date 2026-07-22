@@ -1,134 +1,134 @@
 enum UserRole {
-    NANNY
-    PARENT
-    PARTNER
-    ADMIN
+  NANNY
+  PARENT
+  PARTNER
+  ADMIN
 }
 
 enum VerificationStatus {
-    PENDING
-    DOCUMENTS_SUBMITTED
-    UNDER_REVIEW
-    APPROVED
-    REJECTED
+  PENDING
+  DOCUMENTS_SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
 }
 
 enum DocumentType {
-    PASSPORT
-    NID_FRONT
-    NID_BACK
-    SELFIE
+  PASSPORT
+  NID_FRONT
+  NID_BACK
+  SELFIE
 }
 
 enum OtpPurpose {
-    SIGNUP_VERIFICATION
-    LOGIN
-    PASSWORD_RESET
+  SIGNUP_VERIFICATION
+  LOGIN
+  PASSWORD_RESET
 }
 
 enum MembershipPlan {
-    TWO_CHILD
-    FOUR_CHILD
-    TEN_CHILD
-    TRIAL
+  TWO_CHILD
+  FOUR_CHILD
+  TEN_CHILD
+  TRIAL
 }
 
 enum ChildGender {
-    BOY
-    GIRL
-    OTHER
+  BOY
+  GIRL
+  OTHER
 }
 
 enum DayPlanBuildMode {
-    GUIDED
-    MANUAL
+  GUIDED
+  MANUAL
 }
 
 enum DayPlanStatus {
-    DRAFT
-    AI_PENDING
-    READY
-    ARCHIVED
+  DRAFT
+  AI_PENDING
+  READY
+  ARCHIVED
 }
 
 enum ActivityStatus {
-    PLANNED
-    IN_PROGRESS
-    COMPLETED
-    SKIPPED
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
 }
 
 enum MediaType {
-    IMAGE
-    AUDIO
-    VIDEO
+  IMAGE
+  AUDIO
+  VIDEO
 }
 
 enum KitchenInventoryStatus {
-    MISSING
-    LOW
-    IN_STOCK
+  MISSING
+  LOW
+  IN_STOCK
 }
 
 enum KitchenItemCategory {
-    PRODUCE
-    DAIRY
-    PANTRY
-    PROTEIN
-    BABY_FOOD
-    SNACK
-    OTHER
+  PRODUCE
+  DAIRY
+  PANTRY
+  PROTEIN
+  BABY_FOOD
+  SNACK
+  OTHER
 }
 
 enum RecipeMealType {
-    BREAKFAST
-    LUNCH
-    DINNER
-    SNACK
-    OTHER
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+  OTHER
 }
 
 enum ShoppingListItemStatus {
-    NEEDED
-    OPTIONAL
-    ADDED_TO_VOUCHER
-    ORDERED
-    FULFILLED
-    REMOVED
+  NEEDED
+  OPTIONAL
+  ADDED_TO_VOUCHER
+  ORDERED
+  FULFILLED
+  REMOVED
 }
 
 enum ShoppingVoucherStatus {
-    DRAFT
-    SENT_TO_PARENT
-    SENT_TO_STORE
-    APPROVED
-    CANCELLED
-    EXPIRED
+  DRAFT
+  SENT_TO_PARENT
+  SENT_TO_STORE
+  APPROVED
+  CANCELLED
+  EXPIRED
 }
 
 enum GroceryOrderStatus {
-    VOUCHER_SENT
-    STORE_REVIEWING
-    STORE_REVIEWED
-    ORDER_CONFIRMED
-    OUT_FOR_DELIVERY
-    DELIVERED
-    CANCELLED
+  VOUCHER_SENT
+  STORE_REVIEWING
+  STORE_REVIEWED
+  ORDER_CONFIRMED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
 }
 
 enum PaymentMethodType {
-    CARD
-    CASH_ON_DELIVERY
-    ONLINE
+  CARD
+  CASH_ON_DELIVERY
+  ONLINE
 }
 
 enum PaymentMethodStatus {
-    ACTIVE
-    ARCHIVED
+  ACTIVE
+  ARCHIVED
 }
 
 enum SupportTicketStatus {
-    PENDING
-    REPLIED
-    RESOLVED
+  PENDING
+  REPLIED
+  RESOLVED
 }
