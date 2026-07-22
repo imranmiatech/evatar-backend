@@ -19,10 +19,8 @@ model KitchenAccess {
   @@index([childId])
 }
 
-model KitchenInventoryItem {
+model KitchenItem {
   id                  String                     @id @default(cuid())
-  childId             String
-  child               Child                      @relation(fields: [childId], references: [id], onDelete: Cascade)
   parentUserId        String
   parentUser          User                       @relation("KitchenInventoryParent", fields: [parentUserId], references: [id], onDelete: Cascade)
   createdByUserId     String
@@ -41,11 +39,12 @@ model KitchenInventoryItem {
   createdAt           DateTime                   @default(now())
   updatedAt           DateTime                   @updatedAt
 
+  // Back Relations
   shoppingListItems ShoppingListItem[]
 
-  @@index([childId, status])
   @@index([parentUserId])
   @@index([createdByUserId])
+  @@map("kitchen_items")
 }
 
 model ShoppingList {
@@ -73,7 +72,7 @@ model ShoppingListItem {
   shoppingListId  String
   shoppingList    ShoppingList           @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
   inventoryItemId String?
-  inventoryItem   KitchenInventoryItem?  @relation(fields: [inventoryItemId], references: [id], onDelete: SetNull)
+  inventoryItem   KitchenItem?           @relation(fields: [inventoryItemId], references: [id], onDelete: SetNull)
   recipeId        String?
   recipe          Recipe?                @relation(fields: [recipeId], references: [id], onDelete: SetNull)
   name            String
@@ -184,7 +183,6 @@ model GroceryOrder {
   @@index([childId, status])
   @@index([parentUserId])
 }
-
 model GroceryOrderItem {
   id         String       @id @default(cuid())
   orderId    String

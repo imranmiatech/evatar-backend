@@ -31,9 +31,10 @@ model User {
   mediaAssets              MediaAsset[]              @relation("UserMediaAssets")
   kitchenAccessAsParent    KitchenAccess[]           @relation("KitchenAccessParent")
   kitchenAccessAsNanny     KitchenAccess[]           @relation("KitchenAccessNanny")
-  kitchenInventoryAsParent KitchenInventoryItem[]    @relation("KitchenInventoryParent")
-  kitchenInventoryCreated  KitchenInventoryItem[]    @relation("KitchenInventoryCreatedBy")
-  kitchenInventoryUpdated  KitchenInventoryItem[]    @relation("KitchenInventoryUpdatedBy")
+  kitchenInventoryAsParent KitchenItem[]             @relation("KitchenInventoryParent")
+  kitchenInventoryCreated  KitchenItem[]             @relation("KitchenInventoryCreatedBy")
+  kitchenInventoryUpdated  KitchenItem[]             @relation("KitchenInventoryUpdatedBy")
+
   shoppingListsAsParent    ShoppingList[]            @relation("ShoppingListParent")
   shoppingListsCreated     ShoppingList[]            @relation("ShoppingListCreatedBy")
   shoppingVouchersAsParent ShoppingVoucher[]         @relation("ShoppingVoucherParent")

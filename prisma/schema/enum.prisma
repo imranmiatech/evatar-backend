@@ -70,6 +70,7 @@ enum KitchenInventoryItemStatus {
     IN_STOCK
 }
 
+
 enum KitchenItemCategory {
     PRODUCE
     DAIRY
@@ -78,6 +79,9 @@ enum KitchenItemCategory {
     BABY
     FRUIT
     MEAT
+    PROTEIN
+    BABY_FOOD
+    SNACK
     OTHER
 }
 
@@ -87,6 +91,7 @@ enum RecipeMealType {
     DINNER
     SNACK
     FAMILY
+    OTHER
 }
 
 enum ActivityType {

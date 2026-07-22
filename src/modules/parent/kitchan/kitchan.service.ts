@@ -24,13 +24,12 @@ export class KitchanService {
   async listRecipes(mealType?: string, category?: string) {
     return this.prisma.recipe.findMany({
       where: {
-        isPublished: true,
-        mealType: mealType as any,
-        category: category || undefined,
+        isActive: true,
+        recipeMealType: mealType as any,
       },
       include: {
-        ingredients: { orderBy: { sortOrder: 'asc' } },
-        steps: { orderBy: { sortOrder: 'asc' } },
+        ingredients: { orderBy: { name: 'asc' } },
+        steps: { orderBy: { stepNumber: 'asc' } },
       },
       orderBy: { title: 'asc' },
     });
@@ -40,8 +39,8 @@ export class KitchanService {
     return this.prisma.recipe.findUniqueOrThrow({
       where: { id: recipeId },
       include: {
-        ingredients: { orderBy: { sortOrder: 'asc' } },
-        steps: { orderBy: { sortOrder: 'asc' } },
+        ingredients: { orderBy: { name: 'asc' } },
+        steps: { orderBy: { stepNumber: 'asc' } },
       },
     });
   }
@@ -53,8 +52,12 @@ export class KitchanService {
   ) {
     await this.ensureCanAccessChild(user, childId);
     const recipe = await this.getRecipe(recipeId);
-    const inventory = await this.prisma.kitchenInventoryItem.findMany({
-      where: { childId },
+    const child = await this.prisma.child.findUniqueOrThrow({
+      where: { id: childId },
+      select: { parentUserId: true },
+    });
+    const inventory = await this.prisma.kitchenItem.findMany({
+      where: { parentUserId: child.parentUserId },
     });
 
     const inventoryByName = new Map(
@@ -63,9 +66,11 @@ export class KitchanService {
 
     const missingIngredients = recipe.ingredients.filter((ingredient) => {
       if (ingredient.isOptional) return false;
-      const key = (ingredient.inventoryName || ingredient.name).toLowerCase();
+      const key = ingredient.name.toLowerCase();
       const item = inventoryByName.get(key);
-      return !item || item.status === 'MISSING' || item.currentStockPercent <= item.thresholdPercent;
+      return (
+        !item || item.status === 'MISSING' || item.currentStockPercent <= 25
+      );
     });
 
     return {
@@ -90,19 +95,29 @@ export class KitchanService {
           data: {
             shoppingListId: list.id,
             recipeId,
-            name: ingredient.inventoryName || ingredient.name,
-            unit: ingredient.unit,
-            quantity: ingredient.quantity,
+            name: ingredient.name,
+            unit: undefined,
+            quantity: undefined,
             category: this.inferCategory(ingredient.name) as any,
             status: 'NEEDED',
-            note: ingredient.allergenWarning,
+            note: ingredient.substitute
+              ? `Substitute: ${ingredient.substitute}`
+              : undefined,
             sortOrder: index,
           } as any,
         }),
       ),
     );
 
-    await this.audit(user, childId, 'ADD_MISSING_INGREDIENTS', 'Recipe', recipeId, null, created);
+    await this.audit(
+      user,
+      childId,
+      'ADD_MISSING_INGREDIENTS',
+      'Recipe',
+      recipeId,
+      null,
+      created,
+    );
 
     return {
       shoppingList: list,
@@ -118,21 +133,26 @@ export class KitchanService {
     const child = await this.ensureCanAccessChild(user, dto.childId);
     const recipe = await this.getRecipe(recipeId);
     const date = this.toDayDate(dto.date);
-    const mealType = (dto.mealType || recipe.mealType || 'OTHER') as any;
+    const mealType = (dto.mealType || recipe.recipeMealType || 'OTHER') as any;
 
-    const dayPlan = await this.ensureDayPlan(child.id, child.parentUserId, user.userId, date);
+    const dayPlan = await this.ensureDayPlan(
+      child.id,
+      child.parentUserId,
+      user.userId,
+      date,
+    );
     const activity = await this.prisma.dayActivity.create({
       data: {
         dayPlanId: dayPlan.id,
         category: mealType,
         title: recipe.title,
-        description: dto.notes || recipe.description,
+        description: dto.notes || recipe.safetyNotes,
         startTime: dto.startTime ? new Date(dto.startTime) : undefined,
         endTime: dto.endTime ? new Date(dto.endTime) : undefined,
         status: 'PLANNED',
         imageUrl: recipe.imageUrl,
         detail: {
-          nutrition: recipe.nutrition,
+          nutritionalFocus: recipe.nutritionalFocus,
           safetyNotes: recipe.safetyNotes,
           ingredients: recipe.ingredients,
           steps: recipe.steps,
@@ -156,19 +176,31 @@ export class KitchanService {
       } as any,
     });
 
-    await this.audit(user, child.id, 'ADD_RECIPE_TO_SCHEDULE', 'Recipe', recipeId, null, {
-      schedule,
-      activity,
-    });
+    await this.audit(
+      user,
+      child.id,
+      'ADD_RECIPE_TO_SCHEDULE',
+      'Recipe',
+      recipeId,
+      null,
+      {
+        schedule,
+        activity,
+      },
+    );
 
     return { schedule, dayActivity: activity };
   }
 
-  async listInventory(user: CurrentUserPayload, childId: string, status?: string) {
-    await this.ensureCanAccessChild(user, childId);
-    return this.prisma.kitchenInventoryItem.findMany({
+  async listInventory(
+    user: CurrentUserPayload,
+    childId: string,
+    status?: string,
+  ) {
+    const child = await this.ensureCanAccessChild(user, childId);
+    return this.prisma.kitchenItem.findMany({
       where: {
-        childId,
+        parentUserId: child.parentUserId,
         status: status as any,
       },
       orderBy: [{ status: 'asc' }, { name: 'asc' }],
@@ -176,10 +208,13 @@ export class KitchanService {
   }
 
   async createInventory(user: CurrentUserPayload, dto: CreateInventoryItemDto) {
-    const child = await this.ensureCanAccessChild(user, dto.childId, 'canManageInventory');
-    const item = await this.prisma.kitchenInventoryItem.create({
+    const child = await this.ensureCanAccessChild(
+      user,
+      dto.childId,
+      'canManageInventory',
+    );
+    const item = await this.prisma.kitchenItem.create({
       data: {
-        childId: child.id,
         parentUserId: child.parentUserId,
         createdByUserId: user.userId,
         lastUpdatedByUserId: user.userId,
@@ -187,16 +222,24 @@ export class KitchanService {
         unit: dto.unit,
         quantity: dto.quantity,
         category: (dto.category || 'OTHER') as any,
-        status: (dto.status || this.statusFromPercent(dto.currentStockPercent)) as any,
+        status: (dto.status ||
+          this.statusFromPercent(dto.currentStockPercent)) as any,
         currentStockPercent: dto.currentStockPercent ?? 100,
-        thresholdPercent: dto.thresholdPercent ?? 25,
         expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : undefined,
         lastStockedAt: new Date(),
         notes: dto.notes,
       } as any,
     });
 
-    await this.audit(user, child.id, 'CREATE_INVENTORY_ITEM', 'KitchenInventoryItem', item.id, null, item);
+    await this.audit(
+      user,
+      child.id,
+      'CREATE_INVENTORY_ITEM',
+      'KitchenInventoryItem',
+      item.id,
+      null,
+      item,
+    );
     return item;
   }
 
@@ -205,48 +248,63 @@ export class KitchanService {
     itemId: string,
     dto: UpdateInventoryItemDto,
   ) {
-    const existing = await this.prisma.kitchenInventoryItem.findUniqueOrThrow({
+    const existing = await this.prisma.kitchenItem.findUniqueOrThrow({
       where: { id: itemId },
     });
-    await this.ensureCanAccessChild(user, existing.childId, 'canManageInventory');
+    this.ensureCanManageInventoryItem(user, existing);
 
-    const updated = await this.prisma.kitchenInventoryItem.update({
+    const updated = await this.prisma.kitchenItem.update({
       where: { id: itemId },
       data: {
         name: dto.name,
         unit: dto.unit,
         quantity: dto.quantity,
         category: dto.category as any,
-        status: (dto.status || (dto.currentStockPercent !== undefined
-          ? this.statusFromPercent(dto.currentStockPercent)
-          : undefined)) as any,
+        status: (dto.status ||
+          (dto.currentStockPercent !== undefined
+            ? this.statusFromPercent(dto.currentStockPercent)
+            : undefined)) as any,
         currentStockPercent: dto.currentStockPercent,
-        thresholdPercent: dto.thresholdPercent,
         expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : undefined,
         notes: dto.notes,
         lastUpdatedByUserId: user.userId,
       },
     });
 
-    await this.audit(user, existing.childId, 'UPDATE_INVENTORY_ITEM', 'KitchenInventoryItem', itemId, existing, updated);
+    await this.audit(
+      user,
+      null,
+      'UPDATE_INVENTORY_ITEM',
+      'KitchenInventoryItem',
+      itemId,
+      existing,
+      updated,
+    );
     return updated;
   }
 
   async deleteInventory(user: CurrentUserPayload, itemId: string) {
-    const existing = await this.prisma.kitchenInventoryItem.findUniqueOrThrow({
+    const existing = await this.prisma.kitchenItem.findUniqueOrThrow({
       where: { id: itemId },
     });
-    const child = await this.ensureCanAccessChild(user, existing.childId, 'canManageInventory');
+    this.ensureCanManageInventoryItem(user, existing);
 
-    if (
-      user.role === 'NANNY' &&
-      existing.createdByUserId !== user.userId
-    ) {
-      throw new ForbiddenException('Nanny can only delete inventory items they added');
+    if (user.role === 'NANNY' && existing.createdByUserId !== user.userId) {
+      throw new ForbiddenException(
+        'Nanny can only delete inventory items they added',
+      );
     }
 
-    await this.prisma.kitchenInventoryItem.delete({ where: { id: itemId } });
-    await this.audit(user, child.id, 'DELETE_INVENTORY_ITEM', 'KitchenInventoryItem', itemId, existing, null);
+    await this.prisma.kitchenItem.delete({ where: { id: itemId } });
+    await this.audit(
+      user,
+      null,
+      'DELETE_INVENTORY_ITEM',
+      'KitchenInventoryItem',
+      itemId,
+      existing,
+      null,
+    );
     return { message: 'Inventory item deleted successfully' };
   }
 
@@ -272,7 +330,15 @@ export class KitchanService {
       } as any,
     });
 
-    await this.audit(user, dto.childId, 'ADD_SHOPPING_ITEM', 'ShoppingListItem', item.id, null, item);
+    await this.audit(
+      user,
+      dto.childId,
+      'ADD_SHOPPING_ITEM',
+      'ShoppingListItem',
+      item.id,
+      null,
+      item,
+    );
     return item;
   }
 
@@ -285,7 +351,11 @@ export class KitchanService {
       where: { id: itemId },
       include: { shoppingList: true },
     });
-    await this.ensureCanAccessChild(user, existing.shoppingList.childId, 'canCreateShoppingList');
+    await this.ensureCanAccessChild(
+      user,
+      existing.shoppingList.childId,
+      'canCreateShoppingList',
+    );
 
     const updated = await this.prisma.shoppingListItem.update({
       where: { id: itemId },
@@ -299,7 +369,15 @@ export class KitchanService {
       },
     });
 
-    await this.audit(user, existing.shoppingList.childId, 'UPDATE_SHOPPING_ITEM', 'ShoppingListItem', itemId, existing, updated);
+    await this.audit(
+      user,
+      existing.shoppingList.childId,
+      'UPDATE_SHOPPING_ITEM',
+      'ShoppingListItem',
+      itemId,
+      existing,
+      updated,
+    );
     return updated;
   }
 
@@ -308,9 +386,21 @@ export class KitchanService {
       where: { id: itemId },
       include: { shoppingList: true },
     });
-    await this.ensureCanAccessChild(user, existing.shoppingList.childId, 'canCreateShoppingList');
+    await this.ensureCanAccessChild(
+      user,
+      existing.shoppingList.childId,
+      'canCreateShoppingList',
+    );
     await this.prisma.shoppingListItem.delete({ where: { id: itemId } });
-    await this.audit(user, existing.shoppingList.childId, 'DELETE_SHOPPING_ITEM', 'ShoppingListItem', itemId, existing, null);
+    await this.audit(
+      user,
+      existing.shoppingList.childId,
+      'DELETE_SHOPPING_ITEM',
+      'ShoppingListItem',
+      itemId,
+      existing,
+      null,
+    );
     return { message: 'Shopping list item deleted successfully' };
   }
 
@@ -322,7 +412,11 @@ export class KitchanService {
   }
 
   async createVoucher(user: CurrentUserPayload, dto: CreateVoucherDto) {
-    const child = await this.ensureCanAccessChild(user, dto.childId, 'canSendVoucher');
+    const child = await this.ensureCanAccessChild(
+      user,
+      dto.childId,
+      'canSendVoucher',
+    );
     const shoppingList: any = dto.shoppingListId
       ? await this.prisma.shoppingList.findUniqueOrThrow({
           where: { id: dto.shoppingListId },
@@ -331,12 +425,17 @@ export class KitchanService {
       : await this.ensureActiveShoppingList(user, dto.childId);
 
     if (shoppingList.childId !== dto.childId) {
-      throw new BadRequestException('Shopping list does not belong to this child');
+      throw new BadRequestException(
+        'Shopping list does not belong to this child',
+      );
     }
 
-    const items = 'items' in shoppingList
-      ? shoppingList.items
-      : await this.prisma.shoppingListItem.findMany({ where: { shoppingListId: shoppingList.id } });
+    const items =
+      'items' in shoppingList
+        ? shoppingList.items
+        : await this.prisma.shoppingListItem.findMany({
+            where: { shoppingListId: shoppingList.id },
+          });
 
     return this.prisma.$transaction(async (tx) => {
       const voucher = await tx.shoppingVoucher.create({
@@ -426,7 +525,11 @@ export class KitchanService {
 
   async createOrderFromVoucher(user: CurrentUserPayload, voucherId: string) {
     const voucher = await this.getVoucher(user, voucherId);
-    const child = await this.ensureCanAccessChild(user, voucher.childId, 'canSendVoucher');
+    const child = await this.ensureCanAccessChild(
+      user,
+      voucher.childId,
+      'canSendVoucher',
+    );
 
     const existing = await this.prisma.groceryOrder.findUnique({
       where: { voucherId },
@@ -523,10 +626,7 @@ export class KitchanService {
     });
   }
 
-  async createStripeCheckoutSession(
-    user: CurrentUserPayload,
-    orderId: string,
-  ) {
+  async createStripeCheckoutSession(user: CurrentUserPayload, orderId: string) {
     this.ensureParentOrAdmin(user);
     const order = await this.getOrder(user, orderId);
     await this.ensureParentOwnsChild(user, order.childId);
@@ -536,10 +636,9 @@ export class KitchanService {
       throw new BadRequestException('STRIPE_SECRET_KEY is not configured');
     }
 
-    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5000').replace(
-      /\/$/,
-      '',
-    );
+    const frontendUrl = (
+      process.env.FRONTEND_URL || 'http://localhost:5000'
+    ).replace(/\/$/, '');
     const params = new URLSearchParams();
 
     params.set('mode', 'payment');
@@ -566,23 +665,32 @@ export class KitchanService {
         ];
 
     payableItems.forEach((item, index) => {
-      params.set(`line_items[${index}][quantity]`, String(Math.max(1, Math.ceil(item.quantity || 1))));
+      params.set(
+        `line_items[${index}][quantity]`,
+        String(Math.max(1, Math.ceil(item.quantity || 1))),
+      );
       params.set(`line_items[${index}][price_data][currency]`, 'usd');
       params.set(
         `line_items[${index}][price_data][unit_amount]`,
         String(Math.max(100, item.priceCents || 100)),
       );
-      params.set(`line_items[${index}][price_data][product_data][name]`, item.name);
+      params.set(
+        `line_items[${index}][price_data][product_data][name]`,
+        item.name,
+      );
     });
 
-    const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${stripeSecretKey}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
+    const response = await fetch(
+      'https://api.stripe.com/v1/checkout/sessions',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${stripeSecretKey}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params,
       },
-      body: params,
-    });
+    );
 
     const payload = await response.json();
     if (!response.ok) {
@@ -592,10 +700,18 @@ export class KitchanService {
       });
     }
 
-    await this.audit(user, order.childId, 'CREATE_STRIPE_CHECKOUT_SESSION', 'GroceryOrder', order.id, null, {
-      sessionId: payload.id,
-      url: payload.url,
-    });
+    await this.audit(
+      user,
+      order.childId,
+      'CREATE_STRIPE_CHECKOUT_SESSION',
+      'GroceryOrder',
+      order.id,
+      null,
+      {
+        sessionId: payload.id,
+        url: payload.url,
+      },
+    );
 
     return {
       sessionId: payload.id,
@@ -691,10 +807,14 @@ export class KitchanService {
     if (user.role === 'NANNY') {
       const access = await this.getKitchenAccess(user.userId, childId);
       if (!access) {
-        throw new ForbiddenException('Nanny is not assigned to this child kitchen');
+        throw new ForbiddenException(
+          'Nanny is not assigned to this child kitchen',
+        );
       }
       if (permission && !access[permission]) {
-        throw new ForbiddenException('Nanny does not have this kitchen permission');
+        throw new ForbiddenException(
+          'Nanny does not have this kitchen permission',
+        );
       }
       return access.child;
     }
@@ -702,7 +822,10 @@ export class KitchanService {
     throw new ForbiddenException('Invalid role for kitchen access');
   }
 
-  private async ensureParentOwnsChild(user: CurrentUserPayload, childId: string) {
+  private async ensureParentOwnsChild(
+    user: CurrentUserPayload,
+    childId: string,
+  ) {
     const child = await this.prisma.child.findFirst({
       where: {
         id: childId,
@@ -749,11 +872,30 @@ export class KitchanService {
     };
   }
 
+  private ensureCanManageInventoryItem(user: CurrentUserPayload, item: any) {
+    if (user.role === 'ADMIN') {
+      return;
+    }
+
+    if (
+      item.parentUserId === user.userId ||
+      item.createdByUserId === user.userId
+    ) {
+      return;
+    }
+
+    throw new ForbiddenException('You cannot manage this inventory item');
+  }
+
   private async ensureActiveShoppingList(
     user: CurrentUserPayload,
     childId: string,
   ) {
-    const child = await this.ensureCanAccessChild(user, childId, 'canCreateShoppingList');
+    const child = await this.ensureCanAccessChild(
+      user,
+      childId,
+      'canCreateShoppingList',
+    );
     const existing = await this.prisma.shoppingList.findFirst({
       where: { childId, isActive: true },
       include: { items: { orderBy: { sortOrder: 'asc' } } },
@@ -806,17 +948,32 @@ export class KitchanService {
   private inferCategory(name: string) {
     const lower = name.toLowerCase();
     if (lower.includes('milk') || lower.includes('yogurt')) return 'DAIRY';
-    if (lower.includes('fish') || lower.includes('salmon') || lower.includes('egg')) return 'PROTEIN';
-    if (lower.includes('banana') || lower.includes('berry') || lower.includes('spinach')) return 'PRODUCE';
+    if (
+      lower.includes('fish') ||
+      lower.includes('salmon') ||
+      lower.includes('egg')
+    )
+      return 'PROTEIN';
+    if (
+      lower.includes('banana') ||
+      lower.includes('berry') ||
+      lower.includes('spinach')
+    )
+      return 'PRODUCE';
     if (lower.includes('oat') || lower.includes('rice')) return 'PANTRY';
     return 'OTHER';
   }
 
   private toDayDate(date: string) {
     const parsed = new Date(date);
-    if (Number.isNaN(parsed.getTime())) throw new BadRequestException('Invalid date');
+    if (Number.isNaN(parsed.getTime()))
+      throw new BadRequestException('Invalid date');
     return new Date(
-      Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()),
+      Date.UTC(
+        parsed.getUTCFullYear(),
+        parsed.getUTCMonth(),
+        parsed.getUTCDate(),
+      ),
     );
   }
 

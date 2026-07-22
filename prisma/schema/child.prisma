@@ -6,6 +6,15 @@ model Child {
     avatar       String?
     gender       Gender?
     birthDate    DateTime?
+    //added by imran
+    weight       String?
+    allergies    String[] @default([])
+    favoriteThings String[] @default([])
+    dietaryNotes String? @db.Text
+    medicalNotes String? @db.Text
+    sleepRoutine String? @db.Text
+    personality String? @db.Text
+    
 
     // Typical Daily Cycle
     wakeUpTime String?
@@ -25,15 +34,14 @@ model Child {
     childSchedules      ChildSchedule[]
 
     // Back Relations
-    nannies               NannyChildLink[]
-    dayPlans              DayPlan[]
-    kitchenAccesses       KitchenAccess[]
-    kitchenInventoryItems KitchenInventoryItem[]
-    shoppingLists         ShoppingList[]
-    shoppingVouchers      ShoppingVoucher[]
-    groceryOrders         GroceryOrder[]
-    kitchenSchedules      KitchenSchedule[]
-    kitchenAuditLogs      KitchenAuditLog[]
+    nannies          NannyChildLink[]
+    dayPlans         DayPlan[]
+    kitchenAccesses  KitchenAccess[]
+    shoppingLists    ShoppingList[]
+    shoppingVouchers ShoppingVoucher[]
+    groceryOrders    GroceryOrder[]
+    kitchenSchedules KitchenSchedule[]
+    kitchenAuditLogs KitchenAuditLog[]
 
     @@index([parentUserId])
 }

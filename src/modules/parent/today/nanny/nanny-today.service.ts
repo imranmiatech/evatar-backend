@@ -72,8 +72,8 @@ export class NannyTodayService {
           include: {
             recipe: {
               include: {
-                ingredients: { orderBy: { sortOrder: 'asc' } },
-                steps: { orderBy: { sortOrder: 'asc' } },
+                ingredients: { orderBy: { name: 'asc' } },
+                steps: { orderBy: { stepNumber: 'asc' } },
               },
             },
           },
@@ -348,8 +348,8 @@ export class NannyTodayService {
       include: {
         recipe: {
           include: {
-            ingredients: { orderBy: { sortOrder: 'asc' } },
-            steps: { orderBy: { sortOrder: 'asc' } },
+            ingredients: { orderBy: { name: 'asc' } },
+            steps: { orderBy: { stepNumber: 'asc' } },
           },
         },
       },
