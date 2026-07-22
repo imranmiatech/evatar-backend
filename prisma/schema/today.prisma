@@ -1,3 +1,49 @@
+model Child {
+  id             String       @id @default(cuid())
+  parentUserId   String
+  parentUser     User         @relation("ParentChildren", fields: [parentUserId], references: [id], onDelete: Cascade)
+  name           String
+  weight         String?
+  birthDate      DateTime?
+  gender         ChildGender?
+  avatarUrl      String?
+  allergies      String[]     @default([])
+  dietaryNotes   String?
+  medicalNotes   String?
+  personality    String?
+  sleepRoutine   String?
+  favoriteThings String[]     @default([])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  dayPlans              DayPlan[]
+  childSchedules        ChildSchedule[]
+  nannyLinks            NannyChildLink[]
+  kitchenAccesses       KitchenAccess[]
+  kitchenInventoryItems KitchenInventoryItem[]
+  shoppingLists         ShoppingList[]
+  shoppingVouchers      ShoppingVoucher[]
+  groceryOrders         GroceryOrder[]
+  kitchenSchedules      KitchenSchedule[]
+  kitchenAuditLogs      KitchenAuditLog[]
+
+  @@index([parentUserId])
+}
+
+model NannyChildLink {
+  id             String   @id @default(cuid())
+  nannyUserId    String
+  nannyUser      User     @relation("NannyChildren", fields: [nannyUserId], references: [id], onDelete: Cascade)
+  childId        String
+  child          Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  canViewStory   Boolean  @default(true)
+  canUpdateProof Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  @@unique([nannyUserId, childId])
+  @@index([childId])
+}
+
 model DayPlan {
   id              String           @id @default(cuid())
   childId         String
@@ -35,9 +81,9 @@ model DayActivity {
   nannyNote    String?
   parentNote   String?
   proofMediaId String?
-  imageUrl      String?
-  detail        Json?
-  templateId    String?
+  imageUrl     String?
+  detail       Json?
+  templateId   String?
   sortOrder    Int            @default(0)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt

@@ -14,6 +14,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { UserModule } from './modules/user/user.module';
 import { SettingModule } from './modules/setting/setting.module';
 import { SupportModule } from './modules/support/support.module';
+import { MessageModule } from './modules/message/message.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { SupportModule } from './modules/support/support.module';
     UserModule,
     SettingModule,
     SupportModule,
+    MessageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

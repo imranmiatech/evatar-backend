@@ -19,6 +19,65 @@ model KitchenAccess {
   @@index([childId])
 }
 
+model Recipe {
+  id              String         @id @default(cuid())
+  slug            String         @unique
+  title           String
+  category        String
+  mealType        RecipeMealType @default(OTHER)
+  description     String
+  imageUrl        String?
+  prepTimeMinutes Int?
+  cookTimeMinutes Int?
+  servings        Int?
+  minAgeMonths    Int?
+  maxAgeMonths    Int?
+  tags            String[]       @default([])
+  nutrition       Json?
+  safetyNotes     String[]       @default([])
+  isPublished     Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  ingredients       RecipeIngredient[]
+  steps             RecipeStep[]
+  childSchedules    ChildSchedule[]
+  schedules         KitchenSchedule[]
+  shoppingListItems ShoppingListItem[]
+  voucherItems      ShoppingVoucherItem[]
+  orderItems        GroceryOrderItem[]
+
+  @@index([mealType])
+  @@index([category])
+  @@index([isPublished])
+}
+
+model RecipeIngredient {
+  id              String  @id @default(cuid())
+  recipeId        String
+  recipe          Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  name            String
+  quantity        Float?
+  unit            String?
+  isOptional      Boolean @default(false)
+  inventoryName   String?
+  allergenWarning String?
+  sortOrder       Int     @default(0)
+
+  @@index([recipeId, sortOrder])
+}
+
+model RecipeStep {
+  id        String  @id @default(cuid())
+  recipeId  String
+  recipe    Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  title     String?
+  body      String
+  sortOrder Int     @default(0)
+
+  @@index([recipeId, sortOrder])
+}
+
 model KitchenInventoryItem {
   id                  String                 @id @default(cuid())
   childId             String
