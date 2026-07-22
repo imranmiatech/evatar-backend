@@ -90,8 +90,19 @@ enum RecipeMealType {
 }
 
 enum ActivityType {
-    INDOOR
-    OUTDOOR
+    STORY_TIME
+    CREATIVE_PLAY
+    LEARNING_DEVELOPMENT
+    OUTDOOR_PLAY
+    MUSIC
+    ART
+    OTHER
+}
+
+enum KitchenInventoryStatus {
+    MISSING
+    LOW
+    IN_STOCK
 }
 
 enum ShoppingListItemStatus {

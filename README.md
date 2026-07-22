@@ -57,6 +57,65 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Cloudinary Uploads
+
+Support attachments and profile images are uploaded through `CloudinaryService`.
+The application requires these environment variables:
+
+```bash
+CLOUD_NAME=
+CLOUD_API_KEY=
+CLOUD_API_SECRET=
+```
+
+If `/api/v1/support/upload` fails with:
+
+```text
+Cloudinary Upload Error: Server returned unexpected status code - 403
+InternalServerErrorException: Failed to upload file to Cloudinary
+```
+
+check these items first:
+
+- Confirm the cloud name, API key, and API secret were copied from the same Cloudinary account.
+- Rotate the API secret if it has been committed, shared in logs, or used in local test files.
+- Confirm the Cloudinary account is active and API uploads are allowed.
+- If `cloudinary.api.ping()` succeeds but a signed upload still returns `403`, check Cloudinary account upload restrictions, API key permissions, billing/account state, or contact Cloudinary support.
+- A raw Cloudinary response like `Request forbidden due to missing permissions (actions=["create"])` means the selected product environment/API key does not have permission to create assets.
+- Restart the Nest process after changing `.env`; values are read when `CloudinaryService` starts.
+- Run a signed upload test with the same environment values to isolate Cloudinary auth from the Nest endpoint.
+
+The Cloudinary provider intentionally does not log API keys or API secrets. Startup only logs the configured cloud name.
+
+## Messages
+
+Parent, nanny, and family member chat is handled by the separate `MessageModule`.
+
+REST endpoints:
+
+- `GET /api/v1/messages/contacts`
+- `GET /api/v1/messages/conversations`
+- `POST /api/v1/messages/conversations`
+- `GET /api/v1/messages/conversations/:conversationId/messages`
+- `POST /api/v1/messages/conversations/:conversationId/messages`
+- `PATCH /api/v1/messages/conversations/:conversationId/read`
+
+Use `POST /api/v1/messages/conversations/:conversationId/messages` as the primary send endpoint. It accepts JSON for text-only messages and `multipart/form-data` for text with image/file:
+
+- `message`: optional text
+- `file`: optional image/file, up to 10MB
+
+Allowed attachment types include common images, PDF, text, DOC, and DOCX.
+
+Socket.IO namespace: `/messages`
+
+Events:
+
+- `joinUser` with `{ "userId": "..." }`
+- `joinConversation` with `{ "conversationId": "...", "userId": "..." }`
+- `sendMessage` with `{ "conversationId": "...", "senderId": "...", "message": "..." }`
+- listen for `receiveMessage`
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.

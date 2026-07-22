@@ -35,9 +35,9 @@ model DayActivity {
   nannyNote    String?
   parentNote   String?
   proofMediaId String?
-  imageUrl      String?
-  detail        Json?
-  templateId    String?
+  imageUrl     String?
+  detail       Json?
+  templateId   String?
   sortOrder    Int            @default(0)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -45,8 +45,6 @@ model DayActivity {
   @@index([dayPlanId, sortOrder])
   @@index([status])
 }
-
-
 
 model BedtimeStory {
   id               String   @id @default(cuid())
