@@ -1,0 +1,24 @@
+model KitchenItem {
+  id                  String                     @id @default(cuid())
+  userId              String
+  user                User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdByUserId     String
+  createdByUser       User                       @relation("KitchenInventoryCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  lastUpdatedByUserId String?
+  lastUpdatedByUser   User?                      @relation("KitchenInventoryUpdatedBy", fields: [lastUpdatedByUserId], references: [id], onDelete: SetNull)
+  name                String
+  unit                String?
+  quantity            Float?
+  category            KitchenItemCategory        @default(OTHER)
+  status              KitchenInventoryItemStatus @default(IN_STOCK)
+  currentStockPercent Int                        @default(100)
+  expiryDate          DateTime?
+  lastStockedAt       DateTime?
+  notes               String?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+
+  @@index([userId])
+  @@index([createdByUserId])
+  @@map("kitchen_items")
+}

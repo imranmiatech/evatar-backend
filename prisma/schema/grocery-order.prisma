@@ -1,0 +1,47 @@
+model GroceryOrder {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  orderId String?            @unique
+  status  GroceryOrderStatus @default(VOUCHER_SENT)
+
+  finalNote        String?
+  rewardCouponCode String?
+
+  subtotal       Float @default(0)
+  onlineDiscount Float @default(0)
+  deliveryFee    Float @default(0)
+  total          Float @default(0)
+
+  paymentType   PaymentMethodType?
+  transactionId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items GroceryOrderItem[]
+
+  @@map("grocery_orders")
+}
+
+model GroceryOrderItem {
+  id             String       @id @default(cuid())
+  groceryOrderId String
+  groceryOrder   GroceryOrder @relation(fields: [groceryOrderId], references: [id], onDelete: Cascade)
+
+  name     String
+  unit     ItemUnit
+  quantity String
+  category KitchenItemCategory
+  note     String?
+  price    Float               @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("grocery_order_items")
+}
