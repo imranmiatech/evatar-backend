@@ -1,5 +1,5 @@
 model ChildSchedule {
-  id      String @id @default(cuid())
+  id      String @id @default(uuid())
   childId String
   child   Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
   userId  String

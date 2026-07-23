@@ -1,15 +1,15 @@
 model ParentProfile {
-  id             String           @id @default(cuid())
-  userId         String           @unique
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  relationship   RelationshipType
-  address        String
-  street         String
-  postalCode     String
-  city           String
-  state          String
-  country        String?
-  membershipPlan MembershipPlan?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+    id             String           @id @default(uuid())
+    userId         String           @unique
+    user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+    relationship   RelationshipType
+    address        String
+    street         String
+    postalCode     String
+    city           String
+    state          String
+    country        String?
+    membershipPlan MembershipPlan?
+    createdAt      DateTime         @default(now())
+    updatedAt      DateTime         @updatedAt
 }

@@ -1,5 +1,5 @@
 model DayPlan {
-  id              String           @id @default(cuid())
+  id              String           @id @default(uuid())
   childId         String
   child           Child            @relation(fields: [childId], references: [id], onDelete: Cascade)
   date            DateTime
@@ -23,7 +23,7 @@ model DayPlan {
 }
 
 model DayActivity {
-  id           String         @id @default(cuid())
+  id           String         @id @default(uuid())
   dayPlanId    String
   dayPlan      DayPlan        @relation(fields: [dayPlanId], references: [id], onDelete: Cascade)
   category     String
@@ -47,7 +47,7 @@ model DayActivity {
 }
 
 model BedtimeStory {
-  id               String   @id @default(cuid())
+  id               String   @id @default(uuid())
   dayPlanId        String   @unique
   dayPlan          DayPlan  @relation(fields: [dayPlanId], references: [id], onDelete: Cascade)
   title            String
@@ -64,7 +64,7 @@ model BedtimeStory {
 }
 
 model MediaAsset {
-  id          String    @id @default(cuid())
+  id          String    @id @default(uuid())
   ownerUserId String
   ownerUser   User      @relation("UserMediaAssets", fields: [ownerUserId], references: [id], onDelete: Cascade)
   type        MediaType
@@ -79,7 +79,7 @@ model MediaAsset {
 }
 
 model NannyProfile {
-  id                 String   @id @default(cuid())
+  id                 String   @id @default(uuid())
   userId             String   @unique
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   headline           String?

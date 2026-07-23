@@ -20,7 +20,7 @@ export class ChildService {
 
     return {
       message: 'Child added successfully',
-      child,
+      data: child,
     };
   }
 
@@ -32,7 +32,7 @@ export class ChildService {
 
     return {
       message: 'Children fetched successfully',
-      children,
+      data: children,
     };
   }
 
@@ -51,7 +51,7 @@ export class ChildService {
 
     return {
       message: 'Child fetched successfully',
-      child,
+      data: child,
     };
   }
 
@@ -85,7 +85,7 @@ export class ChildService {
 
     return {
       message: 'Child updated successfully',
-      child: updated,
+      data: updated,
     };
   }
 

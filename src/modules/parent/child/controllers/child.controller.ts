@@ -20,13 +20,17 @@ import type { CurrentUserPayload } from '../../../../common/decorators/current-u
 import { ChildService } from '../services/child.service';
 import { AddChildDto } from '../dto/add-child.dto';
 import { UpdateChildDto } from '../dto/update-child.dto';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { UserRole } from '@prisma/client';
 
 @ApiTags('Parent > Children')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.PARENT)
 @Controller('parent/children')
 export class ChildController {
-  constructor(private readonly childService: ChildService) {}
+  constructor(private readonly childService: ChildService) { }
 
   @Post()
   @ApiOperation({ summary: 'Add a new child for the logged-in parent' })
