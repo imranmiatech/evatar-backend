@@ -6,6 +6,7 @@ model Child {
   avatar       String?
   gender       Gender?
   birthDate    DateTime?
+  weight       String?
 
   // Typical Daily Cycle
   wakeUpTime String?

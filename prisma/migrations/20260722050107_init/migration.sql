@@ -29,13 +29,19 @@ CREATE TYPE "ActivityStatus" AS ENUM ('PLANNED', 'IN_PROGRESS', 'COMPLETED', 'SK
 CREATE TYPE "MediaType" AS ENUM ('IMAGE', 'AUDIO', 'VIDEO');
 
 -- CreateEnum
+CREATE TYPE "KitchenInventoryItemStatus" AS ENUM ('MISSING', 'LOW', 'IN_STOCK');
+
+-- CreateEnum
+CREATE TYPE "KitchenItemCategory" AS ENUM ('PRODUCE', 'DAIRY', 'BAKERY', 'PANTRY', 'BABY', 'FRUIT', 'MEAT', 'PROTEIN', 'BABY_FOOD', 'SNACK', 'OTHER');
+
+-- CreateEnum
+CREATE TYPE "RecipeMealType" AS ENUM ('BREAKFAST', 'LUNCH', 'DINNER', 'SNACK', 'FAMILY', 'OTHER');
+
+-- CreateEnum
+CREATE TYPE "ActivityType" AS ENUM ('STORY_TIME', 'CREATIVE_PLAY', 'LEARNING_DEVELOPMENT', 'OUTDOOR_PLAY', 'MUSIC', 'ART', 'OTHER');
+
+-- CreateEnum
 CREATE TYPE "KitchenInventoryStatus" AS ENUM ('MISSING', 'LOW', 'IN_STOCK');
-
--- CreateEnum
-CREATE TYPE "KitchenItemCategory" AS ENUM ('PRODUCE', 'DAIRY', 'PANTRY', 'PROTEIN', 'BABY_FOOD', 'SNACK', 'OTHER');
-
--- CreateEnum
-CREATE TYPE "RecipeMealType" AS ENUM ('BREAKFAST', 'LUNCH', 'DINNER', 'SNACK', 'OTHER');
 
 -- CreateEnum
 CREATE TYPE "ShoppingListItemStatus" AS ENUM ('NEEDED', 'OPTIONAL', 'ADDED_TO_VOUCHER', 'ORDERED', 'FULFILLED', 'REMOVED');
@@ -52,12 +58,109 @@ CREATE TYPE "PaymentMethodType" AS ENUM ('CARD', 'CASH_ON_DELIVERY', 'ONLINE');
 -- CreateEnum
 CREATE TYPE "PaymentMethodStatus" AS ENUM ('ACTIVE', 'ARCHIVED');
 
+-- CreateEnum
+CREATE TYPE "ActivityLocation" AS ENUM ('INDOOR', 'OUTDOOR', 'GROUP');
+
+-- CreateEnum
+CREATE TYPE "EnergyLevel" AS ENUM ('LOW', 'MEDIUM', 'MEDIUM_HIGH', 'HIGH');
+
+-- CreateEnum
+CREATE TYPE "Difficulty" AS ENUM ('EASY', 'MEDIUM', 'HARD');
+
+-- CreateEnum
+CREATE TYPE "DayOfWeek" AS ENUM ('MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN');
+
+-- CreateEnum
+CREATE TYPE "HealthCondition" AS ENUM ('NONE', 'FOOD_ALLERGIES', 'MOBILITY_CONSIDERATIONS', 'PHYSICAL_CHALLENGES');
+
+-- CreateEnum
+CREATE TYPE "Gender" AS ENUM ('BOY', 'GIRL', 'OTHER');
+
+-- CreateEnum
+CREATE TYPE "ScheduleMode" AS ENUM ('LIBRARY', 'CUSTOM');
+
+-- CreateEnum
+CREATE TYPE "ScheduleCategory" AS ENUM ('RECIPE', 'ACTIVITY', 'HOME_STUDY', 'NAP', 'BEDTIME', 'OTHER');
+
+-- CreateEnum
+CREATE TYPE "SupportTicketStatus" AS ENUM ('PENDING', 'REPLIED', 'RESOLVED');
+
+-- CreateTable
+CREATE TABLE "activities" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "imageUrl" TEXT,
+    "activityType" "ActivityType" NOT NULL,
+    "minAgeMonths" INTEGER,
+    "maxAgeMonths" INTEGER,
+    "durationMin" INTEGER,
+    "durationMax" INTEGER,
+    "energyLevel" "EnergyLevel",
+    "location" "ActivityLocation"[],
+    "connectionMoment" TEXT,
+    "whyThisActivity" TEXT,
+    "caregiverPrompts" TEXT[],
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "activities_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "activity_benefits" (
+    "id" TEXT NOT NULL,
+    "activityId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "iconUrl" TEXT,
+
+    CONSTRAINT "activity_benefits_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "activity_steps" (
+    "id" TEXT NOT NULL,
+    "activityId" TEXT NOT NULL,
+    "stepNumber" INTEGER NOT NULL,
+    "description" TEXT NOT NULL,
+
+    CONSTRAINT "activity_steps_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "activity_progressions" (
+    "id" TEXT NOT NULL,
+    "activityId" TEXT NOT NULL,
+    "level" INTEGER NOT NULL,
+    "description" TEXT NOT NULL,
+
+    CONSTRAINT "activity_progressions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ActivityTemplate" (
+    "id" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "category" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "imageUrl" TEXT,
+    "detail" JSONB NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ActivityTemplate_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "fullName" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "phoneNumber" TEXT,
+    "relationShip" TEXT,
     "passwordHash" TEXT NOT NULL,
     "profilePictureUrl" TEXT,
     "preferredLanguage" TEXT DEFAULT 'en',
@@ -109,6 +212,69 @@ CREATE TABLE "ParentProfile" (
 );
 
 -- CreateTable
+CREATE TABLE "Child" (
+    "id" TEXT NOT NULL,
+    "parentUserId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "avatar" TEXT,
+    "gender" "Gender",
+    "birthDate" TIMESTAMP(3),
+    "wakeUpTime" TEXT,
+    "bedTime" TEXT,
+    "healthConditions" "HealthCondition"[],
+    "additionalNotes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Child_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SchoolSchedule" (
+    "id" TEXT NOT NULL,
+    "childId" TEXT NOT NULL,
+    "days" "DayOfWeek"[],
+    "startTime" TEXT NOT NULL,
+    "endTime" TEXT NOT NULL,
+
+    CONSTRAINT "SchoolSchedule_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RecurringActivity" (
+    "id" TEXT NOT NULL,
+    "childId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "days" "DayOfWeek"[],
+    "startTime" TEXT NOT NULL,
+    "endTime" TEXT NOT NULL,
+
+    CONSTRAINT "RecurringActivity_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "NapWindow" (
+    "id" TEXT NOT NULL,
+    "childId" TEXT NOT NULL,
+    "startTime" TEXT NOT NULL,
+    "endTime" TEXT NOT NULL,
+
+    CONSTRAINT "NapWindow_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "NannyChildLink" (
+    "id" TEXT NOT NULL,
+    "nannyUserId" TEXT NOT NULL,
+    "childId" TEXT NOT NULL,
+    "canViewStory" BOOLEAN NOT NULL DEFAULT true,
+    "canUpdateProof" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "NannyChildLink_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "KitchenAccess" (
     "id" TEXT NOT NULL,
     "parentUserId" TEXT NOT NULL,
@@ -126,59 +292,8 @@ CREATE TABLE "KitchenAccess" (
 );
 
 -- CreateTable
-CREATE TABLE "Recipe" (
+CREATE TABLE "kitchen_items" (
     "id" TEXT NOT NULL,
-    "slug" TEXT NOT NULL,
-    "title" TEXT NOT NULL,
-    "category" TEXT NOT NULL,
-    "mealType" "RecipeMealType" NOT NULL DEFAULT 'OTHER',
-    "description" TEXT NOT NULL,
-    "imageUrl" TEXT,
-    "prepTimeMinutes" INTEGER,
-    "cookTimeMinutes" INTEGER,
-    "servings" INTEGER,
-    "minAgeMonths" INTEGER,
-    "maxAgeMonths" INTEGER,
-    "tags" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "nutrition" JSONB,
-    "safetyNotes" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "isPublished" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "Recipe_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "RecipeIngredient" (
-    "id" TEXT NOT NULL,
-    "recipeId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "quantity" DOUBLE PRECISION,
-    "unit" TEXT,
-    "isOptional" BOOLEAN NOT NULL DEFAULT false,
-    "inventoryName" TEXT,
-    "allergenWarning" TEXT,
-    "sortOrder" INTEGER NOT NULL DEFAULT 0,
-
-    CONSTRAINT "RecipeIngredient_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "RecipeStep" (
-    "id" TEXT NOT NULL,
-    "recipeId" TEXT NOT NULL,
-    "title" TEXT,
-    "body" TEXT NOT NULL,
-    "sortOrder" INTEGER NOT NULL DEFAULT 0,
-
-    CONSTRAINT "RecipeStep_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "KitchenInventoryItem" (
-    "id" TEXT NOT NULL,
-    "childId" TEXT NOT NULL,
     "parentUserId" TEXT NOT NULL,
     "createdByUserId" TEXT NOT NULL,
     "lastUpdatedByUserId" TEXT,
@@ -186,16 +301,15 @@ CREATE TABLE "KitchenInventoryItem" (
     "unit" TEXT,
     "quantity" DOUBLE PRECISION,
     "category" "KitchenItemCategory" NOT NULL DEFAULT 'OTHER',
-    "status" "KitchenInventoryStatus" NOT NULL DEFAULT 'IN_STOCK',
+    "status" "KitchenInventoryItemStatus" NOT NULL DEFAULT 'IN_STOCK',
     "currentStockPercent" INTEGER NOT NULL DEFAULT 100,
-    "thresholdPercent" INTEGER NOT NULL DEFAULT 25,
     "expiryDate" TIMESTAMP(3),
     "lastStockedAt" TIMESTAMP(3),
     "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "KitchenInventoryItem_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "kitchen_items_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -349,7 +463,7 @@ CREATE TABLE "KitchenSchedule" (
     "recipeId" TEXT,
     "dayActivityId" TEXT,
     "date" TIMESTAMP(3) NOT NULL,
-    "mealType" "RecipeMealType" NOT NULL DEFAULT 'OTHER',
+    "mealType" "RecipeMealType" NOT NULL,
     "title" TEXT NOT NULL,
     "notes" TEXT,
     "startTime" TIMESTAMP(3),
@@ -390,36 +504,139 @@ CREATE TABLE "KycDocument" (
 );
 
 -- CreateTable
-CREATE TABLE "Child" (
+CREATE TABLE "Conversation" (
     "id" TEXT NOT NULL,
-    "parentUserId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "weight" TEXT,
-    "birthDate" TIMESTAMP(3),
-    "gender" "ChildGender",
-    "avatarUrl" TEXT,
-    "allergies" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "dietaryNotes" TEXT,
-    "medicalNotes" TEXT,
-    "personality" TEXT,
-    "sleepRoutine" TEXT,
-    "favoriteThings" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "title" TEXT,
+    "createdById" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Child_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Conversation_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "NannyChildLink" (
+CREATE TABLE "ConversationParticipant" (
     "id" TEXT NOT NULL,
-    "nannyUserId" TEXT NOT NULL,
-    "childId" TEXT NOT NULL,
-    "canViewStory" BOOLEAN NOT NULL DEFAULT true,
-    "canUpdateProof" BOOLEAN NOT NULL DEFAULT true,
+    "conversationId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "lastReadAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "NannyChildLink_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "ConversationParticipant_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ChatMessage" (
+    "id" TEXT NOT NULL,
+    "conversationId" TEXT NOT NULL,
+    "senderId" TEXT NOT NULL,
+    "message" TEXT,
+    "attachmentUrl" TEXT,
+    "attachmentType" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ChatMessage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "recipes" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "imageUrl" TEXT,
+    "recipeMealType" "RecipeMealType" NOT NULL,
+    "minAgeMonths" INTEGER,
+    "maxAgeMonths" INTEGER,
+    "prepTimeMin" INTEGER,
+    "cookTimeMin" INTEGER,
+    "difficulty" "Difficulty",
+    "servings" TEXT,
+    "nutritionalFocus" TEXT[],
+    "safetyNotes" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "recipes_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "recipe_ingredients" (
+    "id" TEXT NOT NULL,
+    "recipeId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "amount" TEXT NOT NULL,
+    "substitute" TEXT,
+    "isOptional" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "recipe_ingredients_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "recipe_steps" (
+    "id" TEXT NOT NULL,
+    "recipeId" TEXT NOT NULL,
+    "stepNumber" INTEGER NOT NULL,
+    "description" TEXT NOT NULL,
+
+    CONSTRAINT "recipe_steps_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "child_schedules" (
+    "id" TEXT NOT NULL,
+    "childId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "date" DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "mode" "ScheduleMode" NOT NULL,
+    "category" "ScheduleCategory",
+    "title" TEXT,
+    "startTime" TEXT NOT NULL,
+    "endTime" TEXT,
+    "description" TEXT,
+    "recipeId" TEXT,
+    "activityId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "child_schedules_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AccountDeletion" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "reason" TEXT NOT NULL,
+    "details" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AccountDeletion_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SupportTicket" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "subject" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "status" "SupportTicketStatus" NOT NULL DEFAULT 'PENDING',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SupportTicket_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TicketMessage" (
+    "id" TEXT NOT NULL,
+    "ticketId" TEXT NOT NULL,
+    "senderId" TEXT NOT NULL,
+    "message" TEXT,
+    "attachmentUrl" TEXT,
+    "attachmentType" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TicketMessage_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -462,22 +679,6 @@ CREATE TABLE "DayActivity" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "DayActivity_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "ActivityTemplate" (
-    "id" TEXT NOT NULL,
-    "slug" TEXT NOT NULL,
-    "category" TEXT NOT NULL,
-    "title" TEXT NOT NULL,
-    "description" TEXT NOT NULL,
-    "imageUrl" TEXT,
-    "detail" JSONB NOT NULL,
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "ActivityTemplate_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -536,6 +737,33 @@ CREATE TABLE "NannyProfile" (
 );
 
 -- CreateIndex
+CREATE INDEX "activities_title_idx" ON "activities"("title");
+
+-- CreateIndex
+CREATE INDEX "activities_activityType_idx" ON "activities"("activityType");
+
+-- CreateIndex
+CREATE INDEX "activities_minAgeMonths_maxAgeMonths_idx" ON "activities"("minAgeMonths", "maxAgeMonths");
+
+-- CreateIndex
+CREATE INDEX "activity_benefits_activityId_idx" ON "activity_benefits"("activityId");
+
+-- CreateIndex
+CREATE INDEX "activity_steps_activityId_idx" ON "activity_steps"("activityId");
+
+-- CreateIndex
+CREATE INDEX "activity_progressions_activityId_idx" ON "activity_progressions"("activityId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ActivityTemplate_slug_key" ON "ActivityTemplate"("slug");
+
+-- CreateIndex
+CREATE INDEX "ActivityTemplate_category_idx" ON "ActivityTemplate"("category");
+
+-- CreateIndex
+CREATE INDEX "ActivityTemplate_isActive_idx" ON "ActivityTemplate"("isActive");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
@@ -554,6 +782,24 @@ CREATE INDEX "OtpCode_userId_purpose_idx" ON "OtpCode"("userId", "purpose");
 CREATE UNIQUE INDEX "ParentProfile_userId_key" ON "ParentProfile"("userId");
 
 -- CreateIndex
+CREATE INDEX "Child_parentUserId_idx" ON "Child"("parentUserId");
+
+-- CreateIndex
+CREATE INDEX "SchoolSchedule_childId_idx" ON "SchoolSchedule"("childId");
+
+-- CreateIndex
+CREATE INDEX "RecurringActivity_childId_idx" ON "RecurringActivity"("childId");
+
+-- CreateIndex
+CREATE INDEX "NapWindow_childId_idx" ON "NapWindow"("childId");
+
+-- CreateIndex
+CREATE INDEX "NannyChildLink_childId_idx" ON "NannyChildLink"("childId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "NannyChildLink_nannyUserId_childId_key" ON "NannyChildLink"("nannyUserId", "childId");
+
+-- CreateIndex
 CREATE INDEX "KitchenAccess_parentUserId_idx" ON "KitchenAccess"("parentUserId");
 
 -- CreateIndex
@@ -563,31 +809,10 @@ CREATE INDEX "KitchenAccess_childId_idx" ON "KitchenAccess"("childId");
 CREATE UNIQUE INDEX "KitchenAccess_nannyUserId_childId_key" ON "KitchenAccess"("nannyUserId", "childId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Recipe_slug_key" ON "Recipe"("slug");
+CREATE INDEX "kitchen_items_parentUserId_idx" ON "kitchen_items"("parentUserId");
 
 -- CreateIndex
-CREATE INDEX "Recipe_mealType_idx" ON "Recipe"("mealType");
-
--- CreateIndex
-CREATE INDEX "Recipe_category_idx" ON "Recipe"("category");
-
--- CreateIndex
-CREATE INDEX "Recipe_isPublished_idx" ON "Recipe"("isPublished");
-
--- CreateIndex
-CREATE INDEX "RecipeIngredient_recipeId_sortOrder_idx" ON "RecipeIngredient"("recipeId", "sortOrder");
-
--- CreateIndex
-CREATE INDEX "RecipeStep_recipeId_sortOrder_idx" ON "RecipeStep"("recipeId", "sortOrder");
-
--- CreateIndex
-CREATE INDEX "KitchenInventoryItem_childId_status_idx" ON "KitchenInventoryItem"("childId", "status");
-
--- CreateIndex
-CREATE INDEX "KitchenInventoryItem_parentUserId_idx" ON "KitchenInventoryItem"("parentUserId");
-
--- CreateIndex
-CREATE INDEX "KitchenInventoryItem_createdByUserId_idx" ON "KitchenInventoryItem"("createdByUserId");
+CREATE INDEX "kitchen_items_createdByUserId_idx" ON "kitchen_items"("createdByUserId");
 
 -- CreateIndex
 CREATE INDEX "ShoppingList_childId_isActive_idx" ON "ShoppingList"("childId", "isActive");
@@ -644,13 +869,46 @@ CREATE INDEX "KitchenAuditLog_userId_action_idx" ON "KitchenAuditLog"("userId", 
 CREATE UNIQUE INDEX "KycDocument_userId_type_key" ON "KycDocument"("userId", "type");
 
 -- CreateIndex
-CREATE INDEX "Child_parentUserId_idx" ON "Child"("parentUserId");
+CREATE INDEX "Conversation_createdById_idx" ON "Conversation"("createdById");
 
 -- CreateIndex
-CREATE INDEX "NannyChildLink_childId_idx" ON "NannyChildLink"("childId");
+CREATE INDEX "Conversation_updatedAt_idx" ON "Conversation"("updatedAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "NannyChildLink_nannyUserId_childId_key" ON "NannyChildLink"("nannyUserId", "childId");
+CREATE INDEX "ConversationParticipant_userId_idx" ON "ConversationParticipant"("userId");
+
+-- CreateIndex
+CREATE INDEX "ConversationParticipant_conversationId_idx" ON "ConversationParticipant"("conversationId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ConversationParticipant_conversationId_userId_key" ON "ConversationParticipant"("conversationId", "userId");
+
+-- CreateIndex
+CREATE INDEX "ChatMessage_conversationId_createdAt_idx" ON "ChatMessage"("conversationId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ChatMessage_senderId_idx" ON "ChatMessage"("senderId");
+
+-- CreateIndex
+CREATE INDEX "recipes_recipeMealType_idx" ON "recipes"("recipeMealType");
+
+-- CreateIndex
+CREATE INDEX "recipe_ingredients_recipeId_idx" ON "recipe_ingredients"("recipeId");
+
+-- CreateIndex
+CREATE INDEX "recipe_steps_recipeId_idx" ON "recipe_steps"("recipeId");
+
+-- CreateIndex
+CREATE INDEX "child_schedules_childId_date_idx" ON "child_schedules"("childId", "date");
+
+-- CreateIndex
+CREATE INDEX "child_schedules_userId_idx" ON "child_schedules"("userId");
+
+-- CreateIndex
+CREATE INDEX "child_schedules_category_idx" ON "child_schedules"("category");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AccountDeletion_userId_key" ON "AccountDeletion"("userId");
 
 -- CreateIndex
 CREATE INDEX "DayPlan_childId_date_idx" ON "DayPlan"("childId", "date");
@@ -668,15 +926,6 @@ CREATE INDEX "DayActivity_dayPlanId_sortOrder_idx" ON "DayActivity"("dayPlanId",
 CREATE INDEX "DayActivity_status_idx" ON "DayActivity"("status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ActivityTemplate_slug_key" ON "ActivityTemplate"("slug");
-
--- CreateIndex
-CREATE INDEX "ActivityTemplate_category_idx" ON "ActivityTemplate"("category");
-
--- CreateIndex
-CREATE INDEX "ActivityTemplate_isActive_idx" ON "ActivityTemplate"("isActive");
-
--- CreateIndex
 CREATE UNIQUE INDEX "BedtimeStory_dayPlanId_key" ON "BedtimeStory"("dayPlanId");
 
 -- CreateIndex
@@ -686,10 +935,37 @@ CREATE INDEX "MediaAsset_ownerUserId_type_idx" ON "MediaAsset"("ownerUserId", "t
 CREATE UNIQUE INDEX "NannyProfile_userId_key" ON "NannyProfile"("userId");
 
 -- AddForeignKey
+ALTER TABLE "activity_benefits" ADD CONSTRAINT "activity_benefits_activityId_fkey" FOREIGN KEY ("activityId") REFERENCES "activities"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "activity_steps" ADD CONSTRAINT "activity_steps_activityId_fkey" FOREIGN KEY ("activityId") REFERENCES "activities"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "activity_progressions" ADD CONSTRAINT "activity_progressions_activityId_fkey" FOREIGN KEY ("activityId") REFERENCES "activities"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "OtpCode" ADD CONSTRAINT "OtpCode_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ParentProfile" ADD CONSTRAINT "ParentProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Child" ADD CONSTRAINT "Child_parentUserId_fkey" FOREIGN KEY ("parentUserId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SchoolSchedule" ADD CONSTRAINT "SchoolSchedule_childId_fkey" FOREIGN KEY ("childId") REFERENCES "Child"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RecurringActivity" ADD CONSTRAINT "RecurringActivity_childId_fkey" FOREIGN KEY ("childId") REFERENCES "Child"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NapWindow" ADD CONSTRAINT "NapWindow_childId_fkey" FOREIGN KEY ("childId") REFERENCES "Child"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NannyChildLink" ADD CONSTRAINT "NannyChildLink_nannyUserId_fkey" FOREIGN KEY ("nannyUserId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NannyChildLink" ADD CONSTRAINT "NannyChildLink_childId_fkey" FOREIGN KEY ("childId") REFERENCES "Child"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "KitchenAccess" ADD CONSTRAINT "KitchenAccess_parentUserId_fkey" FOREIGN KEY ("parentUserId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -701,22 +977,13 @@ ALTER TABLE "KitchenAccess" ADD CONSTRAINT "KitchenAccess_nannyUserId_fkey" FORE
 ALTER TABLE "KitchenAccess" ADD CONSTRAINT "KitchenAccess_childId_fkey" FOREIGN KEY ("childId") REFERENCES "Child"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "RecipeIngredient" ADD CONSTRAINT "RecipeIngredient_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "Recipe"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "kitchen_items" ADD CONSTRAINT "kitchen_items_parentUserId_fkey" FOREIGN KEY ("parentUserId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "RecipeStep" ADD CONSTRAINT "RecipeStep_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "Recipe"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "kitchen_items" ADD CONSTRAINT "kitchen_items_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "KitchenInventoryItem" ADD CONSTRAINT "KitchenInventoryItem_childId_fkey" FOREIGN KEY ("childId") REFERENCES "Child"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "KitchenInventoryItem" ADD CONSTRAINT "KitchenInventoryItem_parentUserId_fkey" FOREIGN KEY ("parentUserId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "KitchenInventoryItem" ADD CONSTRAINT "KitchenInventoryItem_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "KitchenInventoryItem" ADD CONSTRAINT "KitchenInventoryItem_lastUpdatedByUserId_fkey" FOREIGN KEY ("lastUpdatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "kitchen_items" ADD CONSTRAINT "kitchen_items_lastUpdatedByUserId_fkey" FOREIGN KEY ("lastUpdatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ShoppingList" ADD CONSTRAINT "ShoppingList_childId_fkey" FOREIGN KEY ("childId") REFERENCES "Child"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -731,10 +998,10 @@ ALTER TABLE "ShoppingList" ADD CONSTRAINT "ShoppingList_createdByUserId_fkey" FO
 ALTER TABLE "ShoppingListItem" ADD CONSTRAINT "ShoppingListItem_shoppingListId_fkey" FOREIGN KEY ("shoppingListId") REFERENCES "ShoppingList"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ShoppingListItem" ADD CONSTRAINT "ShoppingListItem_inventoryItemId_fkey" FOREIGN KEY ("inventoryItemId") REFERENCES "KitchenInventoryItem"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "ShoppingListItem" ADD CONSTRAINT "ShoppingListItem_inventoryItemId_fkey" FOREIGN KEY ("inventoryItemId") REFERENCES "kitchen_items"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ShoppingListItem" ADD CONSTRAINT "ShoppingListItem_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "Recipe"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "ShoppingListItem" ADD CONSTRAINT "ShoppingListItem_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "recipes"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ShoppingVoucher" ADD CONSTRAINT "ShoppingVoucher_childId_fkey" FOREIGN KEY ("childId") REFERENCES "Child"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -758,7 +1025,7 @@ ALTER TABLE "ShoppingVoucherItem" ADD CONSTRAINT "ShoppingVoucherItem_voucherId_
 ALTER TABLE "ShoppingVoucherItem" ADD CONSTRAINT "ShoppingVoucherItem_shoppingListItemId_fkey" FOREIGN KEY ("shoppingListItemId") REFERENCES "ShoppingListItem"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ShoppingVoucherItem" ADD CONSTRAINT "ShoppingVoucherItem_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "Recipe"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "ShoppingVoucherItem" ADD CONSTRAINT "ShoppingVoucherItem_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "recipes"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "GroceryOrder" ADD CONSTRAINT "GroceryOrder_voucherId_fkey" FOREIGN KEY ("voucherId") REFERENCES "ShoppingVoucher"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -782,7 +1049,7 @@ ALTER TABLE "GroceryOrder" ADD CONSTRAINT "GroceryOrder_paymentMethodId_fkey" FO
 ALTER TABLE "GroceryOrderItem" ADD CONSTRAINT "GroceryOrderItem_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "GroceryOrder"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "GroceryOrderItem" ADD CONSTRAINT "GroceryOrderItem_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "Recipe"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "GroceryOrderItem" ADD CONSTRAINT "GroceryOrderItem_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "recipes"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "PaymentMethod" ADD CONSTRAINT "PaymentMethod_parentUserId_fkey" FOREIGN KEY ("parentUserId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -797,7 +1064,7 @@ ALTER TABLE "KitchenSchedule" ADD CONSTRAINT "KitchenSchedule_parentUserId_fkey"
 ALTER TABLE "KitchenSchedule" ADD CONSTRAINT "KitchenSchedule_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "KitchenSchedule" ADD CONSTRAINT "KitchenSchedule_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "Recipe"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "KitchenSchedule" ADD CONSTRAINT "KitchenSchedule_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "recipes"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "KitchenAuditLog" ADD CONSTRAINT "KitchenAuditLog_childId_fkey" FOREIGN KEY ("childId") REFERENCES "Child"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -809,13 +1076,49 @@ ALTER TABLE "KitchenAuditLog" ADD CONSTRAINT "KitchenAuditLog_userId_fkey" FOREI
 ALTER TABLE "KycDocument" ADD CONSTRAINT "KycDocument_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Child" ADD CONSTRAINT "Child_parentUserId_fkey" FOREIGN KEY ("parentUserId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Conversation" ADD CONSTRAINT "Conversation_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "NannyChildLink" ADD CONSTRAINT "NannyChildLink_nannyUserId_fkey" FOREIGN KEY ("nannyUserId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ConversationParticipant" ADD CONSTRAINT "ConversationParticipant_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "Conversation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "NannyChildLink" ADD CONSTRAINT "NannyChildLink_childId_fkey" FOREIGN KEY ("childId") REFERENCES "Child"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ConversationParticipant" ADD CONSTRAINT "ConversationParticipant_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChatMessage" ADD CONSTRAINT "ChatMessage_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "Conversation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChatMessage" ADD CONSTRAINT "ChatMessage_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "recipe_ingredients" ADD CONSTRAINT "recipe_ingredients_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "recipes"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "recipe_steps" ADD CONSTRAINT "recipe_steps_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "recipes"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "child_schedules" ADD CONSTRAINT "child_schedules_childId_fkey" FOREIGN KEY ("childId") REFERENCES "Child"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "child_schedules" ADD CONSTRAINT "child_schedules_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "child_schedules" ADD CONSTRAINT "child_schedules_recipeId_fkey" FOREIGN KEY ("recipeId") REFERENCES "recipes"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "child_schedules" ADD CONSTRAINT "child_schedules_activityId_fkey" FOREIGN KEY ("activityId") REFERENCES "activities"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AccountDeletion" ADD CONSTRAINT "AccountDeletion_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SupportTicket" ADD CONSTRAINT "SupportTicket_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TicketMessage" ADD CONSTRAINT "TicketMessage_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES "SupportTicket"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TicketMessage" ADD CONSTRAINT "TicketMessage_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "DayPlan" ADD CONSTRAINT "DayPlan_childId_fkey" FOREIGN KEY ("childId") REFERENCES "Child"("id") ON DELETE CASCADE ON UPDATE CASCADE;
