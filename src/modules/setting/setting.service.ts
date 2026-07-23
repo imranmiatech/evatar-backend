@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../../prisma/prisma.service';
 import { ChangePasswordDto, DeleteAccountDto } from './dto/setting.dto';
 import * as bcrypt from 'bcrypt';
+import { UserStatus } from '@prisma/client';
 
 @Injectable()
 export class SettingService {
@@ -58,7 +59,7 @@ export class SettingService {
       // Soft delete user
       await prisma.user.update({
         where: { id: userId },
-        data: { isActive: false },
+        data: { status: UserStatus.DELETED },
       });
     });
 

@@ -19,12 +19,12 @@ export class SendMessageDto {
   @IsString()
   message?: string;
 
-  @ApiProperty({ example: 'https://cloudinary.com/image.png', required: false })
+  @ApiProperty({ example: 'https://cloudinary.com/voice.webm', required: false })
   @IsOptional()
   @IsString()
   attachmentUrl?: string;
 
-  @ApiProperty({ example: 'image', required: false })
+  @ApiProperty({ example: 'audio/webm', required: false })
   @IsOptional()
   @IsString()
   attachmentType?: string;

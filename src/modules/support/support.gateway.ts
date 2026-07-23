@@ -25,6 +25,10 @@ export class SupportGateway implements OnGatewayConnection, OnGatewayDisconnect 
     console.log(`Client disconnected from support: ${client.id}`);
   }
 
+  broadcastMessage(ticketId: string, message: unknown) {
+    this.server.to(ticketId).emit('receiveMessage', message);
+  }
+
   @SubscribeMessage('joinTicket')
   async handleJoinTicket(
     @MessageBody() data: { ticketId: string; userId: string },
@@ -55,12 +59,25 @@ export class SupportGateway implements OnGatewayConnection, OnGatewayDisconnect 
       return { event: 'error', data: { message: 'Ticket not found' } };
     }
 
-    if (ticket.status === 'RESOLVED') {
-      return { event: 'error', data: { message: 'Cannot reply to a resolved ticket' } };
+    const sender = await this.prisma.user.findUnique({
+      where: { id: data.senderId },
+      select: { id: true, role: true },
+    });
+
+    if (!sender) {
+      return { event: 'error', data: { message: 'Sender not found' } };
     }
 
-    if (ticket.status === 'PENDING') {
-      return { event: 'error', data: { message: 'Support has not replied yet. Please wait.' } };
+    if (ticket.status !== 'REPLIED') {
+      return {
+        event: 'error',
+        data: {
+          message:
+            ticket.status === 'RESOLVED'
+              ? 'Cannot reply to a resolved ticket'
+              : 'Support chat is not open yet',
+        },
+      };
     }
 
     if (!data.message && !data.attachmentUrl) {

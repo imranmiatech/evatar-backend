@@ -3,12 +3,16 @@ import { UserRole, MembershipPlan } from '@prisma/client';
 import {
   IsEmail,
   IsEnum,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
   MinLength,
   ValidateIf,
 } from 'class-validator';
+
+export const SIGNUP_ROLE_OPTIONS = [UserRole.PARENT, UserRole.NANNY] as const;
+export const OTP_DELIVERY_OPTIONS = ['EMAIL', 'PHONE'] as const;
 
 export class SignupDto {
   @ApiProperty({ example: 'John Doe', description: 'Full name of the user' })
@@ -36,15 +40,22 @@ export class SignupDto {
   @IsOptional()
   preferredLanguage?: string;
 
-  @ApiProperty({ enum: UserRole, description: 'Role of the user (PARENT or NANNY)' })
-  @IsEnum(UserRole)
+  @ApiProperty({
+    enum: SIGNUP_ROLE_OPTIONS,
+    enumName: 'SignupRole',
+    example: UserRole.PARENT,
+    description: 'Select account role for signup',
+  })
+  @IsIn(SIGNUP_ROLE_OPTIONS)
   role: UserRole;
 
   @ApiPropertyOptional({
-    enum: ['Email', 'Phone', 'EMAIL', 'PHONE'],
-    description: 'Where to send the OTP code (Email, Phone, etc)',
+    enum: OTP_DELIVERY_OPTIONS,
+    enumName: 'OtpDeliveryMethod',
+    example: 'EMAIL',
+    description: 'Where to send the OTP code',
   })
-  @IsString()
+  @IsIn(OTP_DELIVERY_OPTIONS)
   @IsOptional()
   otpDeliveryMethod?: string;
 
@@ -81,7 +92,11 @@ export class SignupDto {
   @IsOptional()
   country?: string;
 
-  @ApiPropertyOptional({ enum: MembershipPlan, description: 'Selected membership plan' })
+  @ApiPropertyOptional({
+    enum: MembershipPlan,
+    enumName: 'MembershipPlan',
+    description: 'Selected membership plan',
+  })
   @IsEnum(MembershipPlan)
   @IsOptional()
   membershipPlan?: MembershipPlan;

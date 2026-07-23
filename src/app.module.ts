@@ -16,6 +16,8 @@ import { SettingModule } from './modules/setting/setting.module';
 import { SupportModule } from './modules/support/support.module';
 import { MessageModule } from './modules/message/message.module';
 import { LibraryModule } from './modules/shared/library/library.module';
+import { LanguageModule } from './modules/language/language.module';
+import { KycModule } from './modules/kyc/kyc.module';
 
 @Module({
   imports: [
@@ -34,8 +36,10 @@ import { LibraryModule } from './modules/shared/library/library.module';
     SupportModule,
     MessageModule,
     LibraryModule,
+    LanguageModule,
+    KycModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

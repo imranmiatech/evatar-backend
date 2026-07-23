@@ -1,10 +1,17 @@
 import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { SigninDto } from './dto/signin.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { VerifySignupOtpDto } from './dto/verify-signup-otp.dto';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -17,6 +24,42 @@ export class AuthController {
 
   @Post('signup')
   @ApiOperation({ summary: 'Register a new user (Nanny or Parent)' })
+  @ApiBody({
+    type: SignupDto,
+    examples: {
+      parent: {
+        summary: 'Parent signup',
+        value: {
+          fullName: 'Parent User',
+          email: 'parent@example.com',
+          phoneNumber: '+8801700000001',
+          password: '123456',
+          preferredLanguage: 'en',
+          role: 'PARENT',
+          otpDeliveryMethod: 'EMAIL',
+          relationType: 'FATHER',
+          street: 'Dubai Street',
+          postCode: '1230',
+          city: 'Dubai',
+          state: 'Dubai',
+          country: 'UAE',
+          membershipPlan: 'TRIAL',
+        },
+      },
+      nanny: {
+        summary: 'Nanny signup',
+        value: {
+          fullName: 'Nanny User',
+          email: 'nanny@example.com',
+          phoneNumber: '+8801700000002',
+          password: '123456',
+          preferredLanguage: 'en',
+          role: 'NANNY',
+          otpDeliveryMethod: 'EMAIL',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 201, description: 'User successfully created and OTP generated.' })
   @ApiResponse({ status: 400, description: 'Validation failed or user already exists.' })
   async signup(@Body() signupDto: SignupDto) {
@@ -83,6 +126,14 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'User not found.' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
+  }
+
+  @Post('verify-signup-otp')
+  @ApiOperation({ summary: 'Verify signup OTP and activate account' })
+  @ApiResponse({ status: 200, description: 'Signup OTP verified successfully.' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired OTP.' })
+  async verifySignupOtp(@Body() dto: VerifySignupOtpDto) {
+    return this.authService.verifySignupOtp(dto);
   }
 
   @Post('reset-password')

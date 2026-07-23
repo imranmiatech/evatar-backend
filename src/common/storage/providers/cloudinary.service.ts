@@ -46,10 +46,17 @@ export class CloudinaryService implements StorageService {
         );
       }
 
+      const resourceType =
+        file.mimetype.startsWith('audio/')
+          ? 'raw'
+          : file.mimetype.startsWith('video/')
+          ? 'video'
+          : 'auto';
+
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: folder,
-          resource_type: 'auto',
+          resource_type: resourceType,
           timeout: 120000,
         },
         (error: UploadApiErrorResponse, result: UploadApiResponse) => {

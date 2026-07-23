@@ -4,12 +4,18 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SignupDto } from './dto/signup.dto';
 import * as bcrypt from 'bcrypt';
-import { OtpPurpose, UserRole } from '@prisma/client';
+import {
+  OtpPurpose,
+  RelationshipType,
+  UserRole,
+  UserStatus,
+} from '@prisma/client';
 import { TwilioService } from '../../common/twilio/twilio.service';
 import { MailService } from '../../common/mail/mail.service';
 import { SigninDto } from './dto/signin.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { VerifySignupOtpDto } from './dto/verify-signup-otp.dto';
 import type { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 
 @Injectable()
@@ -63,13 +69,23 @@ export class AuthService {
           await tx.parentProfile.create({
             data: {
               userId: createdUser.id,
-              relationType: dto.relationType,
-              street: dto.street,
-              postCode: dto.postCode,
-              city: dto.city,
-              state: dto.state,
+              relationship: this.relationshipType(dto.relationType),
+              address: this.parentAddress(dto),
+              street: dto.street ?? '',
+              postalCode: dto.postCode ?? '',
+              city: dto.city ?? '',
+              state: dto.state ?? '',
               country: dto.country,
               membershipPlan: dto.membershipPlan,
+            },
+          });
+        }
+
+        if (dto.role === UserRole.NANNY) {
+          await tx.nannyProfile.create({
+            data: {
+              userId: createdUser.id,
+              languages: dto.preferredLanguage ? [dto.preferredLanguage] : [],
             },
           });
         }
@@ -127,7 +143,10 @@ export class AuthService {
       throw new BadRequestException('User not found');
     }
 
-    if (!user.isActive) {
+    if (
+      user.status === UserStatus.DELETED ||
+      user.status === UserStatus.INACTIVE
+    ) {
       throw new BadRequestException('Account has been deleted or deactivated.');
     }
 
@@ -162,7 +181,7 @@ export class AuthService {
         role: true,
         isEmailVerified: true,
         isPhoneVerified: true,
-        isActive: true,
+        status: true,
         termsAccepted: true,
         verificationStatus: true,
         rejectionReason: true,
@@ -181,6 +200,24 @@ export class AuthService {
     }
 
     return profile;
+  }
+
+  private relationshipType(value?: string) {
+    const normalized = value?.trim().toUpperCase();
+    if (
+      normalized &&
+      Object.values(RelationshipType).includes(normalized as RelationshipType)
+    ) {
+      return normalized as RelationshipType;
+    }
+
+    return RelationshipType.GUARDIAN;
+  }
+
+  private parentAddress(dto: SignupDto) {
+    return [dto.street, dto.city, dto.state, dto.country, dto.postCode]
+      .filter(Boolean)
+      .join(', ');
   }
 
   async forgotPassword(dto: ForgotPasswordDto) {
@@ -222,6 +259,72 @@ export class AuthService {
 
     return {
       message: `OTP sent successfully to your ${deliveryMethod.toLowerCase()}`,
+    };
+  }
+
+  async verifySignupOtp(dto: VerifySignupOtpDto) {
+    if (!dto.email && !dto.phoneNumber) {
+      throw new BadRequestException('Email or phone number is required');
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: dto.email },
+          { phoneNumber: dto.phoneNumber || undefined },
+        ].filter(Boolean),
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const otpRecord = await this.prisma.otpCode.findFirst({
+      where: {
+        userId: user.id,
+        purpose: OtpPurpose.SIGNUP_VERIFICATION,
+        consumedAt: null,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!otpRecord) {
+      throw new BadRequestException('No pending signup verification found');
+    }
+
+    if (new Date() > otpRecord.expiresAt) {
+      throw new BadRequestException('OTP has expired. Please request a new one.');
+    }
+
+    if (otpRecord.code !== dto.otpCode) {
+      throw new BadRequestException('Invalid OTP code');
+    }
+
+    const [updatedUser] = await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          isEmailVerified: Boolean(dto.email) || user.isEmailVerified,
+          isPhoneVerified: Boolean(dto.phoneNumber) || user.isPhoneVerified,
+          status: UserStatus.ACTIVE,
+        },
+      }),
+      this.prisma.otpCode.update({
+        where: { id: otpRecord.id },
+        data: { consumedAt: new Date() },
+      }),
+    ]);
+
+    const { passwordHash: _, ...result } = updatedUser;
+    const tokens = await this.generateTokens(updatedUser.id, updatedUser.role);
+
+    return {
+      message: 'Signup verified successfully',
+      user: result,
+      ...tokens,
     };
   }
 

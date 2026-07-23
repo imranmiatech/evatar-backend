@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Evatar Support Full Flow Test</title>
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="./node_modules/socket.io/client-dist/socket.io.min.js"></script>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
     .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -30,6 +30,20 @@
     .msg.me { background: #dcf8c6; align-self: flex-end; border-bottom-right-radius: 0; }
     .msg.other { background: white; align-self: flex-start; border-bottom-left-radius: 0; }
     .msg-sender { font-size: 11px; font-weight: bold; color: #666; margin-bottom: 4px; }
+    .voice-controls { display: none; align-items: center; gap: 8px; margin-bottom: 8px; padding: 8px 10px; border: 1px solid #f0b4ae; border-radius: 6px; background: #fff8f7; }
+    .voice-controls.visible { display: flex; }
+    .record-dot { width: 9px; height: 9px; border-radius: 999px; background: #dc3545; animation: pulse 1s infinite; }
+    .record-btn { width: 90px; background: #6c757d; }
+    .stop-btn { width: 90px; background: #dc3545; }
+    .cancel-btn { width: 90px; background: #6c757d; }
+    .voice-preview { display: none; align-items: center; gap: 8px; margin-bottom: 8px; padding: 8px 10px; border: 1px solid #c8d7da; border-radius: 6px; background: #f7fbfb; font-size: 13px; }
+    .voice-preview.visible { display: flex; }
+    .voice-preview button { width: 90px; background: #6c757d; }
+    .attachment-audio { display: block; width: min(360px, 100%); margin-top: 5px; }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 1; }
+    }
     
     .resolved-btn { background: #6c757d; }
     .resolved-btn:hover { background: #5a6268; }
@@ -95,13 +109,29 @@
     </div>
     
     <p id="socketStatus" style="color: #666; font-size: 12px;">Socket Status: Disconnected</p>
+    <p id="chatStatus" style="color: #666; font-size: 12px;"></p>
     
     <div id="chat-box"></div>
+
+    <div id="voiceControls" class="voice-controls">
+      <span class="record-dot"></span>
+      <strong id="recordingTime">00:00</strong>
+      <span>Recording voice...</span>
+      <button type="button" class="stop-btn" onclick="stopRecording()">Stop</button>
+      <button type="button" class="cancel-btn" onclick="cancelRecording()">Cancel</button>
+    </div>
+
+    <div id="voicePreview" class="voice-preview">
+      <strong>Voice ready</strong>
+      <span id="voiceFileName"></span>
+      <button type="button" onclick="clearRecordedVoice()">Remove</button>
+    </div>
     
     <div style="display: flex; gap: 10px; align-items: center;">
-      <input type="file" id="chatAttachment" style="width: 250px;" accept="image/*,.pdf,.doc,.docx">
+      <input type="file" id="chatAttachment" style="width: 250px;" accept="image/*,audio/*,.pdf,.doc,.docx">
       <input type="text" id="chatInput" placeholder="Write your message...">
-      <button onclick="sendChatMessage()" style="width: 150px;">Send</button>
+      <button type="button" class="record-btn" onclick="startRecording()">Mic</button>
+      <button type="button" onclick="sendChatMessage()" style="width: 150px;">Send</button>
     </div>
     
     <!-- User Action -->
@@ -128,7 +158,14 @@
   let USER_ID = '';
   let USER_ROLE = '';
   let CURRENT_TICKET_ID = '';
+  let CURRENT_TICKET_STATUS = '';
   let socket = null;
+  let recorder = null;
+  let recordStream = null;
+  let recordChunks = [];
+  let recordStartedAt = 0;
+  let recordTimer = null;
+  let recordedVoiceFile = null;
   const BASE_URL = 'http://localhost:5000/api/v1';
 
   async function login() {
@@ -244,6 +281,8 @@
         method: 'PATCH',
         body: JSON.stringify({ status })
       });
+      CURRENT_TICKET_STATUS = status;
+      updateComposerState();
       alert('Status updated successfully!');
     } catch(e) { alert(e.message); }
   }
@@ -276,6 +315,9 @@
 
   async function openChat(ticketId, subject, status) {
     CURRENT_TICKET_ID = ticketId;
+    CURRENT_TICKET_STATUS = status;
+    clearRecordedVoice(true);
+    setChatStatus('');
     document.getElementById('mainContent').classList.add('hidden');
     document.getElementById('chatSection').classList.remove('hidden');
     document.getElementById('chatTitle').innerText = `Chat: ${subject}`;
@@ -301,6 +343,7 @@
     try {
       const response = await authFetch(`${BASE_URL}/support/tickets/${ticketId}/messages`);
       chatBox.innerHTML = ''; 
+      CURRENT_TICKET_STATUS = response.data.ticket.status;
       
       appendMessage('Ticket Subject', response.data.ticket.subject, 'other');
 
@@ -316,6 +359,7 @@
 
     // 2. Connect Socket.io
     initSocket();
+    updateComposerState();
   }
 
   function appendMessage(senderName, text, type, attachmentUrl = null, attachmentType = null) {
@@ -328,6 +372,8 @@
     if (attachmentUrl) {
       if (attachmentType && attachmentType.startsWith('image')) {
         contentHtml += `<div style="margin-top: 5px;"><img src="${attachmentUrl}" style="max-width: 100%; border-radius: 4px;" alt="Attachment"></div>`;
+      } else if (attachmentType && attachmentType.startsWith('audio')) {
+        contentHtml += `<audio class="attachment-audio" controls src="${attachmentUrl}"></audio>`;
       } else {
         contentHtml += `<div style="margin-top: 5px;"><a href="${attachmentUrl}" target="_blank" style="color: #1a5c68; text-decoration: underline;">📎 View Attachment</a></div>`;
       }
@@ -341,6 +387,12 @@
   function initSocket() {
     if (socket) socket.disconnect();
     
+    if (!window.io) {
+      document.getElementById('socketStatus').innerText =
+        'Socket Status: socket.io client not loaded; REST send still works';
+      return;
+    }
+
     socket = io('http://localhost:5000/support');
     
     socket.on('connect', () => {
@@ -365,48 +417,229 @@
     const input = document.getElementById('chatInput');
     const fileInput = document.getElementById('chatAttachment');
     const message = input.value.trim();
-    const file = fileInput.files[0];
+    const file = fileInput.files[0] || recordedVoiceFile;
 
     if (!message && !file) return;
 
-    if (!socket || !socket.connected) return alert('Socket is disconnected.');
-
-    let attachmentUrl = null;
-    let attachmentType = null;
-
-    if (file) {
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        const res = await fetch(`${BASE_URL}/support/upload`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${JWT_TOKEN}` },
-          body: formData
-        });
-        
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Upload failed');
-        
-        const uploadData = data.data || data;
-        attachmentUrl = uploadData.url;
-        attachmentType = file.type;
-      } catch (e) {
-        alert('File upload failed: ' + e.message);
-        return;
-      }
+    if (!canSendSupportMessage()) {
+      setChatStatus(supportStatusMessage(), true);
+      alert(supportStatusMessage());
+      return;
     }
 
-    socket.emit('sendMessage', { ticketId: CURRENT_TICKET_ID, senderId: USER_ID, message, attachmentUrl, attachmentType }, (res) => {
-      if (res.event === 'error') {
-        alert(res.data.message); 
-      } else {
-        appendMessage('You', message, 'me', attachmentUrl, attachmentType);
-        input.value = '';
-        fileInput.value = '';
+    try {
+      setChatStatus(file ? 'Uploading and sending...' : 'Sending...');
+      const formData = new FormData();
+      if (message) formData.append('message', message);
+      if (file) formData.append('file', file);
+
+      const res = await fetch(`${BASE_URL}/support/tickets/${CURRENT_TICKET_ID}/messages`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${JWT_TOKEN}` },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (res.status === 401) {
+        throw new Error('Session expired. Please logout, login again, then send the file/voice.');
       }
-    });
+      if (!res.ok) throw new Error(data.message || 'Message send failed');
+
+      const sentMessage = data.data || data;
+      appendMessage(
+        'You',
+        sentMessage.message,
+        'me',
+        sentMessage.attachmentUrl,
+        sentMessage.attachmentType,
+      );
+      input.value = '';
+      fileInput.value = '';
+      clearRecordedVoice();
+      setChatStatus('Sent');
+    } catch (e) {
+      setChatStatus(e.message, true);
+      alert(e.message);
+    }
   }
+
+  function setChatStatus(message, isError = false) {
+    const status = document.getElementById('chatStatus');
+    status.textContent = message;
+    status.style.color = isError ? '#dc3545' : '#666';
+  }
+
+  function supportedAudioMimeType() {
+    const types = [
+      'audio/webm',
+      'audio/mp4',
+      'audio/webm;codecs=opus',
+      'audio/ogg;codecs=opus',
+    ];
+
+    return types.find((type) => MediaRecorder.isTypeSupported(type)) || '';
+  }
+
+  function normalizeAudioMimeType(mimeType) {
+    const [baseType] = String(mimeType || '').split(';');
+    return baseType || 'audio/webm';
+  }
+
+  async function startRecording() {
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      alert('Voice recording is not supported in this browser');
+      return;
+    }
+
+    if (!CURRENT_TICKET_ID) {
+      alert('Open a ticket first');
+      return;
+    }
+
+    if (!canSendSupportMessage()) {
+      setChatStatus(supportStatusMessage(), true);
+      alert(supportStatusMessage());
+      return;
+    }
+
+    document.getElementById('chatAttachment').value = '';
+    clearRecordedVoice();
+    try {
+      recordChunks = [];
+      recordStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      const mimeType = supportedAudioMimeType();
+      recorder = new MediaRecorder(recordStream, mimeType ? { mimeType } : undefined);
+
+      recorder.addEventListener('dataavailable', (event) => {
+        if (event.data.size > 0) recordChunks.push(event.data);
+      });
+
+      recorder.addEventListener('stop', () => {
+        stopRecordTimer();
+        stopRecordStream();
+        setRecordingUi(false);
+      });
+
+      recordStartedAt = Date.now();
+      recorder.start();
+      setRecordingUi(true);
+      startRecordTimer();
+    } catch (error) {
+      stopRecordStream();
+      alert(error.message || 'Could not start recording');
+    }
+  }
+
+  function stopRecording() {
+    if (!recorder || recorder.state === 'inactive') return;
+
+    recorder.addEventListener(
+      'stop',
+      () => {
+        const mimeType = normalizeAudioMimeType(
+          recorder.mimeType || recordChunks[0]?.type || 'audio/webm',
+        );
+        const extension = mimeType.includes('mp4') ? 'm4a' : 'webm';
+        const blob = new Blob(recordChunks, { type: mimeType });
+        const file = new File([blob], `support-voice-${Date.now()}.${extension}`, {
+          type: mimeType,
+        });
+        setRecordedVoice(file);
+        recordChunks = [];
+      },
+      { once: true },
+    );
+
+    recorder.stop();
+  }
+
+  function cancelRecording() {
+    if (recorder && recorder.state !== 'inactive') {
+      recordChunks = [];
+      recorder.stop();
+    } else {
+      stopRecordTimer();
+      stopRecordStream();
+      setRecordingUi(false);
+    }
+  }
+
+  function setRecordedVoice(file) {
+    recordedVoiceFile = file;
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    document.getElementById('chatAttachment').files = transfer.files;
+    document.getElementById('voiceFileName').textContent = `${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`;
+    document.getElementById('voicePreview').classList.add('visible');
+  }
+
+  function clearRecordedVoice(clearFileInput = false) {
+    recordedVoiceFile = null;
+    if (clearFileInput) {
+      document.getElementById('chatAttachment').value = '';
+    }
+    document.getElementById('voiceFileName').textContent = '';
+    document.getElementById('voicePreview').classList.remove('visible');
+  }
+
+  function setRecordingUi(isRecording) {
+    document.getElementById('voiceControls').classList.toggle('visible', isRecording);
+  }
+
+  function canSendSupportMessage() {
+    return CURRENT_TICKET_STATUS === 'REPLIED';
+  }
+
+  function supportStatusMessage() {
+    if (CURRENT_TICKET_STATUS === 'RESOLVED') {
+      return 'Ticket is resolved. You cannot send messages.';
+    }
+    if (CURRENT_TICKET_STATUS === 'PENDING') {
+      return 'Ticket is pending. Set status to REPLIED before sending messages.';
+    }
+    return 'Support chat is not open yet.';
+  }
+
+  function updateComposerState() {
+    const disabled = !canSendSupportMessage();
+    document.getElementById('chatInput').disabled = disabled;
+    document.getElementById('chatAttachment').disabled = disabled;
+    document.querySelector('.record-btn').disabled = disabled;
+    document.querySelector('button[onclick="sendChatMessage()"]').disabled = disabled;
+    setChatStatus(disabled ? supportStatusMessage() : '');
+  }
+
+  function startRecordTimer() {
+    stopRecordTimer();
+    updateRecordTimer();
+    recordTimer = window.setInterval(updateRecordTimer, 500);
+  }
+
+  function stopRecordTimer() {
+    if (recordTimer) {
+      window.clearInterval(recordTimer);
+      recordTimer = null;
+    }
+  }
+
+  function updateRecordTimer() {
+    const seconds = Math.floor((Date.now() - recordStartedAt) / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const rest = seconds % 60;
+    document.getElementById('recordingTime').textContent = `${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`;
+  }
+
+  function stopRecordStream() {
+    recordStream?.getTracks().forEach((track) => track.stop());
+    recordStream = null;
+  }
+
+  document.getElementById('chatAttachment').addEventListener('change', () => {
+    if (document.getElementById('chatAttachment').files[0]) {
+      clearRecordedVoice();
+    }
+  });
 
   function closeChat() {
     if(socket) { socket.disconnect(); socket = null; }

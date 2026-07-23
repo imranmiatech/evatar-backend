@@ -76,7 +76,7 @@ export class MessageController {
   @Post('conversations/:conversationId/messages')
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({
-    summary: 'Send a text message, file message, or text with file',
+    summary: 'Send a text message, file message, voice message, or text with file',
   })
   @ApiConsumes('application/json', 'multipart/form-data')
   @ApiBody({
@@ -93,11 +93,13 @@ export class MessageController {
         },
         attachmentType: {
           type: 'string',
-          example: 'image/png',
+          example: 'audio/webm',
         },
         file: {
           type: 'string',
           format: 'binary',
+          description:
+            'Attachment file. For voice messages, upload the recorded audio blob as this field.',
         },
       },
     },
@@ -155,6 +157,7 @@ export class MessageController {
               type.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
             ).join('|')})$`,
           ),
+          skipMagicNumbersValidation: true,
         }),
       ],
     });
