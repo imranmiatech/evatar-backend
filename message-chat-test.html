@@ -111,6 +111,10 @@
         color: #14353b;
       }
 
+      button.danger {
+        background: #b42318;
+      }
+
       button:disabled {
         opacity: 0.55;
         cursor: not-allowed;
@@ -215,7 +219,7 @@
 
       .composer {
         display: grid;
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: auto 1fr auto auto;
         gap: 10px;
         padding: 16px 24px 22px;
         background: #ffffff;
@@ -239,6 +243,12 @@
         display: none;
       }
 
+      .record-button {
+        width: 46px;
+        height: 46px;
+        padding: 0;
+      }
+
       .composer-stack {
         display: grid;
         gap: 8px;
@@ -258,6 +268,39 @@
 
       .file-preview.visible {
         display: flex;
+      }
+
+      .voice-controls {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid #d6e0e2;
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: #fff8f7;
+        font-size: 13px;
+      }
+
+      .voice-controls.visible {
+        display: flex;
+      }
+
+      .record-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: #b42318;
+        animation: pulse 1s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 0.35;
+        }
+        50% {
+          opacity: 1;
+        }
       }
 
       .file-preview img {
@@ -302,6 +345,12 @@
         margin-top: 8px;
         border-radius: 8px;
         object-fit: cover;
+      }
+
+      .attachment-audio {
+        display: block;
+        width: min(360px, 100%);
+        margin-top: 8px;
       }
 
       .empty {
@@ -383,9 +432,20 @@
         <form id="composer" class="composer">
           <label class="file-button" title="Attach image or file">
             +
-            <input id="fileInput" type="file" />
+            <input id="fileInput" type="file" accept="image/*,audio/*,.pdf,.txt,.doc,.docx" />
           </label>
           <div class="composer-stack">
+            <div id="voiceControls" class="voice-controls">
+              <span class="record-dot"></span>
+              <strong id="recordingTime">00:00</strong>
+              <span>Recording voice...</span>
+              <button id="stopRecordBtn" type="button" class="danger">
+                Stop
+              </button>
+              <button id="cancelRecordBtn" type="button" class="secondary">
+                Cancel
+              </button>
+            </div>
             <div id="filePreview" class="file-preview">
               <img id="fileThumb" alt="" />
               <div class="file-preview-info">
@@ -401,6 +461,9 @@
               placeholder="Write your message"
             ></textarea>
           </div>
+          <button id="recordBtn" type="button" class="record-button secondary" title="Record voice">
+            Mic
+          </button>
           <button id="sendBtn" type="submit">Send</button>
         </form>
       </main>
@@ -415,6 +478,11 @@
         contacts: [],
         conversations: [],
         activeConversationId: '',
+        recorder: null,
+        recordStream: null,
+        recordChunks: [],
+        recordStartedAt: 0,
+        recordTimer: null,
       };
 
       const el = {
@@ -442,6 +510,11 @@
         fileName: document.getElementById('fileName'),
         fileSize: document.getElementById('fileSize'),
         clearFileBtn: document.getElementById('clearFileBtn'),
+        voiceControls: document.getElementById('voiceControls'),
+        recordingTime: document.getElementById('recordingTime'),
+        recordBtn: document.getElementById('recordBtn'),
+        stopRecordBtn: document.getElementById('stopRecordBtn'),
+        cancelRecordBtn: document.getElementById('cancelRecordBtn'),
         sendBtn: document.getElementById('sendBtn'),
       };
 
@@ -781,6 +854,14 @@
           `;
         }
 
+        if (type.startsWith('audio')) {
+          return `
+            <audio class="attachment-audio" controls src="${url}">
+              <a href="${url}" target="_blank" rel="noreferrer">Open voice message</a>
+            </audio>
+          `;
+        }
+
         return `<div><a href="${url}" target="_blank" rel="noreferrer">Open attachment</a></div>`;
       }
 
@@ -809,6 +890,118 @@
         transfer.items.add(file);
         el.fileInput.files = transfer.files;
         updateFilePreview();
+      }
+
+      function supportedAudioMimeType() {
+        const types = [
+          'audio/webm;codecs=opus',
+          'audio/webm',
+          'audio/mp4',
+          'audio/ogg;codecs=opus',
+        ];
+
+        return types.find((type) => MediaRecorder.isTypeSupported(type)) || '';
+      }
+
+      async function startRecording() {
+        if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+          throw new Error('Voice recording is not supported in this browser');
+        }
+
+        if (!state.activeConversationId) {
+          throw new Error('Select a conversation first');
+        }
+
+        clearSelectedFile();
+        state.recordChunks = [];
+        state.recordStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+
+        const mimeType = supportedAudioMimeType();
+        state.recorder = new MediaRecorder(
+          state.recordStream,
+          mimeType ? { mimeType } : undefined,
+        );
+
+        state.recorder.addEventListener('dataavailable', (event) => {
+          if (event.data.size > 0) state.recordChunks.push(event.data);
+        });
+
+        state.recorder.addEventListener('stop', () => {
+          stopRecordTimer();
+          stopRecordStream();
+          setRecordingUi(false);
+        });
+
+        state.recordStartedAt = Date.now();
+        state.recorder.start();
+        setRecordingUi(true);
+        startRecordTimer();
+      }
+
+      function stopRecording() {
+        if (!state.recorder || state.recorder.state === 'inactive') return;
+
+        state.recorder.addEventListener(
+          'stop',
+          () => {
+            const mimeType =
+              state.recorder.mimeType || state.recordChunks[0]?.type || 'audio/webm';
+            const extension = mimeType.includes('mp4') ? 'm4a' : 'webm';
+            const blob = new Blob(state.recordChunks, { type: mimeType });
+            const file = new File([blob], `voice-message-${Date.now()}.${extension}`, {
+              type: mimeType,
+            });
+            setSelectedFile(file);
+            state.recordChunks = [];
+          },
+          { once: true },
+        );
+
+        state.recorder.stop();
+      }
+
+      function cancelRecording() {
+        if (state.recorder && state.recorder.state !== 'inactive') {
+          state.recordChunks = [];
+          state.recorder.stop();
+        } else {
+          stopRecordTimer();
+          stopRecordStream();
+          setRecordingUi(false);
+        }
+      }
+
+      function setRecordingUi(isRecording) {
+        el.voiceControls.classList.toggle('visible', isRecording);
+        el.recordBtn.disabled = isRecording;
+        el.sendBtn.disabled = isRecording;
+      }
+
+      function startRecordTimer() {
+        stopRecordTimer();
+        updateRecordTimer();
+        state.recordTimer = window.setInterval(updateRecordTimer, 500);
+      }
+
+      function stopRecordTimer() {
+        if (state.recordTimer) {
+          window.clearInterval(state.recordTimer);
+          state.recordTimer = null;
+        }
+      }
+
+      function updateRecordTimer() {
+        const seconds = Math.floor((Date.now() - state.recordStartedAt) / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const rest = seconds % 60;
+        el.recordingTime.textContent = `${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`;
+      }
+
+      function stopRecordStream() {
+        state.recordStream?.getTracks().forEach((track) => track.stop());
+        state.recordStream = null;
       }
 
       function formatBytes(bytes) {
@@ -848,6 +1041,11 @@
       el.composer.addEventListener('submit', sendMessage);
       el.fileInput.addEventListener('change', updateFilePreview);
       el.clearFileBtn.addEventListener('click', clearSelectedFile);
+      el.recordBtn.addEventListener('click', () =>
+        startRecording().catch(showError),
+      );
+      el.stopRecordBtn.addEventListener('click', stopRecording);
+      el.cancelRecordBtn.addEventListener('click', cancelRecording);
       el.composer.addEventListener('dragover', (event) => {
         event.preventDefault();
         el.composer.classList.add('dragging');

@@ -1,14 +1,38 @@
-import { Controller, Post, Get, Patch, Body, Param, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  FileTypeValidator,
+  Get,
+  MaxFileSizeValidator,
+  Param,
+  ParseFilePipe,
+  Patch,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SupportService } from './support.service';
 import { StorageService } from '../../common/storage/storage.service';
-import { CreateTicketDto, UpdateTicketStatusDto } from './dto/support.dto';
+import {
+  CreateTicketDto,
+  SendMessageDto,
+  UpdateTicketStatusDto,
+} from './dto/support.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import type { Express } from 'express';
+import type { User } from '@prisma/client';
+import {
+  SUPPORT_ATTACHMENT_MAX_BYTES,
+  SUPPORT_ATTACHMENT_MIME_TYPES,
+} from './support.constants';
+import { SupportGateway } from './support.gateway';
 
 @ApiTags('Support')
 @ApiBearerAuth()
@@ -17,30 +41,42 @@ export class SupportController {
   constructor(
     private readonly supportService: SupportService,
     private readonly storageService: StorageService,
+    private readonly supportGateway: SupportGateway,
   ) {}
 
   @Post('upload')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file'))
-  @ApiOperation({ summary: 'Upload an attachment for a support ticket' })
+  @ApiOperation({
+    summary: 'Upload a support attachment, including voice messages',
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        file: { type: 'string', format: 'binary' },
+        file: {
+          type: 'string',
+          format: 'binary',
+          description:
+            'Attachment file. For voice messages, upload the recorded audio blob as this field.',
+        },
       },
     },
   })
-  async uploadAttachment(@UploadedFile() file: Express.Multer.File) {
+  async uploadAttachment(
+    @UploadedFile(SupportController.requiredFilePipe())
+    file: Express.Multer.File,
+  ) {
     if (!file) {
       throw new BadRequestException('File is required');
     }
-    const url = await this.storageService.uploadFile(file, 'support-attachments');
+    const attachment = await this.uploadSupportAttachment(file);
     return {
       success: true,
       message: 'File uploaded successfully',
-      url,
+      url: attachment.url,
+      attachmentType: attachment.attachmentType,
     };
   }
 
@@ -77,6 +113,63 @@ export class SupportController {
     @Param('id') id: string,
   ) {
     return this.supportService.getTicketMessages(user.id, id, user.role);
+  }
+
+  @Post('tickets/:id/messages')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({
+    summary: 'Send a support text, file, voice message, or text with file',
+  })
+  @ApiConsumes('application/json', 'multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Here is the recording for the issue.',
+        },
+        attachmentUrl: {
+          type: 'string',
+          example: 'https://res.cloudinary.com/.../voice.webm',
+        },
+        attachmentType: {
+          type: 'string',
+          example: 'audio/webm',
+        },
+        file: {
+          type: 'string',
+          format: 'binary',
+          description:
+            'Attachment file. For voice messages, upload the recorded audio blob as this field.',
+        },
+      },
+    },
+  })
+  async sendTicketMessage(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: SendMessageDto,
+    @UploadedFile(SupportController.optionalFilePipe())
+    file?: Express.Multer.File,
+  ) {
+    if (file) {
+      const attachment = await this.uploadSupportAttachment(file);
+      dto.attachmentUrl = attachment.url;
+      dto.attachmentType = attachment.attachmentType;
+    }
+
+    const response = await this.supportService.sendMessage(
+      user.id,
+      user.role,
+      id,
+      dto,
+    );
+
+    this.supportGateway.broadcastMessage(id, response.data);
+
+    return response;
   }
 
   @Patch('tickets/:id/resolve')
@@ -117,5 +210,47 @@ export class SupportController {
     @Body() updateDto: UpdateTicketStatusDto,
   ) {
     return this.supportService.updateTicketStatus(id, updateDto.status);
+  }
+
+  private static requiredFilePipe() {
+    return SupportController.filePipe(true);
+  }
+
+  private static optionalFilePipe() {
+    return SupportController.filePipe(false);
+  }
+
+  private async uploadSupportAttachment(file: Express.Multer.File) {
+    const url = await this.storageService.uploadFile(
+      file,
+      'support-attachments',
+    );
+
+    return {
+      url,
+      attachmentType: file.mimetype,
+      fileName: file.originalname,
+      size: file.size,
+    };
+  }
+
+  private static filePipe(fileIsRequired: boolean) {
+    return new ParseFilePipe({
+      fileIsRequired,
+      validators: [
+        new MaxFileSizeValidator({
+          maxSize: SUPPORT_ATTACHMENT_MAX_BYTES,
+          message: 'File size must be 10MB or less',
+        }),
+        new FileTypeValidator({
+          fileType: new RegExp(
+            `^(${SUPPORT_ATTACHMENT_MIME_TYPES.map((type) =>
+              type.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+            ).join('|')})$`,
+          ),
+          skipMagicNumbersValidation: true,
+        }),
+      ],
+    });
   }
 }
