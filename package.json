@@ -29,6 +29,9 @@
     "test": "jest --config ./test/jest-e2e.json",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
+  "prisma": {
+    "seed": "npx tsx prisma/seeds/index.ts"
+  },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.3.7",
     "@nestjs/common": "^11.0.1",

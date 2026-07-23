@@ -1,0 +1,48 @@
+model User {
+  id                 String             @id @default(cuid())
+  fullName           String
+  email              String             @unique
+  phoneNumber        String?            @unique
+  relationShip       String?
+  preferredLanguage  String?            @default("en")
+  passwordHash       String
+  profilePictureUrl  String?
+  role               UserRole           @default(PARENT)
+  isEmailVerified    Boolean            @default(false)
+  isPhoneVerified    Boolean            @default(false)
+  status             UserStatus         @default(PENDING)
+  termsAccepted      Boolean            @default(true)
+  verificationStatus VerificationStatus @default(PENDING)
+  rejectionReason    String?
+  reviewedBy         String?
+  reviewedAt         DateTime?
+  vendorApplicantId  String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  parentProfile            ParentProfile?
+  nannyProfile             NannyProfile?
+  accountDeletion          AccountDeletion?
+  otpCodes                 OtpCode[]
+  kycVerifications         KycVerification[]
+  child                    Child[]                   @relation("ParentChildren")
+  childSchedules           ChildSchedule[]           @relation("UserChildSchedules")
+  nannyChildLinks          NannyChildLink[]          @relation("NannyChildren")
+  mediaAssets              MediaAsset[]              @relation("UserMediaAssets")
+  kitchenItems             KitchenItem[]
+  kitchenInventoryCreated  KitchenItem[]             @relation("KitchenInventoryCreatedBy")
+  kitchenInventoryUpdated  KitchenItem[]             @relation("KitchenInventoryUpdatedBy")
+  shoppingListItems        ShoppingListItem[]
+  groceryOrders            GroceryOrder[]
+  paymentMethods           PaymentMethod[]
+  transactions             Transaction[]
+  stores                   Store[]
+  supportTickets           SupportTicket[]
+  ticketMessages           TicketMessage[]
+  createdConversations     Conversation[]            @relation("ConversationCreatedBy")
+  conversationParticipants ConversationParticipant[]
+  chatMessages             ChatMessage[]
+
+  @@index([role])
+  @@index([verificationStatus])
+}
