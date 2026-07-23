@@ -7,88 +7,96 @@ export class LibraryService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getAll(query: LibraryQueryDto) {
-    const { search, activityType, recipeMealType, page = 1, limit = 20 } = query;
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const [activities, recipes, activityCount, recipeCount] =
-      await this.prisma.$transaction([
-        this.prisma.activity.findMany({
-          where: {
-            isActive: true,
-            ...(activityType && { activityType }),
-            ...(search && {
-              title: { contains: search, mode: 'insensitive' },
-            }),
-            ...(!recipeMealType && !search && {}),
-          },
-          select: {
-            id: true,
-            title: true,
-            imageUrl: true,
-            activityType: true,
-            minAgeMonths: true,
-            maxAgeMonths: true,
-            durationMin: true,
-            durationMax: true,
-            energyLevel: true,
-            location: true,
-            connectionMoment: true,
-            benefits: {
-              select: { title: true, description: true, iconUrl: true },
-            },
-          },
-          orderBy: { createdAt: 'desc' },
-          skip,
-          take: limit,
-        }),
+    const hasRecipeFilter = !!query.recipeMealType;
+    const hasActivityFilter = !!query.activityType || !!query.location;
 
-        this.prisma.recipe.findMany({
-          where: {
-            isActive: true,
-            ...(recipeMealType && { recipeMealType }),
-            ...(search && {
-              title: { contains: search, mode: 'insensitive' },
-            }),
-            ...(!activityType && !search && {}),
-          },
-          select: {
-            id: true,
-            title: true,
-            imageUrl: true,
-            recipeMealType: true,
-            minAgeMonths: true,
-            maxAgeMonths: true,
-            prepTimeMin: true,
-            cookTimeMin: true,
-            difficulty: true,
-            servings: true,
-            nutritionalFocus: true,
-          },
-          orderBy: { createdAt: 'desc' },
-          skip,
-          take: limit,
-        }),
+    const ageWhere = {
+      ...(query.minAge !== undefined && { minAgeMonths: { lte: query.minAge } }),
+      ...(query.maxAge !== undefined && { maxAgeMonths: { gte: query.maxAge } }),
+    };
 
-        this.prisma.activity.count({
-          where: {
-            isActive: true,
-            ...(activityType && { activityType }),
-            ...(search && {
-              title: { contains: search, mode: 'insensitive' },
-            }),
-          },
-        }),
+    const searchWhere = (search?: string) =>
+      search ? { title: { contains: search, mode: 'insensitive' as const } } : {};
 
-        this.prisma.recipe.count({
-          where: {
-            isActive: true,
-            ...(recipeMealType && { recipeMealType }),
-            ...(search && {
-              title: { contains: search, mode: 'insensitive' },
-            }),
-          },
-        }),
-      ]);
+    const activityWhere = {
+      isActive: true,
+      ...(query.activityType && { activityType: query.activityType }),
+      ...(query.location && { location: { has: query.location } }),
+      ...searchWhere(query.search),
+      ...ageWhere,
+    };
+
+    const recipeWhere = {
+      isActive: true,
+      ...(query.recipeMealType && { recipeMealType: query.recipeMealType }),
+      ...searchWhere(query.search),
+      ...ageWhere,
+    };
+
+    const skipActivities = hasRecipeFilter && !hasActivityFilter;
+    const skipRecipes = hasActivityFilter && !hasRecipeFilter;
+
+    const activitySelect = {
+      id: true,
+      title: true,
+      imageUrl: true,
+      activityType: true,
+      minAgeMonths: true,
+      maxAgeMonths: true,
+      durationMin: true,
+      durationMax: true,
+      energyLevel: true,
+      location: true,
+      connectionMoment: true,
+    };
+
+    const recipeSelect = {
+      id: true,
+      title: true,
+      imageUrl: true,
+      recipeMealType: true,
+      minAgeMonths: true,
+      maxAgeMonths: true,
+      prepTimeMin: true,
+      cookTimeMin: true,
+      difficulty: true,
+      servings: true,
+      nutritionalFocus: true,
+    };
+
+    const [activities, recipes, activityCount, recipeCount] = await Promise.all([
+      skipActivities
+        ? Promise.resolve([] as any[])
+        : this.prisma.activity.findMany({
+            where: activityWhere,
+            select: activitySelect,
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limit,
+          }),
+
+      skipRecipes
+        ? Promise.resolve([] as any[])
+        : this.prisma.recipe.findMany({
+            where: recipeWhere,
+            select: recipeSelect,
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limit,
+          }),
+
+      skipActivities
+        ? Promise.resolve(0)
+        : this.prisma.activity.count({ where: activityWhere }),
+
+      skipRecipes
+        ? Promise.resolve(0)
+        : this.prisma.recipe.count({ where: recipeWhere }),
+    ]);
 
     const mappedActivities = activities.map((a) => ({
       id: a.id,
@@ -98,7 +106,7 @@ export class LibraryService {
       category: a.activityType,
       ageSuitability:
         a.minAgeMonths !== null && a.maxAgeMonths !== null
-          ? `${a.minAgeMonths}-${a.maxAgeMonths}m`
+          ? `${this.formatAge(a.minAgeMonths)} - ${this.formatAge(a.maxAgeMonths)}`
           : null,
       duration:
         a.durationMin !== null && a.durationMax !== null
@@ -107,7 +115,6 @@ export class LibraryService {
       energyLevel: a.energyLevel,
       location: a.location,
       connectionMoment: a.connectionMoment,
-      developmentalBenefits: a.benefits,
     }));
 
     const mappedRecipes = recipes.map((r) => ({
@@ -118,7 +125,7 @@ export class LibraryService {
       category: r.recipeMealType,
       ageSuitability:
         r.minAgeMonths !== null && r.maxAgeMonths !== null
-          ? `${r.minAgeMonths}-${r.maxAgeMonths}m`
+          ? `${this.formatAge(r.minAgeMonths)} - ${this.formatAge(r.maxAgeMonths)}`
           : null,
       prepTimeMin: r.prepTimeMin,
       cookTimeMin: r.cookTimeMin,
@@ -128,6 +135,7 @@ export class LibraryService {
     }));
 
     return {
+      message: 'Library items fetched successfully',
       data: {
         activities: mappedActivities,
         recipes: mappedRecipes,
@@ -263,5 +271,14 @@ export class LibraryService {
       stepByStepInstructions: recipe.steps,
       safetyNotes: recipe.safetyNotes,
     };
+  }
+
+  private formatAge(months: number): string {
+    if (months < 12) {
+      return `${months} month${months !== 1 ? 's' : ''}`;
+    }
+    const years = months / 12;
+    const rounded = Math.round(years * 2) / 2;
+    return `${rounded} year${rounded !== 1 ? 's' : ''}`;
   }
 }

@@ -16,13 +16,17 @@ import {
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { LibraryService } from '../services/library.service';
 import { LibraryQueryDto } from '../dto/library-query.dto';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { UserRole } from '@prisma/client';
 
 @ApiTags('Shared > Library')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.PARENT, UserRole.NANNY)
 @Controller('library')
 export class LibraryController {
-  constructor(private readonly libraryService: LibraryService) {}
+  constructor(private readonly libraryService: LibraryService) { }
 
   @Get()
   @ApiOperation({
@@ -32,12 +36,7 @@ export class LibraryController {
   })
   @ApiResponse({ status: 200, description: 'Library items returned successfully.' })
   async getAll(@Query() query: LibraryQueryDto) {
-    const result = await this.libraryService.getAll(query);
-    return {
-      success: true,
-      message: 'Library items fetched successfully',
-      ...result,
-    };
+    return this.libraryService.getAll(query);
   }
 
   @Get('activities/:id')
