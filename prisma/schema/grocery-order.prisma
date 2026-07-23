@@ -23,7 +23,7 @@ model GroceryOrder {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items GroceryOrderItem[]
+  items        GroceryOrderItem[]
   transactions Transaction[]
 
   @@map("grocery_orders")

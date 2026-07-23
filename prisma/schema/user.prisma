@@ -24,7 +24,7 @@ model User {
   nannyProfile             NannyProfile?
   accountDeletion          AccountDeletion?
   otpCodes                 OtpCode[]
-  kycDocuments             KycDocument[]
+  kycVerifications         KycVerification[]
   child                    Child[]                   @relation("ParentChildren")
   childSchedules           ChildSchedule[]           @relation("UserChildSchedules")
   nannyChildLinks          NannyChildLink[]          @relation("NannyChildren")

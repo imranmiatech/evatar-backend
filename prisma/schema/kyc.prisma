@@ -1,13 +1,44 @@
-model KycDocument {
-  id            String       @id @default(cuid())
-  userId        String
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type          DocumentType
-  s3Key         String
-  extractedData Json?
-  isVerified    Boolean      @default(false)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+model KycVerification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, type])
+  docType         IdentityDocType
+  status          VerificationStatus @default(PENDING)
+  rejectionReason String?
+
+  faceMatchScore  Float?
+  isLivenessValid Boolean @default(false)
+
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  submittedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  documents KycDocument[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model KycDocument {
+  id                String          @id @default(cuid())
+  kycVerificationId String
+  kycVerification   KycVerification @relation(fields: [kycVerificationId], references: [id], onDelete: Cascade)
+
+  type     DocumentType
+  fileUrl  String?
+  s3Key    String
+  mimeType String?
+  fileSize Int?
+
+  extractedData Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([kycVerificationId, type])
+  @@index([kycVerificationId])
 }
