@@ -13,6 +13,18 @@ enum VerificationStatus {
   REJECTED
 }
 
+enum RelationshipType {
+  FATHER
+  MOTHER
+  GUARDIAN
+  SIBLING
+  GRANDFATHER
+  GRANDMOTHER
+  UNCLE
+  AUNT
+  RELATIVE
+}
+
 enum DocumentType {
   PASSPORT
   NID_FRONT
