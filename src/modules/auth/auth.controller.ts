@@ -1,5 +1,11 @@
 import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { SigninDto } from './dto/signin.dto';
@@ -18,6 +24,42 @@ export class AuthController {
 
   @Post('signup')
   @ApiOperation({ summary: 'Register a new user (Nanny or Parent)' })
+  @ApiBody({
+    type: SignupDto,
+    examples: {
+      parent: {
+        summary: 'Parent signup',
+        value: {
+          fullName: 'Parent User',
+          email: 'parent@example.com',
+          phoneNumber: '+8801700000001',
+          password: '123456',
+          preferredLanguage: 'en',
+          role: 'PARENT',
+          otpDeliveryMethod: 'EMAIL',
+          relationType: 'FATHER',
+          street: 'Dubai Street',
+          postCode: '1230',
+          city: 'Dubai',
+          state: 'Dubai',
+          country: 'UAE',
+          membershipPlan: 'TRIAL',
+        },
+      },
+      nanny: {
+        summary: 'Nanny signup',
+        value: {
+          fullName: 'Nanny User',
+          email: 'nanny@example.com',
+          phoneNumber: '+8801700000002',
+          password: '123456',
+          preferredLanguage: 'en',
+          role: 'NANNY',
+          otpDeliveryMethod: 'EMAIL',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 201, description: 'User successfully created and OTP generated.' })
   @ApiResponse({ status: 400, description: 'Validation failed or user already exists.' })
   async signup(@Body() signupDto: SignupDto) {

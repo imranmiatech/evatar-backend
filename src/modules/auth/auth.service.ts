@@ -81,6 +81,15 @@ export class AuthService {
           });
         }
 
+        if (dto.role === UserRole.NANNY) {
+          await tx.nannyProfile.create({
+            data: {
+              userId: createdUser.id,
+              languages: dto.preferredLanguage ? [dto.preferredLanguage] : [],
+            },
+          });
+        }
+
         // 4. Generate 4-digit OTP
         const otpCode = Math.floor(1000 + Math.random() * 9000).toString(); // e.g., '4821'
 
