@@ -9,6 +9,7 @@ import {
   RelationshipType,
   UserRole,
   UserStatus,
+  VerificationStatus,
 } from '@prisma/client';
 import { TwilioService } from '../../common/twilio/twilio.service';
 import { MailService } from '../../common/mail/mail.service';
@@ -310,6 +311,7 @@ export class AuthService {
           isEmailVerified: Boolean(dto.email) || user.isEmailVerified,
           isPhoneVerified: Boolean(dto.phoneNumber) || user.isPhoneVerified,
           status: UserStatus.ACTIVE,
+          verificationStatus: VerificationStatus.APPROVED,
         },
       }),
       this.prisma.otpCode.update({
