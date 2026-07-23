@@ -10,7 +10,7 @@ model User {
   role               UserRole           @default(PARENT)
   isEmailVerified    Boolean            @default(false)
   isPhoneVerified    Boolean            @default(false)
-  isActive           Boolean            @default(true)
+  status             UserStatus         @default(PENDING)
   termsAccepted      Boolean            @default(true)
   verificationStatus VerificationStatus @default(PENDING)
   rejectionReason    String?

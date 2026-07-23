@@ -5,6 +5,15 @@ enum UserRole {
   ADMIN
 }
 
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  BLOCKED
+  SUSPENDED
+  DELETED
+}
+
 enum VerificationStatus {
   PENDING
   DOCUMENTS_SUBMITTED
