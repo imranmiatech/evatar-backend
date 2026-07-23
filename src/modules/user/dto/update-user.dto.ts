@@ -37,3 +37,35 @@ export class UpdateUserDto {
   @IsString()
   relationShip?: string;
 }
+
+export class UpdateParentProfileDto {
+  @ApiPropertyOptional({ description: 'Full address line' })
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @ApiPropertyOptional({ description: 'Street address' })
+  @IsOptional()
+  @IsString()
+  street?: string;
+
+  @ApiPropertyOptional({ description: 'Postal code' })
+  @IsOptional()
+  @IsString()
+  postalCode?: string;
+
+  @ApiPropertyOptional({ description: 'City' })
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @ApiPropertyOptional({ description: 'State' })
+  @IsOptional()
+  @IsString()
+  state?: string;
+
+  @ApiPropertyOptional({ description: 'Country' })
+  @IsOptional()
+  @IsString()
+  country?: string;
+}

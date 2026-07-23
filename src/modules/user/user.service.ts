@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { UpdateUserDto } from './dto/update-user.dto';
+import {
+  UpdateParentProfileDto,
+  UpdateUserDto,
+} from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
@@ -20,7 +23,7 @@ export class UserService {
         relationShip: true,
         isEmailVerified: true,
         isPhoneVerified: true,
-        isActive: true,
+        status: true,
         createdAt: true,
         updatedAt: true,
         parentProfile: {
@@ -29,7 +32,7 @@ export class UserService {
             city: true,
             state: true,
             country: true,
-            postCode: true,
+            postalCode: true,
           }
         }
       }
@@ -41,8 +44,8 @@ export class UserService {
 
     let address: string | null = null;
     if (user.parentProfile) {
-      const { street, city, state, country, postCode } = user.parentProfile;
-      const addressParts = [street, city, state, country, postCode].filter(Boolean);
+      const { street, city, state, country, postalCode } = user.parentProfile;
+      const addressParts = [street, city, state, country, postalCode].filter(Boolean);
       address = addressParts.length > 0 ? addressParts.join(', ') : null;
     }
 
@@ -67,6 +70,7 @@ export class UserService {
     delete (updateData as any).state;
     delete (updateData as any).country;
     delete (updateData as any).postCode;
+    delete (updateData as any).postalCode;
 
     return this.prisma.user.update({
       where: { id },
@@ -82,6 +86,41 @@ export class UserService {
         relationShip: true,
       }
     });
+  }
+
+  async updateMyParentProfile(userId: string, dto: UpdateParentProfileDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { parentProfile: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const data = {
+      address: dto.address ?? user.parentProfile?.address ?? '',
+      street: dto.street ?? user.parentProfile?.street ?? '',
+      postalCode: dto.postalCode ?? user.parentProfile?.postalCode ?? '',
+      city: dto.city ?? user.parentProfile?.city ?? '',
+      state: dto.state ?? user.parentProfile?.state ?? '',
+      country: dto.country ?? user.parentProfile?.country,
+    };
+
+    const profile = await this.prisma.parentProfile.upsert({
+      where: { userId },
+      update: data,
+      create: {
+        userId,
+        relationship: 'GUARDIAN',
+        ...data,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Parent profile updated',
+      data: profile,
+    };
   }
 
   async deleteUser(id: string) {
@@ -101,7 +140,11 @@ export class UserService {
 
   async getUserDocuments(userId: string) {
     const documents = await this.prisma.kycDocument.findMany({
-      where: { userId },
+      where: {
+        kycVerification: {
+          userId,
+        },
+      },
     });
     return {
       success: true,
@@ -137,7 +180,11 @@ export class UserService {
         id: true,
         fullName: true,
         profilePictureUrl: true,
-        kycDocuments: true,
+        kycVerifications: {
+          include: {
+            documents: true,
+          },
+        },
       },
     });
 
@@ -147,7 +194,9 @@ export class UserService {
         nannyId: nanny.id,
         nannyName: nanny.fullName,
         nannyProfilePicture: nanny.profilePictureUrl,
-        documents: nanny.kycDocuments,
+        documents: nanny.kycVerifications.flatMap(
+          (verification) => verification.documents,
+        ),
       })),
     };
   }

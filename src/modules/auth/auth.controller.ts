@@ -5,6 +5,7 @@ import { SignupDto } from './dto/signup.dto';
 import { SigninDto } from './dto/signin.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { VerifySignupOtpDto } from './dto/verify-signup-otp.dto';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -83,6 +84,14 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'User not found.' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
+  }
+
+  @Post('verify-signup-otp')
+  @ApiOperation({ summary: 'Verify signup OTP and activate account' })
+  @ApiResponse({ status: 200, description: 'Signup OTP verified successfully.' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired OTP.' })
+  async verifySignupOtp(@Body() dto: VerifySignupOtpDto) {
+    return this.authService.verifySignupOtp(dto);
   }
 
   @Post('reset-password')

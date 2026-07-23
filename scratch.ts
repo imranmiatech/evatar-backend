@@ -25,7 +25,12 @@ async function run() {
         await tx.parentProfile.create({
           data: {
             userId: createdUser.id,
-            relationType: "father"
+            relationship: "FATHER",
+            address: "Test address",
+            street: "Test street",
+            postalCode: "12345",
+            city: "Test city",
+            state: "Test state",
           },
         });
         

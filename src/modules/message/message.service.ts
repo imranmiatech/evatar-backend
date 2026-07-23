@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, UserRole } from '@prisma/client';
+import { Prisma, UserRole, UserStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateConversationDto, SendChatMessageDto } from './dto/message.dto';
 
@@ -41,7 +41,7 @@ export class MessageService {
     const users = await this.prisma.user.findMany({
       where: {
         id: { not: currentUserId },
-        isActive: true,
+        status: UserStatus.ACTIVE,
         role: { in: CHAT_ROLES },
       },
       select: userSelect,
@@ -63,7 +63,7 @@ export class MessageService {
     const participants = await this.prisma.user.findMany({
       where: {
         id: { in: participantIds },
-        isActive: true,
+        status: UserStatus.ACTIVE,
         role: { in: CHAT_ROLES },
       },
       select: { id: true },
