@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsOptional, IsString, IsInt, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class ScheduleQueryDto {
   @ApiPropertyOptional({
@@ -17,4 +18,18 @@ export class ScheduleQueryDto {
   @IsDateString()
   @IsOptional()
   date?: string;
+
+  @ApiPropertyOptional({ description: 'Page number', example: 1 })
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  @IsOptional()
+  page?: number = 1;
+
+  @ApiPropertyOptional({ description: 'Items per page', example: 20 })
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  @IsOptional()
+  limit?: number = 20;
 }

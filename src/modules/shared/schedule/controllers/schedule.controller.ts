@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -22,6 +23,7 @@ import { ScheduleService } from '../services/schedule.service';
 import { CreateLibraryScheduleDto } from '../dto/create-library-schedule.dto';
 import { CreateManualScheduleDto } from '../dto/create-manual-schedule.dto';
 import { ScheduleQueryDto } from '../dto/schedule-query.dto';
+import { UpdateScheduleDto } from '../dto/update-schedule.dto';
 
 @ApiTags('Shared > Schedule')
 @ApiBearerAuth()
@@ -70,6 +72,31 @@ export class ScheduleController {
     @Query() query: ScheduleQueryDto,
   ) {
     return this.scheduleService.getSchedules(user.userId, query);
+  }
+
+  @Get(':scheduleId')
+  @ApiOperation({ summary: 'Get a single schedule item' })
+  @ApiParam({ name: 'scheduleId', description: 'Schedule ID' })
+  @ApiResponse({ status: 200, description: 'Schedule fetched successfully.' })
+  @ApiResponse({ status: 404, description: 'Schedule not found.' })
+  getScheduleById(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('scheduleId') scheduleId: string,
+  ) {
+    return this.scheduleService.getScheduleById(user.userId, scheduleId);
+  }
+
+  @Patch(':scheduleId')
+  @ApiOperation({ summary: 'Update a schedule item' })
+  @ApiParam({ name: 'scheduleId', description: 'Schedule ID' })
+  @ApiResponse({ status: 200, description: 'Schedule updated.' })
+  @ApiResponse({ status: 404, description: 'Schedule not found.' })
+  updateSchedule(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('scheduleId') scheduleId: string,
+    @Body() dto: UpdateScheduleDto,
+  ) {
+    return this.scheduleService.updateSchedule(user.userId, scheduleId, dto);
   }
 
   @Delete(':scheduleId')

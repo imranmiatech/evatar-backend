@@ -39,6 +39,11 @@ export class ChildService {
   async getChildById(parentUserId: string, childId: string) {
     const child = await this.prisma.child.findUnique({
       where: { id: childId },
+      include: {
+        schoolSchedule: true,
+        recurringActivities: true,
+        naps: true,
+      },
     });
 
     if (!child) {
@@ -71,15 +76,43 @@ export class ChildService {
     const updated = await this.prisma.child.update({
       where: { id: childId },
       data: {
-        name: dto.name,
-        gender: dto.gender,
-        weight: dto.weight,
-        birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
-        avatar: dto.avatar,
-        wakeUpTime: dto.wakeUpTime,
-        bedTime: dto.bedTime,
-        healthConditions: dto.healthConditions ?? [],
-        additionalNotes: dto.additionalNotes,
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.gender !== undefined && { gender: dto.gender }),
+        ...(dto.weight !== undefined && { weight: dto.weight }),
+        ...(dto.birthDate !== undefined && { birthDate: dto.birthDate ? new Date(dto.birthDate) : null }),
+        ...(dto.avatar !== undefined && { avatar: dto.avatar }),
+        ...(dto.wakeUpTime !== undefined && { wakeUpTime: dto.wakeUpTime }),
+        ...(dto.bedTime !== undefined && { bedTime: dto.bedTime }),
+        ...(dto.healthConditions !== undefined && { healthConditions: dto.healthConditions }),
+        ...(dto.additionalNotes !== undefined && { additionalNotes: dto.additionalNotes }),
+        
+        ...(dto.schoolSchedule && {
+          schoolSchedule: {
+            upsert: {
+              create: dto.schoolSchedule,
+              update: dto.schoolSchedule,
+            },
+          },
+        }),
+        
+        ...(dto.recurringActivities && {
+          recurringActivities: {
+            deleteMany: {},
+            create: dto.recurringActivities,
+          },
+        }),
+        
+        ...(dto.naps && {
+          naps: {
+            deleteMany: {},
+            create: dto.naps,
+          },
+        }),
+      },
+      include: {
+        schoolSchedule: true,
+        recurringActivities: true,
+        naps: true,
       },
     });
 

@@ -20,7 +20,7 @@ model Child {
   updatedAt DateTime @updatedAt
 
   // Relations
-  schoolSchedules     SchoolSchedule[]
+  schoolSchedule      SchoolSchedule?
   recurringActivities RecurringActivity[]
   naps                NapWindow[]
   childSchedules      ChildSchedule[]
@@ -34,7 +34,7 @@ model Child {
 
 model SchoolSchedule {
   id        String      @id @default(uuid())
-  childId   String
+  childId   String      @unique
   child     Child       @relation(fields: [childId], references: [id], onDelete: Cascade)
   days      DayOfWeek[]
   startTime String

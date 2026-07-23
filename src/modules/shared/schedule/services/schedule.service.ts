@@ -9,6 +9,7 @@ import { ScheduleMode } from '@prisma/client';
 import { CreateLibraryScheduleDto } from '../dto/create-library-schedule.dto';
 import { CreateManualScheduleDto } from '../dto/create-manual-schedule.dto';
 import { ScheduleQueryDto } from '../dto/schedule-query.dto';
+import { UpdateScheduleDto } from '../dto/update-schedule.dto';
 
 @Injectable()
 export class ScheduleService {
@@ -127,48 +128,62 @@ export class ScheduleService {
   }
 
   async getSchedules(userId: string, query: ScheduleQueryDto) {
-    const targetDate = this.resolveDate(query.date);
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
     const today = this.resolveDate();
+    const filterDate = query.date ? this.resolveDate(query.date) : undefined;
 
     const whereBase = {
       userId,
       ...(query.childId && { childId: query.childId }),
     };
 
-    const [todaySchedules, otherSchedules] = await this.prisma.$transaction([
+    const todayWhere = {
+      ...whereBase,
+      date: filterDate ?? today,
+    };
+
+    const otherWhere = {
+      ...whereBase,
+      ...(filterDate ? { id: 'skip' } : { date: { not: today } }), // if specific date is requested, otherSchedules is empty
+    };
+
+    const includeRelations = {
+      child: { select: { id: true, name: true, avatar: true } },
+      activity: {
+        select: { id: true, title: true, activityType: true, imageUrl: true },
+      },
+      recipe: {
+        select: { id: true, title: true, recipeMealType: true, imageUrl: true },
+      },
+    };
+
+    const [todaySchedules, otherSchedules, todayCount, otherCount] = await Promise.all([
       this.prisma.childSchedule.findMany({
-        where: {
-          ...whereBase,
-          date: today,
-        },
-        include: {
-          child: { select: { id: true, name: true, avatar: true } },
-          activity: {
-            select: { id: true, title: true, activityType: true, imageUrl: true },
-          },
-          recipe: {
-            select: { id: true, title: true, recipeMealType: true, imageUrl: true },
-          },
-        },
+        where: todayWhere,
+        include: includeRelations,
         orderBy: { startTime: 'asc' },
+        skip,
+        take: limit,
       }),
 
-      this.prisma.childSchedule.findMany({
-        where: {
-          ...whereBase,
-          date: { not: today },
-        },
-        include: {
-          child: { select: { id: true, name: true, avatar: true } },
-          activity: {
-            select: { id: true, title: true, activityType: true, imageUrl: true },
-          },
-          recipe: {
-            select: { id: true, title: true, recipeMealType: true, imageUrl: true },
-          },
-        },
-        orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
-      }),
+      filterDate 
+        ? Promise.resolve([] as any[]) 
+        : this.prisma.childSchedule.findMany({
+            where: otherWhere,
+            include: includeRelations,
+            orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+            skip,
+            take: limit,
+          }),
+
+      this.prisma.childSchedule.count({ where: todayWhere }),
+      
+      filterDate 
+        ? Promise.resolve(0) 
+        : this.prisma.childSchedule.count({ where: otherWhere }),
     ]);
 
     return {
@@ -177,6 +192,119 @@ export class ScheduleService {
         todaySchedules: this.formatSchedules(todaySchedules),
         otherSchedules: this.formatSchedules(otherSchedules),
       },
+      meta: {
+        todaySchedules: {
+          total: todayCount,
+          page,
+          limit,
+          totalPages: Math.ceil(todayCount / limit),
+        },
+        otherSchedules: {
+          total: otherCount,
+          page,
+          limit,
+          totalPages: Math.ceil(otherCount / limit),
+        },
+      },
+    };
+  }
+
+  async getScheduleById(userId: string, scheduleId: string) {
+    const schedule = await this.prisma.childSchedule.findUnique({
+      where: { id: scheduleId },
+      include: {
+        child: { select: { id: true, name: true, avatar: true } },
+        activity: {
+          select: { id: true, title: true, activityType: true, imageUrl: true },
+        },
+        recipe: {
+          select: { id: true, title: true, recipeMealType: true, imageUrl: true },
+        },
+      },
+    });
+
+    if (!schedule) throw new NotFoundException('Schedule not found');
+    if (schedule.userId !== userId)
+      throw new ForbiddenException('You do not have access to this schedule');
+
+    return {
+      message: 'Schedule fetched successfully',
+      data: this.formatSchedules([schedule])[0],
+    };
+  }
+
+  async updateSchedule(userId: string, scheduleId: string, dto: UpdateScheduleDto) {
+    const schedule = await this.prisma.childSchedule.findUnique({
+      where: { id: scheduleId },
+    });
+
+    if (!schedule) throw new NotFoundException('Schedule not found');
+    if (schedule.userId !== userId)
+      throw new ForbiddenException('You do not have access to this schedule');
+
+    let libraryData: any = {};
+
+    if (dto.libraryItemId && dto.libraryItemType) {
+      const [activity, recipe] = await this.prisma.$transaction([
+        dto.libraryItemType === 'activity'
+          ? this.prisma.activity.findUnique({
+              where: { id: dto.libraryItemId, isActive: true },
+              select: { id: true, title: true, activityType: true },
+            })
+          : this.prisma.activity.findUnique({
+              where: { id: 'non-existent' },
+              select: { id: true, title: true, activityType: true },
+            }),
+
+        dto.libraryItemType === 'recipe'
+          ? this.prisma.recipe.findUnique({
+              where: { id: dto.libraryItemId, isActive: true },
+              select: { id: true, title: true, recipeMealType: true },
+            })
+          : this.prisma.recipe.findUnique({
+              where: { id: 'non-existent' },
+              select: { id: true, title: true, recipeMealType: true },
+            }),
+      ]);
+
+      const libraryItem = dto.libraryItemType === 'activity' ? activity : recipe;
+
+      if (!libraryItem) {
+        throw new NotFoundException(
+          `${dto.libraryItemType === 'activity' ? 'Activity' : 'Recipe'} not found in library`,
+        );
+      }
+
+      libraryData = {
+        title: libraryItem.title,
+        category:
+          dto.libraryItemType === 'activity'
+            ? this.mapActivityCategory((activity as any).activityType)
+            : this.mapRecipeCategory((recipe as any).recipeMealType),
+        activityId: dto.libraryItemType === 'activity' ? dto.libraryItemId : null,
+        recipeId: dto.libraryItemType === 'recipe' ? dto.libraryItemId : null,
+        mode: ScheduleMode.LIBRARY,
+      };
+    }
+
+    const scheduleDate = dto.date ? this.resolveDate(dto.date) : undefined;
+
+    const updated = await this.prisma.childSchedule.update({
+      where: { id: scheduleId },
+      data: {
+        ...(dto.title && { title: dto.title }),
+        ...(dto.category && { category: dto.category }),
+        ...(scheduleDate && { date: scheduleDate }),
+        ...(dto.startTime && { startTime: dto.startTime }),
+        ...(dto.endTime !== undefined && { endTime: dto.endTime }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...libraryData,
+      },
+    });
+
+    return {
+      message: 'Schedule updated successfully',
+      data: updated,
     };
   }
 

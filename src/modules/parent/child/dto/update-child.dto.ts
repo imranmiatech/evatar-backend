@@ -1,12 +1,58 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Gender, HealthCondition } from '@prisma/client';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Gender, HealthCondition, DayOfWeek } from '@prisma/client';
 import {
   IsArray,
   IsDateString,
   IsEnum,
   IsOptional,
   IsString,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class SchoolScheduleDto {
+  @ApiProperty({ enum: DayOfWeek, isArray: true, example: [DayOfWeek.MON, DayOfWeek.TUE] })
+  @IsArray()
+  @IsEnum(DayOfWeek, { each: true })
+  days: DayOfWeek[];
+
+  @ApiProperty({ example: '08:30' })
+  @IsString()
+  startTime: string;
+
+  @ApiProperty({ example: '14:30' })
+  @IsString()
+  endTime: string;
+}
+
+export class RecurringActivityDto {
+  @ApiProperty({ example: 'Home education schedule' })
+  @IsString()
+  name: string;
+
+  @ApiProperty({ enum: DayOfWeek, isArray: true, example: [DayOfWeek.MON, DayOfWeek.WED] })
+  @IsArray()
+  @IsEnum(DayOfWeek, { each: true })
+  days: DayOfWeek[];
+
+  @ApiProperty({ example: '09:00' })
+  @IsString()
+  startTime: string;
+
+  @ApiProperty({ example: '10:00' })
+  @IsString()
+  endTime: string;
+}
+
+export class NapWindowDto {
+  @ApiProperty({ example: '13:00' })
+  @IsString()
+  startTime: string;
+
+  @ApiProperty({ example: '15:00' })
+  @IsString()
+  endTime: string;
+}
 
 export class UpdateChildDto {
   @ApiPropertyOptional({ example: 'Eve Ahmed', description: "Child's given name" })
@@ -81,4 +127,24 @@ export class UpdateChildDto {
   @IsString()
   @IsOptional()
   additionalNotes?: string;
+
+  @ApiPropertyOptional({ type: SchoolScheduleDto })
+  @ValidateNested()
+  @Type(() => SchoolScheduleDto)
+  @IsOptional()
+  schoolSchedule?: SchoolScheduleDto;
+
+  @ApiPropertyOptional({ type: [RecurringActivityDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RecurringActivityDto)
+  @IsOptional()
+  recurringActivities?: RecurringActivityDto[];
+
+  @ApiPropertyOptional({ type: [NapWindowDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => NapWindowDto)
+  @IsOptional()
+  naps?: NapWindowDto[];
 }
