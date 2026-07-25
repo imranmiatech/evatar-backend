@@ -16,13 +16,13 @@ import { UserRole } from '@prisma/client';
 import { ChildTimelineService } from '../services/child-timeline.service';
 import { ChildDailyTimelineQueryDto } from '../dto/child-daily-timeline-query.dto';
 
-@ApiTags('Parent > Children')
+@ApiTags('(Parent) > Children Manage')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.PARENT)
 @Controller('parent/children')
 export class ChildTimelineController {
-  constructor(private readonly childTimelineService: ChildTimelineService) {}
+  constructor(private readonly childTimelineService: ChildTimelineService) { }
 
   @Get(':childId/daily-timeline')
   @ApiOperation({
