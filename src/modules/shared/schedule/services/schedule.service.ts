@@ -9,7 +9,8 @@ import { ScheduleMode } from '@prisma/client';
 import { CreateLibraryScheduleDto } from '../dto/create-library-schedule.dto';
 import { CreateManualScheduleDto } from '../dto/create-manual-schedule.dto';
 import { ScheduleQueryDto } from '../dto/schedule-query.dto';
-import { UpdateScheduleDto } from '../dto/update-schedule.dto';
+import { UpdateLibraryScheduleDto } from '../dto/update-library-schedule.dto';
+import { UpdateManualScheduleDto } from '../dto/update-manual-schedule.dto';
 
 @Injectable()
 export class ScheduleService {
@@ -233,7 +234,7 @@ export class ScheduleService {
     };
   }
 
-  async updateSchedule(userId: string, scheduleId: string, dto: UpdateScheduleDto) {
+  async updateLibrarySchedule(userId: string, scheduleId: string, dto: UpdateLibraryScheduleDto) {
     const schedule = await this.prisma.childSchedule.findUnique({
       where: { id: scheduleId },
     });
@@ -241,6 +242,10 @@ export class ScheduleService {
     if (!schedule) throw new NotFoundException('Schedule not found');
     if (schedule.userId !== userId)
       throw new ForbiddenException('You do not have access to this schedule');
+
+    if (schedule.mode !== ScheduleMode.LIBRARY) {
+      throw new BadRequestException('This schedule is not a library schedule');
+    }
 
     let libraryData: any = {};
 
@@ -292,8 +297,6 @@ export class ScheduleService {
     const updated = await this.prisma.childSchedule.update({
       where: { id: scheduleId },
       data: {
-        ...(dto.title && { title: dto.title }),
-        ...(dto.category && { category: dto.category }),
         ...(scheduleDate && { date: scheduleDate }),
         ...(dto.startTime && { startTime: dto.startTime }),
         ...(dto.endTime !== undefined && { endTime: dto.endTime }),
@@ -303,7 +306,40 @@ export class ScheduleService {
     });
 
     return {
-      message: 'Schedule updated successfully',
+      message: 'Library schedule updated successfully',
+      data: updated,
+    };
+  }
+
+  async updateManualSchedule(userId: string, scheduleId: string, dto: UpdateManualScheduleDto) {
+    const schedule = await this.prisma.childSchedule.findUnique({
+      where: { id: scheduleId },
+    });
+
+    if (!schedule) throw new NotFoundException('Schedule not found');
+    if (schedule.userId !== userId)
+      throw new ForbiddenException('You do not have access to this schedule');
+
+    if (schedule.mode !== ScheduleMode.CUSTOM) {
+      throw new BadRequestException('This schedule is not a manual schedule');
+    }
+
+    const scheduleDate = dto.date ? this.resolveDate(dto.date) : undefined;
+
+    const updated = await this.prisma.childSchedule.update({
+      where: { id: scheduleId },
+      data: {
+        ...(dto.title && { title: dto.title }),
+        ...(dto.category && { category: dto.category }),
+        ...(scheduleDate && { date: scheduleDate }),
+        ...(dto.startTime && { startTime: dto.startTime }),
+        ...(dto.endTime !== undefined && { endTime: dto.endTime }),
+        ...(dto.description !== undefined && { description: dto.description }),
+      },
+    });
+
+    return {
+      message: 'Manual schedule updated successfully',
       data: updated,
     };
   }

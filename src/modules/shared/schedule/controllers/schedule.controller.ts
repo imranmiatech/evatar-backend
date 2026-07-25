@@ -23,7 +23,8 @@ import { ScheduleService } from '../services/schedule.service';
 import { CreateLibraryScheduleDto } from '../dto/create-library-schedule.dto';
 import { CreateManualScheduleDto } from '../dto/create-manual-schedule.dto';
 import { ScheduleQueryDto } from '../dto/schedule-query.dto';
-import { UpdateScheduleDto } from '../dto/update-schedule.dto';
+import { UpdateLibraryScheduleDto } from '../dto/update-library-schedule.dto';
+import { UpdateManualScheduleDto } from '../dto/update-manual-schedule.dto';
 
 @ApiTags('Shared > Schedule')
 @ApiBearerAuth()
@@ -86,17 +87,30 @@ export class ScheduleController {
     return this.scheduleService.getScheduleById(user.userId, scheduleId);
   }
 
-  @Patch(':scheduleId')
-  @ApiOperation({ summary: 'Update a schedule item' })
+  @Patch('library/:scheduleId')
+  @ApiOperation({ summary: 'Update a schedule from library (Activity or Recipe)' })
   @ApiParam({ name: 'scheduleId', description: 'Schedule ID' })
-  @ApiResponse({ status: 200, description: 'Schedule updated.' })
+  @ApiResponse({ status: 200, description: 'Library schedule updated.' })
   @ApiResponse({ status: 404, description: 'Schedule not found.' })
-  updateSchedule(
+  updateLibrarySchedule(
     @CurrentUser() user: CurrentUserPayload,
     @Param('scheduleId') scheduleId: string,
-    @Body() dto: UpdateScheduleDto,
+    @Body() dto: UpdateLibraryScheduleDto,
   ) {
-    return this.scheduleService.updateSchedule(user.userId, scheduleId, dto);
+    return this.scheduleService.updateLibrarySchedule(user.userId, scheduleId, dto);
+  }
+
+  @Patch('manual/:scheduleId')
+  @ApiOperation({ summary: 'Update a manual (custom) schedule' })
+  @ApiParam({ name: 'scheduleId', description: 'Schedule ID' })
+  @ApiResponse({ status: 200, description: 'Manual schedule updated.' })
+  @ApiResponse({ status: 404, description: 'Schedule not found.' })
+  updateManualSchedule(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('scheduleId') scheduleId: string,
+    @Body() dto: UpdateManualScheduleDto,
+  ) {
+    return this.scheduleService.updateManualSchedule(user.userId, scheduleId, dto);
   }
 
   @Delete(':scheduleId')
