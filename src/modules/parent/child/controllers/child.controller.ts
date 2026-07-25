@@ -6,14 +6,11 @@ import {
   Param,
   Patch,
   Post,
-  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
-  ApiParam,
-  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -23,7 +20,6 @@ import type { CurrentUserPayload } from '../../../../common/decorators/current-u
 import { ChildService } from '../services/child.service';
 import { AddChildDto } from '../dto/add-child.dto';
 import { UpdateChildDto } from '../dto/update-child.dto';
-import { ChildDailyTimelineQueryDto } from '../dto/child-daily-timeline-query.dto';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
@@ -86,29 +82,5 @@ export class ChildController {
     @Param('childId') childId: string,
   ) {
     return this.childService.deleteChild(user.userId, childId);
-  }
-
-  @Get(':childId/daily-timeline')
-  @ApiOperation({
-    summary: "Get child's daily timeline",
-    description:
-      'Returns a chronologically sorted timeline for the given child and date. Includes wake-up, school time, nap windows, all scheduled activities/recipes, and bedtime.',
-  })
-  @ApiParam({ name: 'childId', description: 'Child ID' })
-  @ApiQuery({
-    name: 'date',
-    required: false,
-    description: 'Target date (ISO 8601, e.g. 2024-11-16). Defaults to today.',
-    example: '2024-11-16',
-  })
-  @ApiResponse({ status: 200, description: 'Daily timeline returned successfully.' })
-  @ApiResponse({ status: 404, description: 'Child not found.' })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
-  getChildDailyTimeline(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('childId') childId: string,
-    @Query() query: ChildDailyTimelineQueryDto,
-  ) {
-    return this.childService.getChildDailyTimeline(user.userId, childId, query);
   }
 }
