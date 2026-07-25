@@ -7,14 +7,14 @@ import {
 import { Reflector } from '@nestjs/core';
 import { HTTP_CODE_METADATA } from '@nestjs/common/constants';
 import { Request } from 'express';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { from, Observable } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
 import {
   DEFAULT_LANGUAGE,
-  LANGUAGE_TEXT_HOLDER,
   SUPPORTED_LANGUAGES,
   SupportedLanguageCode,
 } from '../../modules/language/language.constants';
+import { LanguageService } from '../../modules/language/language.service';
 
 export interface IPaginationMeta {
   page: number;
@@ -40,7 +40,10 @@ export class ResponseInterceptor<T> implements NestInterceptor<
   T,
   IApiResponse<T>
 > {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly languageService: LanguageService,
+  ) {}
 
   intercept(
     context: ExecutionContext,
@@ -54,7 +57,9 @@ export class ResponseInterceptor<T> implements NestInterceptor<
     );
 
     return next.handle().pipe(
-      map((data: any) => {
+      mergeMap((data: any) =>
+        from(
+          (async () => {
         const statusCode = data?.statusCode ?? httpCode ?? 200;
         const language = this.responseLanguage(request);
         const responseData = data?.data !== undefined ? data.data : data;
@@ -62,13 +67,26 @@ export class ResponseInterceptor<T> implements NestInterceptor<
         return {
           success: true,
           statusCode,
-          message: this.translateValue(data?.message ?? 'Success', language),
-          data: this.translateValue(responseData, language),
-          ...(data?.meta && { meta: this.translateValue(data.meta, language) }),
+              message: await this.languageService.translateAsync(
+                data?.message ?? 'Success',
+                language,
+              ),
+              data: await this.languageService.translateAsync(
+                responseData,
+                language,
+              ),
+              ...(data?.meta && {
+                meta: await this.languageService.translateAsync(
+                  data.meta,
+                  language,
+                ),
+              }),
           timestamp: new Date().toISOString(),
           path: request.url,
         };
-      }),
+          })(),
+        ),
+      ),
     );
   }
 
@@ -96,31 +114,4 @@ export class ResponseInterceptor<T> implements NestInterceptor<
     return typeof value === 'string' ? value : undefined;
   }
 
-  private translateValue(
-    value: unknown,
-    language: SupportedLanguageCode,
-  ): unknown {
-    if (language === DEFAULT_LANGUAGE) {
-      return value;
-    }
-
-    if (typeof value === 'string') {
-      return LANGUAGE_TEXT_HOLDER[language][value] ?? value;
-    }
-
-    if (Array.isArray(value)) {
-      return value.map((item) => this.translateValue(item, language));
-    }
-
-    if (value && typeof value === 'object' && !(value instanceof Date)) {
-      return Object.fromEntries(
-        Object.entries(value).map(([key, item]) => [
-          key,
-          this.translateValue(item, language),
-        ]),
-      );
-    }
-
-    return value;
-  }
 }

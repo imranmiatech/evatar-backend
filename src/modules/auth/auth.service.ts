@@ -170,8 +170,13 @@ export class AuthService {
   }
 
   async me(user: CurrentUserPayload) {
+    const userId = user.id ?? user.userId;
+    if (!userId) {
+      throw new BadRequestException('Authenticated user id is missing');
+    }
+
     const profile = await this.prisma.user.findUnique({
-      where: { id: user.userId },
+      where: { id: userId },
       select: {
         id: true,
         fullName: true,

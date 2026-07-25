@@ -17,6 +17,7 @@ export class NanyService {
     dto: CreateNannyInvitationDto,
   ) {
     this.ensureParent(user);
+    const parentUserId = this.currentUserId(user);
 
     const nanny = await this.prisma.user.findUnique({
       where: { email: dto.nannyEmail },
@@ -36,12 +37,12 @@ export class NanyService {
       ? await this.prisma.child.findFirst({
           where: {
             id: dto.childId,
-            parentUserId: user.userId,
+            parentUserId,
           },
         })
       : await this.prisma.child.create({
           data: {
-            parentUserId: user.userId,
+            parentUserId,
             name: dto.childName?.trim() || 'Child',
           },
         });
@@ -79,9 +80,10 @@ export class NanyService {
 
   async getMyInvitations(user: CurrentUserPayload) {
     this.ensureNanny(user);
+    const nannyUserId = this.currentUserId(user);
 
     const invitations = await this.prisma.nannyChildLink.findMany({
-      where: { nannyUserId: user.userId },
+      where: { nannyUserId },
       include: this.invitationInclude(),
       orderBy: { createdAt: 'desc' },
     });
@@ -94,11 +96,12 @@ export class NanyService {
 
   async acceptInvitation(user: CurrentUserPayload, linkId: string) {
     this.ensureNanny(user);
+    const nannyUserId = this.currentUserId(user);
 
     const invitation = await this.prisma.nannyChildLink.findFirst({
       where: {
         id: linkId,
-        nannyUserId: user.userId,
+        nannyUserId,
       },
       include: this.invitationInclude(),
     });
@@ -167,5 +170,14 @@ export class NanyService {
     if (user.role !== UserRole.PARENT) {
       throw new BadRequestException('Only parent users can create invitations');
     }
+  }
+
+  private currentUserId(user: CurrentUserPayload) {
+    const userId = user.id ?? user.userId;
+    if (!userId) {
+      throw new BadRequestException('Authenticated user id is missing');
+    }
+
+    return userId;
   }
 }
