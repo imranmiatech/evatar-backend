@@ -1,5 +1,5 @@
 model Child {
-  id           String    @id @default(cuid())
+  id           String    @id @default(uuid())
   parentUserId String
   parentUser   User      @relation("ParentChildren", fields: [parentUserId], references: [id], onDelete: Cascade)
   name         String
@@ -20,7 +20,7 @@ model Child {
   updatedAt DateTime @updatedAt
 
   // Relations
-  schoolSchedules     SchoolSchedule[]
+  schoolSchedule      SchoolSchedule?
   recurringActivities RecurringActivity[]
   naps                NapWindow[]
   childSchedules      ChildSchedule[]
@@ -33,8 +33,8 @@ model Child {
 }
 
 model SchoolSchedule {
-  id        String      @id @default(cuid())
-  childId   String
+  id        String      @id @default(uuid())
+  childId   String      @unique
   child     Child       @relation(fields: [childId], references: [id], onDelete: Cascade)
   days      DayOfWeek[]
   startTime String
@@ -44,7 +44,7 @@ model SchoolSchedule {
 }
 
 model RecurringActivity {
-  id        String      @id @default(cuid())
+  id        String      @id @default(uuid())
   childId   String
   child     Child       @relation(fields: [childId], references: [id], onDelete: Cascade)
   name      String
@@ -56,7 +56,7 @@ model RecurringActivity {
 }
 
 model NapWindow {
-  id        String @id @default(cuid())
+  id        String @id @default(uuid())
   childId   String
   child     Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
   startTime String
@@ -66,7 +66,7 @@ model NapWindow {
 }
 
 model NannyChildLink {
-  id             String   @id @default(cuid())
+  id             String   @id @default(uuid())
   nannyUserId    String
   nannyUser      User     @relation("NannyChildren", fields: [nannyUserId], references: [id], onDelete: Cascade)
   childId        String

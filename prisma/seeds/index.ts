@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import { seedAdmin } from './adminSeed';
+import { seedRecipes } from './recipeSeed';
+import { seedActivities } from './activitySeed';
 
 const connectionString =
     process.env.DATABASE_URL || process.env['DATABASE_URL'];
@@ -16,6 +18,8 @@ async function main() {
     console.log('Seeding database...');
 
     await seedAdmin(prisma);
+    await seedRecipes(prisma);
+    await seedActivities(prisma);
 
     console.log('Database seeding completed!');
 }

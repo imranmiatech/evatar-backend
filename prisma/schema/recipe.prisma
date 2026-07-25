@@ -30,7 +30,7 @@ model Recipe {
 }
 
 model RecipeIngredient {
-  id       String @id @default(cuid())
+  id       String @id @default(uuid())
   recipeId String
   recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 
@@ -44,7 +44,7 @@ model RecipeIngredient {
 }
 
 model RecipeStep {
-  id       String @id @default(cuid())
+  id       String @id @default(uuid())
   recipeId String
   recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 

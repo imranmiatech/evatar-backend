@@ -1,5 +1,5 @@
 model GroceryOrder {
-  id     String @id @default(cuid())
+  id     String @id @default(uuid())
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -30,7 +30,7 @@ model GroceryOrder {
 }
 
 model GroceryOrderItem {
-  id             String       @id @default(cuid())
+  id             String       @id @default(uuid())
   groceryOrderId String
   groceryOrder   GroceryOrder @relation(fields: [groceryOrderId], references: [id], onDelete: Cascade)
 

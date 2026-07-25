@@ -34,7 +34,7 @@ model Activity {
 }
 
 model ActivityBenefit {
-  id         String   @id @default(cuid())
+  id         String   @id @default(uuid())
   activityId String
   activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
 
@@ -47,7 +47,7 @@ model ActivityBenefit {
 }
 
 model ActivityStep {
-  id         String   @id @default(cuid())
+  id         String   @id @default(uuid())
   activityId String
   activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
 
@@ -59,7 +59,7 @@ model ActivityStep {
 }
 
 model ActivityProgression {
-  id         String   @id @default(cuid())
+  id         String   @id @default(uuid())
   activityId String
   activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
 
@@ -71,7 +71,7 @@ model ActivityProgression {
 }
 
 model ActivityTemplate {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid())
   slug        String   @unique
   category    String
   title       String

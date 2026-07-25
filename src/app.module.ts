@@ -15,8 +15,10 @@ import { UserModule } from './modules/user/user.module';
 import { SettingModule } from './modules/setting/setting.module';
 import { SupportModule } from './modules/support/support.module';
 import { MessageModule } from './modules/message/message.module';
+import { LibraryModule } from './modules/shared/library/library.module';
 import { LanguageModule } from './modules/language/language.module';
 import { KycModule } from './modules/kyc/kyc.module';
+import { ScheduleModule } from './modules/shared/schedule/schedule.module';
 
 @Module({
   imports: [
@@ -27,17 +29,19 @@ import { KycModule } from './modules/kyc/kyc.module';
     TwilioModule,
     StorageModule,
     JwtAuthModule,
-    ParentModule,
     NanyModule,
     AdminModule,
     UserModule,
     SettingModule,
     SupportModule,
     MessageModule,
+    LibraryModule,
     LanguageModule,
     KycModule,
+    ParentModule,
+    ScheduleModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

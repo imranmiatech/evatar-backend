@@ -1,5 +1,5 @@
 model KycVerification {
-  id     String @id @default(cuid())
+  id     String @id @default(uuid())
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -24,7 +24,7 @@ model KycVerification {
 }
 
 model KycDocument {
-  id                String          @id @default(cuid())
+  id                String          @id @default(uuid())
   kycVerificationId String
   kycVerification   KycVerification @relation(fields: [kycVerificationId], references: [id], onDelete: Cascade)
 
