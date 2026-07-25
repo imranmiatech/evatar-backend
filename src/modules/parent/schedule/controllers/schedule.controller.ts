@@ -26,12 +26,12 @@ import { ScheduleQueryDto } from '../dto/schedule-query.dto';
 import { UpdateLibraryScheduleDto } from '../dto/update-library-schedule.dto';
 import { UpdateManualScheduleDto } from '../dto/update-manual-schedule.dto';
 
-@ApiTags('Shared > Schedule')
+@ApiTags('(Parent) > Schedule Manage')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('schedules')
+@Controller('parent/schedules')
 export class ScheduleController {
-  constructor(private readonly scheduleService: ScheduleService) {}
+  constructor(private readonly scheduleService: ScheduleService) { }
 
   @Post('library')
   @ApiOperation({
