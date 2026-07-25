@@ -27,13 +27,13 @@ import { CreateKitchenItemDto } from '../dto/create-kitchen-item.dto';
 import { UpdateKitchenItemDto } from '../dto/update-kitchen-item.dto';
 import { KitchenItemQueryDto } from '../dto/kitchen-item-query.dto';
 
-@ApiTags('Parent > Kitchen > Inventory')
+@ApiTags('(Parent) > Kitchen > Inventory Manage')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.PARENT)
 @Controller('parent/kitchen/items')
 export class KitchenItemController {
-  constructor(private readonly kitchenItemService: KitchenItemService) {}
+  constructor(private readonly kitchenItemService: KitchenItemService) { }
 
   @Post()
   @ApiOperation({

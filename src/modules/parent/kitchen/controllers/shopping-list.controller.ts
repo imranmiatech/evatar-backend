@@ -27,7 +27,7 @@ import { CreateShoppingItemDto } from '../dto/create-shopping-item.dto';
 import { UpdateShoppingItemDto } from '../dto/update-shopping-item.dto';
 import { PaginationQueryDto } from '../dto/pagination-query.dto';
 
-@ApiTags('Parent > Kitchen > Shopping List')
+@ApiTags('(Parent) > Kitchen > Shopping List Manage')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.PARENT)
