@@ -34,6 +34,37 @@ enum RelationshipType {
   RELATIVE
 }
 
+enum CaregiverAccessRole {
+  NANNY
+  PARENT
+  FAMILY_MEMBER
+}
+
+enum CaregiverRelationship {
+  GRANDMOTHER
+  GUARDIAN
+  GODPARENT
+  GRANDFATHER
+  UNCLE
+  SIBLING
+  AUNT
+  OTHER
+}
+
+enum CaregiverAccessStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum CaregiverInviteChannel {
+  EMAIL
+  WHATSAPP
+  LINK
+  IN_APP
+}
+
 enum IdentityDocType {
   PASSPORT
   NATIONAL_ID

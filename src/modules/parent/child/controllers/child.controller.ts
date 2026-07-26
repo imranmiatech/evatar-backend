@@ -26,8 +26,7 @@ import { UserRole } from '@prisma/client';
 
 @ApiTags('Parent > Children')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.PARENT)
+@UseGuards(JwtAuthGuard)
 @Controller('parent/children')
 export class ChildController {
   constructor(private readonly childService: ChildService) { }
@@ -36,6 +35,8 @@ export class ChildController {
   @ApiOperation({ summary: 'Add a new child for the logged-in parent' })
   @ApiResponse({ status: 201, description: 'Child added successfully.' })
   @ApiResponse({ status: 400, description: 'Validation error.' })
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.PARENT)
   addChild(
     @CurrentUser() user: CurrentUserPayload,
     @Body() dto: AddChildDto,

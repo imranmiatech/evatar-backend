@@ -2,7 +2,7 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 export type CurrentUserPayload = {
   id?: string;
-  userId?: string;
+  userId: string;
   role: string;
   preferredLanguage?: string | null;
 };

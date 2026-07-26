@@ -21,6 +21,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { SubmitDocumentsDto } from './dto/submit-documents.dto';
 import { KycService } from './kyc.service';
@@ -77,7 +78,7 @@ export class KycController {
     },
   })
   submitDocuments(
-    @CurrentUser() user: any,
+    @CurrentUser() user: CurrentUserPayload,
     @Body() dto: SubmitDocumentsDto,
     @UploadedFiles()
     files: {
@@ -87,7 +88,7 @@ export class KycController {
     },
   ) {
     KycController.validateFiles(files);
-    return this.kycService.submitDocuments(user.id, dto.docType, files);
+    return this.kycService.submitDocuments(user.userId, dto.docType, files);
   }
 
   @Post('face-check')
@@ -110,17 +111,17 @@ export class KycController {
     },
   })
   submitFaceCheck(
-    @CurrentUser() user: any,
+    @CurrentUser() user: CurrentUserPayload,
     @UploadedFile() selfie: Express.Multer.File,
   ) {
     KycController.validateFile(selfie);
-    return this.kycService.submitFaceCheck(user.id, selfie);
+    return this.kycService.submitFaceCheck(user.userId, selfie);
   }
 
   @Get('documents')
   @ApiOperation({ summary: 'Get my saved KYC document submissions' })
-  getDocuments(@CurrentUser() user: any) {
-    return this.kycService.getMyDocuments(user.id);
+  getDocuments(@CurrentUser() user: CurrentUserPayload) {
+    return this.kycService.getMyDocuments(user.userId);
   }
 
   private static validateFiles(files: {

@@ -19,6 +19,7 @@ import { LibraryModule } from './modules/shared/library/library.module';
 import { LanguageModule } from './modules/language/language.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { ScheduleModule } from './modules/shared/schedule/schedule.module';
+import { CaregiverModule } from './modules/caregiver/caregiver.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ScheduleModule } from './modules/shared/schedule/schedule.module';
     KycModule,
     ParentModule,
     ScheduleModule,
+    CaregiverModule,
   ],
   controllers: [AppController],
   providers: [AppService],

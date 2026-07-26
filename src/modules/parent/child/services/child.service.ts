@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { CaregiverService } from '../../../caregiver/caregiver.service';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { AddChildDto } from '../dto/add-child.dto';
 import { UpdateChildDto } from '../dto/update-child.dto';
 
 @Injectable()
 export class ChildService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly caregiverService: CaregiverService,
+  ) {}
 
   async addChild(parentUserId: string, dto: AddChildDto) {
     const child = await this.prisma.child.create({
@@ -25,8 +29,11 @@ export class ChildService {
   }
 
   async getChildren(parentUserId: string) {
+    const accessibleChildIds =
+      await this.caregiverService.getAccessibleChildIds(parentUserId);
+
     const children = await this.prisma.child.findMany({
-      where: { parentUserId },
+      where: { id: { in: accessibleChildIds } },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -37,6 +44,8 @@ export class ChildService {
   }
 
   async getChildById(parentUserId: string, childId: string) {
+    const accessibleChildIds =
+      await this.caregiverService.getAccessibleChildIds(parentUserId);
     const child = await this.prisma.child.findUnique({
       where: { id: childId },
       include: {
@@ -50,7 +59,7 @@ export class ChildService {
       throw new NotFoundException('Child not found');
     }
 
-    if (child.parentUserId !== parentUserId) {
+    if (!accessibleChildIds.includes(child.id)) {
       throw new ForbiddenException('You do not have access to this child');
     }
 
@@ -61,16 +70,18 @@ export class ChildService {
   }
 
   async updateChild(parentUserId: string, childId: string, dto: UpdateChildDto) {
+    await this.caregiverService.assertChildPermission(
+      parentUserId,
+      childId,
+      'editChildProfile',
+    );
+
     const child = await this.prisma.child.findUnique({
       where: { id: childId },
     });
 
     if (!child) {
       throw new NotFoundException('Child not found');
-    }
-
-    if (child.parentUserId !== parentUserId) {
-      throw new ForbiddenException('You do not have access to this child');
     }
 
     const updated = await this.prisma.child.update({
@@ -123,16 +134,18 @@ export class ChildService {
   }
 
   async deleteChild(parentUserId: string, childId: string) {
+    await this.caregiverService.assertChildPermission(
+      parentUserId,
+      childId,
+      'addRemoveChildren',
+    );
+
     const child = await this.prisma.child.findUnique({
       where: { id: childId },
     });
 
     if (!child) {
       throw new NotFoundException('Child not found');
-    }
-
-    if (child.parentUserId !== parentUserId) {
-      throw new ForbiddenException('You do not have access to this child');
     }
 
     await this.prisma.child.delete({ where: { id: childId } });

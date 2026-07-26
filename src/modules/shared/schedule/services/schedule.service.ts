@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import { CaregiverService } from '../../../caregiver/caregiver.service';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { ScheduleMode } from '@prisma/client';
 import { CreateLibraryScheduleDto } from '../dto/create-library-schedule.dto';
@@ -13,7 +14,10 @@ import { UpdateScheduleDto } from '../dto/update-schedule.dto';
 
 @Injectable()
 export class ScheduleService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly caregiverService: CaregiverService,
+  ) {}
 
   private resolveDate(dateStr?: string): Date {
     if (!dateStr) {
@@ -30,13 +34,11 @@ export class ScheduleService {
     childId: string,
     userId: string,
   ): Promise<void> {
-    const child = await this.prisma.child.findUnique({
-      where: { id: childId },
-      select: { parentUserId: true },
-    });
-    if (!child) throw new NotFoundException('Child not found');
-    if (child.parentUserId !== userId)
-      throw new ForbiddenException('You do not have access to this child');
+    await this.caregiverService.assertChildPermission(
+      userId,
+      childId,
+      'manageDailyPlans',
+    );
   }
 
   async createFromLibrary(userId: string, dto: CreateLibraryScheduleDto) {
@@ -128,6 +130,13 @@ export class ScheduleService {
   }
 
   async getSchedules(userId: string, query: ScheduleQueryDto) {
+    const accessibleChildIds =
+      await this.caregiverService.getAccessibleChildIds(userId);
+
+    if (query.childId && !accessibleChildIds.includes(query.childId)) {
+      throw new ForbiddenException('You do not have access to this child');
+    }
+
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
@@ -136,8 +145,9 @@ export class ScheduleService {
     const filterDate = query.date ? this.resolveDate(query.date) : undefined;
 
     const whereBase = {
-      userId,
-      ...(query.childId && { childId: query.childId }),
+      childId: query.childId
+        ? query.childId
+        : { in: accessibleChildIds },
     };
 
     const todayWhere = {
@@ -224,7 +234,9 @@ export class ScheduleService {
     });
 
     if (!schedule) throw new NotFoundException('Schedule not found');
-    if (schedule.userId !== userId)
+    const accessibleChildIds =
+      await this.caregiverService.getAccessibleChildIds(userId);
+    if (!accessibleChildIds.includes(schedule.childId))
       throw new ForbiddenException('You do not have access to this schedule');
 
     return {
@@ -239,8 +251,11 @@ export class ScheduleService {
     });
 
     if (!schedule) throw new NotFoundException('Schedule not found');
-    if (schedule.userId !== userId)
-      throw new ForbiddenException('You do not have access to this schedule');
+    await this.caregiverService.assertChildPermission(
+      userId,
+      schedule.childId,
+      'manageDailyPlans',
+    );
 
     let libraryData: any = {};
 
@@ -314,8 +329,11 @@ export class ScheduleService {
     });
 
     if (!schedule) throw new NotFoundException('Schedule not found');
-    if (schedule.userId !== userId)
-      throw new ForbiddenException('You do not have access to this schedule');
+    await this.caregiverService.assertChildPermission(
+      userId,
+      schedule.childId,
+      'manageDailyPlans',
+    );
 
     await this.prisma.childSchedule.delete({ where: { id: scheduleId } });
 
