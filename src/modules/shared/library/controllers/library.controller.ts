@@ -20,7 +20,7 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
-@ApiTags('Shared > Library')
+@ApiTags('(Shared) > Library')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.PARENT, UserRole.NANNY)

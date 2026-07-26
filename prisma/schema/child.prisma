@@ -26,9 +26,10 @@ model Child {
   childSchedules      ChildSchedule[]
 
   // Back Relations
-  nannies           NannyChildLink[]
-  caregiverAccesses CaregiverAccess[]
-  dayPlans          DayPlan[]
+  nannies                  NannyChildLink[]
+  caregiverAccesses        CaregiverAccess[]
+  dayPlans                 DayPlan[]
+  nannyPortfolioHighlights NannyPortfolioHighlight[]
 
   @@index([parentUserId])
 }
@@ -97,18 +98,18 @@ model CaregiverAccess {
   inviteChannel   CaregiverInviteChannel @default(LINK)
 
   dailyActivitiesRecipes Boolean @default(false)
-  manageDailyPlans    Boolean @default(false)
-  manageGroceryLists  Boolean @default(false)
-  editChildProfile    Boolean @default(false)
-  accessChildInsights Boolean @default(false)
-  addRemoveChildren   Boolean @default(false)
-  manageBilling       Boolean @default(false)
-  manageCareTeam      Boolean @default(false)
-  manageGroceryOrders Boolean @default(false)
-  groceryOrdering     Boolean @default(false)
-  careLearningAccess  Boolean @default(false)
-  nannyDevelopment    Boolean @default(false)
-  memoriesStories     Boolean @default(false)
+  manageDailyPlans       Boolean @default(false)
+  manageGroceryLists     Boolean @default(false)
+  editChildProfile       Boolean @default(false)
+  accessChildInsights    Boolean @default(false)
+  addRemoveChildren      Boolean @default(false)
+  manageBilling          Boolean @default(false)
+  manageCareTeam         Boolean @default(false)
+  manageGroceryOrders    Boolean @default(false)
+  groceryOrdering        Boolean @default(false)
+  careLearningAccess     Boolean @default(false)
+  nannyDevelopment       Boolean @default(false)
+  memoriesStories        Boolean @default(false)
 
   acceptedAt DateTime?
   revokedAt  DateTime?

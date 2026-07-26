@@ -18,8 +18,10 @@ import { MessageModule } from './modules/message/message.module';
 import { LibraryModule } from './modules/shared/library/library.module';
 import { LanguageModule } from './modules/language/language.module';
 import { KycModule } from './modules/kyc/kyc.module';
-import { ScheduleModule } from './modules/shared/schedule/schedule.module';
+import { NannyFeedbackModule } from './modules/nannyfeedback/nannyfeedback.module';
+
 import { CaregiverModule } from './modules/caregiver/caregiver.module';
+import { ScheduleModule } from './modules/parent/schedule/schedule.module';
 
 @Module({
   imports: [
@@ -36,12 +38,13 @@ import { CaregiverModule } from './modules/caregiver/caregiver.module';
     SettingModule,
     SupportModule,
     MessageModule,
-    LibraryModule,
     LanguageModule,
     KycModule,
     ParentModule,
     ScheduleModule,
     CaregiverModule,
+    LibraryModule,
+    NannyFeedbackModule,
   ],
   controllers: [AppController],
   providers: [AppService],

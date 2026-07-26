@@ -122,6 +122,33 @@ enum MediaType {
   VIDEO
 }
 
+enum NannyProfileStatus {
+  ACTIVE
+  INACTIVE
+  UNAVAILABLE
+}
+
+enum TaskEnjoymentLevel {
+  LOVE_IT
+  ENJOY_IT
+  NEUTRAL
+  RELUCTANT
+}
+
+enum ChildMood {
+  EXCITED
+  HAPPY
+  NEUTRAL
+  TIRED
+  RESISTANT
+}
+
+enum TaskCompletionRate {
+  FULL_PLATE
+  HALF_PLATE
+  UNTOUCHED
+}
+
 enum KitchenInventoryItemStatus {
   MISSING
   LOW
