@@ -61,6 +61,7 @@ enum CaregiverAccessStatus {
 enum CaregiverInviteChannel {
   EMAIL
   WHATSAPP
+  EMAIL_WHATSAPP
   LINK
   IN_APP
 }

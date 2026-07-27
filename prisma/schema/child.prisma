@@ -91,6 +91,7 @@ model CaregiverAccess {
   invitedByUser   User                   @relation("CaregiverAccessInvitedBy", fields: [invitedByUserId], references: [id], onDelete: Cascade)
   invitedEmail    String?
   invitedPhone    String?
+  invitedName     String?
   inviteTokenHash String?                @unique
   role            CaregiverAccessRole
   relationship    CaregiverRelationship?

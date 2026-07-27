@@ -26,7 +26,7 @@ import { UserRole } from '@prisma/client';
 @Roles(UserRole.PARENT, UserRole.NANNY)
 @Controller('library')
 export class LibraryController {
-  constructor(private readonly libraryService: LibraryService) { }
+  constructor(private readonly libraryService: LibraryService) {}
 
   @Get()
   @ApiOperation({
@@ -34,9 +34,26 @@ export class LibraryController {
     description:
       'Returns paginated list of activities and recipes. Filter by activityType, recipeMealType, or search by title.',
   })
-  @ApiResponse({ status: 200, description: 'Library items returned successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Library items returned successfully.',
+  })
   async getAll(@Query() query: LibraryQueryDto) {
     return this.libraryService.getAll(query);
+  }
+
+  @Get('activities')
+  @ApiOperation({
+    summary: 'Get all activities',
+    description:
+      'Returns paginated list of activities only. Filter by activityType, location, age range, or search by title.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Activities returned successfully.',
+  })
+  async getActivities(@Query() query: LibraryQueryDto) {
+    return this.libraryService.getActivities(query);
   }
 
   @Get('activities/:id')

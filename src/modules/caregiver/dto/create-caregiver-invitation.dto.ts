@@ -7,6 +7,7 @@ import {
 import {
   IsEmail,
   IsEnum,
+  IsNotEmpty,
   IsOptional,
   IsPhoneNumber,
   IsString,
@@ -28,8 +29,16 @@ export class CreateCaregiverInvitationDto extends CaregiverPermissionsDto {
   })
   @ValidateIf((dto) => dto.role === CaregiverAccessRole.FAMILY_MEMBER)
   @IsEnum(CaregiverRelationship)
-  @IsOptional()
   relationship?: CaregiverRelationship;
+
+  @ApiPropertyOptional({
+    example: 'Martha Stewart',
+    description: 'Required only when inviting a family member.',
+  })
+  @ValidateIf((dto) => dto.role === CaregiverAccessRole.FAMILY_MEMBER)
+  @IsString()
+  @IsNotEmpty()
+  invitedName?: string;
 
   @ApiPropertyOptional({ example: 'caregiver@example.com' })
   @IsEmail()

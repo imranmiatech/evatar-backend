@@ -29,7 +29,7 @@ import { UserRole } from '@prisma/client';
 @UseGuards(JwtAuthGuard)
 @Controller('parent/children')
 export class ChildController {
-  constructor(private readonly childService: ChildService) { }
+  constructor(private readonly childService: ChildService) {}
 
   @Post()
   @ApiOperation({ summary: 'Add a new child for the logged-in parent' })
@@ -37,18 +37,47 @@ export class ChildController {
   @ApiResponse({ status: 400, description: 'Validation error.' })
   @UseGuards(RolesGuard)
   @Roles(UserRole.PARENT)
-  addChild(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: AddChildDto,
-  ) {
+  addChild(@CurrentUser() user: CurrentUserPayload, @Body() dto: AddChildDto) {
     return this.childService.addChild(user.userId, dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all children of the logged-in parent' })
-  @ApiResponse({ status: 200, description: 'Children list returned successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Children list returned successfully.',
+  })
   getChildren(@CurrentUser() user: CurrentUserPayload) {
     return this.childService.getChildren(user.userId);
+  }
+
+  @Get(':childId/profile')
+  @ApiOperation({ summary: 'Get a complete child profile dashboard' })
+  @ApiResponse({
+    status: 200,
+    description: 'Child profile returned successfully.',
+  })
+  @ApiResponse({ status: 404, description: 'Child not found.' })
+  getChildProfile(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('childId') childId: string,
+  ) {
+    return this.childService.getChildProfile(user.userId, childId);
+  }
+
+  @Delete(':childId/memories/:memoryId')
+  @ApiOperation({ summary: 'Delete a child profile memory/photo' })
+  @ApiResponse({
+    status: 200,
+    description: 'Memory photo deleted successfully.',
+  })
+  @ApiResponse({ status: 404, description: 'Memory photo not found.' })
+  deleteChildMemory(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('childId') childId: string,
+    @Param('memoryId') memoryId: string,
+  ) {
+    return this.childService.deleteChildMemory(user.userId, childId, memoryId);
   }
 
   @Get(':childId')

@@ -177,20 +177,35 @@ export class CaregiverService {
       dto.inviteChannel ??
       (dto.invitedUserId
         ? CaregiverInviteChannel.IN_APP
-        : dto.invitedEmail
-          ? CaregiverInviteChannel.EMAIL
-          : dto.invitedPhone
-            ? CaregiverInviteChannel.WHATSAPP
-            : CaregiverInviteChannel.LINK);
+        : dto.invitedEmail && dto.invitedPhone
+          ? CaregiverInviteChannel.EMAIL_WHATSAPP
+          : dto.invitedEmail
+            ? CaregiverInviteChannel.EMAIL
+            : dto.invitedPhone
+              ? CaregiverInviteChannel.WHATSAPP
+              : CaregiverInviteChannel.LINK);
 
-    const existing = await this.findExistingAccess(childId, dto, invitedUser?.id);
+    this.assertInviteChannelTarget(inviteChannel, dto);
+
+    const existing = await this.findExistingAccess(
+      childId,
+      dto,
+      invitedUser?.id,
+    );
     const data = {
       invitedUserId: invitedUser?.id,
       invitedEmail: dto.invitedEmail?.toLowerCase(),
       invitedPhone: dto.invitedPhone,
+      invitedName:
+        dto.role === CaregiverAccessRole.FAMILY_MEMBER
+          ? dto.invitedName?.trim()
+          : null,
       invitedByUserId: inviterUserId,
       role: dto.role,
-      relationship: dto.relationship,
+      relationship:
+        dto.role === CaregiverAccessRole.FAMILY_MEMBER
+          ? dto.relationship
+          : null,
       status: CaregiverAccessStatus.PENDING,
       inviteChannel,
       inviteTokenHash,
@@ -577,7 +592,9 @@ export class CaregiverService {
       where: {
         childId,
         role: dto.role,
-        status: { in: [CaregiverAccessStatus.PENDING, CaregiverAccessStatus.ACCEPTED] },
+        status: {
+          in: [CaregiverAccessStatus.PENDING, CaregiverAccessStatus.ACCEPTED],
+        },
         OR: [
           invitedUserId ? { invitedUserId } : undefined,
           dto.invitedEmail
@@ -619,11 +636,17 @@ export class CaregiverService {
     userRole: UserRole,
     caregiverRole: CaregiverAccessRole,
   ) {
-    if (caregiverRole === CaregiverAccessRole.NANNY && userRole !== UserRole.NANNY) {
+    if (
+      caregiverRole === CaregiverAccessRole.NANNY &&
+      userRole !== UserRole.NANNY
+    ) {
       throw new BadRequestException('Invited user must be a nanny');
     }
 
-    if (caregiverRole === CaregiverAccessRole.PARENT && userRole !== UserRole.PARENT) {
+    if (
+      caregiverRole === CaregiverAccessRole.PARENT &&
+      userRole !== UserRole.PARENT
+    ) {
       throw new BadRequestException('Invited user must be a parent');
     }
   }
@@ -632,6 +655,33 @@ export class CaregiverService {
     if (role === CaregiverAccessRole.NANNY) return UserRole.NANNY;
     if (role === CaregiverAccessRole.PARENT) return UserRole.PARENT;
     return undefined;
+  }
+
+  private assertInviteChannelTarget(
+    inviteChannel: CaregiverInviteChannel,
+    dto: CreateCaregiverInvitationDto,
+  ) {
+    if (inviteChannel === CaregiverInviteChannel.EMAIL && !dto.invitedEmail) {
+      throw new BadRequestException('Email is required for email invitation');
+    }
+
+    if (
+      inviteChannel === CaregiverInviteChannel.WHATSAPP &&
+      !dto.invitedPhone
+    ) {
+      throw new BadRequestException(
+        'Phone number is required for WhatsApp invitation',
+      );
+    }
+
+    if (
+      inviteChannel === CaregiverInviteChannel.EMAIL_WHATSAPP &&
+      (!dto.invitedEmail || !dto.invitedPhone)
+    ) {
+      throw new BadRequestException(
+        'Email and phone number are required for email and WhatsApp invitation',
+      );
+    }
   }
 
   private permissionsForRole(
@@ -662,25 +712,29 @@ export class CaregiverService {
 
   private permissionUpdates(dto: UpdateCaregiverPermissionsDto) {
     return Object.fromEntries(
-      PERMISSION_KEYS
-        .filter((key) => dto[key] !== undefined)
-        .map((key) => [key, dto[key]]),
+      PERMISSION_KEYS.filter((key) => dto[key] !== undefined).map((key) => [
+        key,
+        dto[key],
+      ]),
     ) as Partial<PermissionMap>;
   }
 
   private fullPermissions(): PermissionMap {
-    return Object.fromEntries(PERMISSION_KEYS.map((key) => [key, true])) as PermissionMap;
+    return Object.fromEntries(
+      PERMISSION_KEYS.map((key) => [key, true]),
+    ) as PermissionMap;
   }
 
   private emptyPermissions(): PermissionMap {
-    return Object.fromEntries(PERMISSION_KEYS.map((key) => [key, false])) as PermissionMap;
+    return Object.fromEntries(
+      PERMISSION_KEYS.map((key) => [key, false]),
+    ) as PermissionMap;
   }
 
   private permissionSelect() {
-    return Object.fromEntries(PERMISSION_KEYS.map((key) => [key, true])) as Record<
-      PermissionKey,
-      true
-    >;
+    return Object.fromEntries(
+      PERMISSION_KEYS.map((key) => [key, true]),
+    ) as Record<PermissionKey, true>;
   }
 
   private pickPermissions(access: Partial<PermissionMap>) {
@@ -709,28 +763,49 @@ export class CaregiverService {
     inviteUrl: string,
   ) {
     const message = `${access.invitedByUser.fullName} invited you to care for ${access.child.name}. Accept here: ${inviteUrl}`;
+    const delivered = {
+      email: false,
+      whatsapp: false,
+    };
 
-    try {
-      if (access.invitedEmail) {
-        return this.mailService.sendDummyEmail(
+    if (
+      access.invitedEmail &&
+      (
+        [
+          CaregiverInviteChannel.EMAIL,
+          CaregiverInviteChannel.EMAIL_WHATSAPP,
+        ] as CaregiverInviteChannel[]
+      ).includes(access.inviteChannel)
+    ) {
+      try {
+        delivered.email = await this.mailService.sendDummyEmail(
           access.invitedEmail,
           `Invitation to care for ${access.child.name}`,
           message,
         );
+      } catch {
+        delivered.email = false;
       }
-
-      if (
-        access.invitedPhone &&
-        access.inviteChannel === CaregiverInviteChannel.WHATSAPP
-      ) {
-        await this.twilioService.sendSms(access.invitedPhone, message);
-        return true;
-      }
-    } catch {
-      return false;
     }
 
-    return false;
+    if (
+      access.invitedPhone &&
+      (
+        [
+          CaregiverInviteChannel.WHATSAPP,
+          CaregiverInviteChannel.EMAIL_WHATSAPP,
+        ] as CaregiverInviteChannel[]
+      ).includes(access.inviteChannel)
+    ) {
+      try {
+        await this.twilioService.sendSms(access.invitedPhone, message);
+        delivered.whatsapp = true;
+      } catch {
+        delivered.whatsapp = false;
+      }
+    }
+
+    return delivered;
   }
 
   private formatAccess(
@@ -747,6 +822,12 @@ export class CaregiverService {
       relationship: access.relationship,
       status: access.status,
       inviteChannel: access.inviteChannel,
+      invitedName: access.invitedName,
+      displayName:
+        access.invitedUser?.fullName ??
+        access.invitedName ??
+        access.invitedEmail ??
+        access.invitedPhone,
       invitedEmail: access.invitedEmail,
       invitedPhone: access.invitedPhone,
       invitedUser: access.invitedUser,
@@ -770,12 +851,16 @@ export class CaregiverService {
       {
         key: CaregiverAccessRole.NANNY,
         title: 'Nanny',
-        items: caregivers.filter((item) => item.role === CaregiverAccessRole.NANNY),
+        items: caregivers.filter(
+          (item) => item.role === CaregiverAccessRole.NANNY,
+        ),
       },
       {
         key: CaregiverAccessRole.PARENT,
         title: 'Parent',
-        items: caregivers.filter((item) => item.role === CaregiverAccessRole.PARENT),
+        items: caregivers.filter(
+          (item) => item.role === CaregiverAccessRole.PARENT,
+        ),
       },
       {
         key: CaregiverAccessRole.FAMILY_MEMBER,
