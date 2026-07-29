@@ -19,6 +19,8 @@ import { LibraryModule } from './modules/shared/library/library.module';
 import { LanguageModule } from './modules/language/language.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { NannyFeedbackModule } from './modules/nannyfeedback/nannyfeedback.module';
+import { CareModule } from './modules/care/care.module';
+import { ProfileModule } from './modules/profile/profile.module';
 
 import { CaregiverModule } from './modules/caregiver/caregiver.module';
 import { ScheduleModule } from './modules/parent/schedule/schedule.module';
@@ -45,6 +47,8 @@ import { ScheduleModule } from './modules/parent/schedule/schedule.module';
     CaregiverModule,
     LibraryModule,
     NannyFeedbackModule,
+    CareModule,
+    ProfileModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -30,6 +30,8 @@ model Child {
   caregiverAccesses        CaregiverAccess[]
   dayPlans                 DayPlan[]
   nannyPortfolioHighlights NannyPortfolioHighlight[]
+  careAssignments          CareModuleAssignment[]
+  careChildNotes           CareChildNote[]
 
   @@index([parentUserId])
 }

@@ -249,6 +249,23 @@ enum Difficulty {
   HARD
 }
 
+enum CareModuleCategory {
+  FEEDING
+  SLEEP
+  BEHAVIOR
+}
+
+enum CareModuleAssignmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum CareQuestionType {
+  SINGLE_CHOICE
+  TRUE_FALSE
+}
+
 enum DayOfWeek {
   MON
   TUE

@@ -48,6 +48,11 @@ model User {
   uploadedDayActivityProofs     DayActivityProof[]        @relation("UserUploadedDayActivityProofs")
   bedtimeStoryAudios            BedtimeStoryAudio[]       @relation("UserBedtimeStoryAudios")
   nannyPortfolioHighlights      NannyPortfolioHighlight[] @relation("UserNannyPortfolioHighlights")
+  createdCareModules            CareModule[]              @relation("CareModulesCreatedBy")
+  careAssignmentsForNanny       CareModuleAssignment[]    @relation("CareAssignmentsForNanny")
+  careAssignmentsAssignedBy     CareModuleAssignment[]    @relation("CareAssignmentsAssignedBy")
+  savedCareModules              CareModuleSave[]          @relation("CareModuleSaves")
+  authoredCareChildNotes        CareChildNote[]           @relation("CareChildNotesAuthored")
 
   @@index([role])
   @@index([verificationStatus])

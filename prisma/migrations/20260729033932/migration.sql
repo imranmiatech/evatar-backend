@@ -1,0 +1,2 @@
+-- Compatibility no-op.
+-- The suggested-age migration now creates the final truncated index name directly.
