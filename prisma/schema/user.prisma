@@ -20,28 +20,45 @@ model User {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
-  parentProfile            ParentProfile?
-  nannyProfile             NannyProfile?
-  accountDeletion          AccountDeletion?
-  otpCodes                 OtpCode[]
-  kycVerifications         KycVerification[]
-  child                    Child[]                   @relation("ParentChildren")
-  childSchedules           ChildSchedule[]           @relation("UserChildSchedules")
-  nannyChildLinks          NannyChildLink[]          @relation("NannyChildren")
-  mediaAssets              MediaAsset[]              @relation("UserMediaAssets")
-  kitchenItems             KitchenItem[]
-  kitchenInventoryCreated  KitchenItem[]             @relation("KitchenInventoryCreatedBy")
-  kitchenInventoryUpdated  KitchenItem[]             @relation("KitchenInventoryUpdatedBy")
-  shoppingListItems        ShoppingListItem[]
-  groceryOrders            GroceryOrder[]
-  paymentMethods           PaymentMethod[]
-  transactions             Transaction[]
-  stores                   Store[]
-  supportTickets           SupportTicket[]
-  ticketMessages           TicketMessage[]
-  createdConversations     Conversation[]            @relation("ConversationCreatedBy")
-  conversationParticipants ConversationParticipant[]
-  chatMessages             ChatMessage[]
+  parentProfile                 ParentProfile?
+  nannyProfile                  NannyProfile?
+  accountDeletion               AccountDeletion?
+  otpCodes                      OtpCode[]
+  kycVerifications              KycVerification[]
+  child                         Child[]                   @relation("ParentChildren")
+  childSchedules                ChildSchedule[]           @relation("UserChildSchedules")
+  nannyChildLinks               NannyChildLink[]          @relation("NannyChildren")
+  caregiverAccesses             CaregiverAccess[]         @relation("CaregiverAccessInvitedUser")
+  sentCaregiverInvites          CaregiverAccess[]         @relation("CaregiverAccessInvitedBy")
+  mediaAssets                   MediaAsset[]              @relation("UserMediaAssets")
+  kitchenItems                  KitchenItem[]
+  kitchenInventoryCreated       KitchenItem[]             @relation("KitchenInventoryCreatedBy")
+  kitchenInventoryUpdated       KitchenItem[]             @relation("KitchenInventoryUpdatedBy")
+  shoppingListItems             ShoppingListItem[]
+  groceryOrders                 GroceryOrder[]
+  paymentMethods                PaymentMethod[]
+  transactions                  Transaction[]
+  stores                        Store[]
+  supportTickets                SupportTicket[]
+  ticketMessages                TicketMessage[]
+  createdConversations          Conversation[]            @relation("ConversationCreatedBy")
+  conversationParticipants      ConversationParticipant[]
+  chatMessages                  ChatMessage[]
+  submittedDayActivityFeedbacks DayActivityFeedback[]     @relation("UserSubmittedDayActivityFeedbacks")
+  uploadedDayActivityProofs     DayActivityProof[]        @relation("UserUploadedDayActivityProofs")
+  bedtimeStoryAudios            BedtimeStoryAudio[]       @relation("UserBedtimeStoryAudios")
+  nannyPortfolioHighlights      NannyPortfolioHighlight[] @relation("UserNannyPortfolioHighlights")
+  createdCareModules            CareModule[]              @relation("CareModulesCreatedBy")
+  careAssignmentsForNanny       CareModuleAssignment[]    @relation("CareAssignmentsForNanny")
+  careAssignmentsAssignedBy     CareModuleAssignment[]    @relation("CareAssignmentsAssignedBy")
+  savedCareModules              CareModuleSave[]          @relation("CareModuleSaves")
+  authoredCareChildNotes        CareChildNote[]           @relation("CareChildNotesAuthored")
+  rewardAccount                 RewardAccount?
+  rewardLedgerEntries           RewardLedgerEntry[]
+  rewardOffers                  RewardOffer[]             @relation("PartnerRewardOffers")
+  rewardRedemptions             RewardRedemption[]
+  rewardSavedOffers             RewardSavedOffer[]
+  usedRewardRedemptions         RewardRedemption[]        @relation("PartnerUsedRewardRedemptions")
 
   @@index([role])
   @@index([verificationStatus])

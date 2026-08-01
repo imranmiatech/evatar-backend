@@ -25,8 +25,8 @@ export class UserController {
   @ApiOperation({ summary: 'Get current logged-in user profile' })
   @ApiResponse({ status: 200, description: 'Return the current user profile.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  getProfile(@CurrentUser() user: any) {
-    return this.userService.getUserById(user.id);
+  getProfile(@CurrentUser() user: CurrentUserPayload) {
+    return this.userService.getUserById(user.userId);
   }
 
   @Get('me/document')
@@ -34,8 +34,8 @@ export class UserController {
   @ApiOperation({ summary: 'Get current logged-in user documents (NID/Passport)' })
   @ApiResponse({ status: 200, description: 'Return the current user documents.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  getDocuments(@CurrentUser() user: any) {
-    return this.userService.getUserDocuments(user.id);
+  getDocuments(@CurrentUser() user: CurrentUserPayload) {
+    return this.userService.getUserDocuments(user.userId);
   }
 
   @Get('nannies-documents')
@@ -43,8 +43,8 @@ export class UserController {
   @ApiOperation({ summary: 'Get documents of all nannies assigned to the logged-in parent\'s children' })
   @ApiResponse({ status: 200, description: 'Return grouped documents of assigned nannies.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  getAssignedNanniesDocuments(@CurrentUser() user: any) {
-    return this.userService.getAssignedNanniesDocuments(user.id);
+  getAssignedNanniesDocuments(@CurrentUser() user: CurrentUserPayload) {
+    return this.userService.getAssignedNanniesDocuments(user.userId);
   }
 
   @Patch('me')
@@ -53,7 +53,7 @@ export class UserController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('profilePicture'))
   async updateMe(
-    @CurrentUser() user: any,
+    @CurrentUser() user: CurrentUserPayload,
     @Body() updateUserDto: UpdateUserDto,
     @UploadedFile() file?: Express.Multer.File
   ) {
@@ -61,7 +61,7 @@ export class UserController {
       const url = await this.storageService.uploadFile(file, 'profiles');
       updateUserDto.profilePictureUrl = url;
     }
-    return this.userService.updateUser(user.id, updateUserDto);
+    return this.userService.updateUser(user.userId, updateUserDto);
   }
 
   @Patch('me/parent-profile')
@@ -71,7 +71,7 @@ export class UserController {
     @CurrentUser() user: any,
     @Body() dto: UpdateParentProfileDto,
   ) {
-    return this.userService.updateMyParentProfile(user.id, dto);
+    return this.userService.updateMyParentProfile(user.userId, dto);
   }
 
   @Get(':id')

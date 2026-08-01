@@ -34,6 +34,38 @@ enum RelationshipType {
   RELATIVE
 }
 
+enum CaregiverAccessRole {
+  NANNY
+  PARENT
+  FAMILY_MEMBER
+}
+
+enum CaregiverRelationship {
+  GRANDMOTHER
+  GUARDIAN
+  GODPARENT
+  GRANDFATHER
+  UNCLE
+  SIBLING
+  AUNT
+  OTHER
+}
+
+enum CaregiverAccessStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum CaregiverInviteChannel {
+  EMAIL
+  WHATSAPP
+  EMAIL_WHATSAPP
+  LINK
+  IN_APP
+}
+
 enum IdentityDocType {
   PASSPORT
   NATIONAL_ID
@@ -89,6 +121,33 @@ enum MediaType {
   IMAGE
   AUDIO
   VIDEO
+}
+
+enum NannyProfileStatus {
+  ACTIVE
+  INACTIVE
+  UNAVAILABLE
+}
+
+enum TaskEnjoymentLevel {
+  LOVE_IT
+  ENJOY_IT
+  NEUTRAL
+  RELUCTANT
+}
+
+enum ChildMood {
+  EXCITED
+  HAPPY
+  NEUTRAL
+  TIRED
+  RESISTANT
+}
+
+enum TaskCompletionRate {
+  FULL_PLATE
+  HALF_PLATE
+  UNTOUCHED
 }
 
 enum KitchenInventoryItemStatus {
@@ -190,6 +249,23 @@ enum Difficulty {
   HARD
 }
 
+enum CareModuleCategory {
+  FEEDING
+  SLEEP
+  BEHAVIOR
+}
+
+enum CareModuleAssignmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum CareQuestionType {
+  SINGLE_CHOICE
+  TRUE_FALSE
+}
+
 enum DayOfWeek {
   MON
   TUE
@@ -258,4 +334,44 @@ enum PaymentGateway {
   NAGAD
   CASH
   OTHER
+}
+
+enum RewardLedgerEntryType {
+  EARN
+  SPEND
+  REFUND
+  ADJUSTMENT
+  VOID
+}
+
+enum RewardLedgerSourceType {
+  DAY_ACTIVITY
+  CARE_MODULE_ASSIGNMENT
+  REWARD_REDEMPTION
+  MANUAL_ADJUSTMENT
+}
+
+enum RewardOfferStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+enum RewardRedemptionStatus {
+  ACTIVE
+  USED
+  CANCELLED
+  EXPIRED
+}
+
+enum RewardOfferChannel {
+  ONLINE
+  IN_STORE
+  BOTH
+}
+
+enum RewardClaimMethod {
+  ONLINE
+  IN_STORE
 }

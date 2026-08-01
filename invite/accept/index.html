@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Accept Caregiver Invite</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #f5f7f8;
+      color: #17272b;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main {
+      width: min(460px, calc(100vw - 28px));
+      padding: 18px;
+      border: 1px solid #d8e5e8;
+      border-radius: 8px;
+      background: white;
+    }
+    h1 { margin: 0 0 14px; font-size: 20px; letter-spacing: 0; }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      color: #5f7278;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    input {
+      width: 100%;
+      min-height: 40px;
+      padding: 9px 10px;
+      border: 1px solid #bdd6dc;
+      border-radius: 7px;
+      font: inherit;
+    }
+    button {
+      width: 100%;
+      min-height: 40px;
+      margin-top: 12px;
+      border: 1px solid #08646f;
+      border-radius: 7px;
+      background: #08646f;
+      color: white;
+      font-weight: 750;
+      cursor: pointer;
+    }
+    pre {
+      max-height: 300px;
+      overflow: auto;
+      margin: 14px 0 0;
+      padding: 10px;
+      border-radius: 7px;
+      background: #10191c;
+      color: #dff4f1;
+      white-space: pre-wrap;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Accept Invite</h1>
+    <label>API Base URL</label>
+    <input id="baseUrl" value="http://localhost:5000/api/v1" />
+    <label>Email</label>
+    <input id="email" placeholder="invited user email" />
+    <label>Password</label>
+    <input id="password" type="password" value="123456" />
+    <label>Invite Token</label>
+    <input id="token" />
+    <button id="loginAccept">Login & Accept</button>
+    <pre id="output">Ready.</pre>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const params = new URLSearchParams(window.location.search);
+    $('token').value = params.get('token') || '';
+
+    async function api(path, options = {}) {
+      const baseUrl = $('baseUrl').value.replace(/\/$/, '');
+      const res = await fetch(`${baseUrl}${path}`, {
+        credentials: 'include',
+        ...options,
+      });
+      const text = await res.text();
+      let body;
+      try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+      const result = { status: res.status, ok: res.ok, body };
+      $('output').textContent = JSON.stringify(result, null, 2);
+      return result;
+    }
+
+    $('loginAccept').onclick = async () => {
+      const login = await api('/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: $('email').value.trim(),
+          password: $('password').value,
+        }),
+      });
+      const accessToken = login.body?.accessToken || login.body?.data?.accessToken;
+      if (!accessToken) return;
+      await api(`/caregivers/invitations/${$('token').value.trim()}/accept`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+    };
+  </script>
+</body>
+</html>

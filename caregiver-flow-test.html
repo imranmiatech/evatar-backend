@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Caregiver Flow Test</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --teal: #08646f;
+      --ink: #18262b;
+      --muted: #617279;
+      --line: #d8e5e8;
+      --bg: #f5f7f8;
+      --card: #ffffff;
+      --danger: #d83232;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      background: #ffffffee;
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      padding: 18px;
+      max-width: 1220px;
+      margin: 0 auto;
+    }
+
+    section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    section.wide { grid-column: 1 / -1; }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      min-height: 38px;
+      padding: 9px 10px;
+      border: 1px solid #bed6dc;
+      border-radius: 7px;
+      background: white;
+      color: var(--ink);
+      font: inherit;
+      font-size: 14px;
+    }
+
+    textarea {
+      min-height: 108px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    button {
+      min-height: 38px;
+      padding: 9px 12px;
+      border: 1px solid var(--teal);
+      border-radius: 7px;
+      color: white;
+      background: var(--teal);
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      color: var(--teal);
+      background: white;
+    }
+
+    button.danger {
+      border-color: var(--danger);
+      background: var(--danger);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .checks {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 12px;
+      margin-top: 8px;
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      font-size: 13px;
+    }
+
+    .check input {
+      width: 16px;
+      min-height: 16px;
+    }
+
+    pre {
+      min-height: 260px;
+      max-height: 520px;
+      overflow: auto;
+      margin: 0;
+      padding: 12px;
+      border-radius: 8px;
+      background: #10191c;
+      color: #dff4f1;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    .hint {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .caregiver-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .role-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 2px 0 8px;
+      color: var(--teal);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .role-title::before {
+      content: "";
+      width: 5px;
+      height: 22px;
+      border-radius: 999px;
+      background: var(--teal);
+    }
+
+    .person-card {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid #edf2f3;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #e8f4f5;
+      color: var(--teal);
+      font-weight: 800;
+    }
+
+    .person-name {
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .person-meta {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .badge {
+      padding: 5px 8px;
+      border-radius: 999px;
+      color: #9c5b00;
+      background: #fff0dc;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    @media (max-width: 820px) {
+      main { grid-template-columns: 1fr; padding: 12px; }
+      .row, .checks { grid-template-columns: 1fr; }
+      header { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Caregiver Flow Test</h1>
+    <div class="actions" style="margin:0">
+      <button class="secondary" id="clearTokenBtn">Clear Token</button>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>1. Login</h2>
+      <label>API Base URL</label>
+      <input id="baseUrl" value="http://localhost:5000/api/v1" />
+      <div class="row">
+        <div>
+          <label>Email</label>
+          <input id="loginEmail" value="parent@example.com" />
+        </div>
+        <div>
+          <label>Password</label>
+          <input id="loginPassword" type="password" value="123456" />
+        </div>
+      </div>
+      <label>Access Token</label>
+      <textarea id="token" placeholder="Login korle token ekhane ashbe"></textarea>
+      <div class="actions">
+        <button id="loginBtn">Login</button>
+        <button class="secondary" id="meBtn">Auth Me</button>
+      </div>
+      <p class="hint">Backend running thakte hobe: npm run dev or npm run start.</p>
+    </section>
+
+    <section>
+      <h2>2. Child</h2>
+      <label>Select Child</label>
+      <select id="childSelect">
+        <option value="">Load children first</option>
+      </select>
+      <label>Child ID</label>
+      <input id="childId" placeholder="GET children diye copy koro" />
+      <div class="actions">
+        <button id="childrenBtn">GET /parent/children</button>
+        <button class="secondary" id="caregiversBtn">GET caregivers</button>
+      </div>
+      <p class="hint">Owner parent hole full access. Non-owner hole accepted caregiver access lagbe.</p>
+    </section>
+
+    <section class="wide">
+      <h2>3. Invite Caregiver</h2>
+      <div class="row">
+        <div>
+          <label>Role</label>
+          <select id="role">
+            <option>NANNY</option>
+            <option>PARENT</option>
+            <option>FAMILY_MEMBER</option>
+          </select>
+        </div>
+        <div>
+          <label>Invite Channel</label>
+          <select id="inviteChannel">
+            <option>EMAIL</option>
+            <option>WHATSAPP</option>
+            <option>LINK</option>
+            <option>IN_APP</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Existing User ID</label>
+          <input id="invitedUserId" placeholder="On Alurei user id optional" />
+        </div>
+        <div>
+          <label>Family Relationship</label>
+          <select id="relationship">
+            <option value="">None</option>
+            <option>GRANDMOTHER</option>
+            <option>GUARDIAN</option>
+            <option>GODPARENT</option>
+            <option>GRANDFATHER</option>
+            <option>UNCLE</option>
+            <option>SIBLING</option>
+            <option>AUNT</option>
+            <option>OTHER</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Invited Email</label>
+          <input id="invitedEmail" placeholder="caregiver@example.com" />
+        </div>
+        <div>
+          <label>Invited Phone</label>
+          <input id="invitedPhone" placeholder="+15550000000" />
+        </div>
+      </div>
+
+      <label>Permissions</label>
+      <div class="checks" id="permissionChecks"></div>
+
+      <div class="actions">
+        <button id="inviteBtn">Create Invite</button>
+        <button class="secondary" id="searchBtn">Search Existing Users</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>4. Accept / Update / Remove</h2>
+      <label>Invite Token</label>
+      <input id="inviteToken" placeholder="Create invite response theke token" />
+      <label>Access ID</label>
+      <input id="accessId" placeholder="Caregiver access id" />
+      <div class="actions">
+        <button class="secondary" id="previewBtn">Preview Invite</button>
+        <button id="acceptBtn">Accept Invite</button>
+        <button class="secondary" id="updatePermBtn">Update Permissions</button>
+        <button class="danger" id="removeBtn">Remove</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Manage Caregivers Preview</h2>
+      <div class="caregiver-list" id="caregiverPreview">
+        <p class="hint">Select child, then click GET caregivers.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Response</h2>
+      <pre id="output">Ready.</pre>
+    </section>
+  </main>
+
+  <script>
+    const permissionKeys = [
+      'dailyActivitiesRecipes',
+      'manageDailyPlans',
+      'manageGroceryLists',
+      'editChildProfile',
+      'accessChildInsights',
+      'addRemoveChildren',
+      'manageBilling',
+      'manageCareTeam',
+      'manageGroceryOrders',
+      'groceryOrdering',
+      'careLearningAccess',
+      'nannyDevelopment',
+      'memoriesStories',
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const savedToken = localStorage.getItem('caregiverTestToken');
+    if (savedToken) $('token').value = savedToken;
+
+    $('permissionChecks').innerHTML = permissionKeys.map((key) => `
+      <label class="check">
+        <input type="checkbox" data-permission="${key}" />
+        ${key}
+      </label>
+    `).join('');
+
+    function baseUrl() {
+      return $('baseUrl').value.replace(/\/$/, '');
+    }
+
+    function authHeaders(json = true) {
+      const headers = {};
+      const token = $('token').value.trim();
+      if (json) headers['Content-Type'] = 'application/json';
+      if (token) headers.Authorization = `Bearer ${token}`;
+      return headers;
+    }
+
+    function permissionsPayload() {
+      const payload = {};
+      document.querySelectorAll('[data-permission]').forEach((input) => {
+        payload[input.dataset.permission] = input.checked;
+      });
+      return payload;
+    }
+
+    function compact(obj) {
+      return Object.fromEntries(
+        Object.entries(obj).filter(([, value]) => value !== '' && value !== undefined && value !== null)
+      );
+    }
+
+    function requiredValue(id, label) {
+      const value = $(id).value.trim();
+      if (!value) {
+        $('output').textContent = `${label} is required.`;
+        throw new Error(`${label} is required`);
+      }
+      return value;
+    }
+
+    async function request(path, options = {}) {
+      const res = await fetch(`${baseUrl()}${path}`, {
+        credentials: 'include',
+        ...options,
+      });
+      const text = await res.text();
+      let body;
+      try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+      const result = { status: res.status, ok: res.ok, body };
+      $('output').textContent = JSON.stringify(result, null, 2);
+      return result;
+    }
+
+    function unwrapData(body) {
+      const first = body?.data ?? body;
+      return first?.data ?? first;
+    }
+
+    function setChildrenFromResponse(body) {
+      const data = unwrapData(body);
+      const children = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.children)
+          ? data.children
+          : [];
+
+      if (!children.length) {
+        $('childSelect').innerHTML = '<option value="">No children found</option>';
+        return;
+      }
+
+      $('childSelect').innerHTML = [
+        '<option value="">Select a child</option>',
+        ...children.map((child) => {
+          const name = child.name || child.fullName || 'Unnamed child';
+          return `<option value="${child.id}">${name} - ${child.id}</option>`;
+        }),
+      ].join('');
+    }
+
+    function caregiverPayload(body) {
+      const data = unwrapData(body);
+      if (data?.accountOwner) return data;
+      if (data?.data?.accountOwner) return data.data;
+      return null;
+    }
+
+    function roleLabel(role) {
+      if (role === 'NANNY') return 'Nanny';
+      if (role === 'PARENT') return 'Parent';
+      if (role === 'FAMILY_MEMBER') return 'Family member';
+      return role || 'Caregiver';
+    }
+
+    function initials(name) {
+      return String(name || '?')
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join('') || '?';
+    }
+
+    function personCard(person, meta, status, accessId) {
+      const name = person?.fullName || person?.email || 'Invited user';
+      const picture = person?.profilePictureUrl;
+      return `
+        <div class="person-card">
+          ${picture ? `<img class="avatar" src="${picture}" alt="">` : `<div class="avatar">${initials(name)}</div>`}
+          <div>
+            <div class="person-name">${name}</div>
+            <div class="person-meta">${meta}</div>
+            ${accessId ? `<div class="person-meta">Access ID: ${accessId}</div>` : ''}
+          </div>
+          ${status ? `<span class="badge">${status}</span>` : ''}
+        </div>
+      `;
+    }
+
+    function renderCaregivers(body) {
+      const payload = caregiverPayload(body);
+      if (!payload) {
+        $('caregiverPreview').innerHTML = '<p class="hint">No caregiver data found in response.</p>';
+        return;
+      }
+
+      const owner = payload.accountOwner;
+      const caregivers = payload.caregivers || [];
+      const groups = ['NANNY', 'PARENT', 'FAMILY_MEMBER'];
+
+      const html = [
+        `<div>
+          <div class="role-title">Account Owner</div>
+          ${personCard(owner, `Caring for ${owner.childName || 'selected child'}`, '', '')}
+        </div>`,
+        ...groups.map((role) => {
+          const items = caregivers.filter((item) => item.role === role);
+          if (!items.length) return '';
+          return `
+            <div>
+              <div class="role-title">${roleLabel(role)}</div>
+              ${items.map((item) => {
+                const user = item.invitedUser || {
+                  fullName: item.invitedEmail || item.invitedPhone || 'Invite link user',
+                  email: item.invitedEmail,
+                };
+                const childName = item.child?.name || owner.childName || 'selected child';
+                const relation = item.relationship ? ` (${item.relationship})` : '';
+                return personCard(user, `Caring for ${childName}${relation}`, item.status, item.id);
+              }).join('')}
+            </div>
+          `;
+        }),
+      ].join('');
+
+      $('caregiverPreview').innerHTML = html;
+    }
+
+    $('loginBtn').onclick = async () => {
+      const result = await request('/auth/signin', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          email: $('loginEmail').value.trim(),
+          password: $('loginPassword').value,
+        }),
+      });
+      const token = result.body?.accessToken ?? result.body?.data?.accessToken;
+      if (token) {
+        $('token').value = token;
+        localStorage.setItem('caregiverTestToken', token);
+      }
+    };
+
+    $('meBtn').onclick = () => request('/auth/me', { headers: authHeaders(false) });
+    $('childrenBtn').onclick = async () => {
+      const result = await request('/parent/children', { headers: authHeaders(false) });
+      if (result.ok) setChildrenFromResponse(result.body);
+    };
+    $('childSelect').onchange = () => {
+      $('childId').value = $('childSelect').value;
+    };
+    $('caregiversBtn').onclick = async () => {
+      const result = await request(`/caregivers/children/${requiredValue('childId', 'Child ID')}`, { headers: authHeaders(false) });
+      if (result.ok) renderCaregivers(result.body);
+    };
+    $('searchBtn').onclick = () => request(`/caregivers/search?role=${encodeURIComponent($('role').value)}&query=${encodeURIComponent($('invitedEmail').value || $('invitedUserId').value || '')}`, { headers: authHeaders(false) });
+
+    $('inviteBtn').onclick = async () => {
+      const body = compact({
+        role: $('role').value,
+        relationship: $('relationship').value,
+        invitedUserId: $('invitedUserId').value.trim(),
+        invitedEmail: $('invitedEmail').value.trim(),
+        invitedPhone: $('invitedPhone').value.trim(),
+        inviteChannel: $('inviteChannel').value,
+        ...permissionsPayload(),
+      });
+      const result = await request(`/caregivers/children/${requiredValue('childId', 'Child ID')}/invitations`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(body),
+      });
+      const data = result.body?.data ?? result.body?.body?.data;
+      if (data?.inviteToken) $('inviteToken').value = data.inviteToken;
+      if (data?.id) $('accessId').value = data.id;
+      if (result.ok) {
+        const list = await request(`/caregivers/children/${requiredValue('childId', 'Child ID')}`, { headers: authHeaders(false) });
+        if (list.ok) renderCaregivers(list.body);
+      }
+    };
+
+    $('previewBtn').onclick = () => request(`/caregivers/invitations/${requiredValue('inviteToken', 'Invite Token')}`, { headers: authHeaders(false) });
+    $('acceptBtn').onclick = () => request(`/caregivers/invitations/${requiredValue('inviteToken', 'Invite Token')}/accept`, { method: 'POST', headers: authHeaders() });
+    $('updatePermBtn').onclick = () => request(`/caregivers/access/${requiredValue('accessId', 'Access ID')}/permissions`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify(permissionsPayload()),
+    });
+    $('removeBtn').onclick = () => request(`/caregivers/access/${requiredValue('accessId', 'Access ID')}`, { method: 'DELETE', headers: authHeaders(false) });
+    $('clearTokenBtn').onclick = () => {
+      localStorage.removeItem('caregiverTestToken');
+      $('token').value = '';
+      $('output').textContent = 'Token cleared.';
+    };
+  </script>
+</body>
+</html>

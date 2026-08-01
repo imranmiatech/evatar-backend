@@ -51,7 +51,7 @@ export class LanguageController {
       success: true,
       data: {
         language,
-        translated: this.languageService.translate(input, language),
+        translated: await this.languageService.translateAsync(input, language),
       },
     };
   }

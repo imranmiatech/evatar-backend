@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { ValidationException } from './common/exceptions';
+import { LanguageService } from './modules/language/language.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -27,7 +28,8 @@ async function bootstrap() {
 
   // Global interceptors
   const reflector = app.get(Reflector);
-  app.useGlobalInterceptors(new ResponseInterceptor(reflector));
+  const languageService = app.get(LanguageService);
+  app.useGlobalInterceptors(new ResponseInterceptor(reflector, languageService));
 
   // Global pipes
   app.useGlobalPipes(

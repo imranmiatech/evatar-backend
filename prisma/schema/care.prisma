@@ -1,0 +1,133 @@
+model CareModule {
+  id               String             @id @default(uuid())
+  title            String
+  subtitle         String?
+  description      String?            @db.Text
+  coverImageUrl    String?
+  category         CareModuleCategory
+  estimatedMinutes Int?
+  coinReward       Int                @default(5)
+  suggestedMinAgeYears Int?
+  suggestedMaxAgeYears Int?
+  contentTitle     String?
+  contentSections  Json
+  isPublished      Boolean            @default(false)
+  createdByUserId  String?
+  createdByUser    User?              @relation("CareModulesCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  questions   CareQuizQuestion[]
+  assignments CareModuleAssignment[]
+  saves       CareModuleSave[]
+
+  @@index([category, isPublished, createdAt])
+  @@index([suggestedMinAgeYears, suggestedMaxAgeYears, isPublished])
+  @@index([isPublished, createdAt])
+  @@map("care_modules")
+}
+
+model CareChildNote {
+  id           String   @id @default(uuid())
+  childId      String
+  child        Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  authorUserId String
+  authorUser   User     @relation("CareChildNotesAuthored", fields: [authorUserId], references: [id], onDelete: Cascade)
+  note         String   @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([childId, createdAt])
+  @@index([authorUserId, createdAt])
+  @@map("care_child_notes")
+}
+
+model CareQuizQuestion {
+  id          String           @id @default(uuid())
+  moduleId    String
+  module      CareModule       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  question    String
+  type        CareQuestionType @default(SINGLE_CHOICE)
+  explanation String           @db.Text
+  sortOrder   Int              @default(0)
+
+  options CareQuizOption[]
+  answers CareQuizAnswer[]
+
+  @@index([moduleId, sortOrder])
+  @@map("care_quiz_questions")
+}
+
+model CareQuizOption {
+  id         String           @id @default(uuid())
+  questionId String
+  question   CareQuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  label      String
+  isCorrect  Boolean          @default(false)
+  sortOrder  Int              @default(0)
+
+  answers CareQuizAnswer[]
+
+  @@index([questionId, sortOrder])
+  @@map("care_quiz_options")
+}
+
+model CareModuleAssignment {
+  id               String                     @id @default(uuid())
+  moduleId         String
+  module           CareModule                 @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  childId          String
+  child            Child                      @relation(fields: [childId], references: [id], onDelete: Cascade)
+  nannyUserId      String
+  nannyUser        User                       @relation("CareAssignmentsForNanny", fields: [nannyUserId], references: [id], onDelete: Cascade)
+  assignedByUserId String
+  assignedByUser   User                       @relation("CareAssignmentsAssignedBy", fields: [assignedByUserId], references: [id], onDelete: Cascade)
+  status           CareModuleAssignmentStatus @default(ASSIGNED)
+  startedAt        DateTime?
+  completedAt      DateTime?
+  score            Int?
+  totalQuestions   Int?
+  correctAnswers   Int?
+  pointsEarned     Int                        @default(0)
+  pointsAwardedAt  DateTime?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  answers CareQuizAnswer[]
+
+  @@unique([moduleId, childId, nannyUserId])
+  @@index([nannyUserId, status, createdAt])
+  @@index([childId, status])
+  @@index([assignedByUserId, createdAt])
+  @@map("care_module_assignments")
+}
+
+model CareQuizAnswer {
+  id               String               @id @default(uuid())
+  assignmentId     String
+  assignment       CareModuleAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  questionId       String
+  question         CareQuizQuestion     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOptionId String
+  selectedOption   CareQuizOption       @relation(fields: [selectedOptionId], references: [id], onDelete: Restrict)
+  isCorrect        Boolean
+  answeredAt       DateTime             @default(now())
+
+  @@unique([assignmentId, questionId])
+  @@index([assignmentId])
+  @@index([questionId])
+  @@map("care_quiz_answers")
+}
+
+model CareModuleSave {
+  id        String     @id @default(uuid())
+  moduleId  String
+  module    CareModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation("CareModuleSaves", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([moduleId, userId])
+  @@index([userId, createdAt])
+  @@map("care_module_saves")
+}

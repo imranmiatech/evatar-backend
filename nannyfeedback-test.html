@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nanny Feedback Flow</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #3f3f3f;
+        color: #153135;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 390px minmax(260px, 380px);
+        gap: 24px;
+        align-items: start;
+        padding: 22px;
+      }
+
+      .phone {
+        width: 390px;
+        height: 844px;
+        overflow: hidden;
+        border: 8px solid #efefef;
+        border-radius: 32px;
+        background: #f6f7f7;
+        box-shadow: 0 20px 50px rgb(0 0 0 / 28%);
+      }
+
+      .status {
+        height: 34px;
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        padding: 0 28px 8px;
+        background: #fff;
+        color: #111;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .topbar {
+        height: 52px;
+        display: grid;
+        grid-template-columns: 44px 1fr 44px;
+        align-items: center;
+        padding: 0 10px;
+        background: #fff;
+        border-bottom: 1px solid #edf1f1;
+      }
+
+      .topbar h1 {
+        margin: 0;
+        text-align: center;
+        font-size: 15px;
+      }
+
+      .icon-btn {
+        border: 0;
+        background: transparent;
+        color: #006b70;
+        font-size: 24px;
+        cursor: pointer;
+      }
+
+      .content {
+        height: calc(844px - 86px);
+        overflow-y: auto;
+        padding: 18px;
+      }
+
+      .screen {
+        display: none;
+      }
+
+      .screen.active {
+        display: block;
+      }
+
+      .card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 1px 0 rgb(0 0 0 / 3%);
+      }
+
+      label {
+        display: block;
+        margin: 12px 0 6px;
+        color: #5d7477;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        border: 1px solid #d6e6e7;
+        border-radius: 9px;
+        padding: 11px;
+        background: #fbfdfd;
+        color: #143437;
+        font-size: 14px;
+      }
+
+      textarea {
+        min-height: 92px;
+        resize: vertical;
+      }
+
+      .primary {
+        width: 100%;
+        border: 0;
+        border-radius: 10px;
+        background: #006970;
+        color: #fff;
+        padding: 14px;
+        margin-top: 14px;
+        font-size: 14px;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .secondary {
+        border: 1px solid #c8e2e3;
+        border-radius: 10px;
+        background: #f2fbfb;
+        color: #006970;
+        padding: 11px 14px;
+        font-size: 13px;
+        font-weight: 850;
+        cursor: pointer;
+      }
+
+      .avatar-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+      }
+
+      .avatar-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .avatar {
+        width: 48px;
+        height: 48px;
+        border: 3px solid #eaf5f5;
+        border-radius: 50%;
+        background:
+          linear-gradient(rgb(255 255 255 / 5%), rgb(255 255 255 / 5%)),
+          url("https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=160&q=80")
+            center / cover;
+      }
+
+      .hello {
+        color: #6e8083;
+        font-size: 12px;
+      }
+
+      .name {
+        font-size: 16px;
+        font-weight: 900;
+      }
+
+      .chips {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+
+      .chip {
+        border: 1px solid #d5e2e3;
+        border-radius: 999px;
+        padding: 10px 18px;
+        background: #fff;
+        color: #31575a;
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      .chip.active {
+        border-color: #006970;
+        background: #006970;
+        color: #fff;
+      }
+
+      .timeline {
+        position: relative;
+        min-height: 610px;
+        padding-top: 20px;
+      }
+
+      .line {
+        position: absolute;
+        top: 28px;
+        bottom: 40px;
+        left: 132px;
+        width: 7px;
+        border-radius: 99px;
+        background: #9ac9c5;
+      }
+
+      .dot {
+        position: absolute;
+        left: 122px;
+        width: 28px;
+        height: 28px;
+        border: 6px solid #f6f7f7;
+        border-radius: 50%;
+        background: #006970;
+        z-index: 2;
+      }
+
+      .time {
+        position: absolute;
+        left: 42px;
+        color: #78898c;
+        font-size: 11px;
+      }
+
+      .bubble {
+        position: absolute;
+        left: 158px;
+        width: 178px;
+        border: 0;
+        border-radius: 999px;
+        padding: 20px 14px;
+        text-align: center;
+        color: #19373a;
+        box-shadow: 0 8px 18px rgb(0 0 0 / 14%);
+        cursor: pointer;
+      }
+
+      .bubble b {
+        display: block;
+        font-size: 14px;
+      }
+
+      .bubble span {
+        display: block;
+        margin-top: 4px;
+        color: #617477;
+        font-size: 11px;
+      }
+
+      .meal-bg {
+        background: #ffe5d2;
+      }
+
+      .activity-bg {
+        background: #a9f4ca;
+      }
+
+      .study-bg {
+        background: #edd3f7;
+      }
+
+      .hero {
+        border-radius: 14px;
+        padding: 28px 20px;
+        text-align: center;
+        background: #fff;
+      }
+
+      .task-icon {
+        width: 72px;
+        height: 72px;
+        display: grid;
+        place-items: center;
+        margin: 0 auto 12px;
+        border-radius: 18px;
+        font-size: 34px;
+      }
+
+      .tag {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 5px 10px;
+        background: #dcfbec;
+        color: #008072;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .task-title {
+        margin: 12px 0 4px;
+        font-size: 20px;
+        font-weight: 900;
+      }
+
+      .muted {
+        color: #6e8083;
+        font-size: 13px;
+      }
+
+      .time-chip {
+        display: inline-block;
+        margin-top: 12px;
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: #e7f5f6;
+        color: #006e75;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .proof-box {
+        width: 112px;
+        height: 96px;
+        display: grid;
+        place-items: center;
+        border: 1px solid #a9dce0;
+        border-radius: 10px;
+        background: #f5fcfc;
+        color: #007178;
+        font-size: 13px;
+        font-weight: 800;
+        text-align: center;
+        cursor: pointer;
+      }
+
+      .option-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+
+      .mood-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+      }
+
+      .opt {
+        min-height: 48px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        background: #f3f4f4;
+        color: #526265;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .opt.selected {
+        border-color: #007178;
+        background: #e7fbf4;
+        color: #007178;
+      }
+
+      .parent-head {
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+
+      .done-chip {
+        display: inline-block;
+        border-radius: 999px;
+        background: #e8fff0;
+        color: #16894f;
+        padding: 7px 10px;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .proof-img {
+        width: 76px;
+        height: 76px;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+
+      .feedback-box {
+        border: 1px solid #e3eeee;
+        border-radius: 12px;
+        padding: 12px;
+        margin-top: 12px;
+      }
+
+      .metric-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .metric {
+        border-radius: 10px;
+        padding: 12px;
+        background: #e9fbef;
+        font-size: 13px;
+      }
+
+      .metric b {
+        display: block;
+        color: #658083;
+        font-size: 11px;
+        margin-bottom: 5px;
+      }
+
+      .completion {
+        display: inline-block;
+        margin-top: 10px;
+        border: 1px solid #007178;
+        border-radius: 999px;
+        padding: 7px 12px;
+        color: #007178;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .note-box {
+        margin-top: 10px;
+        border: 1px solid #a7d9dd;
+        border-radius: 10px;
+        padding: 12px;
+        background: #f5fcfd;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      .side {
+        max-height: 844px;
+        overflow: auto;
+        border: 1px solid #c9e1e2;
+        border-radius: 14px;
+        background: #fff;
+        padding: 16px;
+      }
+
+      .side h2 {
+        margin: 0 0 10px;
+        font-size: 16px;
+      }
+
+      .side-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      pre {
+        max-height: 220px;
+        overflow: auto;
+        border-radius: 10px;
+        background: #10282b;
+        color: #d7fbf4;
+        padding: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 12px;
+      }
+
+      @media (max-width: 860px) {
+        .shell {
+          grid-template-columns: 1fr;
+          padding: 12px;
+        }
+
+        .phone {
+          width: min(100%, 390px);
+          margin: 0 auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="phone">
+        <div class="status"><span>9:41</span><span>● ● ▬</span></div>
+        <div class="topbar">
+          <button id="backBtn" class="icon-btn" type="button">‹</button>
+          <h1 id="screenTitle">Login</h1>
+          <button id="parentBtn" class="icon-btn" type="button">☰</button>
+        </div>
+
+        <div class="content">
+          <section id="loginScreen" class="screen active">
+            <div class="card">
+              <label for="baseUrl">Base URL</label>
+              <input id="baseUrl" value="http://localhost:5000/api/v1" />
+              <label for="email">Email</label>
+              <input id="email" value="n@e.com" />
+              <label for="password">Password</label>
+              <input id="password" type="password" value="123456" />
+              <button id="loginBtn" class="primary" type="button">Login</button>
+              <button id="skipLoginBtn" class="secondary" type="button">
+                Skip to Today
+              </button>
+            </div>
+          </section>
+
+          <section id="todayScreen" class="screen">
+            <div class="avatar-row">
+              <div class="avatar-left">
+                <div class="avatar"></div>
+                <div>
+                  <div class="hello">Good Morning</div>
+                  <div class="name">Deepa Kumari</div>
+                </div>
+              </div>
+              <button class="secondary" type="button" onclick="go('parent')">
+                Parent view
+              </button>
+            </div>
+            <div class="chips">
+              <button class="chip active">Eve</button>
+              <button class="chip">Rose</button>
+              <button class="chip">Add child +</button>
+            </div>
+            <div class="timeline">
+              <div class="line"></div>
+              <span class="time" style="top: 58px">10:30</span>
+              <span class="dot" style="top: 66px"></span>
+              <button class="bubble meal-bg" style="top: 94px" data-task="breakfast">
+                🍴<b>Breakfast</b><span>Banana Oat Pancakes</span>
+              </button>
+              <span class="time" style="top: 250px">12:30</span>
+              <span class="dot" style="top: 258px"></span>
+              <button class="bubble activity-bg" style="top: 286px" data-task="outdoor">
+                🌲<b>Outdoor Play</b><span>Sensory garden exploration</span>
+              </button>
+              <span class="time" style="top: 424px">13:10</span>
+              <span class="dot" style="top: 432px"></span>
+              <button class="bubble study-bg" style="top: 462px" data-task="study">
+                🎓<b>Study Time</b><span>School assignments</span>
+              </button>
+            </div>
+          </section>
+
+          <section id="detailScreen" class="screen">
+            <div class="hero" id="detailHero">
+              <div class="task-icon" id="taskIcon">🍴</div>
+              <span class="tag" id="taskTag">Meal</span>
+              <div class="task-title" id="taskTitle">Breakfast</div>
+              <div class="muted" id="taskDesc">Banana Oat Pancakes</div>
+              <span class="time-chip" id="taskTime">10:30 AM - 10:45 AM</span>
+            </div>
+            <label>Activity Proof</label>
+            <label class="proof-box" for="image">▣<br />Take Photo</label>
+            <input id="image" hidden type="file" accept="image/*" />
+            <button class="primary" type="button" onclick="go('feedback')">
+              Complete & Add Feedback
+            </button>
+          </section>
+
+          <section id="feedbackScreen" class="screen">
+            <form id="submitForm" class="card">
+              <label>Enjoyment</label>
+              <div class="option-grid" data-name="enjoyment">
+                <button class="opt" type="button" data-value="LOVE_IT">Loved it</button>
+                <button class="opt selected" type="button" data-value="ENJOY_IT">Enjoyed it</button>
+                <button class="opt" type="button" data-value="NEUTRAL">Neutral</button>
+                <button class="opt" type="button" data-value="RELUCTANT">Reluctant</button>
+              </div>
+              <label>Child's Mood</label>
+              <div class="mood-grid" data-name="childMood">
+                <button class="opt" type="button" data-value="EXCITED">😊<br />Excited</button>
+                <button class="opt selected" type="button" data-value="HAPPY">🙂<br />Happy</button>
+                <button class="opt" type="button" data-value="NEUTRAL">😐<br />Neutral</button>
+                <button class="opt" type="button" data-value="TIRED">😴<br />Tired</button>
+                <button class="opt" type="button" data-value="RESISTANT">😣<br />Resistant</button>
+              </div>
+              <label>Completion Rate</label>
+              <div class="option-grid" data-name="completionRate">
+                <button class="opt selected" type="button" data-value="FULL_PLATE">Fully done</button>
+                <button class="opt" type="button" data-value="HALF_PLATE">Partially</button>
+                <button class="opt" type="button" data-value="UNTOUCHED">Minimal</button>
+              </div>
+              <label for="note">Note</label>
+              <textarea id="note" placeholder="Share how it went, any highlights or things to note for parents..."></textarea>
+              <button class="primary" type="submit">Complete & Add Feedback</button>
+            </form>
+          </section>
+
+          <section id="parentScreen" class="screen">
+            <div id="parentPreview" class="card">
+              <div class="parent-head meal-bg">
+                <div style="font-size: 28px">🍴</div>
+                <b>Breakfast</b> <span class="tag">Meal</span>
+                <div class="muted">10:30 AM - 10:45 AM</div>
+                <span class="done-chip">Done at --</span>
+              </div>
+              <div class="muted"><b>Proof - 0 item</b></div>
+              <div class="proof-box">No image</div>
+              <div class="feedback-box">
+                <div class="metric-row">
+                  <div class="metric"><b>Enjoyment</b>--</div>
+                  <div class="metric"><b>Child's Mood</b>--</div>
+                </div>
+                <span class="completion">--</span>
+                <div class="note-box"><b>Nanny's Note</b><br />Submit feedback to preview here.</div>
+              </div>
+            </div>
+            <button id="getListBtn" class="primary" type="button">GET Parent Feedback</button>
+          </section>
+        </div>
+      </section>
+
+      <aside class="side">
+        <h2>Test Data</h2>
+        <div class="side-grid">
+          <div>
+            <label>Breakfast ID</label>
+            <input id="breakfastId" value="33333333-3333-4333-8333-333333333333" />
+          </div>
+          <div>
+            <label>Outdoor ID</label>
+            <input id="outdoorId" value="44444444-4444-4444-8444-444444444444" />
+          </div>
+          <div>
+            <label>Study ID</label>
+            <input id="studyId" value="55555555-5555-4555-8555-555555555555" />
+          </div>
+          <div>
+            <label>Child ID</label>
+            <input id="childId" value="5576fad9-a948-4975-9341-18747e80a3bb" />
+          </div>
+        </div>
+        <label>Selected DayActivity ID</label>
+        <input id="dayActivityId" value="33333333-3333-4333-8333-333333333333" />
+        <label>Token</label>
+        <textarea id="token" placeholder="Login token"></textarea>
+        <button id="getOneBtn" class="primary" type="button">GET Selected</button>
+        <pre id="output">Ready.</pre>
+      </aside>
+    </main>
+
+    <script>
+      const screens = {
+        login: "Login",
+        today: "Today",
+        detail: "Task detail",
+        feedback: "Task detail",
+        parent: "Parent Feedback",
+      };
+      const historyStack = [];
+      const taskConfig = {
+        breakfast: {
+          icon: "🍴",
+          color: "#ffe5d2",
+          tag: "Meal",
+          title: "Breakfast",
+          desc: "Banana Oat Pancakes",
+          time: "10:30 AM - 10:45 AM",
+        },
+        outdoor: {
+          icon: "🌲",
+          color: "#a9f4ca",
+          tag: "Activity",
+          title: "Outdoor Play",
+          desc: "Sensory garden exploration",
+          time: "12:30 PM - 1:00 PM",
+        },
+        study: {
+          icon: "🎓",
+          color: "#edd3f7",
+          tag: "Study",
+          title: "Study Time",
+          desc: "Ensure school assignments are completed and signed.",
+          time: "1:10 PM - 1:40 PM",
+        },
+      };
+      const selected = {
+        taskKey: "breakfast",
+        enjoyment: "ENJOY_IT",
+        childMood: "HAPPY",
+        completionRate: "FULL_PLATE",
+      };
+      const output = document.getElementById("output");
+
+      function go(name, push = true) {
+        const current = document.querySelector(".screen.active")?.id.replace("Screen", "");
+        if (push && current && current !== name) historyStack.push(current);
+        document.querySelectorAll(".screen").forEach((screen) => screen.classList.remove("active"));
+        document.getElementById(`${name}Screen`).classList.add("active");
+        document.getElementById("screenTitle").textContent = screens[name];
+      }
+
+      function show(value) {
+        output.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+      }
+
+      function baseUrl() {
+        return document.getElementById("baseUrl").value.replace(/\/$/, "");
+      }
+
+      function token() {
+        return document.getElementById("token").value.trim();
+      }
+
+      function authHeaders(extra = {}) {
+        return token() ? { ...extra, Authorization: `Bearer ${token()}` } : extra;
+      }
+
+      async function parseResponse(response) {
+        const text = await response.text();
+        try {
+          return JSON.parse(text);
+        } catch {
+          return text;
+        }
+      }
+
+      function label(value) {
+        return String(value || "")
+          .toLowerCase()
+          .split("_")
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(" ");
+      }
+
+      function setTask(key) {
+        const task = taskConfig[key];
+        selected.taskKey = key;
+        document.getElementById("taskIcon").textContent = task.icon;
+        document.getElementById("taskIcon").style.background = task.color;
+        document.getElementById("taskTag").textContent = task.tag;
+        document.getElementById("taskTitle").textContent = task.title;
+        document.getElementById("taskDesc").textContent = task.desc;
+        document.getElementById("taskTime").textContent = task.time;
+        document.getElementById("dayActivityId").value = document.getElementById(`${key}Id`).value.trim();
+        go("detail");
+      }
+
+      function taskKeyFromSchedule(schedule) {
+        const value = `${schedule?.title || ""} ${schedule?.category || ""}`.toLowerCase();
+        if (value.includes("outdoor") || value.includes("activity")) return "outdoor";
+        if (value.includes("study") || value.includes("school")) return "study";
+        return "breakfast";
+      }
+
+      function renderParent(itemOrItems) {
+        const item = Array.isArray(itemOrItems) ? itemOrItems[0] : itemOrItems;
+        if (!item) return;
+        const schedule = item.schedule || {};
+        const feedback = item.feedback || {};
+        const image = item.image || item.proofs?.[0]?.media;
+        const key = taskKeyFromSchedule(schedule);
+        const bg = key === "study" ? "study-bg" : key === "outdoor" ? "activity-bg" : "meal-bg";
+        document.getElementById("parentPreview").innerHTML = `
+          <div class="parent-head ${bg}">
+            <div style="font-size:28px">${taskConfig[key].icon}</div>
+            <b>${schedule.title || taskConfig[key].title}</b> <span class="tag">${schedule.category || taskConfig[key].tag}</span>
+            <div class="muted">${schedule.startTime || ""} - ${schedule.endTime || ""}</div>
+            <span class="done-chip">Done at ${feedback.submittedAt ? new Date(feedback.submittedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--"}</span>
+          </div>
+          <div class="muted"><b>Proof - ${item.proofs?.length || (image ? 1 : 0)} item</b></div>
+          ${image?.url ? `<img class="proof-img" src="${image.url}" alt="Proof" />` : `<div class="proof-box">No image</div>`}
+          <div class="feedback-box">
+            <div class="metric-row">
+              <div class="metric"><b>Enjoyment</b>${label(feedback.enjoyment)}</div>
+              <div class="metric"><b>Child's Mood</b>${label(feedback.childMood)}</div>
+            </div>
+            <span class="completion">${label(feedback.completionRate)}</span>
+            <div class="note-box"><b>Nanny's Note</b><br />${feedback.note || "No note"}</div>
+          </div>
+        `;
+      }
+
+      document.querySelectorAll("[data-task]").forEach((button) => {
+        button.addEventListener("click", () => setTask(button.dataset.task));
+      });
+
+      document.querySelectorAll("[data-name]").forEach((group) => {
+        group.addEventListener("click", (event) => {
+          const button = event.target.closest("button[data-value]");
+          if (!button) return;
+          selected[group.dataset.name] = button.dataset.value;
+          group.querySelectorAll("button").forEach((item) => item.classList.remove("selected"));
+          button.classList.add("selected");
+        });
+      });
+
+      document.getElementById("backBtn").addEventListener("click", () => {
+        const previous = historyStack.pop();
+        go(previous || "today", false);
+      });
+
+      document.getElementById("parentBtn").addEventListener("click", () => go("parent"));
+      document.getElementById("skipLoginBtn").addEventListener("click", () => go("today"));
+
+      document.getElementById("loginBtn").addEventListener("click", async () => {
+        show("Signing in...");
+        try {
+          const response = await fetch(`${baseUrl()}/auth/signin`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: document.getElementById("email").value.trim(),
+              password: document.getElementById("password").value,
+            }),
+          });
+          const body = await parseResponse(response);
+          if (body.accessToken) document.getElementById("token").value = body.accessToken;
+          show({ status: response.status, body });
+          if (response.ok) go("today");
+        } catch (error) {
+          show(String(error));
+        }
+      });
+
+      document.getElementById("submitForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const dayActivityId = document.getElementById("dayActivityId").value.trim();
+        if (!dayActivityId) {
+          show("Selected DayActivity ID nai.");
+          return;
+        }
+        const formData = new FormData();
+        const file = document.getElementById("image").files[0];
+        if (file) formData.append("image", file);
+        formData.append("enjoyment", selected.enjoyment);
+        formData.append("childMood", selected.childMood);
+        formData.append("completionRate", selected.completionRate);
+        formData.append("status", "COMPLETED");
+        formData.append("note", document.getElementById("note").value);
+        show("Submitting feedback...");
+        try {
+          const response = await fetch(`${baseUrl()}/nannyfeedback/schedules/${dayActivityId}`, {
+            method: "POST",
+            headers: authHeaders(),
+            body: formData,
+          });
+          const body = await parseResponse(response);
+          show({ status: response.status, body });
+          if (body.data) renderParent(body.data);
+          if (response.ok) go("parent");
+        } catch (error) {
+          show(String(error));
+        }
+      });
+
+      async function getSelected() {
+        const dayActivityId = document.getElementById("dayActivityId").value.trim();
+        if (!dayActivityId) {
+          show("Selected DayActivity ID nai.");
+          return;
+        }
+        show("Loading selected feedback...");
+        try {
+          const response = await fetch(`${baseUrl()}/nannyfeedback/schedules/${dayActivityId}`, {
+            headers: authHeaders(),
+          });
+          const body = await parseResponse(response);
+          show({ status: response.status, body });
+          if (body.data) renderParent(body.data);
+          if (response.ok) go("parent");
+        } catch (error) {
+          show(String(error));
+        }
+      }
+
+      document.getElementById("getOneBtn").addEventListener("click", getSelected);
+      document.getElementById("getListBtn").addEventListener("click", async () => {
+        const params = new URLSearchParams();
+        const childId = document.getElementById("childId").value.trim();
+        if (childId) params.set("childId", childId);
+        show("Loading feedback list...");
+        try {
+          const response = await fetch(`${baseUrl()}/nannyfeedback?${params}`, {
+            headers: authHeaders(),
+          });
+          const body = await parseResponse(response);
+          show({ status: response.status, body });
+          renderParent(body.data || []);
+        } catch (error) {
+          show(String(error));
+        }
+      });
+    </script>
+  </body>
+</html>

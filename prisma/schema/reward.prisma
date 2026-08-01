@@ -1,0 +1,144 @@
+model RewardAccount {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance        Int      @default(0)
+  lifetimeEarned Int      @default(0)
+  lifetimeSpent  Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([balance])
+  @@map("reward_accounts")
+}
+
+model RewardLedgerEntry {
+  id           String                 @id @default(uuid())
+  userId       String
+  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entryType    RewardLedgerEntryType
+  sourceType   RewardLedgerSourceType
+  sourceId     String
+  points       Int
+  balanceAfter Int
+  description  String?
+  metadata     Json?
+  createdAt    DateTime               @default(now())
+
+  @@unique([entryType, sourceType, sourceId])
+  @@index([userId, createdAt])
+  @@index([entryType, createdAt])
+  @@index([sourceType, sourceId])
+  @@map("reward_ledger_entries")
+}
+
+model RewardOffer {
+  id                  String             @id @default(uuid())
+  partnerUserId       String
+  partnerUser         User               @relation("PartnerRewardOffers", fields: [partnerUserId], references: [id], onDelete: Cascade)
+  storeId             String?
+  store               Store?             @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  title               String
+  productName         String
+  description         String?            @db.Text
+  includedTitle       String?
+  includedDescription String?            @db.Text
+  terms               String?            @db.Text
+  imageUrl            String?
+  channel             RewardOfferChannel @default(BOTH)
+  onlineCouponCode    String?
+  websiteUrl          String?
+  pointsCost          Int
+  availableQuantity   Int?
+  redeemedCount       Int                @default(0)
+  status              RewardOfferStatus  @default(DRAFT)
+  startsAt            DateTime?
+  endsAt              DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  locations    RewardOfferLocation[]
+  stores       RewardOfferStore[]
+  redemptions  RewardRedemption[]
+  savedByUsers RewardSavedOffer[]
+
+  @@index([partnerUserId, status, createdAt])
+  @@index([storeId])
+  @@index([status, startsAt, endsAt])
+  @@index([channel, status])
+  @@map("reward_offers")
+}
+
+model RewardOfferStore {
+  id        String      @id @default(uuid())
+  offerId   String
+  offer     RewardOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  storeId   String
+  store     Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@unique([offerId, storeId])
+  @@index([offerId])
+  @@index([storeId])
+  @@map("reward_offer_stores")
+}
+
+model RewardOfferLocation {
+  id        String      @id @default(uuid())
+  offerId   String
+  offer     RewardOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  name      String
+  address   String?
+  city      String?
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([offerId])
+  @@map("reward_offer_locations")
+}
+
+model RewardSavedOffer {
+  id        String      @id @default(uuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offerId   String
+  offer     RewardOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@unique([userId, offerId])
+  @@index([userId, createdAt])
+  @@index([offerId])
+  @@map("reward_saved_offers")
+}
+
+model RewardRedemption {
+  id                  String                 @id @default(uuid())
+  userId              String
+  user                User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offerId             String
+  offer               RewardOffer            @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  code                String                 @unique
+  claimMethod         RewardClaimMethod      @default(ONLINE)
+  couponCode          String?
+  qrToken             String?                @unique
+  qrPayload           String?
+  usedByPartnerUserId String?
+  usedByPartnerUser   User?                  @relation("PartnerUsedRewardRedemptions", fields: [usedByPartnerUserId], references: [id], onDelete: SetNull)
+  pointsSpent         Int
+  status              RewardRedemptionStatus @default(ACTIVE)
+  redeemedAt          DateTime               @default(now())
+  expiresAt           DateTime
+  usedAt              DateTime?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([offerId, status])
+  @@index([code])
+  @@index([qrToken])
+  @@index([status, expiresAt])
+  @@index([claimMethod, status])
+  @@map("reward_redemptions")
+}
