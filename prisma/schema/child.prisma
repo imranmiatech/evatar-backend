@@ -1,37 +1,28 @@
 model Child {
-  id           String    @id @default(uuid())
-  parentUserId String
-  parentUser   User      @relation("ParentChildren", fields: [parentUserId], references: [id], onDelete: Cascade)
-  name         String
-  avatar       String?
-  gender       Gender?
-  birthDate    DateTime?
-  weight       String?
-
-  // Typical Daily Cycle
-  wakeUpTime String?
-  bedTime    String?
-
-  // Health & Safety
-  healthConditions HealthCondition[]
-  additionalNotes  String?           @db.Text
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  schoolSchedule      SchoolSchedule?
-  recurringActivities RecurringActivity[]
-  naps                NapWindow[]
-  childSchedules      ChildSchedule[]
-
-  // Back Relations
-  nannies                  NannyChildLink[]
+  id                       String                    @id @default(uuid())
+  parentUserId             String
+  name                     String
+  avatar                   String?
+  gender                   Gender?
+  birthDate                DateTime?
+  weight                   String?
+  wakeUpTime               String?
+  bedTime                  String?
+  healthConditions         HealthCondition[]
+  additionalNotes          String?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
   caregiverAccesses        CaregiverAccess[]
+  parentUser               User                      @relation("ParentChildren", fields: [parentUserId], references: [id], onDelete: Cascade)
   dayPlans                 DayPlan[]
+  nannies                  NannyChildLink[]
   nannyPortfolioHighlights NannyPortfolioHighlight[]
-  careAssignments          CareModuleAssignment[]
+  naps                     NapWindow[]
+  recurringActivities      RecurringActivity[]
+  schoolSchedule           SchoolSchedule?
   careChildNotes           CareChildNote[]
+  careAssignments          CareModuleAssignment[]
+  childSchedules           ChildSchedule[]
 
   @@index([parentUserId])
 }
@@ -39,10 +30,10 @@ model Child {
 model SchoolSchedule {
   id        String      @id @default(uuid())
   childId   String      @unique
-  child     Child       @relation(fields: [childId], references: [id], onDelete: Cascade)
   days      DayOfWeek[]
   startTime String
   endTime   String
+  child     Child       @relation(fields: [childId], references: [id], onDelete: Cascade)
 
   @@index([childId])
 }
@@ -50,11 +41,11 @@ model SchoolSchedule {
 model RecurringActivity {
   id        String      @id @default(uuid())
   childId   String
-  child     Child       @relation(fields: [childId], references: [id], onDelete: Cascade)
   name      String
   days      DayOfWeek[]
   startTime String
   endTime   String
+  child     Child       @relation(fields: [childId], references: [id], onDelete: Cascade)
 
   @@index([childId])
 }
@@ -62,9 +53,9 @@ model RecurringActivity {
 model NapWindow {
   id        String @id @default(uuid())
   childId   String
-  child     Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
   startTime String
   endTime   String
+  child     Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
 
   @@index([childId])
 }
@@ -72,53 +63,51 @@ model NapWindow {
 model NannyChildLink {
   id             String   @id @default(uuid())
   nannyUserId    String
-  nannyUser      User     @relation("NannyChildren", fields: [nannyUserId], references: [id], onDelete: Cascade)
   childId        String
-  child          Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
   canViewStory   Boolean  @default(true)
   canUpdateProof Boolean  @default(true)
   createdAt      DateTime @default(now())
+  child          Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  nannyUser      User     @relation("NannyChildren", fields: [nannyUserId], references: [id], onDelete: Cascade)
 
   @@unique([nannyUserId, childId])
   @@index([childId])
 }
 
 model CaregiverAccess {
-  id              String                 @id @default(uuid())
-  childId         String
-  child           Child                  @relation(fields: [childId], references: [id], onDelete: Cascade)
-  invitedUserId   String?
-  invitedUser     User?                  @relation("CaregiverAccessInvitedUser", fields: [invitedUserId], references: [id], onDelete: Cascade)
-  invitedByUserId String
-  invitedByUser   User                   @relation("CaregiverAccessInvitedBy", fields: [invitedByUserId], references: [id], onDelete: Cascade)
-  invitedEmail    String?
-  invitedPhone    String?
-  invitedName     String?
-  inviteTokenHash String?                @unique
-  role            CaregiverAccessRole
-  relationship    CaregiverRelationship?
-  status          CaregiverAccessStatus  @default(PENDING)
-  inviteChannel   CaregiverInviteChannel @default(LINK)
-
-  dailyActivitiesRecipes Boolean @default(false)
-  manageDailyPlans       Boolean @default(false)
-  manageGroceryLists     Boolean @default(false)
-  editChildProfile       Boolean @default(false)
-  accessChildInsights    Boolean @default(false)
-  addRemoveChildren      Boolean @default(false)
-  manageBilling          Boolean @default(false)
-  manageCareTeam         Boolean @default(false)
-  manageGroceryOrders    Boolean @default(false)
-  groceryOrdering        Boolean @default(false)
-  careLearningAccess     Boolean @default(false)
-  nannyDevelopment       Boolean @default(false)
-  memoriesStories        Boolean @default(false)
-
-  acceptedAt DateTime?
-  revokedAt  DateTime?
-  expiresAt  DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id                     String                 @id @default(uuid())
+  childId                String
+  invitedUserId          String?
+  invitedByUserId        String
+  invitedEmail           String?
+  invitedPhone           String?
+  inviteTokenHash        String?                @unique
+  role                   CaregiverAccessRole
+  relationship           CaregiverRelationship?
+  status                 CaregiverAccessStatus  @default(PENDING)
+  inviteChannel          CaregiverInviteChannel @default(LINK)
+  dailyActivitiesRecipes Boolean                @default(false)
+  manageDailyPlans       Boolean                @default(false)
+  manageGroceryLists     Boolean                @default(false)
+  editChildProfile       Boolean                @default(false)
+  accessChildInsights    Boolean                @default(false)
+  addRemoveChildren      Boolean                @default(false)
+  manageBilling          Boolean                @default(false)
+  manageCareTeam         Boolean                @default(false)
+  manageGroceryOrders    Boolean                @default(false)
+  groceryOrdering        Boolean                @default(false)
+  careLearningAccess     Boolean                @default(false)
+  nannyDevelopment       Boolean                @default(false)
+  memoriesStories        Boolean                @default(false)
+  acceptedAt             DateTime?
+  revokedAt              DateTime?
+  expiresAt              DateTime?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  invitedName            String?
+  child                  Child                  @relation(fields: [childId], references: [id], onDelete: Cascade)
+  invitedByUser          User                   @relation("CaregiverAccessInvitedBy", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+  invitedUser            User?                  @relation("CaregiverAccessInvitedUser", fields: [invitedUserId], references: [id], onDelete: Cascade)
 
   @@unique([childId, invitedUserId, role])
   @@index([childId, status])

@@ -1,19 +1,12 @@
 import 'dotenv/config';
-import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import { seedAdmin } from './adminSeed';
 import { seedRecipes } from './recipeSeed';
 import { seedActivities } from './activitySeed';
 import { seedPartnerRewards } from './partnerSeed';
+import { createPrismaClientOptions } from '../../src/prisma/prisma-client-options';
 
-const connectionString =
-  process.env.DATABASE_URL || process.env['DATABASE_URL'];
-if (!connectionString) {
-  throw new Error('DATABASE_URL is not set');
-}
-
-const adapter = new PrismaPg({ connectionString });
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient(createPrismaClientOptions() as any);
 
 async function main() {
   console.log('Seeding database...');

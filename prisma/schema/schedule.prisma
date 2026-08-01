@@ -1,31 +1,22 @@
 model ChildSchedule {
-  id      String @id @default(uuid())
-  childId String
-  child   Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
-  userId  String
-  user    User   @relation("UserChildSchedules", fields: [userId], references: [id], onDelete: Cascade)
-
-  // Schedule Target Date (Defaults to today, allows future dates)
-  date DateTime @default(now()) @db.Date
-
-  // Base Fields
-  mode     ScheduleMode
-  category ScheduleCategory?
-  title    String?
-
-  // Timing & Details
+  id          String            @id @default(uuid())
+  childId     String
+  userId      String
+  date        DateTime          @default(now()) @db.Date
+  mode        ScheduleMode
+  category    ScheduleCategory?
+  title       String?
   startTime   String
   endTime     String?
-  description String? @db.Text
-
-  // Library References (Only for LIBRARY mode)
-  recipeId   String?
-  recipe     Recipe?   @relation(fields: [recipeId], references: [id], onDelete: SetNull)
-  activityId String?
-  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  description String?
+  recipeId    String?
+  activityId  String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  activity    Activity?         @relation(fields: [activityId], references: [id])
+  child       Child             @relation(fields: [childId], references: [id], onDelete: Cascade)
+  recipe      Recipe?           @relation(fields: [recipeId], references: [id])
+  user        User              @relation("UserChildSchedules", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([childId, date])
   @@index([userId])

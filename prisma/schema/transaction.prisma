@@ -1,31 +1,24 @@
 model Transaction {
-  id String @id @default(uuid())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  groceryOrderId String?
-  groceryOrder   GroceryOrder? @relation(fields: [groceryOrderId], references: [id], onDelete: SetNull)
-
-  paymentMethodId String?
-  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
-
+  id                String            @id @default(uuid())
+  userId            String
+  groceryOrderId    String?
+  paymentMethodId   String?
   transactionId     String            @unique
   paymentGateway    PaymentGateway    @default(STRIPE)
   paymentMethodType PaymentMethodType @default(ONLINE)
-
-  amount   Float
-  currency String            @default("USD")
-  status   TransactionStatus @default(PENDING)
-
-  cardBrand       String?
-  cardLast4       String?
-  paymentIntentId String?
-  gatewayResponse String?
-  failureReason   String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  amount            Float
+  currency          String            @default("USD")
+  status            TransactionStatus @default(PENDING)
+  cardBrand         String?
+  cardLast4         String?
+  paymentIntentId   String?
+  gatewayResponse   String?
+  failureReason     String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  groceryOrder      GroceryOrder?     @relation(fields: [groceryOrderId], references: [id])
+  paymentMethod     PaymentMethod?    @relation(fields: [paymentMethodId], references: [id])
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([groceryOrderId])

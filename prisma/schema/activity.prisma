@@ -1,31 +1,24 @@
 model Activity {
-  id           String       @id @default(uuid())
-  title        String
-  imageUrl     String?
-  activityType ActivityType
-
-  // Stats & Filters
-  minAgeMonths Int?
-  maxAgeMonths Int?
-  durationMin  Int?
-  durationMax  Int?
-  energyLevel  EnergyLevel?
-  location     ActivityLocation[]
-
-  // Descriptions
-  connectionMoment String?  @db.Text
-  whyThisActivity  String?  @db.Text
+  id               String                @id @default(uuid())
+  title            String
+  imageUrl         String?
+  activityType     ActivityType
+  minAgeMonths     Int?
+  maxAgeMonths     Int?
+  durationMin      Int?
+  durationMax      Int?
+  energyLevel      EnergyLevel?
+  location         ActivityLocation[]
+  connectionMoment String?
+  whyThisActivity  String?
   caregiverPrompts String[]
-
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  benefits       ActivityBenefit[]
-  steps          ActivityStep[]
-  progressions   ActivityProgression[]
-  childSchedules ChildSchedule[]
+  isActive         Boolean               @default(true)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  benefits         ActivityBenefit[]
+  progressions     ActivityProgression[]
+  steps            ActivityStep[]
+  childSchedules   ChildSchedule[]
 
   @@index([title])
   @@index([activityType])
@@ -34,37 +27,34 @@ model Activity {
 }
 
 model ActivityBenefit {
-  id         String   @id @default(uuid())
-  activityId String
-  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
-
+  id          String   @id @default(uuid())
+  activityId  String
   title       String
   description String
   iconUrl     String?
+  activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
 
   @@index([activityId])
   @@map("activity_benefits")
 }
 
 model ActivityStep {
-  id         String   @id @default(uuid())
-  activityId String
-  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
-
+  id          String   @id @default(uuid())
+  activityId  String
   stepNumber  Int
-  description String @db.Text
+  description String
+  activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
 
   @@index([activityId])
   @@map("activity_steps")
 }
 
 model ActivityProgression {
-  id         String   @id @default(uuid())
-  activityId String
-  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
-
+  id          String   @id @default(uuid())
+  activityId  String
   level       Int
-  description String @db.Text
+  description String
+  activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
 
   @@index([activityId])
   @@map("activity_progressions")

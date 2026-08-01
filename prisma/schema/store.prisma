@@ -1,21 +1,20 @@
 model Store {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  logoUrl     String?
-  description String?
-  address     String?
-  city        String?
-  latitude    Float?
-  longitude   Float?
-  mapUrl      String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  id                  String             @id @default(uuid())
+  userId              String
+  name                String
+  logoUrl             String?
+  description         String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  address             String?
+  city                String?
+  latitude            Float?
+  longitude           Float?
+  mapUrl              String?
   orders              GroceryOrder[]
-  rewardOffers        RewardOffer[]
   rewardOfferBranches RewardOfferStore[]
+  rewardOffers        RewardOffer[]
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@map("stores")

@@ -1,7 +1,6 @@
 model DayPlan {
   id              String           @id @default(uuid())
   childId         String
-  child           Child            @relation(fields: [childId], references: [id], onDelete: Cascade)
   date            DateTime
   mode            DayPlanBuildMode
   status          DayPlanStatus    @default(DRAFT)
@@ -13,9 +12,9 @@ model DayPlan {
   createdByUserId String
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-
-  activities   DayActivity[]
-  bedtimeStory BedtimeStory?
+  bedtimeStory    BedtimeStory?
+  activities      DayActivity[]
+  child           Child            @relation(fields: [childId], references: [id], onDelete: Cascade)
 
   @@unique([childId, date])
   @@index([childId, date])
@@ -23,26 +22,25 @@ model DayPlan {
 }
 
 model DayActivity {
-  id           String         @id @default(uuid())
-  dayPlanId    String
-  dayPlan      DayPlan        @relation(fields: [dayPlanId], references: [id], onDelete: Cascade)
-  category     String
-  title        String
-  description  String?
-  startTime    DateTime?
-  endTime      DateTime?
-  status       ActivityStatus @default(PLANNED)
-  nannyNote    String?
-  parentNote   String?
-  proofMediaId String?
-  proofMedia   MediaAsset?    @relation("DayActivityPrimaryProof", fields: [proofMediaId], references: [id], onDelete: SetNull)
-  imageUrl     String?
-  detail       Json?
-  templateId   String?
-  sortOrder    Int            @default(0)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-
+  id                  String                    @id @default(uuid())
+  dayPlanId           String
+  category            String
+  title               String
+  description         String?
+  startTime           DateTime?
+  endTime             DateTime?
+  status              ActivityStatus            @default(PLANNED)
+  nannyNote           String?
+  parentNote          String?
+  proofMediaId        String?
+  imageUrl            String?
+  detail              Json?
+  templateId          String?
+  sortOrder           Int                       @default(0)
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  dayPlan             DayPlan                   @relation(fields: [dayPlanId], references: [id], onDelete: Cascade)
+  proofMedia          MediaAsset?               @relation("DayActivityPrimaryProof", fields: [proofMediaId], references: [id])
   feedback            DayActivityFeedback?
   proofs              DayActivityProof[]
   portfolioHighlights NannyPortfolioHighlight[]
@@ -53,9 +51,8 @@ model DayActivity {
 }
 
 model BedtimeStory {
-  id               String   @id @default(uuid())
-  dayPlanId        String   @unique
-  dayPlan          DayPlan  @relation(fields: [dayPlanId], references: [id], onDelete: Cascade)
+  id               String              @id @default(uuid())
+  dayPlanId        String              @unique
   title            String
   storyText        String
   imagePrompt      String?
@@ -65,74 +62,72 @@ model BedtimeStory {
   parentAudioUrl   String?
   parentAudioKey   String?
   audioDurationSec Int?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  audioTracks BedtimeStoryAudio[]
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  dayPlan          DayPlan             @relation(fields: [dayPlanId], references: [id], onDelete: Cascade)
+  audioTracks      BedtimeStoryAudio[]
 }
 
 model MediaAsset {
-  id          String    @id @default(uuid())
-  ownerUserId String
-  ownerUser   User      @relation("UserMediaAssets", fields: [ownerUserId], references: [id], onDelete: Cascade)
-  type        MediaType
-  url         String
-  storageKey  String
-  mimeType    String?
-  sizeBytes   Int?
-  durationSec Int?
-  createdAt   DateTime  @default(now())
-
+  id                        String                    @id @default(uuid())
+  ownerUserId               String
+  type                      MediaType
+  url                       String
+  storageKey                String
+  mimeType                  String?
+  sizeBytes                 Int?
+  durationSec               Int?
+  createdAt                 DateTime                  @default(now())
   primaryProofForActivities DayActivity[]             @relation("DayActivityPrimaryProof")
   dayActivityProofs         DayActivityProof[]
+  ownerUser                 User                      @relation("UserMediaAssets", fields: [ownerUserId], references: [id], onDelete: Cascade)
   nannyPortfolioHighlights  NannyPortfolioHighlight[]
 
   @@index([ownerUserId, type])
 }
 
 model NannyProfile {
-  id                       String             @id @default(uuid())
-  userId                   String             @unique
-  user                     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                       String               @id @default(uuid())
+  userId                   String               @unique
   headline                 String?
   bio                      String?
   hourlyRateCents          Int?
-  completedJobs            Int                @default(0)
-  repeatFamilies           Int                @default(0)
-  yearsExperience          Int?
-  joinedAt                 DateTime?
-  status                   NannyProfileStatus @default(ACTIVE)
-  emergencyContactVerified Boolean            @default(false)
-  backgroundCheckVerified  Boolean            @default(false)
-  averageRating            Float?
-  totalReviews             Int                @default(0)
-  skills                   String[]           @default([])
-  training                 String[]           @default([])
-  languages                String[]           @default([])
-  portfolioImageUrls       String[]           @default([])
+  completedJobs            Int                  @default(0)
+  repeatFamilies           Int                  @default(0)
+  skills                   String[]             @default([])
+  training                 String[]             @default([])
+  languages                String[]             @default([])
+  portfolioImageUrls       String[]             @default([])
   experience               Json?
   perks                    Json?
-  createdAt                DateTime           @default(now())
-  updatedAt                DateTime           @updatedAt
-
-  experiences    NannyExperience[]
-  certifications NannyCertification[]
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+  averageRating            Float?
+  backgroundCheckVerified  Boolean              @default(false)
+  emergencyContactVerified Boolean              @default(false)
+  joinedAt                 DateTime?
+  status                   NannyProfileStatus   @default(ACTIVE)
+  totalReviews             Int                  @default(0)
+  yearsExperience          Int?
+  certifications           NannyCertification[]
+  experiences              NannyExperience[]
+  user                     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model DayActivityFeedback {
   id                String              @id @default(uuid())
   dayActivityId     String              @unique
-  dayActivity       DayActivity         @relation(fields: [dayActivityId], references: [id], onDelete: Cascade)
   submittedByUserId String
-  submittedByUser   User                @relation("UserSubmittedDayActivityFeedbacks", fields: [submittedByUserId], references: [id], onDelete: Cascade)
   enjoyment         TaskEnjoymentLevel?
   childMood         ChildMood?
   completionRate    TaskCompletionRate?
-  note              String?             @db.Text
+  note              String?
   submittedAt       DateTime            @default(now())
   parentSeenAt      DateTime?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+  dayActivity       DayActivity         @relation(fields: [dayActivityId], references: [id], onDelete: Cascade)
+  submittedByUser   User                @relation("UserSubmittedDayActivityFeedbacks", fields: [submittedByUserId], references: [id], onDelete: Cascade)
 
   @@index([submittedByUserId, submittedAt])
 }
@@ -140,13 +135,13 @@ model DayActivityFeedback {
 model DayActivityProof {
   id               String      @id @default(uuid())
   dayActivityId    String
-  dayActivity      DayActivity @relation(fields: [dayActivityId], references: [id], onDelete: Cascade)
   mediaAssetId     String
-  mediaAsset       MediaAsset  @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
   uploadedByUserId String
-  uploadedByUser   User        @relation("UserUploadedDayActivityProofs", fields: [uploadedByUserId], references: [id], onDelete: Cascade)
   caption          String?
   createdAt        DateTime    @default(now())
+  dayActivity      DayActivity @relation(fields: [dayActivityId], references: [id], onDelete: Cascade)
+  mediaAsset       MediaAsset  @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+  uploadedByUser   User        @relation("UserUploadedDayActivityProofs", fields: [uploadedByUserId], references: [id], onDelete: Cascade)
 
   @@index([dayActivityId])
   @@index([mediaAssetId])
@@ -156,17 +151,17 @@ model DayActivityProof {
 model BedtimeStoryAudio {
   id             String       @id @default(uuid())
   bedtimeStoryId String
-  bedtimeStory   BedtimeStory @relation(fields: [bedtimeStoryId], references: [id], onDelete: Cascade)
   speakerUserId  String?
-  speakerUser    User?        @relation("UserBedtimeStoryAudios", fields: [speakerUserId], references: [id], onDelete: SetNull)
   speakerName    String
   audioUrl       String
   audioKey       String?
   durationSec    Int?
-  transcript     String?      @db.Text
+  transcript     String?
   sortOrder      Int          @default(0)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  bedtimeStory   BedtimeStory @relation(fields: [bedtimeStoryId], references: [id], onDelete: Cascade)
+  speakerUser    User?        @relation("UserBedtimeStoryAudios", fields: [speakerUserId], references: [id])
 
   @@index([bedtimeStoryId, sortOrder])
   @@index([speakerUserId])
@@ -175,19 +170,19 @@ model BedtimeStoryAudio {
 model NannyPortfolioHighlight {
   id            String       @id @default(uuid())
   nannyUserId   String
-  nannyUser     User         @relation("UserNannyPortfolioHighlights", fields: [nannyUserId], references: [id], onDelete: Cascade)
   mediaAssetId  String?
-  mediaAsset    MediaAsset?  @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
   childId       String?
-  child         Child?       @relation(fields: [childId], references: [id], onDelete: SetNull)
   dayActivityId String?
-  dayActivity   DayActivity? @relation(fields: [dayActivityId], references: [id], onDelete: SetNull)
   title         String?
-  description   String?      @db.Text
+  description   String?
   imageUrl      String?
   isFeatured    Boolean      @default(false)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+  child         Child?       @relation(fields: [childId], references: [id])
+  dayActivity   DayActivity? @relation(fields: [dayActivityId], references: [id])
+  mediaAsset    MediaAsset?  @relation(fields: [mediaAssetId], references: [id])
+  nannyUser     User         @relation("UserNannyPortfolioHighlights", fields: [nannyUserId], references: [id], onDelete: Cascade)
 
   @@index([nannyUserId, createdAt])
   @@index([childId])
@@ -197,15 +192,15 @@ model NannyPortfolioHighlight {
 model NannyExperience {
   id             String       @id @default(uuid())
   nannyProfileId String
-  nannyProfile   NannyProfile @relation(fields: [nannyProfileId], references: [id], onDelete: Cascade)
   familyName     String
   startDate      DateTime?
   endDate        DateTime?
   childrenCount  Int?
   infantsCount   Int?
-  description    String?      @db.Text
+  description    String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  nannyProfile   NannyProfile @relation(fields: [nannyProfileId], references: [id], onDelete: Cascade)
 
   @@index([nannyProfileId])
 }
@@ -213,7 +208,6 @@ model NannyExperience {
 model NannyCertification {
   id             String       @id @default(uuid())
   nannyProfileId String
-  nannyProfile   NannyProfile @relation(fields: [nannyProfileId], references: [id], onDelete: Cascade)
   title          String
   issuer         String?
   issuedAt       DateTime?
@@ -221,6 +215,7 @@ model NannyCertification {
   documentUrl    String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  nannyProfile   NannyProfile @relation(fields: [nannyProfileId], references: [id], onDelete: Cascade)
 
   @@index([nannyProfileId])
 }
