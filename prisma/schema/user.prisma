@@ -53,6 +53,12 @@ model User {
   careAssignmentsAssignedBy     CareModuleAssignment[]    @relation("CareAssignmentsAssignedBy")
   savedCareModules              CareModuleSave[]          @relation("CareModuleSaves")
   authoredCareChildNotes        CareChildNote[]           @relation("CareChildNotesAuthored")
+  rewardAccount                 RewardAccount?
+  rewardLedgerEntries           RewardLedgerEntry[]
+  rewardOffers                  RewardOffer[]             @relation("PartnerRewardOffers")
+  rewardRedemptions             RewardRedemption[]
+  rewardSavedOffers             RewardSavedOffer[]
+  usedRewardRedemptions         RewardRedemption[]        @relation("PartnerUsedRewardRedemptions")
 
   @@index([role])
   @@index([verificationStatus])

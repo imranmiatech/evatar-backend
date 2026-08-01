@@ -4,31 +4,33 @@ import { PrismaClient } from '@prisma/client';
 import { seedAdmin } from './adminSeed';
 import { seedRecipes } from './recipeSeed';
 import { seedActivities } from './activitySeed';
+import { seedPartnerRewards } from './partnerSeed';
 
 const connectionString =
-    process.env.DATABASE_URL || process.env['DATABASE_URL'];
+  process.env.DATABASE_URL || process.env['DATABASE_URL'];
 if (!connectionString) {
-    throw new Error('DATABASE_URL is not set');
+  throw new Error('DATABASE_URL is not set');
 }
 
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-    console.log('Seeding database...');
+  console.log('Seeding database...');
 
-    await seedAdmin(prisma);
-    await seedRecipes(prisma);
-    await seedActivities(prisma);
+  await seedAdmin(prisma);
+  await seedRecipes(prisma);
+  await seedActivities(prisma);
+  await seedPartnerRewards(prisma);
 
-    console.log('Database seeding completed!');
+  console.log('Database seeding completed!');
 }
 
 main()
-    .catch((e) => {
-        console.error(e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

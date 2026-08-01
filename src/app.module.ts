@@ -21,6 +21,7 @@ import { KycModule } from './modules/kyc/kyc.module';
 import { NannyFeedbackModule } from './modules/nannyfeedback/nannyfeedback.module';
 import { CareModule } from './modules/care/care.module';
 import { ProfileModule } from './modules/profile/profile.module';
+import { RewardsModule } from './modules/rewards/rewards.module';
 
 import { CaregiverModule } from './modules/caregiver/caregiver.module';
 import { ScheduleModule } from './modules/parent/schedule/schedule.module';
@@ -49,8 +50,9 @@ import { ScheduleModule } from './modules/parent/schedule/schedule.module';
     NannyFeedbackModule,
     CareModule,
     ProfileModule,
+    RewardsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

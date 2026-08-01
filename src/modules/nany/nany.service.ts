@@ -218,6 +218,7 @@ export class NanyService {
       periodProofMissing,
       periodTasks,
       recentHighlights,
+      rewardAccount,
     ] = await this.prisma.$transaction([
       this.prisma.child.findUnique({
         where: { id: childId },
@@ -412,6 +413,9 @@ export class NanyService {
         orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
         take: 9,
       }),
+      this.prisma.rewardAccount.findUnique({
+        where: { userId: nannyUserId },
+      }),
     ]);
 
     if (!child) {
@@ -431,8 +435,12 @@ export class NanyService {
         item.dayPlan.date.toISOString().slice(0, 10),
       ),
     ).size;
-    const totalEarnedPoints = completedTasks * POINTS_PER_COMPLETED_TASK;
-    const redeemedPoints = this.readRedeemedPoints(nanny.nannyProfile.perks);
+    const totalEarnedPoints =
+      rewardAccount?.lifetimeEarned ??
+      completedTasks * POINTS_PER_COMPLETED_TASK;
+    const redeemedPoints = rewardAccount?.lifetimeSpent ?? 0;
+    const availablePoints =
+      rewardAccount?.balance ?? Math.max(totalEarnedPoints - redeemedPoints, 0);
     const careScore = this.calculateCareScore({
       completedTasks,
       completedWithProofs,
@@ -490,7 +498,7 @@ export class NanyService {
           completedTasks,
           totalEarned: totalEarnedPoints,
           redeemed: redeemedPoints,
-          available: Math.max(totalEarnedPoints - redeemedPoints, 0),
+          available: availablePoints,
         },
         periodStats: {
           period,
@@ -622,13 +630,6 @@ export class NanyService {
         mode: 'insensitive' as const,
       },
     }));
-  }
-
-  private readRedeemedPoints(perks: unknown) {
-    if (!perks || typeof perks !== 'object') return 0;
-
-    const value = (perks as Record<string, unknown>).redeemedPoints;
-    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
   }
 
   private calculateCareScore(input: {

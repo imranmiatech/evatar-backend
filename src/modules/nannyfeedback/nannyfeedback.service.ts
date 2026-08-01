@@ -8,6 +8,7 @@ import { ActivityStatus, MediaType, UserRole } from '@prisma/client';
 import type { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { StorageService } from '../../common/storage/storage.service';
 import { CaregiverService } from '../caregiver/caregiver.service';
+import { RewardsService } from '../rewards/rewards.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NannyFeedbackQueryDto } from './dto/nanny-feedback-query.dto';
 import { SubmitNannyFeedbackDto } from './dto/submit-nanny-feedback.dto';
@@ -24,6 +25,7 @@ export class NannyFeedbackService {
     private readonly prisma: PrismaService,
     private readonly caregiverService: CaregiverService,
     private readonly storageService: StorageService,
+    private readonly rewardsService: RewardsService,
   ) {}
 
   async getFeedbacks(user: CurrentUserPayload, query: NannyFeedbackQueryDto) {
@@ -69,10 +71,7 @@ export class NannyFeedbackService {
     };
   }
 
-  async getScheduleFeedback(
-    user: CurrentUserPayload,
-    dayActivityId: string,
-  ) {
+  async getScheduleFeedback(user: CurrentUserPayload, dayActivityId: string) {
     const userId = this.currentUserId(user);
     const activity = await this.prisma.dayActivity.findUnique({
       where: { id: dayActivityId },
@@ -200,6 +199,20 @@ export class NannyFeedbackService {
       return { feedback, dayActivity };
     });
 
+    const reward =
+      updated.dayActivity.status === ActivityStatus.COMPLETED
+        ? await this.rewardsService.awardCompletedTask(
+            nannyUserId,
+            dayActivityId,
+            {
+              title: updated.dayActivity.title,
+              childId: updated.dayActivity.dayPlan.childId,
+              childName: updated.dayActivity.dayPlan.child.name,
+              completedByRole: UserRole.NANNY,
+            },
+          )
+        : null;
+
     return {
       success: true,
       message: 'Nanny feedback submitted successfully',
@@ -217,6 +230,13 @@ export class NannyFeedbackService {
           status: updated.dayActivity.status,
         },
         feedback: updated.feedback,
+        reward: reward
+          ? {
+              awarded: reward.awarded,
+              pointsEarned: reward.awarded ? 2 : 0,
+              balance: reward.account.balance,
+            }
+          : null,
         proofs: updated.dayActivity.proofs.map((item) => ({
           id: item.id,
           caption: item.caption,
@@ -284,10 +304,33 @@ export class NannyFeedbackService {
       });
     });
 
+    const reward =
+      updated.status === ActivityStatus.COMPLETED
+        ? await this.rewardsService.awardCompletedTask(
+            nannyUserId,
+            dayActivityId,
+            {
+              title: updated.title,
+              childId: updated.dayPlan.childId,
+              childName: updated.dayPlan.child.name,
+              completedByRole: UserRole.NANNY,
+            },
+          )
+        : null;
+
     return {
       success: true,
       message: 'Nanny feedback updated successfully',
-      data: this.formatFeedbackActivity(updated),
+      data: {
+        ...this.formatFeedbackActivity(updated),
+        reward: reward
+          ? {
+              awarded: reward.awarded,
+              pointsEarned: reward.awarded ? 2 : 0,
+              balance: reward.account.balance,
+            }
+          : null,
+      },
     };
   }
 

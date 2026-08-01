@@ -335,3 +335,43 @@ enum PaymentGateway {
   CASH
   OTHER
 }
+
+enum RewardLedgerEntryType {
+  EARN
+  SPEND
+  REFUND
+  ADJUSTMENT
+  VOID
+}
+
+enum RewardLedgerSourceType {
+  DAY_ACTIVITY
+  CARE_MODULE_ASSIGNMENT
+  REWARD_REDEMPTION
+  MANUAL_ADJUSTMENT
+}
+
+enum RewardOfferStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+enum RewardRedemptionStatus {
+  ACTIVE
+  USED
+  CANCELLED
+  EXPIRED
+}
+
+enum RewardOfferChannel {
+  ONLINE
+  IN_STORE
+  BOTH
+}
+
+enum RewardClaimMethod {
+  ONLINE
+  IN_STORE
+}

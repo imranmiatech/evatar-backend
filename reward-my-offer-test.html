@@ -1,0 +1,1021 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reward My Offer Flow Test</title>
+    <style>
+      :root {
+        --teal: #075f68;
+        --teal-2: #0aa6a6;
+        --ink: #17282d;
+        --muted: #66777d;
+        --line: #dce8ea;
+        --bg: #eef4f5;
+        --card: #fff;
+        --soft: #eaf6f7;
+        --danger: #c93131;
+        --ok: #11845b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        background: var(--bg);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        min-height: 38px;
+        border: 1px solid var(--teal);
+        border-radius: 8px;
+        padding: 9px 12px;
+        background: var(--teal);
+        color: white;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: white;
+        color: var(--teal);
+      }
+
+      button.ghost {
+        border-color: var(--line);
+        background: #f8fbfb;
+        color: var(--ink);
+      }
+
+      button.danger {
+        border-color: var(--danger);
+        background: var(--danger);
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        border: 1px solid #bfd4d8;
+        border-radius: 8px;
+        padding: 9px 10px;
+        background: white;
+        color: var(--ink);
+      }
+
+      textarea {
+        min-height: 92px;
+        resize: vertical;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+      }
+
+      label {
+        display: block;
+        margin: 10px 0 5px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 750;
+      }
+
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: minmax(260px, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 14px 18px;
+        background: #ffffffee;
+        border-bottom: 1px solid var(--line);
+        backdrop-filter: blur(10px);
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        font-size: 19px;
+      }
+
+      h2 {
+        margin-bottom: 12px;
+        font-size: 16px;
+      }
+
+      h3 {
+        font-size: 14px;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: minmax(330px, 410px) minmax(420px, 1fr);
+        gap: 16px;
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .row-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        padding: 4px;
+        border-radius: 10px;
+        background: #edf5f6;
+      }
+
+      .tabs button {
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+      }
+
+      .tabs button.active {
+        background: var(--teal);
+        color: white;
+      }
+
+      .status {
+        padding: 10px 12px;
+        border: 1px solid #cce2e5;
+        border-radius: 8px;
+        background: #f3fbfb;
+        color: var(--teal);
+        font-size: 13px;
+        word-break: break-word;
+      }
+
+      .status.error {
+        border-color: #f2cccc;
+        background: #fff2f2;
+        color: var(--danger);
+      }
+
+      .token {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 11px;
+      }
+
+      .offer-list,
+      .store-list,
+      .redemption-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .offer-card,
+      .store-card,
+      .redemption-card {
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdfd;
+      }
+
+      .offer-card {
+        grid-template-columns: 94px 1fr;
+      }
+
+      .offer-card img {
+        width: 94px;
+        height: 76px;
+        border-radius: 8px;
+        object-fit: cover;
+        background: #e9eff0;
+      }
+
+      .offer-main {
+        min-width: 0;
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: #dcf7ed;
+        color: var(--ok);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .pill.warn {
+        background: #fff1d9;
+        color: #9c6700;
+      }
+
+      .pill.teal {
+        background: var(--soft);
+        color: var(--teal);
+      }
+
+      .detail-img {
+        width: 100%;
+        height: 180px;
+        border-radius: 8px;
+        object-fit: cover;
+        background: #e9eff0;
+      }
+
+      .location {
+        display: grid;
+        grid-template-columns: 34px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px;
+        border-radius: 8px;
+        background: #f6f8f8;
+      }
+
+      .pin {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: #e8f2f3;
+        color: var(--teal);
+        font-weight: 900;
+      }
+
+      pre {
+        min-height: 280px;
+        max-height: 620px;
+        overflow: auto;
+        margin: 0;
+        padding: 12px;
+        border-radius: 8px;
+        background: #0f1a1d;
+        color: #dff7f5;
+        font-size: 12px;
+        line-height: 1.45;
+        white-space: pre-wrap;
+      }
+
+      .hint {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .qr-box {
+        display: grid;
+        place-items: center;
+        min-height: 170px;
+        border: 1px dashed #9dbfc4;
+        border-radius: 8px;
+        background: #fbfdfd;
+        color: var(--teal);
+        text-align: center;
+        word-break: break-all;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 980px) {
+        header,
+        .shell {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>Reward + My Offer Flow Test</h1>
+        <div class="meta">
+          Login auto token save kore. Parent/Nanny offer test, Partner store and offer test.
+        </div>
+      </div>
+      <div>
+        <label for="baseUrl" style="margin-top: 0">API Base URL</label>
+        <input id="baseUrl" value="http://localhost:5000/api/v1" />
+      </div>
+    </header>
+
+    <main class="shell">
+      <div class="stack">
+        <section class="panel">
+          <h2>Login</h2>
+          <div class="tabs" id="roleTabs">
+            <button type="button" data-role="parent" class="active">Parent</button>
+            <button type="button" data-role="nanny">Nanny</button>
+            <button type="button" data-role="partner">Partner</button>
+          </div>
+          <div class="row">
+            <div>
+              <label for="email">Email</label>
+              <input id="email" />
+            </div>
+            <div>
+              <label for="password">Password</label>
+              <input id="password" type="password" value="123456" />
+            </div>
+          </div>
+          <label for="tokenBox">Saved token</label>
+          <textarea id="tokenBox" class="token" placeholder="Login korle token ekhane auto save hobe"></textarea>
+          <div class="actions">
+            <button id="loginBtn" type="button">Login and Save</button>
+            <button id="saveTokenBtn" type="button" class="secondary">Save Manual Token</button>
+            <button id="clearTokenBtn" type="button" class="ghost">Clear Token</button>
+          </div>
+          <p class="hint">
+            Seed users: <b>p@e.com</b>, <b>n@e.com</b>, <b>partner@e.com</b>. Password: <b>123456</b>.
+          </p>
+          <div id="authStatus" class="status" style="margin-top: 10px"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Parent/Nanny: Offers</h2>
+          <div class="actions">
+            <button id="summaryBtn" type="button">Reward Summary</button>
+            <button id="allOffersBtn" type="button">All Offers</button>
+            <button id="savedOffersBtn" type="button" class="secondary">Saved Offers</button>
+            <button id="redemptionsBtn" type="button" class="ghost">My Rewards</button>
+          </div>
+          <div id="offerList" class="offer-list" style="margin-top: 12px"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Selected Offer</h2>
+          <div id="offerDetail" class="stack">
+            <div class="status">Offer select korle detail ekhane ashbe.</div>
+          </div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="panel">
+          <h2>Partner: Store Branches</h2>
+          <div class="row">
+            <div>
+              <label for="storeName">Name</label>
+              <input id="storeName" value="Dubai Mall" />
+            </div>
+            <div>
+              <label for="storeCity">City</label>
+              <input id="storeCity" value="Dubai" />
+            </div>
+          </div>
+          <label for="storeAddress">Address</label>
+          <input id="storeAddress" value="Downtown Dubai, Level LG" />
+          <div class="row-3">
+            <div>
+              <label for="storeLat">Latitude</label>
+              <input id="storeLat" value="25.1972" />
+            </div>
+            <div>
+              <label for="storeLng">Longitude</label>
+              <input id="storeLng" value="55.2796" />
+            </div>
+            <div>
+              <label for="storeMapUrl">Map URL</label>
+              <input id="storeMapUrl" value="https://maps.google.com/?q=25.1972,55.2796" />
+            </div>
+          </div>
+          <div class="actions">
+            <button id="createStoreBtn" type="button">Create Store</button>
+            <button id="partnerStoresBtn" type="button" class="secondary">Load Stores</button>
+          </div>
+          <div id="storeList" class="store-list" style="margin-top: 12px"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Partner: Create Offer</h2>
+          <div class="row">
+            <div>
+              <label for="offerTitle">Title</label>
+              <input id="offerTitle" value="Serenity Spa" />
+            </div>
+            <div>
+              <label for="productName">Product Name</label>
+              <input id="productName" value="Family wellness discount" />
+            </div>
+          </div>
+          <div class="row-3">
+            <div>
+              <label for="pointsCost">Points Cost</label>
+              <input id="pointsCost" type="number" value="300" />
+            </div>
+            <div>
+              <label for="channel">Channel</label>
+              <select id="channel">
+                <option value="BOTH">BOTH</option>
+                <option value="ONLINE">ONLINE</option>
+                <option value="IN_STORE">IN_STORE</option>
+              </select>
+            </div>
+            <div>
+              <label for="availableQuantity">Quantity</label>
+              <input id="availableQuantity" type="number" value="100" />
+            </div>
+          </div>
+          <label for="description">Card Description</label>
+          <input id="description" value="Grab 25% discount with 300 Alurei" />
+          <label for="includedDescription">What's Included</label>
+          <textarea id="includedDescription">Get 25% discount with 300 Alurei. Applied directly at checkout or shown in-store.</textarea>
+          <label for="terms">Terms</label>
+          <textarea id="terms">Valid once per user. Cannot be combined with other offers.</textarea>
+          <div class="row">
+            <div>
+              <label for="onlineCouponCode">Online Coupon</label>
+              <input id="onlineCouponCode" value="ALUREI15" />
+            </div>
+            <div>
+              <label for="websiteUrl">Website URL</label>
+              <input id="websiteUrl" value="https://www.serenityspa.example/alurei" />
+            </div>
+          </div>
+          <label for="imageUrl">Image URL fallback</label>
+          <input id="imageUrl" value="https://images.unsplash.com/photo-1542838132-92c53300491e" />
+          <label for="imageFile">Image file optional</label>
+          <input id="imageFile" type="file" accept="image/*" />
+          <label for="storeIds">Selected store IDs</label>
+          <textarea id="storeIds" placeholder='["store-id-1","store-id-2"]'></textarea>
+          <div class="actions">
+            <button id="createOfferBtn" type="button">Create Offer</button>
+            <button id="partnerOffersBtn" type="button" class="secondary">Load Partner Offers</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Partner: Scan / Use Redemption</h2>
+          <div class="row">
+            <div>
+              <label for="scanQrToken">QR Token</label>
+              <input id="scanQrToken" placeholder="QR-..." />
+            </div>
+            <div>
+              <label for="scanCode">Unique Code</label>
+              <input id="scanCode" placeholder="ALR-..." />
+            </div>
+          </div>
+          <div class="actions">
+            <button id="scanBtn" type="button">Mark Used</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Response</h2>
+          <pre id="output">Ready.</pre>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const storageKey = "rewardMyOfferState";
+      const defaults = {
+        parent: "p@e.com",
+        nanny: "n@e.com",
+        partner: "partner@e.com",
+      };
+      const state = loadState();
+      state.activeRole = state.activeRole || "parent";
+      state.tokens = state.tokens || {};
+      state.lastOffer = state.lastOffer || null;
+      state.lastRedemption = state.lastRedemption || null;
+
+      function loadState() {
+        try {
+          return JSON.parse(localStorage.getItem(storageKey) || "{}");
+        } catch {
+          return {};
+        }
+      }
+
+      function saveState() {
+        localStorage.setItem(storageKey, JSON.stringify(state));
+      }
+
+      function apiUrl(path) {
+        return `${$("baseUrl").value.replace(/\/$/, "")}${path}`;
+      }
+
+      function activeToken() {
+        return state.tokens?.[state.activeRole]?.accessToken || $("tokenBox").value.trim();
+      }
+
+      function setOutput(data) {
+        $("output").textContent =
+          typeof data === "string" ? data : JSON.stringify(data, null, 2);
+      }
+
+      function setStatus(message, isError = false) {
+        $("authStatus").textContent = message;
+        $("authStatus").classList.toggle("error", isError);
+      }
+
+      async function request(path, options = {}) {
+        const headers = options.headers ? { ...options.headers } : {};
+        if (!(options.body instanceof FormData)) {
+          headers["Content-Type"] = headers["Content-Type"] || "application/json";
+        }
+        const token = activeToken();
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const response = await fetch(apiUrl(path), { ...options, headers });
+        const text = await response.text();
+        const body = text ? safeJson(text) : null;
+        if (!response.ok) {
+          const error = { status: response.status, body };
+          setOutput(error);
+          throw error;
+        }
+        setOutput(body);
+        return body;
+      }
+
+      function safeJson(text) {
+        try {
+          return JSON.parse(text);
+        } catch {
+          return text;
+        }
+      }
+
+      function dataOf(response) {
+        return response?.data ?? response;
+      }
+
+      function setRole(role) {
+        state.activeRole = role;
+        $("email").value = defaults[role];
+        $("password").value = "123456";
+        $("tokenBox").value = state.tokens?.[role]?.accessToken || "";
+        [...document.querySelectorAll("#roleTabs button")].forEach((button) => {
+          button.classList.toggle("active", button.dataset.role === role);
+        });
+        const user = state.tokens?.[role]?.user;
+        setStatus(
+          state.tokens?.[role]?.accessToken
+            ? `${role} token saved${user?.email ? ` for ${user.email}` : ""}.`
+            : `${role} token empty.`,
+        );
+        saveState();
+      }
+
+      async function login() {
+        const response = await request("/auth/signin", {
+          method: "POST",
+          body: JSON.stringify({
+            email: $("email").value.trim(),
+            password: $("password").value,
+          }),
+        });
+        const payload = dataOf(response);
+        const token = payload?.accessToken;
+        if (!token) throw new Error("No accessToken in response");
+        state.tokens[state.activeRole] = {
+          accessToken: token,
+          refreshToken: payload.refreshToken,
+          user: payload.user,
+        };
+        $("tokenBox").value = token;
+        saveState();
+        setStatus(`${state.activeRole} login successful. Token auto saved.`);
+      }
+
+      function saveManualToken() {
+        const token = $("tokenBox").value.trim();
+        state.tokens[state.activeRole] = state.tokens[state.activeRole] || {};
+        state.tokens[state.activeRole].accessToken = token;
+        saveState();
+        setStatus(token ? "Manual token saved." : "Token empty.", !token);
+      }
+
+      function clearToken() {
+        delete state.tokens[state.activeRole];
+        $("tokenBox").value = "";
+        saveState();
+        setStatus(`${state.activeRole} token cleared.`);
+      }
+
+      async function loadSummary() {
+        const response = await request("/rewards/me");
+        const summary = dataOf(response);
+        setStatus(`Balance: ${summary.balance} Alurei`);
+      }
+
+      async function loadOffers(saved = false) {
+        const response = await request(saved ? "/rewards/offers/saved" : "/rewards/offers");
+        const offers = dataOf(response) || [];
+        renderOffers(offers);
+      }
+
+      function renderOffers(offers) {
+        $("offerList").innerHTML =
+          offers.length === 0
+            ? '<div class="status">No offers found.</div>'
+            : offers
+                .map(
+                  (offer) => `
+                    <article class="offer-card">
+                      <img src="${offer.imageUrl || ""}" alt="" />
+                      <div class="offer-main">
+                        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+                          <h3>${escapeHtml(offer.title || offer.productName || "Offer")}</h3>
+                          <span class="pill">${offer.pointsCost} ALR</span>
+                        </div>
+                        <div class="meta">${escapeHtml(offer.description || "")}</div>
+                        <div class="meta">Channel: ${offer.channel} · Saved: ${offer.isSaved ? "Yes" : "No"}</div>
+                        <div class="meta">Expires: ${formatDate(offer.endsAt)}</div>
+                        <div class="actions">
+                          <button type="button" data-action="detail" data-id="${offer.id}">View Details</button>
+                          <button type="button" class="secondary" data-action="save" data-id="${offer.id}">Save</button>
+                          <button type="button" class="ghost" data-action="unsave" data-id="${offer.id}">Unsave</button>
+                        </div>
+                      </div>
+                    </article>
+                  `,
+                )
+                .join("");
+      }
+
+      async function loadOfferDetail(offerId) {
+        const response = await request(`/rewards/offers/${offerId}`);
+        const offer = dataOf(response);
+        state.lastOffer = offer;
+        saveState();
+        renderOfferDetail(offer);
+      }
+
+      function renderOfferDetail(offer) {
+        const locations = offer.locations || [];
+        $("offerDetail").innerHTML = `
+          <img class="detail-img" src="${offer.imageUrl || ""}" alt="" />
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+            <div>
+              <h3>${escapeHtml(offer.title || offer.productName || "Offer")}</h3>
+              <div class="meta">${escapeHtml(offer.description || "")}</div>
+            </div>
+            <span class="pill">${offer.pointsCost} ALR</span>
+          </div>
+          <div class="panel" style="padding:10px">
+            <h3>${escapeHtml(offer.includedTitle || "What's Included")}</h3>
+            <div class="meta">${escapeHtml(offer.includedDescription || "")}</div>
+          </div>
+          <div class="panel" style="padding:10px">
+            <h3>Terms & Conditions</h3>
+            <div class="meta">${escapeHtml(offer.terms || "")}</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+            <h3>Available Locations</h3>
+            ${
+              offer.websiteUrl
+                ? `<button class="secondary" type="button" onclick="window.open('${escapeAttr(offer.websiteUrl)}','_blank')">Visit website</button>`
+                : ""
+            }
+          </div>
+          <div class="stack">
+            ${
+              locations.length
+                ? locations
+                    .map(
+                      (location) => `
+                        <div class="location">
+                          <div class="pin">⌖</div>
+                          <div>
+                            <h3>${escapeHtml(location.name || "Store")}</h3>
+                            <div class="meta">${escapeHtml(location.address || location.city || "")}</div>
+                          </div>
+                          ${
+                            location.mapUrl || (location.latitude && location.longitude)
+                              ? `<button class="ghost" type="button" data-map="${escapeAttr(mapLink(location))}">View location</button>`
+                              : ""
+                          }
+                        </div>
+                      `,
+                    )
+                    .join("")
+                : '<div class="status">No branch selected for this offer.</div>'
+            }
+          </div>
+          <div class="row">
+            <button type="button" data-redeem="ONLINE">Redeem Online</button>
+            <button type="button" data-redeem="IN_STORE" class="secondary">Redeem In-store</button>
+          </div>
+          <div id="redeemResult"></div>
+        `;
+      }
+
+      async function saveOffer(offerId) {
+        await request(`/rewards/offers/${offerId}/save`, { method: "POST", body: "{}" });
+        await loadOfferDetail(offerId);
+      }
+
+      async function unsaveOffer(offerId) {
+        await request(`/rewards/offers/${offerId}/unsave`, { method: "POST", body: "{}" });
+        await loadOfferDetail(offerId);
+      }
+
+      async function redeemOffer(claimMethod) {
+        if (!state.lastOffer?.id) throw new Error("Select an offer first");
+        const response = await request(`/rewards/offers/${state.lastOffer.id}/redeem`, {
+          method: "POST",
+          body: JSON.stringify({ claimMethod }),
+        });
+        const redemption = dataOf(response);
+        state.lastRedemption = redemption;
+        if (redemption.qrToken) $("scanQrToken").value = redemption.qrToken;
+        if (redemption.code) $("scanCode").value = redemption.code;
+        saveState();
+        renderRedemption(redemption);
+      }
+
+      function renderRedemption(redemption) {
+        $("redeemResult").innerHTML = `
+          <div class="panel" style="padding:10px;margin-top:10px">
+            <h3>Redeemed Successfully</h3>
+            <div class="meta">Method: ${redemption.claimMethod} · Points spent: ${redemption.pointsSpent}</div>
+            <div class="meta">Expires: ${formatDate(redemption.expiresAt)} (${redemption.expiresInDays} days)</div>
+            ${
+              redemption.couponCode
+                ? `<div class="status token" style="margin-top:8px">Coupon: ${escapeHtml(redemption.couponCode)} <br />Unique code: ${escapeHtml(redemption.code)}</div>`
+                : ""
+            }
+            ${
+              redemption.qrToken
+                ? `<div class="qr-box" style="margin-top:8px"><div><b>QR Token</b><br />${escapeHtml(redemption.qrToken)}<br /><small>${escapeHtml(redemption.qrPayload || "")}</small></div></div>`
+                : ""
+            }
+          </div>
+        `;
+      }
+
+      async function loadRedemptions() {
+        const response = await request("/rewards/redemptions");
+        const redemptions = dataOf(response) || [];
+        $("offerList").innerHTML =
+          redemptions.length === 0
+            ? '<div class="status">No redemptions found.</div>'
+            : redemptions
+                .map(
+                  (item) => `
+                    <article class="redemption-card">
+                      <h3>${escapeHtml(item.offer?.title || "Reward")}</h3>
+                      <div class="meta">${item.claimMethod} · ${item.pointsSpent} ALR · ${item.status}</div>
+                      <div class="meta">Coupon: ${escapeHtml(item.couponCode || "-")}</div>
+                      <div class="meta token">QR: ${escapeHtml(item.qrToken || "-")}</div>
+                      <div class="actions">
+                        <button type="button" data-fill-scan="${escapeAttr(item.qrToken || "")}" data-fill-code="${escapeAttr(item.code || "")}">Fill Scan Fields</button>
+                      </div>
+                    </article>
+                  `,
+                )
+                .join("");
+      }
+
+      async function createStore() {
+        const response = await request("/partner/rewards/stores", {
+          method: "POST",
+          body: JSON.stringify({
+            name: $("storeName").value.trim(),
+            address: $("storeAddress").value.trim(),
+            city: $("storeCity").value.trim(),
+            latitude: numOrUndefined($("storeLat").value),
+            longitude: numOrUndefined($("storeLng").value),
+            mapUrl: $("storeMapUrl").value.trim(),
+          }),
+        });
+        const store = dataOf(response);
+        addStoreIdToOffer(store.id);
+        await loadPartnerStores();
+      }
+
+      async function loadPartnerStores() {
+        const response = await request("/partner/rewards/stores");
+        const stores = dataOf(response) || [];
+        renderStores(stores);
+      }
+
+      function renderStores(stores) {
+        $("storeList").innerHTML =
+          stores.length === 0
+            ? '<div class="status">No partner stores found.</div>'
+            : stores
+                .map(
+                  (store) => `
+                    <article class="store-card">
+                      <div style="display:flex;justify-content:space-between;gap:10px">
+                        <div>
+                          <h3>${escapeHtml(store.name)}</h3>
+                          <div class="meta">${escapeHtml(store.address || "")}</div>
+                          <div class="meta token">${store.id}</div>
+                        </div>
+                        <button type="button" class="secondary" data-store-id="${store.id}">Use</button>
+                      </div>
+                    </article>
+                  `,
+                )
+                .join("");
+      }
+
+      function addStoreIdToOffer(storeId) {
+        const existing = parseLooseIds($("storeIds").value);
+        if (!existing.includes(storeId)) existing.push(storeId);
+        $("storeIds").value = JSON.stringify(existing);
+      }
+
+      async function createOffer() {
+        const form = new FormData();
+        const file = $("imageFile").files[0];
+        form.append("title", $("offerTitle").value.trim());
+        form.append("productName", $("productName").value.trim());
+        form.append("description", $("description").value.trim());
+        form.append("includedTitle", "What's included");
+        form.append("includedDescription", $("includedDescription").value.trim());
+        form.append("terms", $("terms").value.trim());
+        form.append("pointsCost", $("pointsCost").value);
+        form.append("channel", $("channel").value);
+        form.append("availableQuantity", $("availableQuantity").value);
+        form.append("onlineCouponCode", $("onlineCouponCode").value.trim());
+        form.append("websiteUrl", $("websiteUrl").value.trim());
+        form.append("imageUrl", $("imageUrl").value.trim());
+        form.append("storeIds", $("storeIds").value.trim());
+        form.append("startsAt", new Date().toISOString());
+        form.append("endsAt", "2035-01-20T23:59:59.000Z");
+        if (file) form.append("image", file);
+        await request("/partner/rewards/offers", { method: "POST", body: form });
+        await loadPartnerOffers();
+      }
+
+      async function loadPartnerOffers() {
+        const response = await request("/partner/rewards/offers");
+        const offers = dataOf(response) || [];
+        renderOffers(offers);
+      }
+
+      async function scanRedemption() {
+        const qrToken = $("scanQrToken").value.trim();
+        const code = $("scanCode").value.trim();
+        await request("/partner/rewards/redemptions/scan", {
+          method: "POST",
+          body: JSON.stringify({ qrToken: qrToken || undefined, code: code || undefined }),
+        });
+      }
+
+      function parseLooseIds(value) {
+        const trimmed = value.trim();
+        if (!trimmed) return [];
+        if (trimmed.startsWith("[")) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            return Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string") : [];
+          } catch {
+            return [];
+          }
+        }
+        return trimmed.split(",").map((item) => item.trim()).filter(Boolean);
+      }
+
+      function numOrUndefined(value) {
+        const number = Number(value);
+        return Number.isFinite(number) ? number : undefined;
+      }
+
+      function formatDate(value) {
+        if (!value) return "-";
+        return new Date(value).toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+      }
+
+      function mapLink(location) {
+        if (location.mapUrl) return location.mapUrl;
+        return `https://maps.google.com/?q=${location.latitude},${location.longitude}`;
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function escapeAttr(value) {
+        return escapeHtml(value).replaceAll("\n", " ");
+      }
+
+      document.querySelector("#roleTabs").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-role]");
+        if (button) setRole(button.dataset.role);
+      });
+
+      $("loginBtn").addEventListener("click", () => login().catch((error) => setStatus(error.message || "Login failed", true)));
+      $("saveTokenBtn").addEventListener("click", saveManualToken);
+      $("clearTokenBtn").addEventListener("click", clearToken);
+      $("summaryBtn").addEventListener("click", () => loadSummary().catch(console.error));
+      $("allOffersBtn").addEventListener("click", () => loadOffers(false).catch(console.error));
+      $("savedOffersBtn").addEventListener("click", () => loadOffers(true).catch(console.error));
+      $("redemptionsBtn").addEventListener("click", () => loadRedemptions().catch(console.error));
+      $("createStoreBtn").addEventListener("click", () => createStore().catch(console.error));
+      $("partnerStoresBtn").addEventListener("click", () => loadPartnerStores().catch(console.error));
+      $("createOfferBtn").addEventListener("click", () => createOffer().catch(console.error));
+      $("partnerOffersBtn").addEventListener("click", () => loadPartnerOffers().catch(console.error));
+      $("scanBtn").addEventListener("click", () => scanRedemption().catch(console.error));
+
+      document.body.addEventListener("click", (event) => {
+        const actionButton = event.target.closest("[data-action]");
+        if (actionButton) {
+          const id = actionButton.dataset.id;
+          const action = actionButton.dataset.action;
+          if (action === "detail") loadOfferDetail(id).catch(console.error);
+          if (action === "save") saveOffer(id).catch(console.error);
+          if (action === "unsave") unsaveOffer(id).catch(console.error);
+        }
+
+        const redeemButton = event.target.closest("[data-redeem]");
+        if (redeemButton) redeemOffer(redeemButton.dataset.redeem).catch(console.error);
+
+        const storeButton = event.target.closest("[data-store-id]");
+        if (storeButton) addStoreIdToOffer(storeButton.dataset.storeId);
+
+        const mapButton = event.target.closest("[data-map]");
+        if (mapButton) window.open(mapButton.dataset.map, "_blank");
+
+        const fillButton = event.target.closest("[data-fill-scan]");
+        if (fillButton) {
+          $("scanQrToken").value = fillButton.dataset.fillScan || "";
+          $("scanCode").value = fillButton.dataset.fillCode || "";
+        }
+      });
+
+      setRole(state.activeRole);
+      setOutput({
+        ready: true,
+        flow: [
+          "Login as partner -> Load Stores/Create Store -> Create Offer with storeIds",
+          "Login as parent/nanny -> All Offers -> Detail -> Save/Redeem",
+          "Online redeem returns couponCode, in-store redeem returns qrToken",
+          "Login as partner -> Scan/Use Redemption",
+        ],
+      });
+    </script>
+  </body>
+</html>

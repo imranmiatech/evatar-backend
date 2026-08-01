@@ -213,6 +213,7 @@ export class ProfileService {
       mealBreakdown,
       careBreakdown,
       activityBreakdown,
+      rewardAccount,
     ] = await Promise.all([
       this.prisma.child.findUnique({
         where: { id: childId },
@@ -302,6 +303,9 @@ export class ProfileService {
       this.domainCounts(baseCompletedWhere, PROFILE_MEAL_DOMAINS),
       this.domainCounts(baseCompletedWhere, PROFILE_CARE_DOMAINS),
       this.domainCounts(baseCompletedWhere, PROFILE_ACTIVITY_DOMAINS),
+      this.prisma.rewardAccount.findUnique({
+        where: { userId: nannyUserId },
+      }),
     ]);
 
     if (!child) {
@@ -318,8 +322,11 @@ export class ProfileService {
       nannyChildLink?.createdAt ??
       nanny.nannyProfile.joinedAt ??
       nanny.createdAt;
-    const totalEarned = completedTasks * NANNY_TASK_POINTS;
-    const redeemed = this.readRedeemedPoints(nanny.nannyProfile.perks);
+    const totalEarned =
+      rewardAccount?.lifetimeEarned ?? completedTasks * NANNY_TASK_POINTS;
+    const redeemed = rewardAccount?.lifetimeSpent ?? 0;
+    const available =
+      rewardAccount?.balance ?? Math.max(totalEarned - redeemed, 0);
     const skillsAndTraining = [
       ...nanny.nannyProfile.skills,
       ...nanny.nannyProfile.training,
@@ -364,7 +371,7 @@ export class ProfileService {
           perkDetails: {
             totalEarned,
             redeemed,
-            available: Math.max(totalEarned - redeemed, 0),
+            available,
             perCompletedTask: NANNY_TASK_POINTS,
           },
           skillsAndTraining: {
@@ -422,7 +429,7 @@ export class ProfileService {
       feedback: { is: { submittedByUserId: nannyUserId } },
     } satisfies Prisma.DayActivityWhereInput;
 
-    const [nanny, completedTasks, highlights, linkedChildren] =
+    const [nanny, completedTasks, highlights, linkedChildren, rewardAccount] =
       await Promise.all([
         this.prisma.user.findUnique({
           where: { id: nannyUserId },
@@ -436,6 +443,9 @@ export class ProfileService {
           take: 9,
         }),
         this.linkedChildren(nannyUserId),
+        this.prisma.rewardAccount.findUnique({
+          where: { userId: nannyUserId },
+        }),
       ]);
 
     if (!nanny || nanny.role !== UserRole.NANNY || !nanny.nannyProfile) {
@@ -446,8 +456,9 @@ export class ProfileService {
       ...nanny,
       nannyProfile: nanny.nannyProfile,
     };
-    const totalEarned = completedTasks * NANNY_TASK_POINTS;
-    const redeemed = this.readRedeemedPoints(nanny.nannyProfile.perks);
+    const totalEarned =
+      rewardAccount?.lifetimeEarned ?? completedTasks * NANNY_TASK_POINTS;
+    const redeemed = rewardAccount?.lifetimeSpent ?? 0;
 
     return {
       success: true,
@@ -457,6 +468,8 @@ export class ProfileService {
         joinedAt: nanny.nannyProfile.joinedAt ?? nanny.createdAt,
         totalEarned,
         redeemed,
+        available:
+          rewardAccount?.balance ?? Math.max(totalEarned - redeemed, 0),
         highlights,
         linkedChildren,
       }),
@@ -586,6 +599,7 @@ export class ProfileService {
     joinedAt: Date;
     totalEarned: number;
     redeemed: number;
+    available: number;
     highlights: NannyPortfolioHighlightRow[];
     linkedChildren: Array<{
       id: string;
@@ -621,7 +635,7 @@ export class ProfileService {
       perkDetails: {
         totalEarned: input.totalEarned,
         redeemed: input.redeemed,
-        available: Math.max(input.totalEarned - input.redeemed, 0),
+        available: input.available,
         perCompletedTask: NANNY_TASK_POINTS,
       },
       skillsAndTraining: {
@@ -740,13 +754,6 @@ export class ProfileService {
       label: domain.label,
       value: counts[index],
     }));
-  }
-
-  private readRedeemedPoints(perks: unknown) {
-    if (!perks || typeof perks !== 'object') return 0;
-
-    const value = (perks as Record<string, unknown>).redeemedPoints;
-    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
   }
 
   private formatMonthYear(date: Date | null) {

@@ -18,6 +18,7 @@ import {
 } from '@prisma/client';
 import type { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RewardsService } from '../rewards/rewards.service';
 import { AssignCareModuleDto } from './dto/assign-care-module.dto';
 import { CareChildInsightsQueryDto } from './dto/care-child-insights-query.dto';
 import { CareModuleQueryDto, CareModuleTab } from './dto/care-module-query.dto';
@@ -61,7 +62,7 @@ const moduleDetailInclude = {
   },
 } satisfies Prisma.CareModuleInclude;
 
-const QUIZ_PERFECT_SCORE_POINTS = 5;
+const QUIZ_PERFECT_SCORE_POINTS = 2;
 const QUIZ_RETAKE_COOLDOWN_MONTHS = 1;
 const FAVORITE_ENJOYMENT = [
   TaskEnjoymentLevel.LOVE_IT,
@@ -99,7 +100,10 @@ type CreateCareModuleInput = CreateCareModuleDto & CareModuleSuggestedAgeRange;
 
 @Injectable()
 export class CareService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rewardsService: RewardsService,
+  ) {}
 
   async createModule(user: CurrentUserPayload, dto: CreateCareModuleInput) {
     this.ensureAdmin(user);
@@ -941,6 +945,19 @@ export class CareService {
         },
       });
     });
+
+    if (isPerfectScore) {
+      await this.rewardsService.awardCareModuleCompletion(
+        assignment.nannyUserId,
+        assignmentId,
+        QUIZ_PERFECT_SCORE_POINTS,
+        {
+          moduleId: module.id,
+          moduleTitle: module.title,
+          childId: assignment.childId,
+        },
+      );
+    }
 
     return this.getQuizResult(user, assignmentId);
   }
