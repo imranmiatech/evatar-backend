@@ -1,24 +1,23 @@
 model SupportTicket {
   id        String              @id @default(uuid())
   userId    String
-  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject   String
   message   String
   status    SupportTicketStatus @default(PENDING)
   createdAt DateTime            @default(now())
   updatedAt DateTime            @updatedAt
-
-  messages TicketMessage[]
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  TicketMessage[]
 }
 
 model TicketMessage {
   id             String        @id @default(uuid())
   ticketId       String
-  ticket         SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   senderId       String
-  sender         User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
   message        String?
   attachmentUrl  String?
   attachmentType String?
   createdAt      DateTime      @default(now())
+  sender         User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  ticket         SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 }

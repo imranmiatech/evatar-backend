@@ -61,9 +61,9 @@ enum CaregiverAccessStatus {
 enum CaregiverInviteChannel {
   EMAIL
   WHATSAPP
-  EMAIL_WHATSAPP
   LINK
   IN_APP
+  EMAIL_WHATSAPP
 }
 
 enum IdentityDocType {
@@ -73,10 +73,10 @@ enum IdentityDocType {
 
 enum DocumentType {
   PASSPORT
-  PASSPORT_PAGE
   NID_FRONT
   NID_BACK
   SELFIE
+  PASSPORT_PAGE
 }
 
 enum OtpPurpose {

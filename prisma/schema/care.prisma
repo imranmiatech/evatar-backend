@@ -1,25 +1,24 @@
 model CareModule {
-  id               String             @id @default(uuid())
-  title            String
-  subtitle         String?
-  description      String?            @db.Text
-  coverImageUrl    String?
-  category         CareModuleCategory
-  estimatedMinutes Int?
-  coinReward       Int                @default(5)
+  id                   String                 @id @default(uuid())
+  title                String
+  subtitle             String?
+  description          String?
+  coverImageUrl        String?
+  category             CareModuleCategory
+  estimatedMinutes     Int?
+  coinReward           Int                    @default(5)
+  contentTitle         String?
+  contentSections      Json
+  isPublished          Boolean                @default(false)
+  createdByUserId      String?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
   suggestedMinAgeYears Int?
   suggestedMaxAgeYears Int?
-  contentTitle     String?
-  contentSections  Json
-  isPublished      Boolean            @default(false)
-  createdByUserId  String?
-  createdByUser    User?              @relation("CareModulesCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-
-  questions   CareQuizQuestion[]
-  assignments CareModuleAssignment[]
-  saves       CareModuleSave[]
+  assignments          CareModuleAssignment[]
+  saves                CareModuleSave[]
+  createdByUser        User?                  @relation("CareModulesCreatedBy", fields: [createdByUserId], references: [id])
+  questions            CareQuizQuestion[]
 
   @@index([category, isPublished, createdAt])
   @@index([suggestedMinAgeYears, suggestedMaxAgeYears, isPublished])
@@ -30,12 +29,12 @@ model CareModule {
 model CareChildNote {
   id           String   @id @default(uuid())
   childId      String
-  child        Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
   authorUserId String
-  authorUser   User     @relation("CareChildNotesAuthored", fields: [authorUserId], references: [id], onDelete: Cascade)
-  note         String   @db.Text
+  note         String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  authorUser   User     @relation("CareChildNotesAuthored", fields: [authorUserId], references: [id], onDelete: Cascade)
+  child        Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
 
   @@index([childId, createdAt])
   @@index([authorUserId, createdAt])
@@ -45,14 +44,13 @@ model CareChildNote {
 model CareQuizQuestion {
   id          String           @id @default(uuid())
   moduleId    String
-  module      CareModule       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   question    String
   type        CareQuestionType @default(SINGLE_CHOICE)
-  explanation String           @db.Text
+  explanation String
   sortOrder   Int              @default(0)
-
-  options CareQuizOption[]
-  answers CareQuizAnswer[]
+  answers     CareQuizAnswer[]
+  options     CareQuizOption[]
+  module      CareModule       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
   @@index([moduleId, sortOrder])
   @@map("care_quiz_questions")
@@ -61,12 +59,11 @@ model CareQuizQuestion {
 model CareQuizOption {
   id         String           @id @default(uuid())
   questionId String
-  question   CareQuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
   label      String
   isCorrect  Boolean          @default(false)
   sortOrder  Int              @default(0)
-
-  answers CareQuizAnswer[]
+  answers    CareQuizAnswer[]
+  question   CareQuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@index([questionId, sortOrder])
   @@map("care_quiz_options")
@@ -75,25 +72,24 @@ model CareQuizOption {
 model CareModuleAssignment {
   id               String                     @id @default(uuid())
   moduleId         String
-  module           CareModule                 @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   childId          String
-  child            Child                      @relation(fields: [childId], references: [id], onDelete: Cascade)
   nannyUserId      String
-  nannyUser        User                       @relation("CareAssignmentsForNanny", fields: [nannyUserId], references: [id], onDelete: Cascade)
   assignedByUserId String
-  assignedByUser   User                       @relation("CareAssignmentsAssignedBy", fields: [assignedByUserId], references: [id], onDelete: Cascade)
   status           CareModuleAssignmentStatus @default(ASSIGNED)
   startedAt        DateTime?
   completedAt      DateTime?
   score            Int?
   totalQuestions   Int?
   correctAnswers   Int?
-  pointsEarned     Int                        @default(0)
-  pointsAwardedAt  DateTime?
   createdAt        DateTime                   @default(now())
   updatedAt        DateTime                   @updatedAt
-
-  answers CareQuizAnswer[]
+  pointsEarned     Int                        @default(0)
+  pointsAwardedAt  DateTime?
+  assignedByUser   User                       @relation("CareAssignmentsAssignedBy", fields: [assignedByUserId], references: [id], onDelete: Cascade)
+  child            Child                      @relation(fields: [childId], references: [id], onDelete: Cascade)
+  module           CareModule                 @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  nannyUser        User                       @relation("CareAssignmentsForNanny", fields: [nannyUserId], references: [id], onDelete: Cascade)
+  answers          CareQuizAnswer[]
 
   @@unique([moduleId, childId, nannyUserId])
   @@index([nannyUserId, status, createdAt])
@@ -105,13 +101,13 @@ model CareModuleAssignment {
 model CareQuizAnswer {
   id               String               @id @default(uuid())
   assignmentId     String
-  assignment       CareModuleAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   questionId       String
-  question         CareQuizQuestion     @relation(fields: [questionId], references: [id], onDelete: Cascade)
   selectedOptionId String
-  selectedOption   CareQuizOption       @relation(fields: [selectedOptionId], references: [id], onDelete: Restrict)
   isCorrect        Boolean
   answeredAt       DateTime             @default(now())
+  assignment       CareModuleAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  question         CareQuizQuestion     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption   CareQuizOption       @relation(fields: [selectedOptionId], references: [id])
 
   @@unique([assignmentId, questionId])
   @@index([assignmentId])
@@ -122,10 +118,10 @@ model CareQuizAnswer {
 model CareModuleSave {
   id        String     @id @default(uuid())
   moduleId  String
-  module    CareModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   userId    String
-  user      User       @relation("CareModuleSaves", fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime   @default(now())
+  module    CareModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  user      User       @relation("CareModuleSaves", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([moduleId, userId])
   @@index([userId, createdAt])

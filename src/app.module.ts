@@ -18,8 +18,6 @@ import { MessageModule } from './modules/message/message.module';
 import { LibraryModule } from './modules/shared/library/library.module';
 import { LanguageModule } from './modules/language/language.module';
 import { KycModule } from './modules/kyc/kyc.module';
-<<<<<<< HEAD
-=======
 import { NannyFeedbackModule } from './modules/nannyfeedback/nannyfeedback.module';
 import { CareModule } from './modules/care/care.module';
 import { ProfileModule } from './modules/profile/profile.module';
@@ -27,7 +25,6 @@ import { RewardsModule } from './modules/rewards/rewards.module';
 
 import { CaregiverModule } from './modules/caregiver/caregiver.module';
 import { ScheduleModule } from './modules/parent/schedule/schedule.module';
->>>>>>> imrandev
 
 @Module({
   imports: [
@@ -47,9 +44,7 @@ import { ScheduleModule } from './modules/parent/schedule/schedule.module';
     LanguageModule,
     KycModule,
     ParentModule,
-<<<<<<< HEAD
     LibraryModule,
-=======
     ScheduleModule,
     CaregiverModule,
     LibraryModule,
@@ -57,7 +52,6 @@ import { ScheduleModule } from './modules/parent/schedule/schedule.module';
     CareModule,
     ProfileModule,
     RewardsModule,
->>>>>>> imrandev
   ],
   controllers: [AppController],
   providers: [AppService],

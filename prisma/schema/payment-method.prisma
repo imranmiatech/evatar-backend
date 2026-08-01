@@ -1,20 +1,17 @@
 model PaymentMethod {
-  id     String @id @default(uuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  stripePaymentMethodId String? @unique
+  id                    String        @id @default(uuid())
+  userId                String
+  stripePaymentMethodId String?       @unique
   brand                 String?
   last4                 String?
   expMonth              Int?
   expYear               Int?
   cardholderName        String?
-
-  isDefault Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  transactions Transaction[]
+  isDefault             Boolean       @default(false)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions          Transaction[]
 
   @@map("payment_methods")
 }
