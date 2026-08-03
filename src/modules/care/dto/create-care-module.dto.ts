@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { CareModuleCategory, CareQuestionType, Prisma } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { CareModuleAdminStatus, CareModuleCategory, CareQuestionType, Prisma } from '@prisma/client';
+import { plainToInstance, Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
@@ -21,6 +21,10 @@ export class CreateCareQuizOptionDto {
   @IsNotEmpty()
   label!: string;
 
+  @Transform(({ value }) => {
+    if (typeof value === 'string') return value === 'true';
+    return Boolean(value);
+  })
   @ApiProperty({ example: true })
   @IsBoolean()
   isCorrect!: boolean;
@@ -48,6 +52,16 @@ export class CreateCareQuizQuestionDto {
   @IsNotEmpty()
   explanation!: string;
 
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  })
   @ApiProperty({ type: [CreateCareQuizOptionDto] })
   @IsArray()
   @ArrayMinSize(2)
@@ -82,21 +96,41 @@ export class CreateCareModuleDto {
   @IsOptional()
   coverImageUrl?: string;
 
+  @ApiPropertyOptional({ description: 'Optional cover image file field for multipart/form-data' })
+  @IsString()
+  @IsOptional()
+  coverImage?: string;
+
+  @ApiPropertyOptional({ example: 'https://example.com/video.mp4' })
+  @IsString()
+  @IsOptional()
+  videoUrl?: string;
+
+  @ApiPropertyOptional({ description: 'Optional video file field for multipart/form-data' })
+  @IsString()
+  @IsOptional()
+  video?: string;
+
+  @ApiPropertyOptional({ example: 'Variability in appetite is normal in childhood...' })
+  @IsString()
+  @IsOptional()
+  keyTakeaway?: string;
+
   @ApiProperty({
     enum: CareModuleCategory,
-    example: CareModuleCategory.FEEDING,
+    example: CareModuleCategory.CHILD_DEVELOPMENT,
   })
   @IsEnum(CareModuleCategory)
   category!: CareModuleCategory;
 
-  @ApiPropertyOptional({ example: 5 })
+  @ApiPropertyOptional({ example: 15 })
   @IsInt()
   @Min(1)
   @Type(() => Number)
   @IsOptional()
   estimatedMinutes?: number;
 
-  @ApiPropertyOptional({ example: 15 })
+  @ApiPropertyOptional({ example: 5 })
   @IsInt()
   @Min(0)
   @Type(() => Number)
@@ -128,6 +162,16 @@ export class CreateCareModuleDto {
   @IsOptional()
   contentTitle?: string;
 
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  })
   @ApiProperty({
     description:
       'Structured lesson content sections. Example keys: realLifeSituation, whatsHappening, whyItHappens, practicalSupport, keyTakeaway.',
@@ -135,11 +179,41 @@ export class CreateCareModuleDto {
   @IsObject()
   contentSections!: Prisma.InputJsonValue;
 
+  @Transform(({ value }) => {
+    if (typeof value === 'string') return value === 'true';
+    return value;
+  })
   @ApiPropertyOptional({ example: true })
   @IsBoolean()
   @IsOptional()
   isPublished?: boolean;
 
+  @ApiPropertyOptional({ enum: CareModuleAdminStatus, example: CareModuleAdminStatus.PUBLISHED })
+  @IsEnum(CareModuleAdminStatus)
+  @IsOptional()
+  adminStatus?: CareModuleAdminStatus;
+
+  @ApiPropertyOptional({ example: '1-3 years' })
+  @IsString()
+  @IsOptional()
+  ageGroup?: string;
+
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed)
+          ? parsed.map((item: any) => plainToInstance(CreateCareQuizQuestionDto, item))
+          : parsed;
+      } catch {
+        return value;
+      }
+    }
+    if (Array.isArray(value)) {
+      return value.map((item: any) => plainToInstance(CreateCareQuizQuestionDto, item));
+    }
+    return value;
+  })
   @ApiProperty({ type: [CreateCareQuizQuestionDto] })
   @IsArray()
   @ArrayMinSize(1)

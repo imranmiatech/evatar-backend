@@ -875,7 +875,7 @@
           <div class="row">
             <div>
               <label for="email">Email</label>
-              <input id="email" value="admin@example.com" />
+              <input id="email" value="a@e.com" />
             </div>
             <div>
               <label for="password">Password</label>
@@ -884,7 +884,7 @@
           </div>
           <div class="tool-actions">
             <button id="loginBtn" type="button">Login and Save Token</button>
-            <button id="loadMeBtn" class="secondary" type="button">Me</button>
+            <button id="loadMeBtn" class="secondary" type="button">Me Profile</button>
             <button id="clearTokensBtn" class="secondary" type="button">
               Clear Tokens
             </button>
@@ -894,7 +894,17 @@
         </div>
 
         <div class="panel">
-          <h2>Admin Create Module</h2>
+          <h2>Admin Create / Update Module</h2>
+          <div class="row">
+            <div>
+              <label for="coverImageFile">Cover Image File</label>
+              <input id="coverImageFile" type="file" accept="image/*" />
+            </div>
+            <div>
+              <label for="videoFile">Video File</label>
+              <input id="videoFile" type="file" accept="video/*" />
+            </div>
+          </div>
           <div class="row">
             <div>
               <label for="suggestedMinAgeYears">Suggest min year</label>
@@ -905,12 +915,13 @@
               <input id="suggestedMaxAgeYears" type="number" min="0" value="5" />
             </div>
           </div>
-          <label for="adminPayload">Payload</label>
+          <label for="adminPayload">Payload (JSON)</label>
           <textarea id="adminPayload"></textarea>
           <div class="tool-actions">
-            <button id="createModuleBtn" type="button">Create Module</button>
+            <button id="createModuleBtn" type="button">POST Create Module</button>
+            <button id="patchModuleBtn" class="secondary" type="button">PATCH Update Module</button>
             <button id="fillSampleBtn" class="secondary" type="button">
-              Fill Sample
+              Fill Sample JSON
             </button>
           </div>
         </div>
@@ -1091,8 +1102,9 @@
         statusLine: document.getElementById('statusLine'),
         output: document.getElementById('output'),
         adminPayload: document.getElementById('adminPayload'),
-        suggestedMinAgeYears: document.getElementById('suggestedMinAgeYears'),
-        suggestedMaxAgeYears: document.getElementById('suggestedMaxAgeYears'),
+        coverImageFile: document.getElementById('coverImageFile'),
+        videoFile: document.getElementById('videoFile'),
+        patchModuleBtn: document.getElementById('patchModuleBtn'),
         createModuleBtn: document.getElementById('createModuleBtn'),
         fillSampleBtn: document.getElementById('fillSampleBtn'),
         childId: document.getElementById('childId'),
@@ -1168,7 +1180,8 @@
         el.loginBtn.addEventListener('click', login);
         el.loadMeBtn.addEventListener('click', loadMe);
         el.clearTokensBtn.addEventListener('click', clearTokens);
-        el.createModuleBtn.addEventListener('click', createModule);
+        el.createModuleBtn.addEventListener('click', () => saveModuleSubmit(false));
+        el.patchModuleBtn.addEventListener('click', () => saveModuleSubmit(true));
         el.fillSampleBtn.addEventListener('click', () => {
           el.adminPayload.value = JSON.stringify(samplePayload, null, 2);
         });
@@ -1282,7 +1295,7 @@
           updateViewer();
           await ensureFirstChildLoaded();
           showOutput(payload);
-          setStatus(`${state.activeRole} token saved.`);
+          setStatus(`${roleLabel(state.activeRole)} token saved: ${loginData.user?.fullName || loginData.user?.email}`);
         } catch (error) {
           setStatus(error.message, true);
         }
@@ -1308,19 +1321,60 @@
         setStatus('Tokens cleared.');
       }
 
-      async function createModule() {
+      async function saveModuleSubmit(isPatch = false) {
         try {
           switchRole('admin');
           const requestPayload = payloadWithSuggestedYears();
-          const payload = await api('/care/admin/modules', {
-            method: 'POST',
-            body: JSON.stringify(requestPayload),
-          });
+          const coverFile = el.coverImageFile.files[0];
+          const videoFile = el.videoFile.files[0];
+          let payload;
+
+          if (coverFile || videoFile) {
+            const formData = new FormData();
+            if (coverFile) formData.append('coverImage', coverFile);
+            if (videoFile) formData.append('video', videoFile);
+
+            for (const [key, value] of Object.entries(requestPayload)) {
+              if (typeof value === 'object') {
+                formData.append(key, JSON.stringify(value));
+              } else {
+                formData.append(key, String(value));
+              }
+            }
+
+            const activeToken = token();
+            const method = isPatch ? 'PATCH' : 'POST';
+            const path = isPatch
+              ? `/care/admin/modules/${el.assignModuleId.value.trim()}`
+              : '/care/admin/modules';
+            const response = await fetch(apiUrl(path), {
+              method,
+              headers: { Authorization: `Bearer ${activeToken}` },
+              body: formData,
+            });
+            payload = await response.json();
+            if (!response.ok || payload.success === false) {
+              throw new Error(payload.message || 'Operation failed');
+            }
+            showOutput(payload);
+          } else {
+            const method = isPatch ? 'PATCH' : 'POST';
+            const path = isPatch
+              ? `/care/admin/modules/${el.assignModuleId.value.trim()}`
+              : '/care/admin/modules';
+            payload = await api(path, {
+              method,
+              body: JSON.stringify(requestPayload),
+            });
+          }
+
           const created = payload.data;
-          el.assignModuleId.value = created.id;
-          state.assignModuleId = created.id;
-          saveState();
-          setStatus('Care module created and module id filled.');
+          if (created?.id) {
+            el.assignModuleId.value = created.id;
+            state.assignModuleId = created.id;
+            saveState();
+          }
+          setStatus(`Care module ${isPatch ? 'patched/updated' : 'created'} successfully!`);
         } catch (error) {
           setStatus(error.message, true);
         }
@@ -1900,9 +1954,18 @@
         });
       }
 
+      const defaultEmails = {
+        admin: 'a@e.com',
+        parent: 'p@e.com',
+        nanny: 'n@e.com',
+      };
+
       function switchRole(role) {
         state.activeRole = role;
         el.activeRole.value = role;
+        if (defaultEmails[role]) {
+          el.email.value = defaultEmails[role];
+        }
         careChildren = [];
         modules = [];
         suggestedModules = [];

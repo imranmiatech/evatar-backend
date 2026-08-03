@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Edit Care Module - Admin LMS</title>
+    <style>
+      :root {
+        --primary: #0e5a60;
+        --primary-hover: #084348;
+        --primary-light: #eaf4f5;
+        --border-color: #dce5e7;
+        --bg-main: #f5f8f9;
+        --card-bg: #ffffff;
+        --text-dark: #122b2e;
+        --text-muted: #647b7e;
+        --danger: #dc3545;
+        --danger-light: #fbebe8;
+        --success: #198754;
+        --success-light: #d1e7dd;
+        --radius: 12px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--bg-main);
+        color: var(--text-dark);
+        line-height: 1.5;
+        padding: 24px 16px;
+      }
+
+      .admin-container {
+        max-width: 860px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      /* Top Bar */
+      .top-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--card-bg);
+        padding: 16px 20px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border-color);
+      }
+
+      .back-title {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .back-title h1 {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-dark);
+      }
+
+      .back-title span {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      /* Auth Bar */
+      .auth-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+      }
+
+      .auth-header {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-dark);
+      }
+
+      input[type="text"],
+      input[type="number"],
+      input[type="password"],
+      select,
+      textarea {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 14px;
+        color: var(--text-dark);
+        background: #fafcfc;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus {
+        border-color: var(--primary);
+        background: #ffffff;
+      }
+
+      textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+
+      /* Media Upload Area matching Figma */
+      .media-upload-container {
+        border: 2px dashed #b8ced1;
+        border-radius: var(--radius);
+        padding: 24px;
+        text-align: center;
+        background: #f8fafb;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .media-upload-container:hover {
+        background: #eff5f6;
+      }
+
+      .upload-icon {
+        font-size: 28px;
+        color: var(--primary);
+        margin-bottom: 6px;
+      }
+
+      .upload-text {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-dark);
+      }
+
+      .upload-hint {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      .media-file-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .media-file-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 13px;
+      }
+
+      .file-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .file-name {
+        font-weight: 600;
+        color: var(--text-dark);
+      }
+
+      .file-size {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .remove-file-btn {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      .remove-file-btn:hover {
+        color: var(--danger);
+      }
+
+      /* Section Card */
+      .section-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .section-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      /* Question Card Component */
+      .question-box {
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        background: #fbfdfd;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .question-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--primary);
+      }
+
+      .question-badge {
+        background: var(--primary-light);
+        color: var(--primary);
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .answer-type-toggle {
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+      }
+
+      .type-btn {
+        padding: 6px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        background: #ffffff;
+        cursor: pointer;
+        color: var(--text-muted);
+      }
+
+      .type-btn.active {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #ffffff;
+      }
+
+      .options-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .option-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .option-item input[type="radio"],
+      .option-item input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--primary);
+      }
+
+      .option-item input[type="text"] {
+        flex: 1;
+      }
+
+      /* Points Rewards Card */
+      .points-card {
+        background: #eef6f7;
+        border: 1px solid #cce3e6;
+        border-radius: 10px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .points-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      /* Action Buttons */
+      .btn {
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 700;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background: var(--primary);
+        color: #ffffff;
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-hover);
+      }
+
+      .btn-outline {
+        background: #ffffff;
+        border-color: var(--border-color);
+        color: var(--text-dark);
+      }
+
+      .btn-outline:hover {
+        background: #f0f4f5;
+      }
+
+      .btn-danger {
+        background: var(--danger-light);
+        color: var(--danger);
+        border: none;
+      }
+
+      .btn-danger:hover {
+        background: #f7d5cf;
+      }
+
+      .bottom-bar {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+        padding-top: 12px;
+      }
+
+      .status-banner {
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        background: var(--primary-light);
+        color: var(--primary);
+        word-break: break-word;
+      }
+
+      .status-banner.error {
+        background: var(--danger-light);
+        color: var(--danger);
+      }
+
+      pre.json-box {
+        background: #0f2326;
+        color: #d6f2f5;
+        padding: 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        max-height: 250px;
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="admin-container">
+      <!-- Top Navigation Header -->
+      <nav class="top-nav">
+        <div class="back-title">
+          <h1>Edit Care Module</h1>
+          <span>Build nanny training content for the LMS</span>
+        </div>
+        <button class="btn btn-outline" type="button">👁 Preview App</button>
+      </nav>
+
+      <!-- Auth Bar -->
+      <section class="auth-card">
+        <div class="auth-header">
+          <span>Role Authentication & Auto Token</span>
+          <span id="roleBadge" class="btn btn-outline" style="padding:4px 10px; font-size:11px;">Active Role: Admin</span>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>API Base URL</label>
+            <input id="baseUrl" value="http://localhost:5000/api/v1" />
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            <select id="activeRole" onchange="switchRole(this.value)">
+              <option value="admin">Admin (a@e.com)</option>
+              <option value="parent">Parent (p@e.com)</option>
+              <option value="nanny">Nanny (n@e.com)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input id="email" value="a@e.com" />
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input id="password" type="password" value="123456" />
+          </div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-primary" type="button" onclick="login()">Login & Save Token</button>
+          <button class="btn btn-outline" type="button" onclick="fetchMe()">Verify Me Profile</button>
+        </div>
+        <div id="statusBanner" class="status-banner" style="margin-top:12px;">Ready. Tokens auto-save to browser session.</div>
+      </section>
+
+      <!-- Care Module Form matching Figma -->
+      <form id="careModuleForm" onsubmit="event.preventDefault()">
+        <!-- Media Upload Section -->
+        <section class="section-card">
+          <div class="section-title">Upload Cover Image or video</div>
+          <div class="media-upload-container" onclick="document.getElementById('fileSelector').click()">
+            <input type="file" id="fileSelector" multiple accept="image/*,video/*" style="display:none;" onchange="handleFileSelect(this.files)" />
+            <div class="upload-icon">☁️</div>
+            <div class="upload-text">Upload Cover Image or video</div>
+            <div class="upload-hint">PNG or JPG, mp4, recommended</div>
+          </div>
+          <div class="media-file-list" id="mediaFileList"></div>
+        </section>
+
+        <!-- Module Details Section -->
+        <section class="section-card" style="margin-top:16px;">
+          <div class="section-title">Module Details</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Module ID (Fill for PATCH update, leave empty for POST create)</label>
+              <input id="moduleId" placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000" />
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <select id="category">
+                <option value="CHILD_SAFETY">Child Safety</option>
+                <option value="NUTRITION_FEEDING">Nutrition & Feeding</option>
+                <option value="SLEEP_ROUTINES">Sleep & Routines</option>
+                <option value="CHILD_DEVELOPMENT">Child Development</option>
+                <option value="FIRST_AID">First Aid</option>
+                <option value="PLAY_LEARNING">Play & Learning</option>
+                <option value="COMMUNICATION">Communication</option>
+                <option value="HEALTH_HYGIENE">Health & Hygiene</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Activity Title</label>
+            <input id="title" value="Blueberry Oat Porridge" placeholder="e.g. Blueberry Oat Porridge" />
+          </div>
+
+          <div class="form-group">
+            <label>Short Description</label>
+            <textarea id="description" placeholder="Describe what nannies will learn...">Describe what nannies will learn during this training lesson.</textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Age group</label>
+              <input id="ageGroup" value="1-3 years" placeholder="Select age group" />
+            </div>
+            <div class="form-group">
+              <label>Duration (Minutes)</label>
+              <input id="estimatedMinutes" type="number" value="15" placeholder="e.g. 15" />
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top:10px;">Module Description</div>
+
+          <div class="form-group">
+            <label>Title</label>
+            <input id="contentTitle" value="Write a tittle" placeholder="Write a tittle" />
+          </div>
+
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="contentDescription" placeholder="Write a description">Write a description</textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Key takeaway</label>
+            <textarea id="keyTakeaway" placeholder="e.g: Variability in appetite is normal in childhood and reflects development, not inconsistency or refusal.">e.g: Variability in appetite is normal in childhood and reflects development, not inconsistency or refusal.</textarea>
+          </div>
+        </section>
+
+        <!-- Quiz Questions Section -->
+        <section class="section-card" style="margin-top:16px;">
+          <div class="section-title">
+            <span>Quiz Questions (<span id="qCount">2</span> questions added)</span>
+          </div>
+          <div id="questionsContainer" style="display:flex; flex-direction:column; gap:16px;"></div>
+
+          <div style="display:flex; gap:10px; margin-top:12px;">
+            <button class="btn btn-outline" type="button" onclick="addQuestion('MULTIPLE_CHOICE')">+ Multiple Choice</button>
+            <button class="btn btn-outline" type="button" onclick="addQuestion('TRUE_FALSE')">+ True / False</button>
+          </div>
+        </section>
+
+        <!-- Rewards & Points Section -->
+        <section class="section-card" style="margin-top:16px;">
+          <div class="section-title">Rewards & Points</div>
+          <div class="points-card">
+            <div class="points-title">🏆 Point Rewards Configuration</div>
+            <label>Completion Points</label>
+            <input id="coinReward" type="number" value="50" style="background:#fff;" />
+            <span style="font-size:11px; color:var(--text-muted)">Awarded on module completion</span>
+          </div>
+        </section>
+
+        <!-- Action Buttons -->
+        <div class="bottom-bar">
+          <button class="btn btn-outline" type="button" onclick="fetchModuleById()">GET Fetch Module</button>
+          <button class="btn btn-outline" type="button">Cancel</button>
+          <button class="btn btn-outline" type="button" onclick="submitForm('DRAFT')">Save Draft</button>
+          <button class="btn btn-primary" type="button" onclick="submitForm('PUBLISHED')">Publish</button>
+        </div>
+      </form>
+
+      <!-- Response Output -->
+      <section class="section-card" style="margin-top:16px;">
+        <div class="section-title">API Response JSON Output</div>
+        <pre id="jsonOutput" class="json-box">No API call performed yet.</pre>
+      </section>
+    </div>
+
+    <script>
+      const STORAGE_KEY = 'evatarAdminCareState';
+      const defaultEmails = { admin: 'a@e.com', parent: 'p@e.com', nanny: 'n@e.com' };
+
+      let state = loadState();
+      let uploadedFiles = { coverImage: null, video: null };
+      let questions = [
+        {
+          question: 'What is the recommended sleep position for infants?',
+          type: 'MULTIPLE_CHOICE',
+          explanation: 'Infants should always be placed on their back to sleep.',
+          options: [
+            { label: 'On their side', isCorrect: false },
+            { label: 'On their back', isCorrect: true },
+            { label: 'On their stomach', isCorrect: false },
+            { label: 'Any position', isCorrect: false },
+          ],
+        },
+        {
+          question: 'What is the recommended sleep position for infants?',
+          type: 'TRUE_FALSE',
+          explanation: 'Sleeping on back decreases risk of SIDS.',
+          options: [
+            { label: 'True', isCorrect: false },
+            { label: 'False', isCorrect: true },
+          ],
+        },
+      ];
+
+      init();
+
+      function init() {
+        state.activeRole = state.activeRole || 'admin';
+        document.getElementById('baseUrl').value = state.baseUrl || 'http://localhost:5000/api/v1';
+        document.getElementById('activeRole').value = state.activeRole;
+        const badge = document.getElementById('roleBadge');
+        if (badge) {
+          badge.textContent = `Active Role: ${state.activeRole.toUpperCase()}`;
+        }
+        renderQuestions();
+      }
+
+      function loadState() {
+        try {
+          return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        } catch {
+          return {};
+        }
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function switchRole(role = 'admin') {
+        state.activeRole = role;
+        if (defaultEmails[role]) {
+          document.getElementById('email').value = defaultEmails[role];
+        }
+        const badge = document.getElementById('roleBadge');
+        if (badge) {
+          badge.textContent = `Active Role: ${(role || 'admin').toUpperCase()}`;
+        }
+        saveState();
+      }
+
+      function handleFileSelect(files) {
+        Array.from(files).forEach((file) => {
+          if (file.type.startsWith('image/')) {
+            uploadedFiles.coverImage = file;
+          } else if (file.type.startsWith('video/')) {
+            uploadedFiles.video = file;
+          }
+        });
+        renderFileList();
+      }
+
+      function renderFileList() {
+        const container = document.getElementById('mediaFileList');
+        container.innerHTML = '';
+
+        if (uploadedFiles.coverImage) {
+          container.appendChild(createFileItem('Image for alurei.jpg', uploadedFiles.coverImage, () => {
+            uploadedFiles.coverImage = null;
+            renderFileList();
+          }));
+        }
+        if (uploadedFiles.video) {
+          container.appendChild(createFileItem('Video for alurei.mp4', uploadedFiles.video, () => {
+            uploadedFiles.video = null;
+            renderFileList();
+          }));
+        }
+      }
+
+      function createFileItem(typeLabel, file, onRemove) {
+        const div = document.createElement('div');
+        div.className = 'media-file-item';
+        const sizeMb = (file.size / 1024 / 1024).toFixed(2);
+        div.innerHTML = `
+          <div class="file-meta">
+            <span class="file-name">${escapeHtml(file.name)}</span>
+            <span class="file-size">(${sizeMb} mb)</span>
+          </div>
+        `;
+        const rmBtn = document.createElement('button');
+        rmBtn.className = 'remove-file-btn';
+        rmBtn.textContent = '✕';
+        rmBtn.onclick = onRemove;
+        div.appendChild(rmBtn);
+        return div;
+      }
+
+      function renderQuestions() {
+        const container = document.getElementById('questionsContainer');
+        document.getElementById('qCount').textContent = questions.length;
+        container.innerHTML = questions
+          .map(
+            (q, qIdx) => `
+          <div class="question-box" data-qidx="${qIdx}">
+            <div class="question-header">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="background:var(--primary); color:#fff; width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font-size:11px; font-weight:700;">${qIdx + 1}</span>
+                <span>${escapeHtml(q.question)}</span>
+                <span class="question-badge">${q.type === 'TRUE_FALSE' ? 'T\\F' : 'MCQ'}</span>
+              </div>
+              <button class="remove-file-btn" type="button" onclick="removeQuestion(${qIdx})">✕</button>
+            </div>
+
+            <div class="form-group">
+              <label>Question</label>
+              <input type="text" value="${escapeHtml(q.question)}" onchange="updateQuestionText(${qIdx}, this.value)" placeholder="Type the question here..." />
+            </div>
+
+            <div class="form-group">
+              <label>Question Type</label>
+              <div class="answer-type-toggle">
+                <button type="button" class="type-btn ${q.type === 'MULTIPLE_CHOICE' || q.type === 'SINGLE_CHOICE' ? 'active' : ''}" onclick="setQuestionType(${qIdx}, 'MULTIPLE_CHOICE')">Multiple Choice</button>
+                <button type="button" class="type-btn ${q.type === 'TRUE_FALSE' ? 'active' : ''}" onclick="setQuestionType(${qIdx}, 'TRUE_FALSE')">True / False</button>
+              </div>
+            </div>
+
+            ${
+              q.type === 'TRUE_FALSE'
+                ? `
+              <div class="form-group">
+                <label>Correct Answer</label>
+                <div style="display:flex; gap:12px;">
+                  <button type="button" class="btn ${q.options[0]?.isCorrect ? 'btn-primary' : 'btn-outline'}" style="flex:1;" onclick="setTrueFalseAnswer(${qIdx}, true)">True</button>
+                  <button type="button" class="btn ${q.options[1]?.isCorrect ? 'btn-primary' : 'btn-outline'}" style="flex:1;" onclick="setTrueFalseAnswer(${qIdx}, false)">✓ False</button>
+                </div>
+              </div>
+            `
+                : `
+              <div class="form-group">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <label>Answer Options</label>
+                </div>
+                <div class="options-list">
+                  ${q.options
+                    .map(
+                      (opt, oIdx) => `
+                    <div class="option-item">
+                      <input type="radio" name="correct-${qIdx}" ${opt.isCorrect ? 'checked' : ''} onchange="setCorrectOption(${qIdx}, ${oIdx})" />
+                      <input type="text" value="${escapeHtml(opt.label)}" onchange="updateOptionLabel(${qIdx}, ${oIdx}, this.value)" placeholder="Option label..." />
+                      <button class="remove-file-btn" type="button" onclick="removeOption(${qIdx}, ${oIdx})">✕</button>
+                    </div>
+                  `,
+                    )
+                    .join('')}
+                </div>
+                <button class="btn btn-outline" type="button" style="margin-top:8px; padding:4px 12px; font-size:12px;" onclick="addOption(${qIdx})">+ Add option</button>
+                <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:4px;">Click the circle to mark the correct answer.</span>
+              </div>
+            `
+            }
+
+            <div class="form-group">
+              <label>Explanation (shown after answering)</label>
+              <input type="text" value="${escapeHtml(q.explanation)}" onchange="updateExplanation(${qIdx}, this.value)" placeholder="Explain why this is the correct answer..." />
+            </div>
+          </div>
+        `,
+          )
+          .join('');
+      }
+
+      function addQuestion(type = 'MULTIPLE_CHOICE') {
+        if (type === 'TRUE_FALSE') {
+          questions.push({
+            question: 'Type the question here...',
+            type: 'TRUE_FALSE',
+            explanation: 'Explain why this is the correct answer...',
+            options: [
+              { label: 'True', isCorrect: true },
+              { label: 'False', isCorrect: false },
+            ],
+          });
+        } else {
+          questions.push({
+            question: 'Type the question here...',
+            type: 'MULTIPLE_CHOICE',
+            explanation: 'Explain why this is the correct answer...',
+            options: [
+              { label: 'On their side', isCorrect: false },
+              { label: 'On their back', isCorrect: true },
+              { label: 'On their stomach', isCorrect: false },
+              { label: 'Any position', isCorrect: false },
+            ],
+          });
+        }
+        renderQuestions();
+      }
+
+      function removeQuestion(qIdx) {
+        questions.splice(qIdx, 1);
+        renderQuestions();
+      }
+
+      function updateQuestionText(qIdx, val) {
+        questions[qIdx].question = val;
+      }
+
+      function setQuestionType(qIdx, type) {
+        questions[qIdx].type = type;
+        if (type === 'TRUE_FALSE') {
+          questions[qIdx].options = [
+            { label: 'True', isCorrect: true },
+            { label: 'False', isCorrect: false },
+          ];
+        }
+        renderQuestions();
+      }
+
+      function setTrueFalseAnswer(qIdx, isTrueCorrect) {
+        questions[qIdx].options[0].isCorrect = isTrueCorrect;
+        questions[qIdx].options[1].isCorrect = !isTrueCorrect;
+        renderQuestions();
+      }
+
+      function updateExplanation(qIdx, val) {
+        questions[qIdx].explanation = val;
+      }
+
+      function addOption(qIdx) {
+        questions[qIdx].options.push({ label: 'New option', isCorrect: false });
+        renderQuestions();
+      }
+
+      function removeOption(qIdx, oIdx) {
+        if (questions[qIdx].options.length <= 1) return;
+        questions[qIdx].options.splice(oIdx, 1);
+        renderQuestions();
+      }
+
+      function setCorrectOption(qIdx, selectedOIdx) {
+        questions[qIdx].options.forEach((opt, oIdx) => {
+          opt.isCorrect = oIdx === selectedOIdx;
+        });
+      }
+
+      function updateOptionLabel(qIdx, oIdx, val) {
+        questions[qIdx].options[oIdx].label = val;
+      }
+
+      async function login() {
+        try {
+          setStatus('Logging in...');
+          const baseUrl = document.getElementById('baseUrl').value.trim();
+          const email = document.getElementById('email').value.trim();
+          const password = document.getElementById('password').value;
+
+          const res = await fetch(`${baseUrl}/auth/signin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = await res.json();
+          if (!res.ok || data.success === false) {
+            throw new Error(data.message || 'Login failed');
+          }
+
+          state.tokens = state.tokens || {};
+          const loginData = data.data || data;
+          state.tokens[state.activeRole || 'admin'] = {
+            accessToken: loginData.accessToken,
+            user: loginData.user,
+          };
+          state.baseUrl = baseUrl;
+          saveState();
+
+          showOutput(data);
+          const activeRole = state.activeRole || 'admin';
+          setStatus(`Logged in successfully! Token saved for ${activeRole.toUpperCase()}`);
+        } catch (err) {
+          setStatus(err.message, true);
+        }
+      }
+
+      async function fetchMe() {
+        try {
+          const payload = await api('/auth/me');
+          setStatus(`Profile verified: ${payload.data?.fullName} (${payload.data?.role})`);
+        } catch (err) {
+          setStatus(err.message, true);
+        }
+      }
+
+      async function submitForm(targetStatus = 'PUBLISHED') {
+        try {
+          const token = state.tokens?.[state.activeRole || 'admin']?.accessToken;
+          if (!token) throw new Error('Authentication Token missing. Please Login first.');
+
+          const baseUrl = document.getElementById('baseUrl').value.trim();
+          const id = document.getElementById('moduleId').value.trim();
+          const method = id ? 'PATCH' : 'POST';
+
+          const payloadData = {
+            title: document.getElementById('title').value.trim(),
+            description: document.getElementById('description').value.trim(),
+            category: document.getElementById('category').value,
+            ageGroup: document.getElementById('ageGroup').value.trim(),
+            estimatedMinutes: Number(document.getElementById('estimatedMinutes').value) || 15,
+            coinReward: Number(document.getElementById('coinReward').value) || 50,
+            contentTitle: document.getElementById('contentTitle').value.trim(),
+            keyTakeaway: document.getElementById('keyTakeaway').value.trim(),
+            contentSections: {
+              title: document.getElementById('contentTitle').value.trim(),
+              description: document.getElementById('contentDescription').value.trim(),
+              keyTakeaway: document.getElementById('keyTakeaway').value.trim(),
+            },
+            adminStatus: targetStatus,
+            isPublished: targetStatus === 'PUBLISHED',
+            questions: questions,
+          };
+
+          let url = `${baseUrl}/care/admin/modules`;
+          if (method === 'PATCH') {
+            url += `/${id}`;
+          }
+
+          const formData = new FormData();
+          if (uploadedFiles.coverImage) formData.append('coverImage', uploadedFiles.coverImage);
+          if (uploadedFiles.video) formData.append('video', uploadedFiles.video);
+
+          for (const [key, val] of Object.entries(payloadData)) {
+            if (typeof val === 'object') {
+              formData.append(key, JSON.stringify(val));
+            } else if (val !== undefined && val !== null) {
+              formData.append(key, String(val));
+            }
+          }
+
+          const res = await fetch(url, {
+            method,
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData,
+          });
+
+          const resData = await res.json();
+          if (!res.ok || resData.success === false) {
+            throw new Error(resData.message || 'Operation failed');
+          }
+
+          showOutput(resData);
+          if (resData.data?.id) {
+            document.getElementById('moduleId').value = resData.data.id;
+          }
+          setStatus(`Care Module ${method === 'POST' ? 'Created' : 'Updated'} successfully as ${targetStatus}! ID: ${resData.data?.id}`);
+        } catch (err) {
+          setStatus(err.message, true);
+        }
+      }
+
+      async function fetchModuleById() {
+        try {
+          const id = document.getElementById('moduleId').value.trim();
+          if (!id) throw new Error('Please enter a Module ID to fetch.');
+          const payload = await api(`/care/modules/${id}`);
+
+          if (payload.data) {
+            document.getElementById('title').value = payload.data.title || '';
+            document.getElementById('description').value = payload.data.description || '';
+            document.getElementById('category').value = payload.data.category || 'CHILD_SAFETY';
+            document.getElementById('keyTakeaway').value = payload.data.keyTakeaway || '';
+            document.getElementById('coinReward').value = payload.data.coinReward || 50;
+            if (payload.data.questions && Array.isArray(payload.data.questions)) {
+              questions = payload.data.questions.map((q) => ({
+                question: q.question,
+                type: q.type,
+                explanation: q.explanation,
+                options: q.options.map((o) => ({
+                  label: o.label,
+                  isCorrect: Boolean(o.isCorrect),
+                })),
+              }));
+              renderQuestions();
+            }
+          }
+          setStatus(`Module ${id} details fetched.`);
+        } catch (err) {
+          setStatus(err.message, true);
+        }
+      }
+
+      async function api(path, options = {}) {
+        const token = state.tokens?.[state.activeRole || 'admin']?.accessToken;
+        const baseUrl = document.getElementById('baseUrl').value.trim();
+        const headers = {
+          ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
+        const res = await fetch(`${baseUrl}${path}`, { ...options, headers });
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok || payload.success === false) {
+          throw new Error(payload.message || `HTTP ${res.status}`);
+        }
+        showOutput(payload);
+        return payload;
+      }
+
+      function setStatus(msg, isErr = false) {
+        const banner = document.getElementById('statusBanner');
+        banner.textContent = msg;
+        banner.classList.toggle('error', isErr);
+      }
+
+      function showOutput(obj) {
+        document.getElementById('jsonOutput').textContent = JSON.stringify(obj, null, 2);
+      }
+
+      function escapeHtml(str) {
+        return String(str || '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;');
+      }
+    </script>
+  </body>
+</html>

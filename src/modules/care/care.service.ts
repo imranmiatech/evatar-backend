@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  CareModuleAdminStatus,
   CareModuleAssignmentStatus,
   CareQuestionType,
   ChildMood,
@@ -19,13 +20,16 @@ import {
 import type { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RewardsService } from '../rewards/rewards.service';
+import { StorageService } from '../../common/storage/storage.service';
 import { AssignCareModuleDto } from './dto/assign-care-module.dto';
 import { CareChildInsightsQueryDto } from './dto/care-child-insights-query.dto';
 import { CareModuleQueryDto, CareModuleTab } from './dto/care-module-query.dto';
 import { CareMonthlyHighlightsQueryDto } from './dto/care-monthly-highlights-query.dto';
 import { CreateCareChildNoteDto } from './dto/create-care-child-note.dto';
 import { CreateCareModuleDto } from './dto/create-care-module.dto';
+import { UpdateCareModuleDto } from './dto/update-care-module.dto';
 import { SubmitCareQuizDto } from './dto/submit-care-quiz.dto';
+import { ToggleCareModuleStatusDto } from './dto/toggle-care-module-status.dto';
 
 const moduleListSelect = {
   id: true,
@@ -33,11 +37,13 @@ const moduleListSelect = {
   subtitle: true,
   description: true,
   coverImageUrl: true,
+  videoUrl: true,
   category: true,
   estimatedMinutes: true,
   coinReward: true,
   suggestedMinAgeYears: true,
   suggestedMaxAgeYears: true,
+  keyTakeaway: true,
   isPublished: true,
   createdAt: true,
   updatedAt: true,
@@ -53,6 +59,7 @@ const moduleDetailInclude = {
         select: {
           id: true,
           label: true,
+          isCorrect: true,
           sortOrder: true,
         },
         orderBy: { sortOrder: 'asc' },
@@ -103,43 +110,94 @@ export class CareService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly rewardsService: RewardsService,
+    private readonly storageService: StorageService,
   ) {}
 
-  async createModule(user: CurrentUserPayload, dto: CreateCareModuleInput) {
+  async createModule(
+    user: CurrentUserPayload,
+    dto: any,
+    files?: { coverImage?: Express.Multer.File[]; video?: Express.Multer.File[] },
+  ) {
     this.ensureAdmin(user);
-    this.validateQuestions(dto.questions);
-    this.validateSuggestedAgeRange(dto);
+
+    let questions = this.parseFormValue(dto.questions);
+    let contentSections = this.parseFormValue(dto.contentSections);
+    let isPublished =
+      typeof dto.isPublished === 'string'
+        ? dto.isPublished === 'true'
+        : dto.isPublished;
+    let coinReward = dto.coinReward !== undefined ? Number(dto.coinReward) : 5;
+    let estimatedMinutes =
+      dto.estimatedMinutes !== undefined && dto.estimatedMinutes !== ''
+        ? Number(dto.estimatedMinutes)
+        : 15;
+    let suggestedMinAgeYears =
+      dto.suggestedMinAgeYears !== undefined
+        ? Number(dto.suggestedMinAgeYears)
+        : undefined;
+    let suggestedMaxAgeYears =
+      dto.suggestedMaxAgeYears !== undefined
+        ? Number(dto.suggestedMaxAgeYears)
+        : undefined;
+
+    let coverImageUrl = dto.coverImageUrl?.trim();
+    let videoUrl = dto.videoUrl?.trim();
+
+    if (files?.coverImage?.[0]) {
+      coverImageUrl = await this.storageService.uploadFile(
+        files.coverImage[0],
+        'care-modules/covers',
+      );
+    }
+    if (files?.video?.[0]) {
+      videoUrl = await this.storageService.uploadFile(
+        files.video[0],
+        'care-modules/videos',
+      );
+    }
+
+    if (Array.isArray(questions)) {
+      this.validateQuestions(questions);
+    }
+    this.validateSuggestedAgeRange({ suggestedMinAgeYears, suggestedMaxAgeYears });
 
     const module = await this.prisma.careModule.create({
       data: {
         title: dto.title.trim(),
         subtitle: dto.subtitle?.trim(),
         description: dto.description?.trim(),
-        coverImageUrl: dto.coverImageUrl?.trim(),
+        coverImageUrl,
+        videoUrl,
         category: dto.category,
-        estimatedMinutes: dto.estimatedMinutes,
-        coinReward: dto.coinReward ?? 5,
-        suggestedMinAgeYears: dto.suggestedMinAgeYears,
-        suggestedMaxAgeYears: dto.suggestedMaxAgeYears,
+        estimatedMinutes,
+        coinReward,
+        suggestedMinAgeYears,
+        suggestedMaxAgeYears,
         contentTitle: dto.contentTitle?.trim(),
-        contentSections: dto.contentSections,
-        isPublished: dto.isPublished ?? false,
+        contentSections: contentSections ?? {},
+        keyTakeaway: dto.keyTakeaway?.trim(),
+        isPublished: isPublished ?? (dto.adminStatus === CareModuleAdminStatus.PUBLISHED),
+        adminStatus: dto.adminStatus ?? (isPublished ? CareModuleAdminStatus.PUBLISHED : CareModuleAdminStatus.DRAFT),
         createdByUserId: this.currentUserId(user),
-        questions: {
-          create: dto.questions.map((question, questionIndex) => ({
-            question: question.question.trim(),
-            type: question.type ?? CareQuestionType.SINGLE_CHOICE,
-            explanation: question.explanation.trim(),
-            sortOrder: questionIndex + 1,
-            options: {
-              create: question.options.map((option, optionIndex) => ({
-                label: option.label.trim(),
-                isCorrect: option.isCorrect,
-                sortOrder: optionIndex + 1,
-              })),
-            },
-          })),
-        },
+        ...(Array.isArray(questions) && questions.length > 0 && {
+          questions: {
+            create: questions.map((question: any, questionIndex: number) => ({
+              question: question.question.trim(),
+              type: question.type ?? CareQuestionType.SINGLE_CHOICE,
+              explanation: question.explanation.trim(),
+              sortOrder: questionIndex + 1,
+              options: {
+                create: question.options.map(
+                  (option: any, optionIndex: number) => ({
+                    label: option.label.trim(),
+                    isCorrect: Boolean(option.isCorrect),
+                    sortOrder: optionIndex + 1,
+                  }),
+                ),
+              },
+            })),
+          },
+        }),
       },
       include: moduleDetailInclude,
     });
@@ -148,6 +206,139 @@ export class CareService {
       success: true,
       message: 'Care module created successfully',
       data: this.formatModuleDetail(module),
+    };
+  }
+
+  async updateModule(
+    user: CurrentUserPayload,
+    id: string,
+    dto: any,
+    files?: { coverImage?: Express.Multer.File[]; video?: Express.Multer.File[] },
+  ) {
+    this.ensureAdmin(user);
+
+    const existing = await this.prisma.careModule.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Care module not found');
+    }
+
+    let questions =
+      dto.questions !== undefined
+        ? this.parseFormValue(dto.questions)
+        : undefined;
+    let contentSections =
+      dto.contentSections !== undefined
+        ? this.parseFormValue(dto.contentSections)
+        : undefined;
+    let isPublished =
+      dto.isPublished !== undefined
+        ? typeof dto.isPublished === 'string'
+          ? dto.isPublished === 'true'
+          : dto.isPublished
+        : undefined;
+    let coinReward =
+      dto.coinReward !== undefined ? Number(dto.coinReward) : undefined;
+    let estimatedMinutes =
+      dto.estimatedMinutes !== undefined
+        ? Number(dto.estimatedMinutes)
+        : undefined;
+    let suggestedMinAgeYears =
+      dto.suggestedMinAgeYears !== undefined
+        ? Number(dto.suggestedMinAgeYears)
+        : undefined;
+    let suggestedMaxAgeYears =
+      dto.suggestedMaxAgeYears !== undefined
+        ? Number(dto.suggestedMaxAgeYears)
+        : undefined;
+
+    let coverImageUrl = dto.coverImageUrl?.trim();
+    let videoUrl = dto.videoUrl?.trim();
+
+    if (files?.coverImage?.[0]) {
+      coverImageUrl = await this.storageService.uploadFile(
+        files.coverImage[0],
+        'care-modules/covers',
+      );
+    }
+    if (files?.video?.[0]) {
+      videoUrl = await this.storageService.uploadFile(
+        files.video[0],
+        'care-modules/videos',
+      );
+    }
+
+    if (Array.isArray(questions)) {
+      this.validateQuestions(questions);
+      await this.prisma.careQuizQuestion.deleteMany({ where: { moduleId: id } });
+    }
+
+    const updated = await this.prisma.careModule.update({
+      where: { id },
+      data: {
+        ...(dto.title !== undefined && { title: dto.title.trim() }),
+        ...(dto.subtitle !== undefined && { subtitle: dto.subtitle?.trim() }),
+        ...(dto.description !== undefined && { description: dto.description?.trim() }),
+        ...(coverImageUrl !== undefined && { coverImageUrl }),
+        ...(videoUrl !== undefined && { videoUrl }),
+        ...(dto.category !== undefined && { category: dto.category }),
+        ...(estimatedMinutes !== undefined && { estimatedMinutes }),
+        ...(coinReward !== undefined && { coinReward }),
+        ...(suggestedMinAgeYears !== undefined && { suggestedMinAgeYears }),
+        ...(suggestedMaxAgeYears !== undefined && { suggestedMaxAgeYears }),
+        ...(dto.contentTitle !== undefined && { contentTitle: dto.contentTitle?.trim() }),
+        ...(contentSections !== undefined && { contentSections }),
+        ...(dto.keyTakeaway !== undefined && { keyTakeaway: dto.keyTakeaway?.trim() }),
+        ...(isPublished !== undefined && {
+          isPublished,
+          adminStatus: isPublished ? CareModuleAdminStatus.PUBLISHED : CareModuleAdminStatus.DRAFT,
+        }),
+        ...(dto.adminStatus !== undefined && {
+          adminStatus: dto.adminStatus,
+          isPublished: dto.adminStatus === CareModuleAdminStatus.PUBLISHED,
+        }),
+        ...(Array.isArray(questions) && {
+          questions: {
+            create: questions.map((question: any, questionIndex: number) => ({
+              question: question.question.trim(),
+              type: question.type ?? CareQuestionType.SINGLE_CHOICE,
+              explanation: question.explanation.trim(),
+              sortOrder: questionIndex + 1,
+              options: {
+                create: question.options.map(
+                  (option: any, optionIndex: number) => ({
+                    label: option.label.trim(),
+                    isCorrect: Boolean(option.isCorrect),
+                    sortOrder: optionIndex + 1,
+                  }),
+                ),
+              },
+            })),
+          },
+        }),
+      },
+      include: moduleDetailInclude,
+    });
+
+    return {
+      success: true,
+      message: 'Care module updated successfully',
+      data: this.formatModuleDetail(updated),
+    };
+  }
+
+  async deleteModule(user: CurrentUserPayload, id: string) {
+    this.ensureAdmin(user);
+
+    const existing = await this.prisma.careModule.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Care module not found');
+    }
+
+    await this.prisma.careModule.delete({ where: { id } });
+
+    return {
+      success: true,
+      message: 'Care module deleted successfully',
     };
   }
 
@@ -184,7 +375,7 @@ export class CareService {
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
     const moduleWhere = {
-      ...this.moduleWhere(query),
+      ...this.moduleWhere(query, user),
       suggestedMinAgeYears: { lte: ageYears },
       suggestedMaxAgeYears: { gte: ageYears },
     } satisfies Prisma.CareModuleWhereInput;
@@ -591,7 +782,7 @@ export class CareService {
       }
     }
 
-    const moduleWhere = this.moduleWhere(query);
+    const moduleWhere = this.moduleWhere(query, user);
 
     if (tab === CareModuleTab.SAVED) {
       const where = {
@@ -704,6 +895,155 @@ export class CareService {
       page,
       limit,
     );
+  }
+
+  async getAdminModules(
+    user: CurrentUserPayload,
+    query: CareModuleQueryDto,
+  ) {
+    this.ensureAdmin(user);
+
+    const where = this.moduleWhere(query, user);
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [totalModules, published, draft, modules, total] = await Promise.all([
+      this.prisma.careModule.count(),
+      this.prisma.careModule.count({
+        where: { adminStatus: CareModuleAdminStatus.PUBLISHED },
+      }),
+      this.prisma.careModule.count({
+        where: { adminStatus: CareModuleAdminStatus.DRAFT },
+      }),
+      this.prisma.careModule.findMany({
+        where,
+        include: {
+          _count: {
+            select: {
+              assignments: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.careModule.count({ where }),
+    ]);
+
+    const formattedModules = modules.map((m) => ({
+      id: m.id,
+      title: m.title,
+      subtitle: m.subtitle,
+      description: m.description,
+      coverImageUrl: m.coverImageUrl,
+      videoUrl: m.videoUrl,
+      category: m.category,
+      ageGroup: this.formatAgeRange(m.suggestedMinAgeYears, m.suggestedMaxAgeYears),
+      suggestedMinAgeYears: m.suggestedMinAgeYears,
+      suggestedMaxAgeYears: m.suggestedMaxAgeYears,
+      estimatedMinutes: m.estimatedMinutes ?? 15,
+      coinReward: m.coinReward,
+      adminStatus: m.adminStatus,
+      isPublished: m.isPublished,
+      assignedNanniesCount: m._count.assignments,
+      assignedText: `${m._count.assignments} Nannies`,
+      createdAt: m.createdAt,
+      updatedAt: m.updatedAt,
+    }));
+
+    return {
+      stats: {
+        totalModules,
+        published,
+        draft,
+      },
+      modules: formattedModules,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async toggleModuleStatus(
+    user: CurrentUserPayload,
+    moduleId: string,
+    dto?: ToggleCareModuleStatusDto,
+  ) {
+    this.ensureAdmin(user);
+
+    const module = await this.prisma.careModule.findUnique({
+      where: { id: moduleId },
+      select: { id: true, adminStatus: true, isPublished: true },
+    });
+
+    if (!module) {
+      throw new NotFoundException(`Care module with ID ${moduleId} not found`);
+    }
+
+    let nextStatus: CareModuleAdminStatus;
+    if (dto?.adminStatus) {
+      nextStatus = dto.adminStatus;
+    } else {
+      nextStatus =
+        module.adminStatus === CareModuleAdminStatus.PUBLISHED
+          ? CareModuleAdminStatus.DRAFT
+          : CareModuleAdminStatus.PUBLISHED;
+    }
+
+    const isPublished = nextStatus === CareModuleAdminStatus.PUBLISHED;
+
+    const updated = await this.prisma.careModule.update({
+      where: { id: moduleId },
+      data: {
+        adminStatus: nextStatus,
+        isPublished,
+      },
+      select: {
+        id: true,
+        title: true,
+        adminStatus: true,
+        isPublished: true,
+        updatedAt: true,
+      },
+    });
+
+    return updated;
+  }
+
+  async getAdminModuleDetail(user: CurrentUserPayload, moduleId: string) {
+    this.ensureAdmin(user);
+
+    const module = await this.prisma.careModule.findUnique({
+      where: { id: moduleId },
+      include: moduleDetailInclude,
+    });
+
+    if (!module) {
+      throw new NotFoundException(`Care module with ID ${moduleId} not found`);
+    }
+
+    const assignedNanniesCount = await this.prisma.careModuleAssignment.count({
+      where: { moduleId },
+    });
+
+    return {
+      success: true,
+      message: 'Admin care module details fetched successfully',
+      data: {
+        ...this.formatModuleDetail(module),
+        ageGroup: this.formatAgeRange(
+          module.suggestedMinAgeYears,
+          module.suggestedMaxAgeYears,
+        ),
+        assignedNanniesCount,
+        assignedText: `${assignedNanniesCount} Nannies`,
+      },
+    };
   }
 
   async getModuleDetail(
@@ -1048,6 +1388,17 @@ export class CareService {
     }
   }
 
+  private parseFormValue(val: any) {
+    if (typeof val === 'string') {
+      try {
+        return JSON.parse(val);
+      } catch {
+        return val;
+      }
+    }
+    return val;
+  }
+
   private validateSuggestedAgeRange(dto: CareModuleSuggestedAgeRange) {
     if (
       dto.suggestedMinAgeYears !== undefined &&
@@ -1073,19 +1424,38 @@ export class CareService {
     return Math.max(ageYears, 0);
   }
 
-  private moduleWhere(query: CareModuleQueryDto) {
+  private moduleWhere(query: CareModuleQueryDto, user?: CurrentUserPayload) {
+    const isAdmin = user && this.isAdmin(user);
+    const adminStatus = query.adminStatus;
+    const category = query.category;
+
     return {
-      isPublished: true,
-      ...(query.category && { category: query.category }),
+      ...(!isAdmin && { isPublished: true }),
+      ...(isAdmin &&
+        adminStatus &&
+        adminStatus !== CareModuleAdminStatus.ALL && {
+          adminStatus: adminStatus,
+        }),
+      ...(category && { category: category }),
       ...(query.search && {
         OR: [
           { title: { contains: query.search, mode: 'insensitive' as const } },
           {
             subtitle: { contains: query.search, mode: 'insensitive' as const },
           },
+          {
+            description: { contains: query.search, mode: 'insensitive' as const },
+          },
         ],
       }),
     } satisfies Prisma.CareModuleWhereInput;
+  }
+
+  private formatAgeRange(min?: number | null, max?: number | null): string {
+    if (min != null && max != null) return `${min}-${max} years`;
+    if (min != null) return `${min}+ years`;
+    if (max != null) return `Up to ${max} years`;
+    return 'All ages';
   }
 
   private async assignmentWhereForUser(
@@ -1405,11 +1775,13 @@ export class CareService {
       subtitle: module.subtitle,
       description: module.description,
       coverImageUrl: module.coverImageUrl,
+      videoUrl: module.videoUrl,
       category: module.category,
       estimatedMinutes: module.estimatedMinutes,
       coinReward: module.coinReward,
       suggestedMinAgeYears: module.suggestedMinAgeYears,
       suggestedMaxAgeYears: module.suggestedMaxAgeYears,
+      keyTakeaway: module.keyTakeaway,
       isPublished: module.isPublished,
       isSaved: Boolean(options.isSaved),
       questionCount: module.questions.length,
@@ -1436,6 +1808,7 @@ export class CareService {
       subtitle: module.subtitle,
       description: module.description,
       coverImageUrl: module.coverImageUrl,
+      videoUrl: module.videoUrl,
       category: module.category,
       estimatedMinutes: module.estimatedMinutes,
       coinReward: module.coinReward,
@@ -1443,7 +1816,9 @@ export class CareService {
       suggestedMaxAgeYears: module.suggestedMaxAgeYears,
       contentTitle: module.contentTitle,
       contentSections: module.contentSections,
+      keyTakeaway: module.keyTakeaway,
       isPublished: module.isPublished,
+      adminStatus: module.adminStatus,
       isSaved: Boolean(options.isSaved),
       assignment: options.assignment
         ? this.formatAssignmentSummary(options.assignment)
@@ -1456,6 +1831,7 @@ export class CareService {
         options: question.options.map((option) => ({
           id: option.id,
           label: option.label,
+          isCorrect: option.isCorrect,
         })),
       })),
       createdAt: module.createdAt,

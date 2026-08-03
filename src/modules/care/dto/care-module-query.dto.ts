@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { CareModuleCategory } from '@prisma/client';
+import { CareModuleAdminStatus, CareModuleCategory } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
@@ -11,10 +11,20 @@ export enum CareModuleTab {
 }
 
 export class CareModuleQueryDto {
+  @ApiPropertyOptional({ enum: CareModuleAdminStatus })
+  @IsEnum(CareModuleAdminStatus)
+  @IsOptional()
+  adminStatus?: CareModuleAdminStatus;
+
   @ApiPropertyOptional({ enum: CareModuleCategory })
   @IsEnum(CareModuleCategory)
   @IsOptional()
   category?: CareModuleCategory;
+
+  @ApiPropertyOptional({ description: 'Filter by age group (e.g. 6-12 months, 1-3 years)' })
+  @IsString()
+  @IsOptional()
+  ageGroup?: string;
 
   @ApiPropertyOptional({ enum: CareModuleTab, default: CareModuleTab.ALL })
   @IsEnum(CareModuleTab)

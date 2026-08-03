@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { KitchenItemCategory, ItemUnit } from '@prisma/client';
+import { KitchenItemCategory, ItemUnit, KitchenItemAdminStatus } from '@prisma/client';
 import {
   IsEnum,
   IsInt,
@@ -11,6 +11,14 @@ import {
 } from 'class-validator';
 
 export class CreateKitchenItemDto {
+  @ApiPropertyOptional({
+    description: 'Target parent user ID (optional, admin only)',
+    example: 'user-uuid-1234',
+  })
+  @IsString()
+  @IsOptional()
+  userId?: string;
+
   @ApiProperty({ description: 'Item name', example: 'Organic Whole Milk' })
   @IsString()
   @IsNotEmpty()
@@ -35,6 +43,15 @@ export class CreateKitchenItemDto {
   category: KitchenItemCategory;
 
   @ApiPropertyOptional({
+    enum: KitchenItemAdminStatus,
+    description: 'Admin status (ACTIVE or ARCHIVE). Only applicable when created by Admin.',
+    example: KitchenItemAdminStatus.ACTIVE,
+  })
+  @IsEnum(KitchenItemAdminStatus)
+  @IsOptional()
+  adminStatus?: KitchenItemAdminStatus;
+
+  @ApiPropertyOptional({
     description: 'Current stock percentage (0–100). Defaults to 100.',
     example: 10,
     minimum: 0,
@@ -51,3 +68,4 @@ export class CreateKitchenItemDto {
   @IsOptional()
   notes?: string;
 }
+

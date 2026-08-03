@@ -4,13 +4,18 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiTags,
@@ -26,7 +31,9 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { AssignCareModuleDto } from './dto/assign-care-module.dto';
 import { CareModuleQueryDto } from './dto/care-module-query.dto';
 import { CreateCareModuleDto } from './dto/create-care-module.dto';
+import { UpdateCareModuleDto } from './dto/update-care-module.dto';
 import { SubmitCareQuizDto } from './dto/submit-care-quiz.dto';
+import { ToggleCareModuleStatusDto } from './dto/toggle-care-module-status.dto';
 import { CareService } from './care.service';
 import { CareChildInsightsQueryDto } from './dto/care-child-insights-query.dto';
 import { CreateCareChildNoteDto } from './dto/create-care-child-note.dto';
@@ -39,15 +46,152 @@ import { CareMonthlyHighlightsQueryDto } from './dto/care-monthly-highlights-que
 export class CareController {
   constructor(private readonly careService: CareService) {}
 
+  @Get('admin/modules')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Get admin care modules dashboard overview (stats, module list, categories, age group, status filters)',
+  })
+  getAdminModules(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query() query: CareModuleQueryDto,
+  ) {
+    return this.careService.getAdminModules(user, query);
+  }
+
+  @Get('admin/modules/:id')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Get admin care learning module preview/details by ID (Module content sections & Quiz questions/options)',
+  })
+  @ApiParam({ name: 'id', description: 'Care Module ID' })
+  getAdminModuleDetail(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') id: string,
+  ) {
+    return this.careService.getAdminModuleDetail(user, id);
+  }
+
   @Post('admin/modules')
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Create a care learning module with quiz' })
-  @ApiBody({ type: CreateCareModuleDto })
+  @ApiOperation({
+    summary: 'Create a care learning module with quiz and optional media files',
+  })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'coverImage', maxCount: 1 },
+      { name: 'video', maxCount: 1 },
+    ]),
+  )
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', example: 'Blueberry Oat Porridge' },
+        description: { type: 'string', example: 'Describe what nannies will learn...' },
+        category: { type: 'string', enum: ['CHILD_SAFETY', 'NUTRITION_FEEDING', 'SLEEP_ROUTINES', 'CHILD_DEVELOPMENT', 'FIRST_AID', 'PLAY_LEARNING', 'COMMUNICATION', 'HEALTH_HYGIENE', 'OTHER'], example: 'NUTRITION_FEEDING' },
+        ageGroup: { type: 'string', example: '1-3 years' },
+        estimatedMinutes: { type: 'number', example: 15, default: 15 },
+        coinReward: { type: 'number', example: 50 },
+        contentTitle: { type: 'string', example: 'Write a tittle' },
+        contentSections: { type: 'string', example: '{"description": "Write a description"}' },
+        keyTakeaway: { type: 'string', example: 'Variability in appetite is normal' },
+        adminStatus: { type: 'string', enum: ['ALL', 'PUBLISHED', 'DRAFT'], example: 'PUBLISHED' },
+        isPublished: { type: 'boolean', example: true },
+        questions: {
+          type: 'string',
+          example: '[{"question":"What is the recommended position?","type":"SINGLE_CHOICE","explanation":"On back","options":[{"label":"Back","isCorrect":true},{"label":"Stomach","isCorrect":false}]}]'
+        },
+        coverImage: { type: 'string', format: 'binary' },
+        video: { type: 'string', format: 'binary' }
+      }
+    }
+  })
   createModule(
     @CurrentUser() user: CurrentUserPayload,
     @Body() dto: CreateCareModuleDto,
+    @UploadedFiles()
+    files?: {
+      coverImage?: Express.Multer.File[];
+      video?: Express.Multer.File[];
+    },
   ) {
-    return this.careService.createModule(user, dto);
+    return this.careService.createModule(user, dto, files);
+  }
+
+  @Patch('admin/modules/:id')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Update a care learning module with quiz and optional media files',
+  })
+  @ApiParam({ name: 'id' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'coverImage', maxCount: 1 },
+      { name: 'video', maxCount: 1 },
+    ]),
+  )
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', example: 'Blueberry Oat Porridge' },
+        description: { type: 'string', example: 'Describe what nannies will learn...' },
+        category: { type: 'string', enum: ['CHILD_SAFETY', 'NUTRITION_FEEDING', 'SLEEP_ROUTINES', 'CHILD_DEVELOPMENT', 'FIRST_AID', 'PLAY_LEARNING', 'COMMUNICATION', 'HEALTH_HYGIENE', 'OTHER'], example: 'NUTRITION_FEEDING' },
+        ageGroup: { type: 'string', example: '1-3 years' },
+        estimatedMinutes: { type: 'number', example: 15, default: 15 },
+        coinReward: { type: 'number', example: 50 },
+        contentTitle: { type: 'string', example: 'Write a tittle' },
+        contentSections: { type: 'string', example: '{"description": "Write a description"}' },
+        keyTakeaway: { type: 'string', example: 'Variability in appetite is normal' },
+        adminStatus: { type: 'string', enum: ['ALL', 'PUBLISHED', 'DRAFT'], example: 'PUBLISHED' },
+        isPublished: { type: 'boolean', example: true },
+        questions: {
+          type: 'string',
+          example: '[{"question":"What is the recommended position?","type":"SINGLE_CHOICE","explanation":"On back","options":[{"label":"Back","isCorrect":true},{"label":"Stomach","isCorrect":false}]}]'
+        },
+        coverImage: { type: 'string', format: 'binary' },
+        video: { type: 'string', format: 'binary' }
+      }
+    }
+  })
+  updateModule(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdateCareModuleDto,
+    @UploadedFiles()
+    files?: {
+      coverImage?: Express.Multer.File[];
+      video?: Express.Multer.File[];
+    },
+  ) {
+    return this.careService.updateModule(user, id, dto, files);
+  }
+
+  @Patch('admin/modules/:id/status')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Toggle or update care module published/draft status (Earth icon click)',
+  })
+  @ApiParam({ name: 'id', description: 'Care Module ID' })
+  toggleModuleStatus(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') id: string,
+    @Body() dto?: ToggleCareModuleStatusDto,
+  ) {
+    return this.careService.toggleModuleStatus(user, id, dto);
+  }
+
+  @Delete('admin/modules/:id')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Delete a care learning module' })
+  @ApiParam({ name: 'id' })
+  deleteModule(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') id: string,
+  ) {
+    return this.careService.deleteModule(user, id);
   }
 
   @Get('modules')

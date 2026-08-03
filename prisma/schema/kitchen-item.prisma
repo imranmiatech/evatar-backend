@@ -8,6 +8,7 @@ model KitchenItem {
   quantity            Float?
   category            KitchenItemCategory        @default(OTHER)
   status              KitchenInventoryItemStatus @default(IN_STOCK)
+  adminStatus         KitchenItemAdminStatus?
   currentStockPercent Int                        @default(100)
   expiryDate          DateTime?
   lastStockedAt       DateTime?

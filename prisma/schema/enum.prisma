@@ -156,6 +156,11 @@ enum KitchenInventoryItemStatus {
   IN_STOCK
 }
 
+enum KitchenItemAdminStatus {
+  ACTIVE
+  ARCHIVE
+}
+
 enum KitchenItemCategory {
   PRODUCE
   DAIRY
@@ -250,9 +255,21 @@ enum Difficulty {
 }
 
 enum CareModuleCategory {
-  FEEDING
-  SLEEP
-  BEHAVIOR
+  CHILD_SAFETY
+  NUTRITION_FEEDING
+  SLEEP_ROUTINES
+  CHILD_DEVELOPMENT
+  FIRST_AID
+  PLAY_LEARNING
+  COMMUNICATION
+  HEALTH_HYGIENE
+  OTHER
+}
+
+enum CareModuleAdminStatus {
+  ALL
+  PUBLISHED
+  DRAFT
 }
 
 enum CareModuleAssignmentStatus {
@@ -263,6 +280,7 @@ enum CareModuleAssignmentStatus {
 
 enum CareQuestionType {
   SINGLE_CHOICE
+  MULTIPLE_CHOICE
   TRUE_FALSE
 }
 

@@ -4,12 +4,15 @@ model CareModule {
   subtitle             String?
   description          String?
   coverImageUrl        String?
+  videoUrl             String?
   category             CareModuleCategory
   estimatedMinutes     Int?
   coinReward           Int                    @default(5)
   contentTitle         String?
   contentSections      Json
+  keyTakeaway          String?
   isPublished          Boolean                @default(false)
+  adminStatus          CareModuleAdminStatus  @default(DRAFT)
   createdByUserId      String?
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
