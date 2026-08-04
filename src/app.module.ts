@@ -22,6 +22,7 @@ import { NannyFeedbackModule } from './modules/nannyfeedback/nannyfeedback.modul
 import { CareModule } from './modules/care/care.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { RewardsModule } from './modules/rewards/rewards.module';
+import { SubscriptionModule } from './modules/subscription/subscription.module';
 
 import { CaregiverModule } from './modules/caregiver/caregiver.module';
 import { ScheduleModule } from './modules/parent/schedule/schedule.module';
@@ -52,6 +53,7 @@ import { ScheduleModule } from './modules/parent/schedule/schedule.module';
     CareModule,
     ProfileModule,
     RewardsModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
