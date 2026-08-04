@@ -3,15 +3,19 @@ model Activity {
   title            String
   imageUrl         String?
   activityType     ActivityType
+  videoUrl         String?
   minAgeMonths     Int?
   maxAgeMonths     Int?
   durationMin      Int?
   durationMax      Int?
   energyLevel      EnergyLevel?
   location         ActivityLocation[]
+  materials        String[]
   connectionMoment String?
   whyThisActivity  String?
   caregiverPrompts String[]
+  safetyNotes      String?
+  status           ContentStatus         @default(DRAFT)
   isActive         Boolean               @default(true)
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt

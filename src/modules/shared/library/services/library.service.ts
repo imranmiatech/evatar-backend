@@ -65,6 +65,7 @@ export class LibraryService {
       title: true,
       imageUrl: true,
       recipeMealType: true,
+      shortDescription: true,
       minAgeMonths: true,
       maxAgeMonths: true,
       prepTimeMin: true,
@@ -131,6 +132,7 @@ export class LibraryService {
       title: r.title,
       imageUrl: r.imageUrl,
       category: r.recipeMealType,
+      shortDescription: r.shortDescription,
       ageSuitability:
         r.minAgeMonths !== null && r.maxAgeMonths !== null
           ? `${this.formatAge(r.minAgeMonths)} - ${this.formatAge(r.maxAgeMonths)}`
@@ -222,9 +224,11 @@ export class LibraryService {
         durationMax: true,
         energyLevel: true,
         location: true,
+        materials: true,
         connectionMoment: true,
         whyThisActivity: true,
         caregiverPrompts: true,
+        safetyNotes: true,
         benefits: {
           select: { id: true, title: true, description: true, iconUrl: true },
         },
@@ -257,9 +261,11 @@ export class LibraryService {
           : null,
       energyLevel: activity.energyLevel,
       location: activity.location,
+      materials: activity.materials,
       connectionMoment: activity.connectionMoment,
       whyThisActivity: activity.whyThisActivity,
       caregiverPrompts: activity.caregiverPrompts,
+      safetyNotes: activity.safetyNotes,
       developmentalBenefits: activity.benefits,
       howToDoIt: activity.steps,
       progressionLevels: activity.progressions,
@@ -274,6 +280,8 @@ export class LibraryService {
         title: true,
         imageUrl: true,
         recipeMealType: true,
+        shortDescription: true,
+        videoUrl: true,
         minAgeMonths: true,
         maxAgeMonths: true,
         prepTimeMin: true,
@@ -281,12 +289,16 @@ export class LibraryService {
         difficulty: true,
         servings: true,
         nutritionalFocus: true,
+        allergens: true,
+        childPreferenceTags: true,
+        cookingTips: true,
         safetyNotes: true,
         ingredients: {
           select: {
             id: true,
             name: true,
             amount: true,
+            unit: true,
             substitute: true,
             isOptional: true,
           },
@@ -309,6 +321,8 @@ export class LibraryService {
       title: recipe.title,
       imageUrl: recipe.imageUrl,
       category: recipe.recipeMealType,
+      shortDescription: recipe.shortDescription,
+      videoUrl: recipe.videoUrl,
       ageSuitability:
         recipe.minAgeMonths !== null && recipe.maxAgeMonths !== null
           ? `${recipe.minAgeMonths}-${recipe.maxAgeMonths}m`
@@ -318,6 +332,9 @@ export class LibraryService {
       difficulty: recipe.difficulty,
       servings: recipe.servings,
       nutritionalFocus: recipe.nutritionalFocus,
+      allergens: recipe.allergens,
+      childPreferenceTags: recipe.childPreferenceTags,
+      cookingTips: recipe.cookingTips,
       ingredients: { required, optional },
       stepByStepInstructions: recipe.steps,
       safetyNotes: recipe.safetyNotes,

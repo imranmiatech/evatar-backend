@@ -1,4 +1,4 @@
-import { PrismaClient, RecipeMealType, Difficulty } from '@prisma/client';
+import { PrismaClient, RecipeMealType, Difficulty, ContentStatus } from '@prisma/client';
 
 export async function seedRecipes(prisma: PrismaClient) {
     const recipesData = [
@@ -208,6 +208,8 @@ export async function seedRecipes(prisma: PrismaClient) {
                 servings: recipe.servings,
                 nutritionalFocus: recipe.nutritionalFocus,
                 safetyNotes: recipe.safetyNotes,
+                status: ContentStatus.PUBLISHED,
+                isActive: true,
                 ingredients: {
                     create: recipe.ingredients,
                 },

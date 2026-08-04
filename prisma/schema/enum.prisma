@@ -252,6 +252,7 @@ enum Difficulty {
   EASY
   MEDIUM
   HARD
+  DIFFICULT
 }
 
 enum CareModuleCategory {
@@ -334,6 +335,13 @@ enum ItemUnit {
   KG
   PCS
   PACK
+  TBSP
+  TSP
+  CUP
+  UNIT
+  MEDIUM
+  LARGE
+  SLICE
   OTHER
 }
 
@@ -392,4 +400,9 @@ enum RewardOfferChannel {
 enum RewardClaimMethod {
   ONLINE
   IN_STORE
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
 }

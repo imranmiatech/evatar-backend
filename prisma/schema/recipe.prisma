@@ -3,6 +3,8 @@ model Recipe {
   title            String
   imageUrl         String?
   recipeMealType   RecipeMealType
+  shortDescription String?
+  videoUrl         String?
   minAgeMonths     Int?
   maxAgeMonths     Int?
   prepTimeMin      Int?
@@ -10,7 +12,11 @@ model Recipe {
   difficulty       Difficulty?
   servings         String?
   nutritionalFocus String[]
+  allergens        String[]
+  childPreferenceTags String[]
+  cookingTips      String?
   safetyNotes      String?
+  status           ContentStatus      @default(DRAFT)
   isActive         Boolean            @default(true)
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
@@ -27,6 +33,7 @@ model RecipeIngredient {
   recipeId   String
   name       String
   amount     String
+  unit       ItemUnit?
   substitute String?
   isOptional Boolean @default(false)
   recipe     Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
