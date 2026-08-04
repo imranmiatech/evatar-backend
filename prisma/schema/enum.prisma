@@ -406,3 +406,23 @@ enum ContentStatus {
   DRAFT
   PUBLISHED
 }
+
+enum SubscriptionStatus {
+  FREE_TRIAL
+  ACTIVE
+  PAUSED
+  CANCELLED
+  EXPIRED
+}
+
+enum SubscriptionInterval {
+  MONTHLY
+  ANNUALLY
+}
+
+enum CancellationReason {
+  TOO_EXPENSIVE
+  NOT_USING_ENOUGH
+  SWITCHING_PROVIDERS
+  SOMETHING_ELSE
+}
