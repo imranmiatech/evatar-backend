@@ -1,66 +1,66 @@
 model User {
-  id                            String                    @id @default(uuid())
+  id                            String                       @id @default(uuid())
   fullName                      String
-  email                         String                    @unique
-  phoneNumber                   String?                   @unique
+  email                         String                       @unique
+  phoneNumber                   String?                      @unique
   relationShip                  String?
   passwordHash                  String
   profilePictureUrl             String?
-  preferredLanguage             String?                   @default("en")
-  role                          UserRole                  @default(PARENT)
-  isEmailVerified               Boolean                   @default(false)
-  isPhoneVerified               Boolean                   @default(false)
-  termsAccepted                 Boolean                   @default(true)
-  verificationStatus            VerificationStatus        @default(PENDING)
+  preferredLanguage             String?                      @default("en")
+  role                          UserRole                     @default(PARENT)
+  isEmailVerified               Boolean                      @default(false)
+  isPhoneVerified               Boolean                      @default(false)
+  termsAccepted                 Boolean                      @default(true)
+  verificationStatus            VerificationStatus           @default(PENDING)
   rejectionReason               String?
   reviewedBy                    String?
   reviewedAt                    DateTime?
   vendorApplicantId             String?
-  createdAt                     DateTime                  @default(now())
-  updatedAt                     DateTime                  @updatedAt
-  status                        UserStatus                @default(PENDING)
+  createdAt                     DateTime                     @default(now())
+  updatedAt                     DateTime                     @updatedAt
+  status                        UserStatus                   @default(PENDING)
   accountDeletion               AccountDeletion?
-  bedtimeStoryAudios            BedtimeStoryAudio[]       @relation("UserBedtimeStoryAudios")
-  sentCaregiverInvites          CaregiverAccess[]         @relation("CaregiverAccessInvitedBy")
-  caregiverAccesses             CaregiverAccess[]         @relation("CaregiverAccessInvitedUser")
+  bedtimeStoryAudios            BedtimeStoryAudio[]          @relation("UserBedtimeStoryAudios")
+  sentCaregiverInvites          CaregiverAccess[]            @relation("CaregiverAccessInvitedBy")
+  caregiverAccesses             CaregiverAccess[]            @relation("CaregiverAccessInvitedUser")
   chatMessages                  ChatMessage[]
-  child                         Child[]                   @relation("ParentChildren")
-  createdConversations          Conversation[]            @relation("ConversationCreatedBy")
+  child                         Child[]                      @relation("ParentChildren")
+  createdConversations          Conversation[]               @relation("ConversationCreatedBy")
   conversationParticipants      ConversationParticipant[]
-  submittedDayActivityFeedbacks DayActivityFeedback[]     @relation("UserSubmittedDayActivityFeedbacks")
-  uploadedDayActivityProofs     DayActivityProof[]        @relation("UserUploadedDayActivityProofs")
+  submittedDayActivityFeedbacks DayActivityFeedback[]        @relation("UserSubmittedDayActivityFeedbacks")
+  uploadedDayActivityProofs     DayActivityProof[]           @relation("UserUploadedDayActivityProofs")
   kycVerifications              KycVerification[]
-  mediaAssets                   MediaAsset[]              @relation("UserMediaAssets")
-  nannyChildLinks               NannyChildLink[]          @relation("NannyChildren")
-  nannyPortfolioHighlights      NannyPortfolioHighlight[] @relation("UserNannyPortfolioHighlights")
+  mediaAssets                   MediaAsset[]                 @relation("UserMediaAssets")
+  nannyChildLinks               NannyChildLink[]             @relation("NannyChildren")
+  nannyPortfolioHighlights      NannyPortfolioHighlight[]    @relation("UserNannyPortfolioHighlights")
   nannyProfile                  NannyProfile?
   otpCodes                      OtpCode[]
   parentProfile                 ParentProfile?
   supportTickets                SupportTicket[]
   ticketMessages                TicketMessage[]
-  authoredCareChildNotes        CareChildNote[]           @relation("CareChildNotesAuthored")
-  careAssignmentsAssignedBy     CareModuleAssignment[]    @relation("CareAssignmentsAssignedBy")
-  careAssignmentsForNanny       CareModuleAssignment[]    @relation("CareAssignmentsForNanny")
-  savedCareModules              CareModuleSave[]          @relation("CareModuleSaves")
-  createdCareModules            CareModule[]              @relation("CareModulesCreatedBy")
-  childSchedules                ChildSchedule[]           @relation("UserChildSchedules")
+  authoredCareChildNotes        CareChildNote[]              @relation("CareChildNotesAuthored")
+  careAssignmentsAssignedBy     CareModuleAssignment[]       @relation("CareAssignmentsAssignedBy")
+  careAssignmentsForNanny       CareModuleAssignment[]       @relation("CareAssignmentsForNanny")
+  savedCareModules              CareModuleSave[]             @relation("CareModuleSaves")
+  createdCareModules            CareModule[]                 @relation("CareModulesCreatedBy")
+  childSchedules                ChildSchedule[]              @relation("UserChildSchedules")
   groceryOrders                 GroceryOrder[]
-  kitchenInventoryCreated       KitchenItem[]             @relation("KitchenInventoryCreatedBy")
-  kitchenInventoryUpdated       KitchenItem[]             @relation("KitchenInventoryUpdatedBy")
+  kitchenInventoryCreated       KitchenItem[]                @relation("KitchenInventoryCreatedBy")
+  kitchenInventoryUpdated       KitchenItem[]                @relation("KitchenInventoryUpdatedBy")
   kitchenItems                  KitchenItem[]
   paymentMethods                PaymentMethod[]
   rewardAccount                 RewardAccount?
   rewardLedgerEntries           RewardLedgerEntry[]
-  rewardOffers                  RewardOffer[]             @relation("PartnerRewardOffers")
-  usedRewardRedemptions         RewardRedemption[]        @relation("PartnerUsedRewardRedemptions")
+  rewardOffers                  RewardOffer[]                @relation("PartnerRewardOffers")
+  usedRewardRedemptions         RewardRedemption[]           @relation("PartnerUsedRewardRedemptions")
   rewardRedemptions             RewardRedemption[]
   rewardSavedOffers             RewardSavedOffer[]
   shoppingListItems             ShoppingListItem[]
   stores                        Store[]
-  transactions                  Transaction[]
-  userSubscription              UserSubscription?
   subscriptionFeedbacks         SubscriptionCancelFeedback[]
   subscriptionInvoices          SubscriptionInvoice[]
+  transactions                  Transaction[]
+  userSubscription              UserSubscription?
 
   @@index([role])
   @@index([verificationStatus])

@@ -1,16 +1,15 @@
 model SubscriptionPlan {
-  id          String               @id @default(uuid())
-  name        String
-  maxChildren Int
-  price       Float
-  currency    String               @default("AED")
-  interval    SubscriptionInterval @default(MONTHLY)
-  savingsText String?
-  features    String[]
-  isActive    Boolean              @default(true)
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-
+  id            String               @id @default(uuid())
+  name          String
+  maxChildren   Int
+  price         Float
+  currency      String               @default("AED")
+  interval      SubscriptionInterval @default(MONTHLY)
+  savingsText   String?
+  features      String[]
+  isActive      Boolean              @default(true)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
   subscriptions UserSubscription[]
 
   @@map("subscription_plans")
@@ -25,26 +24,18 @@ model UserSubscription {
   currentPeriodStart DateTime           @default(now())
   currentPeriodEnd   DateTime
   nextBillingDate    DateTime?
-
-  // Pause details
   isPaused           Boolean            @default(false)
   pausedAt           DateTime?
   resumeAt           DateTime?
   pauseDurationWeeks Int?
-
-  // Cancellation details
   isCancelled        Boolean            @default(false)
   cancelledAt        DateTime?
   accessEndsAt       DateTime?
-
-  // Payment failure details
-  isPaymentFailed    Boolean            @default(false)
-
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
-
-  user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan SubscriptionPlan @relation(fields: [planId], references: [id])
+  isPaymentFailed    Boolean            @default(false)
+  plan               SubscriptionPlan   @relation(fields: [planId], references: [id])
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_subscriptions")
 }
@@ -56,8 +47,7 @@ model SubscriptionCancelFeedback {
   reason         CancellationReason
   detailNote     String?
   createdAt      DateTime           @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("subscription_cancel_feedbacks")
 }
@@ -72,8 +62,7 @@ model SubscriptionInvoice {
   failureReason String?
   invoiceDate   DateTime          @default(now())
   invoiceUrl    String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("subscription_invoices")
 }

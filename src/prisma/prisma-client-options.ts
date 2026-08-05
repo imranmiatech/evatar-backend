@@ -1,17 +1,22 @@
+import 'dotenv/config';
+import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import type { PrismaClientOptions } from '@prisma/client/runtime/client';
 
-function getDatabaseUrl() {
-  const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error('DIRECT_URL or DATABASE_URL is not set');
-  }
-
-  return connectionString;
-}
-
 export function createPrismaClientOptions(): PrismaClientOptions {
-  const adapter = new PrismaPg(getDatabaseUrl());
+  const pool = new Pool({
+    host: '18.226.144.228',
+    port: 5432,
+    user: 'neondb_owner',
+    password: 'npg_shIWBJx9dUb3',
+    database: 'neondb',
+    ssl: {
+      rejectUnauthorized: false,
+      servername: 'ep-dawn-unit-ay8weiq0-pooler.c-5.us-east-2.aws.neon.tech',
+    },
+  });
 
-  return { adapter };
+  const adapter = new PrismaPg(pool);
+
+  return { adapter } as any;
 }

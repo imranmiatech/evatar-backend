@@ -1,4 +1,4 @@
-import { PrismaClient, ActivityType, EnergyLevel, ActivityLocation, ContentStatus } from '@prisma/client';
+import { PrismaClient, ActivityType, EnergyLevel, ActivityLocation } from '@prisma/client';
 
 export async function seedActivities(prisma: PrismaClient) {
     const activitiesData = [
@@ -292,7 +292,6 @@ export async function seedActivities(prisma: PrismaClient) {
                 connectionMoment: activity.connectionMoment,
                 whyThisActivity: activity.whyThisActivity,
                 caregiverPrompts: activity.caregiverPrompts,
-                status: ContentStatus.PUBLISHED,
                 isActive: true,
                 benefits: {
                     create: activity.benefits,

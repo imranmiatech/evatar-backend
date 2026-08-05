@@ -8,13 +8,13 @@ model KitchenItem {
   quantity            Float?
   category            KitchenItemCategory        @default(OTHER)
   status              KitchenInventoryItemStatus @default(IN_STOCK)
-  adminStatus         KitchenItemAdminStatus?
   currentStockPercent Int                        @default(100)
   expiryDate          DateTime?
   lastStockedAt       DateTime?
   notes               String?
   createdAt           DateTime                   @default(now())
   updatedAt           DateTime                   @updatedAt
+  adminStatus         KitchenItemAdminStatus?
   createdByUser       User                       @relation("KitchenInventoryCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
   lastUpdatedByUser   User?                      @relation("KitchenInventoryUpdatedBy", fields: [lastUpdatedByUserId], references: [id])
   user                User                       @relation(fields: [userId], references: [id], onDelete: Cascade)

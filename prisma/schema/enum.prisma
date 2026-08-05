@@ -281,8 +281,8 @@ enum CareModuleAssignmentStatus {
 
 enum CareQuestionType {
   SINGLE_CHOICE
-  MULTIPLE_CHOICE
   TRUE_FALSE
+  MULTIPLE_CHOICE
 }
 
 enum DayOfWeek {
@@ -335,6 +335,7 @@ enum ItemUnit {
   KG
   PCS
   PACK
+  OTHER
   TBSP
   TSP
   CUP
@@ -342,7 +343,6 @@ enum ItemUnit {
   MEDIUM
   LARGE
   SLICE
-  OTHER
 }
 
 enum TransactionStatus {
@@ -402,11 +402,6 @@ enum RewardClaimMethod {
   IN_STORE
 }
 
-enum ContentStatus {
-  DRAFT
-  PUBLISHED
-}
-
 enum SubscriptionStatus {
   FREE_TRIAL
   ACTIVE
@@ -425,4 +420,9 @@ enum CancellationReason {
   NOT_USING_ENOUGH
   SWITCHING_PROVIDERS
   SOMETHING_ELSE
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
 }
