@@ -68,9 +68,11 @@ async function bootstrap() {
 
   const expressApp = app.getHttpAdapter().getInstance();
   
-  expressApp.get(['/admin-user-management.html', '/api/v1/admin/users/ui', '/admin-users-ui'], (req: any, res: any) => {
-    res.sendFile(require('path').join(process.cwd(), 'admin-user-management.html'));
+  expressApp.get('/', (req: any, res: any) => {
+    res.redirect('/api/docs');
   });
+
+ 
 
   await app.listen(process.env.PORT ?? 5000);
 }
