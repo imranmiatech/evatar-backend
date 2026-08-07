@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, UserRole, UserStatus } from '@prisma/client';
@@ -35,6 +36,7 @@ type ConversationWithLatestMessage = Prisma.ConversationGetPayload<{
 
 @Injectable()
 export class MessageService {
+  private readonly logger = new Logger(MessageService.name);
   constructor(private readonly prisma: PrismaService) {}
 
   async getContacts(currentUserId: string) {
@@ -52,7 +54,15 @@ export class MessageService {
   }
 
   async createConversation(userId: string, dto: CreateConversationDto) {
-    const participantIds = [...new Set([userId, ...dto.participantIds])];
+    this.logger.log(`createConversation called — userId: "${userId}" dto: ${JSON.stringify(dto)}`);
+    if (!userId) {
+      throw new ForbiddenException('Valid authentication token is required to create a conversation');
+    }
+
+    // Filter out any undefined/null/empty values before passing to Prisma
+    const participantIds = [
+      ...new Set([userId, ...dto.participantIds].filter((id): id is string => !!id)),
+    ];
 
     if (participantIds.length < 2) {
       throw new BadRequestException(
@@ -185,6 +195,10 @@ export class MessageService {
   }
 
   async assertParticipant(userId: string, conversationId: string) {
+    if (!userId) {
+      throw new ForbiddenException('User authentication is required');
+    }
+
     const participant = await this.prisma.conversationParticipant.findUnique({
       where: {
         conversationId_userId: {

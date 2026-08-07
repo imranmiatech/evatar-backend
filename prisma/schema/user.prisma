@@ -61,6 +61,8 @@ model User {
   subscriptionInvoices          SubscriptionInvoice[]
   transactions                  Transaction[]
   userSubscription              UserSubscription?
+  notifications                 Notification[]
+  deviceTokens                  UserDeviceToken[]
 
   @@index([role])
   @@index([verificationStatus])

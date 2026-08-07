@@ -1,0 +1,47 @@
+enum NotificationType {
+  ACTIVITY_COMPLETED
+  NUTRITION_COMPLETED
+  NEW_MESSAGE
+  GROCERY_DELIVERED
+  STORY_SAVED
+  CARE_MODULE_COMPLETED
+  INVITATION_ACCEPTED
+  PARTNER_OFFER
+  WEEKLY_INSIGHT
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String
+  type        NotificationType
+  title       String
+  message     String
+  iconType    String?          // 'CHECK', 'FOOD', 'CHAT', 'CART', 'BOOK', 'AVATAR', 'GIFT', 'INSIGHT'
+  avatarUrl   String?          // Profile avatar image URL
+  actionText  String?          // 'View Activity', 'Open Chat', 'Read Story', 'Manage Access', etc.
+  actionUrl   String?          // Route path or deeplink e.g. '/activities/123', '/chat/456'
+  isRead      Boolean          @default(false)
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model UserDeviceToken {
+  id          String   @id @default(uuid())
+  userId      String
+  fcmToken    String   @unique
+  deviceType  String?  // 'ANDROID', 'IOS', 'WEB'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_device_tokens")
+}

@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Evatar Admin - User Management Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0F5B64;
+      --primary-hover: #0a444b;
+      --primary-light: #e6f2f3;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
+      --success-bg: #E6F4EA;
+      --success-text: #1E7E34;
+      --danger-bg: #FEE2E2;
+      --danger-text: #DC2626;
+      --warning-bg: #FEF3C7;
+      --warning-text: #D97706;
+      --badge-purple: #F3E8FF;
+      --badge-purple-text: #7E22CE;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
+
+    .container { max-width: 1280px; margin: 0 auto; }
+
+    /* Login Overlay */
+    #loginOverlay {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .login-card {
+      background: #fff; width: 100%; max-width: 420px; padding: 32px; border-radius: 20px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); text-align: center;
+    }
+    .login-card h2 { color: var(--primary); margin-bottom: 8px; font-size: 24px; }
+    .login-card p { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
+    .form-group { margin-bottom: 16px; text-align: left; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .form-group input {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;
+      font-size: 14px; outline: none; transition: 0.2s;
+    }
+    .form-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 91, 100, 0.15); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 10px 20px; border-radius: 12px; font-weight: 600; font-size: 14px;
+      cursor: pointer; border: none; transition: all 0.2s; text-decoration: none;
+    }
+    .btn-primary { background: var(--primary); color: #fff; width: 100%; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-danger { background: var(--danger-bg); color: var(--danger-text); border: 1px solid rgba(220, 38, 38, 0.2); }
+    .btn-danger:hover { background: #fca5a5; }
+
+    /* Top Bar */
+    .header-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--card-bg); padding: 16px 24px; border-radius: 16px;
+      margin-bottom: 24px; box-shadow: var(--shadow); border: 1px solid var(--border);
+    }
+    .logo-area { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { width: 40px; height: 40px; background: var(--primary); color: #fff; border-radius: 10px; display: grid; place-items: center; font-weight: 700; }
+    .token-status { font-size: 12px; color: var(--success-text); background: var(--success-bg); padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+
+    /* Metrics Grid */
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .metric-card {
+      background: var(--card-bg); padding: 20px; border-radius: 16px; border: 1px solid var(--border);
+      box-shadow: var(--shadow); transition: transform 0.2s;
+    }
+    .metric-card:hover { transform: translateY(-2px); }
+    .metric-title { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+    .metric-value-row { display: flex; align-items: baseline; justify-content: space-between; }
+    .metric-value { font-size: 26px; font-weight: 700; color: var(--text); }
+    .metric-growth { font-size: 12px; font-weight: 600; color: var(--success-text); }
+
+    /* Table & Controls */
+    .controls-card {
+      background: var(--card-bg); padding: 16px 20px; border-radius: 16px; border: 1px solid var(--border);
+      margin-bottom: 24px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    }
+    .filter-group { display: flex; gap: 12px; flex-wrap: wrap; flex: 1; }
+    .filter-input, .filter-select {
+      padding: 8px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; outline: none; background: #fff;
+    }
+    .filter-input { min-width: 240px; flex: 1; }
+
+    .table-container { background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow); }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { background: #F8FAFC; padding: 14px 20px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    td { padding: 16px 20px; font-size: 14px; border-bottom: 1px solid var(--border); }
+    tr:hover { background: #F8FAFC; }
+    .user-cell { display: flex; align-items: center; gap: 12px; }
+    .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 14px; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-active { background: var(--success-bg); color: var(--success-text); }
+    .badge-suspended { background: var(--danger-bg); color: var(--danger-text); }
+    .badge-trial { background: var(--warning-bg); color: var(--warning-text); }
+    .badge-role { background: #E0F2FE; color: #0369A1; }
+
+    /* Drawer Modal */
+    .drawer-overlay {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px);
+      display: none; justify-content: flex-end; z-index: 500;
+    }
+    .drawer-overlay.open { display: flex; }
+    .drawer {
+      width: 100%; max-width: 620px; background: #fff; height: 100%; display: flex; flex-direction: column;
+      box-shadow: -10px 0 30px rgba(0,0,0,0.15); animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+    .drawer-header {
+      padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;
+    }
+    .drawer-header-left { display: flex; align-items: center; gap: 14px; }
+    .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); }
+
+    /* Tabs Navigation */
+    .tabs-nav {
+      display: flex; gap: 4px; padding: 0 24px; border-bottom: 1px solid var(--border); background: #fff; overflow-x: auto;
+    }
+    .tab-btn {
+      padding: 14px 16px; font-size: 13px; font-weight: 600; color: var(--text-muted); border: none; background: none;
+      cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: 0.2s;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .drawer-body { flex: 1; overflow-y: auto; padding: 24px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Membership Tab Styling */
+    .plan-card {
+      background: var(--primary); color: #fff; padding: 20px; border-radius: 16px; margin-bottom: 20px;
+    }
+    .plan-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .plan-card-title { font-size: 22px; font-weight: 700; }
+    
+    .info-table { width: 100%; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 20px; }
+    .info-row { display: flex; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--text-muted); font-weight: 500; }
+    .info-value { font-weight: 600; }
+
+    .action-buttons { display: flex; gap: 10px; margin-bottom: 24px; }
+
+    /* Child & Family Cards */
+    .card-item { background: #F8FAFC; border-radius: 12px; padding: 14px 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 14px; }
+    .circle-avatar { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: #fff; }
+
+    /* Analytics Bars */
+    .bar-group { margin-bottom: 16px; }
+    .bar-label-row { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .bar-track { height: 8px; background: #E2E8F0; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--primary); border-radius: 4px; }
+
+    /* Sub-Modals (Extend Trial / Upgrade Plan) */
+    .sub-modal-overlay {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(2px);
+      display: none; align-items: center; justify-content: center; z-index: 600;
+    }
+    .sub-modal-overlay.open { display: flex; }
+    .sub-modal { background: #fff; width: 90%; max-width: 480px; border-radius: 20px; padding: 24px; box-shadow: var(--shadow); }
+
+    .quick-select-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+    .quick-pill {
+      padding: 10px; text-align: center; border: 1px solid var(--border); border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 13px;
+    }
+    .quick-pill.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+
+    .stepper { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 16px 0; }
+    .step-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: #fff; cursor: pointer; font-weight: 700; font-size: 16px; }
+
+    /* Persistent Bottom Drawer Container */
+    .drawer-footer {
+      padding: 16px 24px; border-top: 1px solid var(--border); background: #fff; display: flex; gap: 12px;
+    }
+    .btn-send-message { background: var(--primary); color: #fff; flex: 2; }
+    .btn-suspend-action { background: #FFF5F5; border: 1px solid #FEB2B2; color: #E53E3E; flex: 1; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Top Bar -->
+  <div class="header-bar">
+    <div class="logo-area">
+      <div class="logo-icon">EV</div>
+      <div>
+        <h3 style="font-size: 16px;">EvaTurner Admin Management</h3>
+        <p style="font-size: 12px; color: var(--text-muted);">Real-time User Dashboard & Member Control</p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span class="token-status" id="authBadge">Logged In</span>
+      <button class="btn btn-outline" onclick="openLoginModal()" style="padding: 6px 12px; font-size: 12px;">Auth Config</button>
+    </div>
+  </div>
+
+  <!-- Metric Cards -->
+  <div class="metrics-grid" id="metricsGrid">
+    <div class="metric-card"><div class="metric-title">Total Users</div><div class="metric-value-row"><div class="metric-value" id="mTotal">--</div><div class="metric-growth">+1.8%</div></div></div>
+    <div class="metric-card"><div class="metric-title">Active Today</div><div class="metric-value-row"><div class="metric-value" id="mActive">--</div><div class="metric-growth">+3.4%</div></div></div>
+    <div class="metric-card"><div class="metric-title">New This Week</div><div class="metric-value-row"><div class="metric-value" id="mNew">--</div><div class="metric-growth">+7.3%</div></div></div>
+    <div class="metric-card"><div class="metric-title">Trial Users</div><div class="metric-value-row"><div class="metric-value" id="mTrial">--</div><div class="metric-growth">+5.9%</div></div></div>
+    <div class="metric-card"><div class="metric-title">Paid Members</div><div class="metric-value-row"><div class="metric-value" id="mPaid">--</div><div class="metric-growth">+3.3%</div></div></div>
+    <div class="metric-card"><div class="metric-title">Suspended</div><div class="metric-value-row"><div class="metric-value" id="mSuspended">--</div><div class="metric-growth">+20%</div></div></div>
+  </div>
+
+  <!-- Filter & Controls -->
+  <div class="controls-card">
+    <div class="filter-group">
+      <input type="text" id="searchInput" class="filter-input" placeholder="Search by name, email, phone..." onkeyup="if(event.key==='Enter') fetchUsers()"/>
+      <select id="roleSelect" class="filter-select" onchange="fetchUsers()">
+        <option value="ALL">All Roles</option>
+        <option value="PARENT">Parent</option>
+        <option value="NANNY">Nanny</option>
+        <option value="ADMIN">Admin</option>
+      </select>
+      <select id="statusSelect" class="filter-select" onchange="fetchUsers()">
+        <option value="ALL">All Statuses</option>
+        <option value="ACTIVE">Active</option>
+        <option value="TRIAL">Trial</option>
+        <option value="SUSPENDED">Suspended</option>
+      </select>
+      <select id="planSelect" class="filter-select" onchange="fetchUsers()">
+        <option value="ALL">All Plans</option>
+        <option value="Starter">Starter</option>
+        <option value="Family">Family</option>
+        <option value="Premium">Premium</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="fetchUsers()" style="width: auto;">Refresh List</button>
+  </div>
+
+  <!-- Users Table -->
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>User Profile</th>
+          <th>Role</th>
+          <th>Plan</th>
+          <th>Status</th>
+          <th>Joined</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="userTableBody">
+        <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Loading users...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Login Overlay -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <h2>Admin Authorization</h2>
+    <p style="margin-bottom: 16px;">Sign in with your admin credentials or paste your Bearer Token to access live data</p>
+    <div class="form-group">
+      <label>Backend API Base URL</label>
+      <input type="text" id="apiBaseUrl" value="http://localhost:5000"/>
+    </div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="loginEmail" value="admin@example.com"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="loginPassword" value="123456"/>
+    </div>
+    <button class="btn btn-primary" onclick="handleLogin()" style="margin-bottom: 16px;">Sign In with Credentials</button>
+    
+    <div style="border-top: 1px solid var(--border); padding-top: 16px; margin-top: 8px;">
+      <div class="form-group">
+        <label>Or Paste Admin Bearer Token</label>
+        <input type="text" id="directTokenInput" placeholder="eyJhbGciOiJIUzI1Ni..."/>
+      </div>
+      <button class="btn btn-outline" onclick="saveDirectToken()" style="width: 100%;">Save Bearer Token & Load Dashboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- User Detail Drawer -->
+<div class="drawer-overlay" id="drawerOverlay">
+  <div class="drawer">
+    <!-- Header -->
+    <div class="drawer-header">
+      <div class="drawer-header-left">
+        <div class="avatar" id="dAvatar">SO</div>
+        <div>
+          <h4 id="dName" style="font-size: 16px;">Sarah O'Brien</h4>
+          <p id="dEmail" style="font-size: 12px; color: var(--text-muted);">sarah.obrien@example.ie</p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span class="badge badge-active" id="dStatusBadge">Active</span>
+        <button class="close-btn" onclick="closeDrawer()">&times;</button>
+      </div>
+    </div>
+
+    <!-- Tabs Nav -->
+    <div class="tabs-nav">
+      <button class="tab-btn active" onclick="switchTab('profile')">Profile</button>
+      <button class="tab-btn" onclick="switchTab('family')">Family</button>
+      <button class="tab-btn" onclick="switchTab('membership')">Membership</button>
+      <button class="tab-btn" onclick="switchTab('aiUsage')">AI Usage</button>
+      <button class="tab-btn" onclick="switchTab('rewards')">Rewards</button>
+      <button class="tab-btn" onclick="switchTab('documents')">Documents</button>
+      <button class="tab-btn" onclick="switchTab('analytics')">Analytics</button>
+    </div>
+
+    <!-- Drawer Content Body -->
+    <div class="drawer-body">
+      <!-- 1. Profile Tab -->
+      <div class="tab-content active" id="tab-profile">
+        <div style="display: flex; align-items: center; justify-content: space-between; background: #F8FAFC; padding: 16px; border-radius: 16px; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="avatar" style="width: 48px; height: 48px; font-size: 18px;" id="pAvatar">SO</div>
+            <div>
+              <h3 id="pName" style="font-size: 16px;">Sarah O'Brien</h3>
+              <div style="display: flex; gap: 6px; margin-top: 4px;">
+                <span class="badge badge-role" id="pRoleBadge">Parent</span>
+                <span class="badge badge-active" id="pStatusBadge">Active</span>
+                <span class="badge" style="background: var(--badge-purple); color: var(--badge-purple-text);" id="pPlanBadge">Family</span>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-outline" id="btnEditProfile" onclick="toggleEditProfile()" style="padding: 6px 14px; font-size: 13px;">Edit</button>
+        </div>
+
+        <div id="profileFields">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="inpFullName" value="Sarah O'Brien" readonly/>
+          </div>
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="inpEmail" value="sarah.obrien@example.ie" readonly/>
+          </div>
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="text" id="inpPhone" value="+353 87 234 5678" readonly/>
+          </div>
+          <div class="form-group">
+            <label>Country</label>
+            <input type="text" id="inpCountry" value="Ireland" readonly/>
+          </div>
+          <div class="form-group">
+            <label>Registration Date</label>
+            <input type="text" id="inpJoined" value="Jan 12, 2024" readonly/>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Family Tab -->
+      <div class="tab-content" id="tab-family">
+        <h4 style="font-size: 14px; color: var(--text-muted); margin-bottom: 12px;">Children (<span id="famChildCount">2</span>)</h4>
+        <div id="famChildrenList"></div>
+
+        <h4 style="font-size: 14px; color: var(--text-muted); margin-top: 20px; margin-bottom: 12px;">Family Members</h4>
+        <div id="famMembersList"></div>
+
+        <h4 style="font-size: 14px; color: var(--text-muted); margin-top: 20px; margin-bottom: 12px;">Assigned Nanny</h4>
+        <div id="famNannyCard"></div>
+      </div>
+
+      <!-- 3. Membership Tab -->
+      <div class="tab-content" id="tab-membership">
+        <div class="plan-card">
+          <div style="font-size: 12px; opacity: 0.8; text-transform: uppercase;">Current Plan</div>
+          <div class="plan-card-header">
+            <div class="plan-card-title" id="mPlanTitle">Family</div>
+            <span class="badge badge-active" id="mPlanBadge">Active</span>
+          </div>
+        </div>
+
+        <div class="info-table">
+          <div class="info-row"><span class="info-label">Subscription Status</span><span class="info-value" id="mSubStatus">Active</span></div>
+          <div class="info-row"><span class="info-label">Trial Remaining</span><span class="info-value" id="mTrialRem">—</span></div>
+          <div class="info-row"><span class="info-label">Renewal Date</span><span class="info-value" id="mRenewalDate">Aug 12, 2026</span></div>
+          <div class="info-row"><span class="info-label">Billing Status</span><span class="info-value" style="color: var(--success-text);" id="mBillingStatus">Current</span></div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn btn-outline" onclick="openUpgradePlanModal()"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg> Manage Plan</button>
+          <button class="btn btn-primary" onclick="openExtendTrialModal()" style="width: auto;"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Extend Trial</button>
+          <button class="btn btn-danger" onclick="handleCancelSubscription()">&times; Cancel Subscription</button>
+        </div>
+      </div>
+
+      <!-- 4. AI Usage Tab -->
+      <div class="tab-content" id="tab-aiUsage">
+        <div class="info-table" style="margin-top: 10px;">
+          <div class="info-row"><span class="info-label">Daily Limit</span><span class="info-value" id="aiDailyLimit">Unlimited</span></div>
+          <div class="info-row"><span class="info-label">Used Today</span><span class="info-value" id="aiUsedToday">12 requests</span></div>
+          <div class="info-row"><span class="info-label">Remaining Allowance</span><span class="info-value" id="aiRemaining">Unlimited</span></div>
+          <div class="info-row"><span class="info-label">Total Requests (This Month)</span><span class="info-value" id="aiTotalMonth">145</span></div>
+        </div>
+      </div>
+
+      <!-- 5. Rewards Tab -->
+      <div class="tab-content" id="tab-rewards">
+        <div class="plan-card" style="background: #064E3B;">
+          <div style="font-size: 12px; opacity: 0.8; text-transform: uppercase;">Current Balance</div>
+          <div class="plan-card-title" style="font-size: 32px;" id="rewBalance">840 pts</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+          <div style="background: #F8FAFC; padding: 16px; border-radius: 14px; text-align: center; border: 1px solid var(--border);">
+            <div style="font-size: 20px; font-weight: 700;" id="rewEarned">1240</div>
+            <div style="font-size: 12px; color: var(--text-muted);">Lifetime Earned</div>
+          </div>
+          <div style="background: #F8FAFC; padding: 16px; border-radius: 14px; text-align: center; border: 1px solid var(--border);">
+            <div style="font-size: 20px; font-weight: 700;" id="rewSpent">400</div>
+            <div style="font-size: 12px; color: var(--text-muted);">Lifetime Redeemed</div>
+          </div>
+        </div>
+
+        <h4 style="font-size: 14px; color: var(--text-muted); margin-bottom: 12px;">Recent Activity</h4>
+        <div id="rewLedgerList"></div>
+      </div>
+
+      <!-- 6. Documents Tab -->
+      <div class="tab-content" id="tab-documents">
+        <div id="documentsList"></div>
+      </div>
+
+      <!-- 7. Analytics Tab -->
+      <div class="tab-content" id="tab-analytics">
+        <h4 style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">Feature Usage</h4>
+        <div id="analyticsBars"></div>
+
+        <div style="background: #FEF3C7; border: 1px solid #FDE68A; padding: 16px; border-radius: 14px; margin-top: 20px; display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 24px;">🎯</span>
+          <div>
+            <div style="font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase;">Highest Drop-off Screen</div>
+            <div style="font-size: 15px; font-weight: 700; color: #78350F;" id="analyticsDropOff">Progress Milestones</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Persistent Bottom Action Bar -->
+    <div class="drawer-footer">
+      <button class="btn btn-send-message" onclick="openSendMessageModal()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+        Send Message
+      </button>
+      <button class="btn btn-suspend-action" onclick="openSuspendModal()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+        Suspend
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 1: Extend Trial -->
+<div class="sub-modal-overlay" id="extendTrialModal">
+  <div class="sub-modal">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 style="font-size: 18px;">Extend Trial</h3>
+      <button class="close-btn" onclick="closeSubModal('extendTrialModal')">&times;</button>
+    </div>
+    <p style="font-size: 13px; color: var(--text-muted);">Add days to user's trial period</p>
+
+    <div style="background: #EFF6FF; border: 1px solid #BFDBFE; padding: 12px 16px; border-radius: 12px; margin: 16px 0; display: flex; justify-content: space-between; font-size: 13px;">
+      <span style="color: #1E40AF;">Current trial remaining</span>
+      <span style="font-weight: 700; color: #1E40AF;" id="extCurrentStatus">Expired</span>
+    </div>
+
+    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Quick Select</div>
+    <div class="quick-select-grid">
+      <div class="quick-pill" onclick="selectQuickDays(3, this)">3d</div>
+      <div class="quick-pill selected" onclick="selectQuickDays(7, this)">7d</div>
+      <div class="quick-pill" onclick="selectQuickDays(14, this)">14d</div>
+      <div class="quick-pill" onclick="selectQuickDays(30, this)">30d</div>
+    </div>
+
+    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Custom Days</div>
+    <div class="stepper">
+      <button class="step-btn" onclick="adjustTrialDays(-1)">-</button>
+      <span style="font-size: 18px; font-weight: 700;" id="extCustomVal">7</span> <span style="font-size: 14px; color: var(--text-muted);">days</span>
+      <button class="step-btn" onclick="adjustTrialDays(1)">+</button>
+    </div>
+
+    <div style="background: #F1F5F9; padding: 12px 16px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; font-size: 13px;">
+      <span>New trial end</span>
+      <span style="font-weight: 700;" id="extSummaryText">7 days remaining</span>
+    </div>
+
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-outline" style="flex: 1;" onclick="closeSubModal('extendTrialModal')">Cancel</button>
+      <button class="btn btn-primary" style="flex: 1;" id="btnConfirmExtend" onclick="submitExtendTrial()">Extend by 7 Days</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 2: Upgrade Plan -->
+<div class="sub-modal-overlay" id="upgradePlanModal">
+  <div class="sub-modal" style="max-width: 520px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 style="font-size: 18px;">Upgrade Plan</h3>
+      <button class="close-btn" onclick="closeSubModal('upgradePlanModal')">&times;</button>
+    </div>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Select a new plan for this user</p>
+
+    <div id="plansList" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+      <div style="padding: 20px; text-align: center; color: var(--text-muted);">Loading available plans...</div>
+    </div>
+
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-outline" style="flex: 1;" onclick="closeSubModal('upgradePlanModal')">Cancel</button>
+      <button class="btn btn-primary" style="flex: 1;" onclick="submitUpgradePlan()">Confirm Upgrade</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 3: Suspend Confirm -->
+<div class="sub-modal-overlay" id="suspendConfirmModal">
+  <div class="sub-modal" style="text-align: center; max-width: 380px;">
+    <div style="width: 48px; height: 48px; background: #FEE2E2; color: #DC2626; border-radius: 50%; display: grid; place-items: center; margin: 0 auto 16px; font-size: 20px;">🚫</div>
+    <h3 style="font-size: 18px; margin-bottom: 8px;" id="suspendModalTitle">Suspend User?</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">Are you sure you want to suspend this user's access?</p>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-outline" style="flex: 1;" onclick="closeSubModal('suspendConfirmModal')">Cancel</button>
+      <button class="btn btn-danger" style="flex: 1;" onclick="submitSuspendUser()">Suspend</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 4: Send Message -->
+<div class="sub-modal-overlay" id="sendMessageModal">
+  <div class="sub-modal">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 style="font-size: 18px;">Send Message</h3>
+      <button class="close-btn" onclick="closeSubModal('sendMessageModal')">&times;</button>
+    </div>
+    <div class="form-group">
+      <label>Subject</label>
+      <input type="text" id="msgSubject" value="Notification from EvaTurner Admin"/>
+    </div>
+    <div class="form-group">
+      <label>Message</label>
+      <textarea id="msgBody" rows="4" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 10px; outline: none; font-size: 14px;">Hello, regarding your account on EvaTurner...</textarea>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-outline" style="flex: 1;" onclick="closeSubModal('sendMessageModal')">Cancel</button>
+      <button class="btn btn-primary" style="flex: 1;" onclick="submitSendMessage()">Send Message</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 5: Document Preview -->
+<div class="sub-modal-overlay" id="docPreviewModal">
+  <div class="sub-modal" style="max-width: 640px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 style="font-size: 18px;" id="docModalTitle">Document Preview</h3>
+      <button class="close-btn" onclick="closeSubModal('docPreviewModal')">&times;</button>
+    </div>
+    <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; min-height: 280px; display: flex; align-items: center; justify-content: center;">
+      <div id="docPreviewContent">
+        <p style="font-size: 14px; color: var(--text-muted);">📄 Official Document Verification Preview File</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let selectedUserId = null;
+  let currentUserData = null;
+  let selectedDaysToExtend = 7;
+  let selectedUpgradePlanId = null;
+
+  function getApiUrl(path) {
+    const customBase = localStorage.getItem('apiBaseUrl') || (window.location.port === '5000' ? '' : 'http://localhost:5000');
+    return `${customBase.replace(/\/$/, '')}${path}`;
+  }
+
+  // Initialize
+  window.onload = () => {
+    const savedToken = localStorage.getItem('adminToken');
+    const savedBaseUrl = localStorage.getItem('apiBaseUrl');
+    if (savedBaseUrl) {
+      document.getElementById('apiBaseUrl').value = savedBaseUrl;
+    }
+    if (savedToken) {
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('authBadge').textContent = 'Token Active';
+      fetchMetrics();
+      fetchUsers();
+    } else {
+      openLoginModal();
+    }
+  };
+
+  function handleUnauthorized() {
+    document.getElementById('authBadge').textContent = 'Auth Required (401)';
+    document.getElementById('authBadge').className = 'badge badge-suspended';
+    openLoginModal();
+  }
+
+  function getHeaders() {
+    const token = localStorage.getItem('adminToken');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    };
+  }
+
+  function openLoginModal() { document.getElementById('loginOverlay').style.display = 'flex'; }
+  function closeLoginModal() { document.getElementById('loginOverlay').style.display = 'none'; }
+
+  function saveDirectToken() {
+    const baseUrl = document.getElementById('apiBaseUrl').value.trim();
+    if (baseUrl) {
+      localStorage.setItem('apiBaseUrl', baseUrl);
+    }
+    const token = document.getElementById('directTokenInput').value.trim();
+    if (!token) {
+      return alert('Please paste a valid Admin Bearer Token!');
+    }
+    localStorage.setItem('adminToken', token);
+    document.getElementById('authBadge').textContent = 'Token Active';
+    document.getElementById('authBadge').className = 'token-status';
+    document.getElementById('loginOverlay').style.display = 'none';
+    fetchMetrics();
+    fetchUsers();
+  }
+
+  async function handleLogin() {
+    const baseUrl = document.getElementById('apiBaseUrl').value.trim();
+    if (baseUrl) {
+      localStorage.setItem('apiBaseUrl', baseUrl);
+    }
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    try {
+      const res = await fetch(getApiUrl('/api/v1/auth/signin'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const resJson = await res.json();
+      const token = resJson.accessToken || resJson.data?.accessToken;
+      if (token) {
+        localStorage.setItem('adminToken', token);
+        document.getElementById('authBadge').textContent = 'Token Active';
+        document.getElementById('authBadge').className = 'token-status';
+        document.getElementById('loginOverlay').style.display = 'none';
+        fetchMetrics();
+        fetchUsers();
+      } else {
+        alert(resJson.message || resJson.data?.message || 'Login failed.');
+      }
+    } catch (err) {
+      alert('Login error: ' + err.message);
+    }
+  }
+
+  // Fetch Dashboard Overview Stats
+  async function fetchMetrics() {
+    try {
+      const res = await fetch(getApiUrl('/api/v1/admin/users/stats'), { headers: getHeaders() });
+      if (res.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      if (res.ok) {
+        const data = await res.json();
+        const m = data.metrics || data.data?.metrics || {};
+        document.getElementById('mTotal').textContent = m.totalUsers?.count ?? 0;
+        document.getElementById('mActive').textContent = m.activeToday?.count ?? 0;
+        document.getElementById('mNew').textContent = m.newThisWeek?.count ?? 0;
+        document.getElementById('mTrial').textContent = m.trialUsers?.count ?? 0;
+        document.getElementById('mPaid').textContent = m.paidMembers?.count ?? 0;
+        document.getElementById('mSuspended').textContent = m.suspended?.count ?? 0;
+      }
+    } catch (e) { console.error('Metrics fetch error:', e); }
+  }
+
+  // Fetch Users Table
+  async function fetchUsers() {
+    const search = document.getElementById('searchInput').value;
+    const role = document.getElementById('roleSelect').value;
+    const status = document.getElementById('statusSelect').value;
+    const plan = document.getElementById('planSelect').value;
+
+    let url = `/api/v1/admin/users?page=1&limit=20`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (role !== 'ALL') url += `&role=${role}`;
+    if (status !== 'ALL') url += `&status=${status}`;
+    if (plan !== 'ALL') url += `&plan=${plan}`;
+
+    try {
+      const res = await fetch(getApiUrl(url), { headers: getHeaders() });
+      if (res.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      const rawData = await res.json();
+      const data = rawData.data || rawData;
+      const tbody = document.getElementById('userTableBody');
+
+      const items = data.items || [];
+      if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">No users found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = items.map(u => `
+        <tr>
+          <td>
+            <div class="user-cell">
+              <div class="avatar">${u.fullName ? u.fullName.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() : 'U'}</div>
+              <div>
+                <div style="font-weight: 600;">${u.fullName}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">${u.email}</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="badge badge-role">${u.role}</span></td>
+          <td><span class="badge" style="background: var(--badge-purple); color: var(--badge-purple-text);">${u.plan}</span></td>
+          <td><span class="badge ${u.status === 'Active' ? 'badge-active' : u.status === 'Trial' ? 'badge-trial' : 'badge-suspended'}">${u.status}</span></td>
+          <td style="color: var(--text-muted); font-size: 13px;">${u.joined}</td>
+          <td>
+            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;" onclick="openUserDetails('${u.id}')">View Details</button>
+          </td>
+        </tr>
+      `).join('');
+    } catch (e) {
+      console.error('Fetch users error:', e);
+    }
+  }
+
+  // Open Drawer & Load Single User Details Across All 7 Tabs
+  async function openUserDetails(userId) {
+    selectedUserId = userId;
+    document.getElementById('drawerOverlay').classList.add('open');
+    switchTab('profile');
+
+    try {
+      const res = await fetch(getApiUrl(`/api/v1/admin/users/${userId}`), { headers: getHeaders() });
+      if (!res.ok) return;
+      const rawData = await res.json();
+      currentUserData = rawData.data || rawData;
+      renderDrawerData(currentUserData);
+    } catch (e) { console.error('Error fetching user details:', e); }
+  }
+
+  function renderDrawerData(d) {
+    const prof = d.profile || {};
+    const initials = prof.fullName ? prof.fullName.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() : 'SO';
+    
+    // Header & Profile Tab
+    document.getElementById('dAvatar').textContent = initials;
+    document.getElementById('pAvatar').textContent = initials;
+    document.getElementById('dName').textContent = prof.fullName || '';
+    document.getElementById('pName').textContent = prof.fullName || '';
+    document.getElementById('dEmail').textContent = prof.email || '';
+    document.getElementById('inpEmail').value = prof.email || '';
+    document.getElementById('inpFullName').value = prof.fullName || '';
+    document.getElementById('inpPhone').value = prof.phoneNumber || 'N/A';
+    document.getElementById('inpCountry').value = prof.country || 'Ireland';
+    document.getElementById('inpJoined').value = prof.joined || 'Jan 12, 2024';
+
+    document.getElementById('dStatusBadge').textContent = prof.status || 'Active';
+    document.getElementById('dStatusBadge').className = `badge ${prof.status === 'Active' ? 'badge-active' : 'badge-suspended'}`;
+    document.getElementById('pStatusBadge').textContent = prof.status || 'Active';
+    document.getElementById('pRoleBadge').textContent = prof.role || 'Parent';
+    document.getElementById('pPlanBadge').textContent = d.membership?.currentPlan || 'Family';
+
+    // Family Tab
+    const fam = d.family || {};
+    document.getElementById('famChildCount').textContent = fam.childrenCount ?? (fam.children?.length || 0);
+    
+    const childrenList = fam.children || [];
+    if (childrenList.length === 0) {
+      document.getElementById('famChildrenList').innerHTML = `<div style="font-size: 13px; color: var(--text-muted); padding: 10px 0;">No children added yet.</div>`;
+    } else {
+      document.getElementById('famChildrenList').innerHTML = childrenList.map(c => `
+        <div class="card-item">
+          <div class="circle-avatar" style="background: #F43F5E;">${c.name ? c.name[0] : 'C'}</div>
+          <div>
+            <div style="font-weight: 600;">${c.name}</div>
+            <div style="font-size: 12px; color: var(--text-muted);">${c.age}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    const membersList = fam.familyMembers || [];
+    if (membersList.length === 0) {
+      document.getElementById('famMembersList').innerHTML = `<div style="font-size: 13px; color: var(--text-muted); padding: 10px 0;">No secondary family members linked.</div>`;
+    } else {
+      document.getElementById('famMembersList').innerHTML = membersList.map(m => `
+        <div class="card-item">
+          <div class="circle-avatar" style="background: #0EA5E9;">${m.name ? m.name[0] : 'M'}</div>
+          <div>
+            <div style="font-weight: 600;">${m.name}</div>
+            <div style="font-size: 12px; color: var(--text-muted);">${m.relationship}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    const nanny = fam.assignedNanny;
+    if (!nanny) {
+      document.getElementById('famNannyCard').innerHTML = `<div style="font-size: 13px; color: var(--text-muted); padding: 10px 0;">No active nanny assigned.</div>`;
+    } else {
+      document.getElementById('famNannyCard').innerHTML = `
+        <div class="card-item">
+          <div class="circle-avatar" style="background: #8B5CF6;">${nanny.name ? nanny.name[0] : 'N'}</div>
+          <div>
+            <div style="font-weight: 600;">${nanny.name}</div>
+            <div style="font-size: 12px; color: var(--text-muted);">${nanny.role}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Membership Tab
+    const mem = d.membership || {};
+    document.getElementById('mPlanTitle').textContent = mem.currentPlan || 'Free';
+    document.getElementById('mSubStatus').textContent = mem.subscriptionStatus || 'Inactive';
+    document.getElementById('mTrialRem').textContent = mem.trialRemaining || '—';
+    document.getElementById('mRenewalDate').textContent = mem.renewalDate || 'N/A';
+    document.getElementById('mBillingStatus').textContent = mem.billingStatus || 'Current';
+
+    // AI Usage Tab
+    const ai = d.aiUsage || {};
+    document.getElementById('aiDailyLimit').textContent = ai.dailyLimit || 'Unlimited';
+    document.getElementById('aiUsedToday').textContent = `${ai.usedToday ?? 0} requests`;
+    document.getElementById('aiRemaining').textContent = ai.remainingToday || 'Unlimited';
+    document.getElementById('aiTotalMonth').textContent = ai.totalRequestsThisMonth ?? 0;
+
+    // Rewards Tab
+    const rew = d.rewards || {};
+    document.getElementById('rewBalance').textContent = `${rew.currentBalance ?? 0} pts`;
+    document.getElementById('rewEarned').textContent = rew.lifetimeEarned ?? 0;
+    document.getElementById('rewSpent').textContent = rew.lifetimeRedeemed ?? 0;
+
+    const recentActivity = rew.recentActivity || [];
+    if (recentActivity.length === 0) {
+      document.getElementById('rewLedgerList').innerHTML = `<div style="font-size: 13px; color: var(--text-muted); padding: 10px 0;">No recent reward points activity.</div>`;
+    } else {
+      document.getElementById('rewLedgerList').innerHTML = recentActivity.map(r => `
+        <div class="card-item" style="justify-content: space-between;">
+          <div>
+            <div style="font-weight: 600;">${r.title}</div>
+            <div style="font-size: 12px; color: var(--text-muted);">${r.date}</div>
+          </div>
+          <div style="font-weight: 700; color: ${r.isPositive ? 'var(--success-text)' : 'var(--danger-text)'};">${r.pointsFormatted}</div>
+        </div>
+      `).join('');
+    }
+
+    // Documents Tab
+    const docs = d.documents || [];
+    if (docs.length === 0) {
+      document.getElementById('documentsList').innerHTML = `<div style="background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">No verification documents uploaded yet.</div>`;
+    } else {
+      document.getElementById('documentsList').innerHTML = docs.map(doc => `
+        <div style="background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 36px; height: 36px; background: #F1F5F9; border-radius: 10px; display: grid; place-items: center; font-size: 16px;">📄</div>
+              <div>
+                <div style="font-weight: 600; font-size: 14px;">${doc.title}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">Uploaded ${doc.uploadedDate}</div>
+              </div>
+            </div>
+            <span class="badge badge-active">${doc.status}</span>
+          </div>
+          <button class="btn btn-outline" style="width: auto; padding: 6px 14px; font-size: 12px;" onclick="openDocPreview('${doc.title}', '${doc.previewUrl}')">👁 Preview</button>
+        </div>
+      `).join('');
+    }
+
+    // Analytics Tab
+    const ana = d.analytics || {};
+    const featureUsage = ana.featureUsage || [];
+    const barsHTML = featureUsage.map(b => `
+      <div class="bar-group">
+        <div class="bar-label-row">
+          <span>${b.name}</span>
+          <span>${b.percentage}%</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width: ${b.percentage}%;"></div></div>
+      </div>
+    `).join('');
+    document.getElementById('analyticsBars').innerHTML = barsHTML;
+    document.getElementById('analyticsDropOff').textContent = ana.highestDropOffScreen || 'N/A';
+  }
+
+  function closeDrawer() { document.getElementById('drawerOverlay').classList.remove('open'); }
+
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    if (event && event.target) event.target.classList.add('active');
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+  }
+
+  // Edit Profile Mode
+  function toggleEditProfile() {
+    const btn = document.getElementById('btnEditProfile');
+    const inputs = ['inpFullName', 'inpEmail', 'inpPhone'];
+    if (btn.textContent === 'Edit') {
+      inputs.forEach(id => document.getElementById(id).removeAttribute('readonly'));
+      btn.textContent = 'Save';
+      btn.className = 'btn btn-primary';
+    } else {
+      inputs.forEach(id => document.getElementById(id).setAttribute('readonly', 'true'));
+      btn.textContent = 'Edit';
+      btn.className = 'btn btn-outline';
+      submitUpdateProfile();
+    }
+  }
+
+  async function submitUpdateProfile() {
+    if (!selectedUserId) return;
+    const body = {
+      fullName: document.getElementById('inpFullName').value,
+      email: document.getElementById('inpEmail').value,
+      phoneNumber: document.getElementById('inpPhone').value,
+    };
+    await fetch(getApiUrl(`/api/v1/admin/users/${selectedUserId}`), {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify(body)
+    });
+    alert('User profile updated!');
+    openUserDetails(selectedUserId);
+  }
+
+  // Extend Trial Stepper & Quick Select
+  function openExtendTrialModal() {
+    document.getElementById('extendTrialModal').classList.add('open');
+  }
+  function closeSubModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  function selectQuickDays(days, el) {
+    document.querySelectorAll('.quick-pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedDaysToExtend = days;
+    document.getElementById('extCustomVal').textContent = days;
+    document.getElementById('extSummaryText').textContent = `${days} days remaining`;
+    document.getElementById('btnConfirmExtend').textContent = `Extend by ${days} Days`;
+  }
+
+  function adjustTrialDays(delta) {
+    selectedDaysToExtend = Math.max(1, selectedDaysToExtend + delta);
+    document.getElementById('extCustomVal').textContent = selectedDaysToExtend;
+    document.getElementById('extSummaryText').textContent = `${selectedDaysToExtend} days remaining`;
+    document.getElementById('btnConfirmExtend').textContent = `Extend by ${selectedDaysToExtend} Days`;
+  }
+
+  async function submitExtendTrial() {
+    if (!selectedUserId) return;
+    try {
+      const res = await fetch(getApiUrl(`/api/v1/admin/users/${selectedUserId}/extend-trial`), {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ days: selectedDaysToExtend })
+      });
+      const data = await res.json();
+      alert(data.message || 'Trial extended!');
+      closeSubModal('extendTrialModal');
+      openUserDetails(selectedUserId);
+    } catch (e) { alert('Error: ' + e.message); }
+  }
+
+  // Upgrade Plan Modal
+  async function openUpgradePlanModal() {
+    document.getElementById('upgradePlanModal').classList.add('open');
+    try {
+      const res = await fetch(getApiUrl('/api/v1/admin/users/plans'), { headers: getHeaders() });
+      const rawData = await res.json();
+      const plans = rawData.data || rawData;
+      const listContainer = document.getElementById('plansList');
+
+      const defaultPlans = Array.isArray(plans) && plans.length > 0 ? plans : [
+        { id: 'free', name: 'Free', price: 0, features: ['1 child profile', 'Basic AI features', '5 AI requests/day'] },
+        { id: 'starter', name: 'Starter', price: 6, features: ['Up to 2 children', 'Daily plans + recipes', '30 AI requests/day'] },
+        { id: 'family', name: 'Family', price: 12, features: ['Up to 4 children', 'Nanny assignment', 'Unlimited AI', 'Care modules'] },
+        { id: 'premium', name: 'Premium', price: 24, features: ['Unlimited children', 'Priority support', 'Advanced analytics', 'All features'] },
+      ];
+
+      listContainer.innerHTML = defaultPlans.map(p => `
+        <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 14px; padding: 16px; cursor: pointer;" onclick="selectPlanCard('${p.name}', this)">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="font-weight: 700; font-size: 15px;">${p.name}</div>
+            <div style="font-weight: 700; font-size: 16px;">€${p.price} / mo</div>
+          </div>
+          <ul style="font-size: 12px; color: var(--text-muted); padding-left: 18px;">
+            ${(p.features || []).map(f => `<li>${f}</li>`).join('')}
+          </ul>
+        </div>
+      `).join('');
+    } catch (e) { console.error('Error fetching plans:', e); }
+  }
+
+  function selectPlanCard(planName, el) {
+    document.querySelectorAll('#plansList > div').forEach(d => d.style.borderColor = 'var(--border)');
+    el.style.borderColor = 'var(--primary)';
+    selectedUpgradePlanId = planName;
+  }
+
+  async function submitUpgradePlan() {
+    if (!selectedUserId || !selectedUpgradePlanId) return alert('Select a plan first!');
+    try {
+      const res = await fetch(getApiUrl(`/api/v1/admin/users/${selectedUserId}/plan`), {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ planName: selectedUpgradePlanId })
+      });
+      const data = await res.json();
+      alert(data.message || 'Plan upgraded!');
+      closeSubModal('upgradePlanModal');
+      openUserDetails(selectedUserId);
+    } catch (e) { alert('Upgrade plan error: ' + e.message); }
+  }
+
+  // Suspend Modal
+  function openSuspendModal() {
+    const name = currentUserData?.profile?.fullName || 'this user';
+    document.getElementById('suspendModalTitle').textContent = `Suspend ${name}?`;
+    document.getElementById('suspendConfirmModal').classList.add('open');
+  }
+
+  async function submitSuspendUser() {
+    if (!selectedUserId) return;
+    try {
+      const res = await fetch(getApiUrl(`/api/v1/admin/users/${selectedUserId}/suspend`), {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ suspend: true })
+      });
+      const data = await res.json();
+      alert(data.message || 'User suspended!');
+      closeSubModal('suspendConfirmModal');
+      closeDrawer();
+      fetchUsers();
+    } catch (e) { alert('Suspend error: ' + e.message); }
+  }
+
+  // Cancel Subscription
+  async function handleCancelSubscription() {
+    if (!selectedUserId || !confirm('Are you sure you want to cancel this user subscription?')) return;
+    try {
+      const res = await fetch(getApiUrl(`/api/v1/admin/users/${selectedUserId}/cancel-subscription`), {
+        method: 'PATCH',
+        headers: getHeaders()
+      });
+      const data = await res.json();
+      alert(data.message || 'Subscription cancelled!');
+      openUserDetails(selectedUserId);
+    } catch (e) { alert('Cancel error: ' + e.message); }
+  }
+
+  // Send Message Modal
+  function openSendMessageModal() { document.getElementById('sendMessageModal').classList.add('open'); }
+  async function submitSendMessage() {
+    if (!selectedUserId) return;
+    const subject = document.getElementById('msgSubject').value;
+    const message = document.getElementById('msgBody').value;
+    try {
+      const res = await fetch(getApiUrl(`/api/v1/admin/users/${selectedUserId}/send-message`), {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ subject, message })
+      });
+      const data = await res.json();
+      alert(data.message || 'Message sent successfully!');
+      closeSubModal('sendMessageModal');
+    } catch (e) { alert('Send message error: ' + e.message); }
+  }
+
+  // Document Preview Modal
+  function openDocPreview(title, url) {
+    document.getElementById('docModalTitle').textContent = `${title} Preview`;
+    document.getElementById('docPreviewContent').innerHTML = `
+      <div>
+        <p style="font-weight: 700; margin-bottom: 8px;">${title}</p>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Document file verified by Admin System</p>
+        <a href="${url}" target="_blank" class="btn btn-primary" style="width: auto;">Open Original File</a>
+      </div>
+    `;
+    document.getElementById('docPreviewModal').classList.add('open');
+  }
+</script>
+</body>
+</html>

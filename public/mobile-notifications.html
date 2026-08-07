@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Evatar Mobile - Notifications & DeepLink Views</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    :root {
+      --primary: #0F5B64;
+      --primary-hover: #0a444b;
+      --bg: #0F172A;
+      --card-bg: #FFFFFF;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
+      --success-bg: #ECFDF5;
+      --success-text: #059669;
+      --teal-bg: #E6F2F3;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: #0F172A; color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+
+    /* Top Controls Tester Bar */
+    .tester-bar {
+      width: 100%; max-width: 950px; background: #1E293B; border-radius: 16px; padding: 16px 20px; margin-bottom: 24px;
+      display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; color: #fff; border: 1px solid #334155;
+    }
+    .tester-bar input, .tester-bar select {
+      padding: 8px 12px; border-radius: 8px; border: 1px solid #475569; background: #0F172A; color: #fff; font-size: 13px; outline: none;
+    }
+    .btn {
+      padding: 8px 16px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; border: none; transition: 0.2s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-outline { background: transparent; border: 1px solid #475569; color: #fff; }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); z-index: 999;
+      display: grid; place-items: center; opacity: 0; pointer-events: none; transition: 0.3s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .login-card {
+      background: #1E293B; border: 1px solid #334155; width: 100%; max-width: 420px; border-radius: 20px; padding: 28px; color: #fff;
+    }
+
+    /* Main App Layout */
+    .app-layout { display: flex; gap: 32px; align-items: flex-start; justify-content: center; width: 100%; max-width: 1000px; flex-wrap: wrap; }
+
+    /* Mobile Shell Device */
+    .mobile-frame {
+      width: 380px; height: 780px; background: #F8FAFC; border-radius: 40px; border: 12px solid #334155;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; overflow: hidden; position: relative;
+    }
+    .mobile-header {
+      background: #F8FAFC; padding: 16px 20px 10px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid #EEF2F6;
+    }
+    .status-bar { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #0F172A; }
+    .nav-bar { display: flex; align-items: center; justify-content: space-between; position: relative; margin-top: 4px; }
+    .back-btn { font-size: 18px; color: var(--primary); cursor: pointer; border: none; background: none; font-weight: 700; }
+    .nav-title { font-size: 18px; font-weight: 700; color: #0F172A; text-align: center; flex: 1; }
+    .unread-pill { background: #E0F2FE; color: #0369A1; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; }
+
+    .mobile-body { flex: 1; overflow-y: auto; padding: 16px; background: #F8FAFC; position: relative; }
+    .group-title { font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 10px; }
+    .group-title:first-child { margin-top: 4px; }
+
+    /* Notification Cards */
+    .notification-card {
+      background: #FFFFFF; border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid #F1F5F9;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); transition: all 0.2s; position: relative; cursor: pointer;
+    }
+    .notification-card.unread { border-left: 4px solid var(--primary); background: #F0FDF4; }
+    .notification-card:hover { transform: translateY(-1px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+
+    .card-top-row { display: flex; gap: 12px; align-items: flex-start; }
+    .icon-badge {
+      width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-size: 16px; flex-shrink: 0;
+    }
+    .icon-badge.CHECK { background: #ECFDF5; color: #10B981; }
+    .icon-badge.FOOD { background: #E0F2FE; color: #0284C7; }
+    .icon-badge.CHAT { background: #F0FDFA; color: #0D9488; }
+    .icon-badge.CART { background: #F0FDF4; color: #16A34A; }
+    .icon-badge.BOOK { background: #ECFDF5; color: #059669; }
+    .icon-badge.BOOKMARK { background: #E0F2FE; color: #0284C7; }
+    .icon-badge.AVATAR { background: #FEF3C7; color: #D97706; }
+    .icon-badge.GIFT { background: #FFF7ED; color: #EA580C; }
+    .icon-badge.INSIGHT { background: #F0FDFA; color: #0F5B64; }
+
+    .card-content { flex: 1; }
+    .card-header-line { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+    .card-title { font-size: 14px; font-weight: 700; color: #0F172A; }
+    .card-time { font-size: 11px; color: #94A3B8; font-weight: 500; }
+    .card-desc { font-size: 12px; color: #475569; line-height: 1.4; margin-bottom: 10px; }
+
+    .action-link {
+      font-size: 12px; font-weight: 700; color: var(--primary); text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .action-btn-pill {
+      background: var(--primary); color: #fff; border: none; padding: 8px 18px; border-radius: 20px;
+      font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s;
+    }
+    .action-btn-light {
+      background: #F1F5F9; color: #334155; border: 1px solid #E2E8F0; padding: 6px 14px; border-radius: 20px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+
+    /* Target Screen Sub-Views Inside Mobile Frame */
+    .screen-view {
+      position: absolute; inset: 0; background: #F8FAFC; z-index: 10; padding: 20px; display: none; flex-direction: column; overflow-y: auto;
+    }
+    .screen-view.active { display: flex; }
+    .screen-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid #E2E8F0; padding-bottom: 12px; }
+    .screen-title { font-size: 16px; font-weight: 700; color: #0F172A; }
+
+    /* Dispatcher Panel (Right) */
+    .dispatch-panel {
+      width: 100%; max-width: 440px; background: #1E293B; border-radius: 20px; padding: 24px; color: #fff; border: 1px solid #334155;
+    }
+    .dispatch-panel h3 { font-size: 18px; margin-bottom: 6px; color: #F8FAFC; }
+    .dispatch-panel p { font-size: 13px; color: #94A3B8; margin-bottom: 20px; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; color: #CBD5E1; margin-bottom: 6px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #475569; background: #0F172A; color: #fff; font-size: 13px; outline: none;
+    }
+
+    .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .preset-chip {
+      background: #334155; color: #E2E8F0; padding: 8px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; text-align: center; border: 1px solid transparent;
+    }
+    .preset-chip:hover { border-color: var(--primary); background: #0F5B64; color: #fff; }
+  </style>
+</head>
+<body>
+
+<!-- Login Modal -->
+<div class="modal-overlay" id="loginModal">
+  <div class="login-card">
+    <h2>🔑 Account Sign In</h2>
+    <p>Sign in to fetch real database notifications & sync Socket.io events</p>
+    
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="loginEmail" placeholder="admin@evaturner.com" value="admin@evaturner.com"/>
+    </div>
+    
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" value="Admin123!"/>
+    </div>
+
+    <div style="font-size: 12px; color: #EF4444; margin-bottom: 12px; display: none;" id="loginError"></div>
+
+    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+      <button class="btn btn-outline" onclick="closeLoginModal()">Use Demo Mode</button>
+      <button class="btn btn-primary" onclick="performLogin()">Sign In & Sync Token</button>
+    </div>
+  </div>
+</div>
+
+<!-- Top Tester Controls Bar -->
+<div class="tester-bar">
+  <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+    <span style="font-weight: 700; font-size: 15px;">🔔 Notifications & Navigation Tester</span>
+    <span style="font-size: 11px; background: #059669; color: #fff; padding: 2px 8px; border-radius: 10px;" id="socketStatus">Socket Connecting...</span>
+    <span style="font-size: 11px; background: #0284C7; color: #fff; padding: 2px 8px; border-radius: 10px;" id="userStatus">Not Logged In</span>
+  </div>
+
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <button class="btn btn-primary" onclick="openLoginModal()">🔑 Live Login</button>
+    <button class="btn btn-outline" onclick="fetchLiveNotifications()">Refresh API</button>
+    <button class="btn btn-outline" onclick="markAllRead()">Mark All Read</button>
+  </div>
+</div>
+
+<div class="app-layout">
+  <!-- Mobile Shell Device -->
+  <div class="mobile-frame">
+    <div class="mobile-header">
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>📶 🔋</span>
+      </div>
+      <div class="nav-bar">
+        <button class="back-btn" onclick="showMainList()">&larr;</button>
+        <div class="nav-title" id="topNavTitle">Notifications</div>
+        <span class="unread-pill" id="unreadBadge">0 New</span>
+      </div>
+    </div>
+
+    <!-- Main Grouped Notifications List View -->
+    <div class="mobile-body" id="mobileBody">
+      <div style="text-align: center; padding: 40px; color: #94A3B8; font-size: 13px;">Loading notifications...</div>
+    </div>
+
+    <!-- TARGET SCREEN 1: Activity Detail View -->
+    <div class="screen-view" id="viewActivity">
+      <div class="screen-header">
+        <button class="back-btn" onclick="showMainList()">&larr;</button>
+        <div class="screen-title">Language Activity</div>
+      </div>
+      <div style="background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #E2E8F0;">
+        <div style="font-size: 12px; color: #059669; font-weight: 700; margin-bottom: 6px;">✓ COMPLETED TODAY</div>
+        <h3 style="font-size: 18px; color: #0F172A; margin-bottom: 8px;">Eve's Language Session</h3>
+        <p style="font-size: 13px; color: #64748B; margin-bottom: 16px;">Completed today's interactive language flashcards with Nanny Deepa.</p>
+        <div style="background: #F8FAFC; border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+          <div style="font-size: 12px; font-weight: 600; color: #334155;">Nanny Feedback:</div>
+          <div style="font-size: 12px; color: #475569; margin-top: 4px;">"Eve repeated 15 new words accurately today!"</div>
+        </div>
+        <button class="action-btn-pill" style="width: 100%;" onclick="showMainList()">Back to Notifications</button>
+      </div>
+    </div>
+
+    <!-- TARGET SCREEN 2: Nutrition Detail View -->
+    <div class="screen-view" id="viewNutrition">
+      <div class="screen-header">
+        <button class="back-btn" onclick="showMainList()">&larr;</button>
+        <div class="screen-title">Lunch Nutrition Log</div>
+      </div>
+      <div style="background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #E2E8F0;">
+        <div style="font-size: 12px; color: #0284C7; font-weight: 700; margin-bottom: 6px;">🍴 MEAL RECORDED</div>
+        <h3 style="font-size: 18px; color: #0F172A; margin-bottom: 8px;">Vegetable Pasta Lunch</h3>
+        <div style="display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 12px;">
+          <span>Consumption:</span>
+          <span style="font-weight: 700; color: #059669;">90% Finished</span>
+        </div>
+        <div style="background: #F0FDF4; border-radius: 12px; padding: 12px; margin-bottom: 16px; font-size: 12px; color: #166534;">
+          Eve was very enthusiastic during lunch time today!
+        </div>
+        <button class="action-btn-pill" style="width: 100%;" onclick="showMainList()">Back to Notifications</button>
+      </div>
+    </div>
+
+    <!-- TARGET SCREEN 3: Live Chat View -->
+    <div class="screen-view" id="viewChat">
+      <div class="screen-header">
+        <button class="back-btn" onclick="showMainList()">&larr;</button>
+        <div class="screen-title">Chat with Deepa</div>
+      </div>
+      <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="align-self: flex-start; background: #FFFFFF; border: 1px solid #E2E8F0; padding: 12px 16px; border-radius: 16px 16px 16px 4px; max-width: 80%;">
+            <div style="font-weight: 700; font-size: 11px; color: #0F5B64; margin-bottom: 2px;">Nanny Deepa • 1h ago</div>
+            <div style="font-size: 13px; color: #0F172A;">I've uploaded today's activity photos! 📷</div>
+          </div>
+          <div style="align-self: flex-end; background: #0F5B64; color: #fff; padding: 12px 16px; border-radius: 16px 16px 4px 16px; max-width: 80%;">
+            <div style="font-size: 13px;">Thank you Deepa! She looks very happy.</div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 16px;">
+          <input type="text" placeholder="Type a message..." style="flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #CBD5E1; font-size: 12px;"/>
+          <button class="action-btn-pill" style="padding: 10px 16px;">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TARGET SCREEN 4: Grocery Order View -->
+    <div class="screen-view" id="viewOrder">
+      <div class="screen-header">
+        <button class="back-btn" onclick="showMainList()">&larr;</button>
+        <div class="screen-title">Carrefour Grocery Order</div>
+      </div>
+      <div style="background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #E2E8F0;">
+        <div style="font-size: 12px; color: #16A34A; font-weight: 700; margin-bottom: 6px;">🛒 DELIVERED</div>
+        <h3 style="font-size: 18px; color: #0F172A; margin-bottom: 4px;">Order #CR-94821</h3>
+        <p style="font-size: 12px; color: #64748B; margin-bottom: 16px;">Carrefour Grocery Delivery</p>
+        <div style="border-top: 1px solid #F1F5F9; padding-top: 12px; font-size: 13px; color: #334155;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>Organic Milk (2L)</span><span>AED 14.00</span></div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>Baby Pasta (500g)</span><span>AED 16.00</span></div>
+        </div>
+        <button class="action-btn-pill" style="width: 100%; margin-top: 16px;" onclick="showMainList()">Back to Notifications</button>
+      </div>
+    </div>
+
+    <!-- TARGET SCREEN 5: Bedtime Story Reader -->
+    <div class="screen-view" id="viewStory">
+      <div class="screen-header">
+        <button class="back-btn" onclick="showMainList()">&larr;</button>
+        <div class="screen-title">Bedtime Library</div>
+      </div>
+      <div style="background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #E2E8F0;">
+        <div style="font-size: 12px; color: #059669; font-weight: 700; margin-bottom: 6px;">📖 NEW STORY SAVED</div>
+        <h3 style="font-size: 18px; color: #0F172A; margin-bottom: 8px;">Dinosaur Adventure 🦖</h3>
+        <p style="font-size: 13px; color: #475569; line-height: 1.5; margin-bottom: 16px;">"Once upon a time in a friendly green forest, little Dino went on a magical bedtime trip..."</p>
+        <button class="action-btn-pill" style="width: 100%;" onclick="alert('Playing Audio Story!')">▶ Play Audio Track</button>
+      </div>
+    </div>
+
+    <!-- TARGET SCREEN 6: Care Module Progress View -->
+    <div class="screen-view" id="viewCareProgress">
+      <div class="screen-header">
+        <button class="back-btn" onclick="showMainList()">&larr;</button>
+        <div class="screen-title">Care Training</div>
+      </div>
+      <div style="background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #E2E8F0;">
+        <div style="font-size: 12px; color: #0284C7; font-weight: 700; margin-bottom: 6px;">🔖 MODULE PASSED</div>
+        <h3 style="font-size: 18px; color: #0F172A; margin-bottom: 8px;">Safe Baby Handling</h3>
+        <p style="font-size: 13px; color: #64748B; margin-bottom: 16px;">Nanny Deepa successfully passed the certification course with 100% score.</p>
+        <button class="action-btn-pill" style="width: 100%;" onclick="showMainList()">Back to Notifications</button>
+      </div>
+    </div>
+
+    <!-- TARGET SCREEN 7: Care Team Access Management -->
+    <div class="screen-view" id="viewManageAccess">
+      <div class="screen-header">
+        <button class="back-btn" onclick="showMainList()">&larr;</button>
+        <div class="screen-title">Care Team Access</div>
+      </div>
+      <div style="background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #E2E8F0;">
+        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px;">
+          <div style="width: 44px; height: 44px; background: #FEF3C7; color: #D97706; border-radius: 50%; display: grid; place-items: center; font-weight: 700;">R</div>
+          <div>
+            <div style="font-weight: 700; font-size: 15px;">Rose (Grandmother)</div>
+            <div style="font-size: 12px; color: #059669;">✓ Invitation Accepted</div>
+          </div>
+        </div>
+        <div style="font-size: 12px; color: #475569; margin-bottom: 16px;">Role: Family Caregiver (Full Activity & Photo Access)</div>
+        <button class="action-btn-light" style="width: 100%;" onclick="showMainList()">Back to Notifications</button>
+      </div>
+    </div>
+
+    <!-- TARGET SCREEN 8: Partner Offer Voucher View -->
+    <div class="screen-view" id="viewOffer">
+      <div class="screen-header">
+        <button class="back-btn" onclick="showMainList()">&larr;</button>
+        <div class="screen-title">Partner Voucher</div>
+      </div>
+      <div style="background: #FFF7ED; border-radius: 16px; padding: 20px; border: 1px solid #FFEDD5;">
+        <div style="font-size: 12px; color: #EA580C; font-weight: 700; margin-bottom: 6px;">🎁 EXCLUSIVE OFFER</div>
+        <h3 style="font-size: 18px; color: #9A3412; margin-bottom: 8px;">AED 30 Off Carrefour</h3>
+        <p style="font-size: 13px; color: #C2410C; margin-bottom: 16px;">Redeem 300 ALR reward points for AED 30 discount voucher.</p>
+        <button class="action-btn-pill" style="background: #EA580C; width: 100%;" onclick="alert('Redeemed 300 ALR Points!')">Redeem Voucher</button>
+      </div>
+    </div>
+
+    <!-- TARGET SCREEN 9: Weekly AI Care Insight -->
+    <div class="screen-view" id="viewInsights">
+      <div class="screen-header">
+        <button class="back-btn" onclick="showMainList()">&larr;</button>
+        <div class="screen-title">Weekly AI Insight</div>
+      </div>
+      <div style="background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #E2E8F0;">
+        <div style="font-size: 12px; color: #0F5B64; font-weight: 700; margin-bottom: 6px;">🧠 ALUREI AI SUMMARY</div>
+        <h3 style="font-size: 18px; color: #0F172A; margin-bottom: 8px;">Eve's Weekly Progress</h3>
+        <p style="font-size: 13px; color: #475569; line-height: 1.5; margin-bottom: 16px;">Eve's vocabulary grew by 24% this week with consistent bedtime audio sessions.</p>
+        <button class="action-btn-pill" style="width: 100%;" onclick="showMainList()">Back to Notifications</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Dispatcher Panel -->
+  <div class="dispatch-panel">
+    <h3>Dispatch Live Notification</h3>
+    <p>Trigger test notifications with persistent DB storage & Socket.io event emission</p>
+
+    <div class="form-group">
+      <label>Target User ID</label>
+      <input type="text" id="targetUserId" placeholder="User ID" value="demo-user-id"/>
+    </div>
+
+    <div style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 8px;">Quick Presets (From Screenshots)</div>
+    <div class="preset-grid">
+      <div class="preset-chip" onclick="applyPreset('ACTIVITY')">Check: Activity</div>
+      <div class="preset-chip" onclick="applyPreset('LUNCH')">Food: Lunch</div>
+      <div class="preset-chip" onclick="applyPreset('CHAT')">Chat: Deepa</div>
+      <div class="preset-chip" onclick="applyPreset('GROCERY')">Cart: Grocery</div>
+      <div class="preset-chip" onclick="applyPreset('STORY')">Book: New Story</div>
+      <div class="preset-chip" onclick="applyPreset('INVITE')">Avatar: Invite</div>
+    </div>
+
+    <div class="form-group">
+      <label>Notification Type</label>
+      <select id="inpType">
+        <option value="NEW_MESSAGE">NEW_MESSAGE</option>
+        <option value="ACTIVITY_COMPLETED">ACTIVITY_COMPLETED</option>
+        <option value="NUTRITION_COMPLETED">NUTRITION_COMPLETED</option>
+        <option value="GROCERY_DELIVERED">GROCERY_DELIVERED</option>
+        <option value="STORY_SAVED">STORY_SAVED</option>
+        <option value="CARE_MODULE_COMPLETED">CARE_MODULE_COMPLETED</option>
+        <option value="INVITATION_ACCEPTED">INVITATION_ACCEPTED</option>
+        <option value="PARTNER_OFFER">PARTNER_OFFER</option>
+        <option value="WEEKLY_INSIGHT">WEEKLY_INSIGHT</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Title</label>
+      <input type="text" id="inpTitle" value="New Message from Deepa"/>
+    </div>
+
+    <div class="form-group">
+      <label>Message Body</label>
+      <textarea id="inpMessage" rows="2">"I've uploaded today's activity photos."</textarea>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+      <div class="form-group">
+        <label>Action Text</label>
+        <input type="text" id="inpActionText" value="Open Chat"/>
+      </div>
+      <div class="form-group">
+        <label>Icon Type</label>
+        <input type="text" id="inpIconType" value="CHAT"/>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="submitTestNotification()">🚀 Dispatch Live Notification</button>
+  </div>
+</div>
+
+<script>
+  let socket = null;
+  let currentUserId = localStorage.getItem('currentUserId') || '';
+  const API_BASE = window.location.port === '5000' ? '' : 'http://localhost:5000';
+
+  window.onload = () => {
+    checkAuthSession();
+    initSocket();
+    fetchLiveNotifications();
+  };
+
+  function showMainList() {
+    document.querySelectorAll('.screen-view').forEach(v => v.classList.remove('active'));
+    document.getElementById('topNavTitle').textContent = 'Notifications';
+  }
+
+  function openScreenView(viewId, title) {
+    showMainList();
+    const screen = document.getElementById(viewId);
+    if (screen) {
+      screen.classList.add('active');
+      document.getElementById('topNavTitle').textContent = title || 'Details';
+    }
+  }
+
+  function checkAuthSession() {
+    const token = localStorage.getItem('adminToken');
+    const email = localStorage.getItem('currentUserEmail');
+    currentUserId = localStorage.getItem('currentUserId') || '';
+
+    if (token && currentUserId) {
+      document.getElementById('userStatus').textContent = `User: ${email || currentUserId.substring(0,8)}`;
+      document.getElementById('targetUserId').value = currentUserId;
+    } else {
+      document.getElementById('userStatus').textContent = 'Demo Mode (Not Logged In)';
+    }
+  }
+
+  function openLoginModal() { document.getElementById('loginModal').classList.add('open'); }
+  function closeLoginModal() { document.getElementById('loginModal').classList.remove('open'); }
+
+  async function performLogin() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const errDiv = document.getElementById('loginError');
+    errDiv.style.display = 'none';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/auth/signin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        errDiv.textContent = data.message || 'Login failed';
+        errDiv.style.display = 'block';
+        return;
+      }
+
+      const resObj = data.data || data;
+      const accessToken = resObj.accessToken || resObj.token;
+      const user = resObj.user || {};
+
+      localStorage.setItem('adminToken', accessToken);
+      localStorage.setItem('currentUserId', user.id || '');
+      localStorage.setItem('currentUserEmail', user.email || email);
+
+      currentUserId = user.id || '';
+      document.getElementById('targetUserId').value = currentUserId;
+
+      checkAuthSession();
+      closeLoginModal();
+      
+      if (socket) {
+        socket.emit('register_user', { userId: currentUserId });
+      }
+      
+      fetchLiveNotifications();
+      alert(`Signed in as ${user.email || email}! Token & User ID synced.`);
+    } catch (e) {
+      errDiv.textContent = e.message;
+      errDiv.style.display = 'block';
+    }
+  }
+
+  function getHeaders() {
+    const token = localStorage.getItem('adminToken') || '';
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    };
+  }
+
+  // Socket.io Setup
+  function initSocket() {
+    socket = io(`${API_BASE}/notifications`, { transports: ['websocket', 'polling'] });
+
+    socket.on('connect', () => {
+      document.getElementById('socketStatus').textContent = 'Socket Connected';
+      document.getElementById('socketStatus').style.background = '#059669';
+      if (currentUserId) {
+        socket.emit('register_user', { userId: currentUserId });
+      }
+    });
+
+    socket.on('disconnect', () => {
+      document.getElementById('socketStatus').textContent = 'Socket Offline';
+      document.getElementById('socketStatus').style.background = '#DC2626';
+    });
+
+    socket.on('notification:new', (newNotif) => {
+      console.log('Real-time notification received via Socket.io:', newNotif);
+      fetchLiveNotifications();
+    });
+
+    socket.on('notification:unread_count', (data) => {
+      document.getElementById('unreadBadge').textContent = `${data.unreadCount} New`;
+    });
+  }
+
+  // Fetch Live Notifications from REST API
+  async function fetchLiveNotifications() {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/notifications?group=ALL&limit=30`, { headers: getHeaders() });
+      if (!res.ok) {
+        renderDefaultMockView();
+        return;
+      }
+      const rawData = await res.json();
+      const data = rawData.data || rawData;
+
+      document.getElementById('unreadBadge').textContent = `${data.unreadCount || 0} New`;
+      renderMobileNotifications(data.groups || {});
+    } catch (e) {
+      console.error('Error fetching notifications:', e);
+      renderDefaultMockView();
+    }
+  }
+
+  function renderMobileNotifications(groups) {
+    const today = groups.today || [];
+    const thisWeek = groups.thisWeek || [];
+    const older = groups.older || [];
+
+    const body = document.getElementById('mobileBody');
+
+    if (today.length === 0 && thisWeek.length === 0 && older.length === 0) {
+      renderDefaultMockView();
+      return;
+    }
+
+    let html = '';
+
+    if (today.length > 0) {
+      html += `<div class="group-title">TODAY</div>`;
+      html += today.map(item => renderNotificationCard(item)).join('');
+    }
+
+    if (thisWeek.length > 0) {
+      html += `<div class="group-title">This Week</div>`;
+      html += thisWeek.map(item => renderNotificationCard(item)).join('');
+    }
+
+    if (older.length > 0) {
+      html += `<div class="group-title">Older</div>`;
+      html += older.map(item => renderNotificationCard(item)).join('');
+    }
+
+    body.innerHTML = html;
+  }
+
+  function renderNotificationCard(item) {
+    const iconClass = item.iconType || 'CHECK';
+    const iconSymbol = getIconSymbol(iconClass);
+    
+    let actionHTML = `<a class="action-link" onclick="handleCardClick('${item.id}', '${item.actionText || ''}')">${item.actionText || 'View >'}</a>`;
+    if (item.actionText === 'Open Chat') {
+      actionHTML = `<button class="action-btn-pill" onclick="handleCardClick('${item.id}', '${item.actionText}')">Open Chat</button>`;
+    } else if (item.actionText === 'Manage Access') {
+      actionHTML = `<button class="action-btn-light" onclick="handleCardClick('${item.id}', '${item.actionText}')">Manage Access</button>`;
+    }
+
+    return `
+      <div class="notification-card ${!item.isRead ? 'unread' : ''}" onclick="handleCardClick('${item.id}', '${item.actionText || ''}')">
+        <div class="card-top-row">
+          <div class="icon-badge ${iconClass}">${iconSymbol}</div>
+          <div class="card-content">
+            <div class="card-header-line">
+              <div class="card-title">${item.title}</div>
+              <div class="card-time">${item.timeAgo}</div>
+            </div>
+            <div class="card-desc">${item.message}</div>
+            ${actionHTML}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function getIconSymbol(iconType) {
+    switch (iconType) {
+      case 'CHECK': return '✓';
+      case 'FOOD': return '🍴';
+      case 'CHAT': return '💬';
+      case 'CART': return '🛒';
+      case 'BOOK': return '📖';
+      case 'BOOKMARK': return '🔖';
+      case 'AVATAR': return '👤';
+      case 'GIFT': return '🎁';
+      case 'INSIGHT': return '🧠';
+      default: return '🔔';
+    }
+  }
+
+  function renderDefaultMockView() {
+    const body = document.getElementById('mobileBody');
+    body.innerHTML = `
+      <div class="group-title">TODAY</div>
+      
+      <div class="notification-card" onclick="handleCardClick('mock1', 'View Activity >')">
+        <div class="card-top-row">
+          <div class="icon-badge CHECK">✓</div>
+          <div class="card-content">
+            <div class="card-header-line">
+              <div class="card-title">Language Activity Completed</div>
+              <div class="card-time">10 mins ago</div>
+            </div>
+            <div class="card-desc">Deepa completed today's language learning session with Eve.</div>
+            <a class="action-link">View Activity &gt;</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="notification-card" onclick="handleCardClick('mock2', 'View Nutrition >')">
+        <div class="card-top-row">
+          <div class="icon-badge FOOD">🍴</div>
+          <div class="card-content">
+            <div class="card-header-line">
+              <div class="card-title">Lunch Completed</div>
+              <div class="card-time">35 mins ago</div>
+            </div>
+            <div class="card-desc">Eve enjoyed today's vegetable pasta and finished 90% of her meal.</div>
+            <a class="action-link">View Nutrition &gt;</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="notification-card unread" onclick="handleCardClick('mock3', 'Open Chat')">
+        <div class="card-top-row">
+          <div class="icon-badge CHAT">💬</div>
+          <div class="card-content">
+            <div class="card-header-line">
+              <div class="card-title">New Message from Deepa</div>
+              <div class="card-time">1h ago</div>
+            </div>
+            <div class="card-desc">"I've uploaded today's activity photos."</div>
+            <button class="action-btn-pill">Open Chat</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="notification-card" onclick="handleCardClick('mock4', 'View Order >')">
+        <div class="card-top-row">
+          <div class="icon-badge CART">🛒</div>
+          <div class="card-content">
+            <div class="card-header-line">
+              <div class="card-title">Your Grocery Order Has Arrived</div>
+              <div class="card-time">2h ago</div>
+            </div>
+            <div class="card-desc">Carrefour has successfully delivered your grocery order.</div>
+            <a class="action-link">View Order &gt;</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="group-title">This Week</div>
+      
+      <div class="notification-card" onclick="handleCardClick('mock5', 'Read Story >')">
+        <div class="card-top-row">
+          <div class="icon-badge BOOK">📖</div>
+          <div class="card-content">
+            <div class="card-header-line">
+              <div class="card-title">New Story Saved</div>
+              <div class="card-time">3 days ago</div>
+            </div>
+            <div class="card-desc">"Dinosaur Adventure" has been added to Eve's bedtime library.</div>
+            <a class="action-link">Read Story &gt;</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="notification-card" onclick="handleCardClick('mock6', 'View Progress >')">
+        <div class="card-top-row">
+          <div class="icon-badge BOOKMARK">🔖</div>
+          <div class="card-content">
+            <div class="card-header-line">
+              <div class="card-title">Care Module Completed</div>
+              <div class="card-time">Yesterday</div>
+            </div>
+            <div class="card-desc">Deepa successfully completed "Safe Baby Handling."</div>
+            <a class="action-link">View Progress &gt;</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="notification-card" onclick="handleCardClick('mock7', 'Manage Access')">
+        <div class="card-top-row">
+          <div class="icon-badge AVATAR">👤</div>
+          <div class="card-content">
+            <div class="card-header-line">
+              <div class="card-title">Invitation Accepted</div>
+              <div class="card-time">2 days ago</div>
+            </div>
+            <div class="card-desc">Rose has joined Eve's Care Team as Grandmother.</div>
+            <button class="action-btn-light">Manage Access</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="group-title">Older</div>
+      
+      <div class="notification-card" onclick="handleCardClick('mock8', 'View Offer >')">
+        <div class="card-top-row">
+          <div class="icon-badge GIFT">🎁</div>
+          <div class="card-content">
+            <div class="card-header-line">
+              <div class="card-title">New Partner Offer Available</div>
+              <div class="card-time">Last Week</div>
+            </div>
+            <div class="card-desc">Redeem 300 ALR for AED 30 off your next Carrefour grocery order.</div>
+            <a class="action-link" style="color: #EA580C;">View Offer &gt;</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="notification-card" onclick="handleCardClick('mock9', 'View Insights >')">
+        <div class="card-top-row">
+          <div class="icon-badge INSIGHT">🧠</div>
+          <div class="card-content">
+            <div class="card-header-line">
+              <div class="card-title">Weekly Care Insight Ready</div>
+              <div class="card-time">Last Week</div>
+            </div>
+            <div class="card-desc">Alurei AI has prepared Eve's personalized weekly care summary.</div>
+            <a class="action-link">View Insights &gt;</a>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function handleCardClick(id, actionText) {
+    if (id && !id.startsWith('mock')) {
+      try {
+        await fetch(`${API_BASE}/api/v1/notifications/${id}/read`, { method: 'PATCH', headers: getHeaders() });
+        fetchLiveNotifications();
+      } catch (e) {}
+    }
+
+    // Dynamic Navigation Routing based on Action Text / Target Screen
+    if (actionText.includes('Activity')) {
+      openScreenView('viewActivity', 'Language Activity');
+    } else if (actionText.includes('Nutrition')) {
+      openScreenView('viewNutrition', 'Lunch Log');
+    } else if (actionText.includes('Open Chat')) {
+      openScreenView('viewChat', 'Chat with Deepa');
+    } else if (actionText.includes('Order')) {
+      openScreenView('viewOrder', 'Carrefour Order');
+    } else if (actionText.includes('Story')) {
+      openScreenView('viewStory', 'Bedtime Story');
+    } else if (actionText.includes('Progress')) {
+      openScreenView('viewCareProgress', 'Care Module');
+    } else if (actionText.includes('Manage Access')) {
+      openScreenView('viewManageAccess', 'Care Team');
+    } else if (actionText.includes('Offer')) {
+      openScreenView('viewOffer', 'Partner Voucher');
+    } else if (actionText.includes('Insights')) {
+      openScreenView('viewInsights', 'Weekly AI Insight');
+    } else {
+      showMainList();
+    }
+  }
+
+  async function markAllRead() {
+    try {
+      await fetch(`${API_BASE}/api/v1/notifications/read-all`, { method: 'PATCH', headers: getHeaders() });
+      fetchLiveNotifications();
+    } catch (e) {}
+  }
+
+  function applyPreset(presetKey) {
+    switch (presetKey) {
+      case 'ACTIVITY':
+        document.getElementById('inpType').value = 'ACTIVITY_COMPLETED';
+        document.getElementById('inpTitle').value = 'Language Activity Completed';
+        document.getElementById('inpMessage').value = 'Deepa completed today\'s language learning session with Eve.';
+        document.getElementById('inpActionText').value = 'View Activity >';
+        document.getElementById('inpIconType').value = 'CHECK';
+        break;
+      case 'LUNCH':
+        document.getElementById('inpType').value = 'NUTRITION_COMPLETED';
+        document.getElementById('inpTitle').value = 'Lunch Completed';
+        document.getElementById('inpMessage').value = 'Eve enjoyed today\'s vegetable pasta and finished 90% of her meal.';
+        document.getElementById('inpActionText').value = 'View Nutrition >';
+        document.getElementById('inpIconType').value = 'FOOD';
+        break;
+      case 'CHAT':
+        document.getElementById('inpType').value = 'NEW_MESSAGE';
+        document.getElementById('inpTitle').value = 'New Message from Deepa';
+        document.getElementById('inpMessage').value = '"I\'ve uploaded today\'s activity photos."';
+        document.getElementById('inpActionText').value = 'Open Chat';
+        document.getElementById('inpIconType').value = 'CHAT';
+        break;
+      case 'GROCERY':
+        document.getElementById('inpType').value = 'GROCERY_DELIVERED';
+        document.getElementById('inpTitle').value = 'Your Grocery Order Has Arrived';
+        document.getElementById('inpMessage').value = 'Carrefour has successfully delivered your grocery order.';
+        document.getElementById('inpActionText').value = 'View Order >';
+        document.getElementById('inpIconType').value = 'CART';
+        break;
+      case 'STORY':
+        document.getElementById('inpType').value = 'STORY_SAVED';
+        document.getElementById('inpTitle').value = 'New Story Saved';
+        document.getElementById('inpMessage').value = '"Dinosaur Adventure" has been added to Eve\'s bedtime library.';
+        document.getElementById('inpActionText').value = 'Read Story >';
+        document.getElementById('inpIconType').value = 'BOOK';
+        break;
+      case 'INVITE':
+        document.getElementById('inpType').value = 'INVITATION_ACCEPTED';
+        document.getElementById('inpTitle').value = 'Invitation Accepted';
+        document.getElementById('inpMessage').value = 'Rose has joined Eve\'s Care Team as Grandmother.';
+        document.getElementById('inpActionText').value = 'Manage Access';
+        document.getElementById('inpIconType').value = 'AVATAR';
+        break;
+    }
+  }
+
+  async function submitTestNotification() {
+    const userId = document.getElementById('targetUserId').value;
+    const body = {
+      userId,
+      type: document.getElementById('inpType').value,
+      title: document.getElementById('inpTitle').value,
+      message: document.getElementById('inpMessage').value,
+      actionText: document.getElementById('inpActionText').value,
+      iconType: document.getElementById('inpIconType').value,
+      actionUrl: `/route/${Date.now()}`,
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/notifications/send-test`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      alert('Live Notification Dispatched! Persistent in DB & Socket.io Emitted.');
+      fetchLiveNotifications();
+    } catch (e) {
+      alert('Dispatch error: ' + e.message);
+    }
+  }
+</script>
+</body>
+</html>

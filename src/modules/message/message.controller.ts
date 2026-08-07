@@ -41,36 +41,40 @@ export class MessageController {
     private readonly storageService: StorageService,
   ) {}
 
+  private getUserId(user: any): string {
+    return user?.id || user?.userId || user?.sub || '';
+  }
+
   @Get('contacts')
   @ApiOperation({
     summary: 'List parent, nanny, and family member chat contacts',
   })
-  getContacts(@CurrentUser() user: User) {
-    return this.messageService.getContacts(user.id);
+  getContacts(@CurrentUser() user: any) {
+    return this.messageService.getContacts(this.getUserId(user));
   }
 
   @Post('conversations')
   @ApiOperation({ summary: 'Create a parent/nanny/family chat conversation' })
   createConversation(
-    @CurrentUser() user: User,
+    @CurrentUser() user: any,
     @Body() dto: CreateConversationDto,
   ) {
-    return this.messageService.createConversation(user.id, dto);
+    return this.messageService.createConversation(this.getUserId(user), dto);
   }
 
   @Get('conversations')
   @ApiOperation({ summary: 'List my chat conversations' })
-  getConversations(@CurrentUser() user: User) {
-    return this.messageService.getConversations(user.id);
+  getConversations(@CurrentUser() user: any) {
+    return this.messageService.getConversations(this.getUserId(user));
   }
 
   @Get('conversations/:conversationId/messages')
   @ApiOperation({ summary: 'Get messages in a conversation' })
   getMessages(
-    @CurrentUser() user: User,
+    @CurrentUser() user: any,
     @Param('conversationId') conversationId: string,
   ) {
-    return this.messageService.getMessages(user.id, conversationId);
+    return this.messageService.getMessages(this.getUserId(user), conversationId);
   }
 
   @Post('conversations/:conversationId/messages')
@@ -105,7 +109,7 @@ export class MessageController {
     },
   })
   async sendMessage(
-    @CurrentUser() user: User,
+    @CurrentUser() user: any,
     @Param('conversationId') conversationId: string,
     @Body() dto: SendChatMessageDto,
     @UploadedFile(MessageController.optionalFilePipe())
@@ -117,16 +121,16 @@ export class MessageController {
       dto.attachmentType = attachment.attachmentType;
     }
 
-    return this.messageService.sendMessage(user.id, conversationId, dto);
+    return this.messageService.sendMessage(this.getUserId(user), conversationId, dto);
   }
 
   @Patch('conversations/:conversationId/read')
   @ApiOperation({ summary: 'Mark a conversation as read' })
   markAsRead(
-    @CurrentUser() user: User,
+    @CurrentUser() user: any,
     @Param('conversationId') conversationId: string,
   ) {
-    return this.messageService.markAsRead(user.id, conversationId);
+    return this.messageService.markAsRead(this.getUserId(user), conversationId);
   }
 
   private async uploadChatAttachment(file: Express.Multer.File) {

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Evatar – Live Chat Tester</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    :root { --p:#0F5B64; --bg:#0D1117; --s:#161B22; --s2:#21262D; --b:#30363D; --t:#E6EDF3; --m:#7D8590; --g:#3FB950; --r:#F85149; }
+    *{box-sizing:border-box;margin:0;padding:0;font-family:'Plus Jakarta Sans',sans-serif;}
+    body{background:var(--bg);color:var(--t);min-height:100vh;padding:20px;display:flex;flex-direction:column;align-items:center;gap:16px;}
+
+    /* TOP BAR */
+    .topbar{width:100%;max-width:1000px;background:var(--s);border:1px solid var(--b);border-radius:14px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+    .topbar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+    .badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;color:#fff;}
+    .badge-red{background:var(--r);}
+    .badge-green{background:var(--g);}
+    .badge-blue{background:#388BFD;}
+    .btn{padding:8px 16px;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;border:none;transition:.2s;}
+    .btn-p{background:var(--p);color:#fff;}
+    .btn-p:hover{background:#0a444b;}
+    .btn-o{background:transparent;border:1px solid var(--b);color:var(--t);}
+    .btn-o:hover{background:var(--s2);}
+    .btn:disabled{opacity:.5;cursor:not-allowed;}
+
+    /* LAYOUT */
+    .layout{display:flex;gap:20px;width:100%;max-width:1000px;align-items:flex-start;flex-wrap:wrap;}
+
+    /* PHONE FRAME */
+    .phone{width:360px;height:760px;background:#F8FAFC;border-radius:40px;border:10px solid #1E293B;box-shadow:0 0 0 2px #334155,0 30px 60px rgba(0,0,0,.5);display:flex;flex-direction:column;overflow:hidden;position:relative;flex-shrink:0;}
+    .ph-head{background:#fff;padding:12px 16px 10px;border-bottom:1px solid #E2E8F0;flex-shrink:0;}
+    .ph-statusbar{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:#0F172A;margin-bottom:8px;}
+    .ph-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+    .ph-title{font-size:17px;font-weight:700;color:#0F172A;}
+    .back-btn{font-size:20px;color:var(--p);background:none;border:none;cursor:pointer;font-weight:700;padding:0 6px;}
+    .tabs{display:flex;background:#F1F5F9;padding:3px;border-radius:10px;}
+    .tab{flex:1;text-align:center;padding:6px;font-size:12px;font-weight:600;border-radius:7px;cursor:pointer;color:#64748B;transition:.2s;}
+    .tab.on{background:#fff;color:var(--p);box-shadow:0 1px 4px rgba(0,0,0,.08);}
+    .ph-body{flex:1;overflow-y:auto;background:#F8FAFC;position:relative;}
+
+    /* CONV ITEM */
+    .ci{display:flex;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid #F1F5F9;cursor:pointer;background:#fff;transition:.15s;}
+    .ci:hover{background:#F8FAFC;}
+    .ci.sel{background:#E6F2F3;border-left:3px solid var(--p);}
+    .av{width:42px;height:42px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0;position:relative;}
+    .av-dot::after{content:'';position:absolute;bottom:1px;right:1px;width:10px;height:10px;background:#10B981;border-radius:50%;border:2px solid #fff;}
+    .ci-info{flex:1;min-width:0;}
+    .ci-row{display:flex;justify-content:space-between;margin-bottom:2px;}
+    .ci-name{font-size:13px;font-weight:700;color:#0F172A;}
+    .ci-time{font-size:10px;color:#94A3B8;}
+    .ci-sub{font-size:12px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+    /* CHAT VIEW */
+    .cv{position:absolute;inset:0;background:#F8FAFC;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease;z-index:10;}
+    .cv.open{transform:translateX(0);}
+    .cv-head{background:#fff;padding:10px 14px;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+    .cv-info{flex:1;}
+    .cv-name{font-size:14px;font-weight:700;color:#0F172A;}
+    .cv-status{font-size:11px;color:#10B981;}
+    .cv-msgs{flex:1;padding:14px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;}
+    .bub{max-width:80%;padding:10px 14px;border-radius:18px;font-size:13px;line-height:1.5;word-break:break-word;}
+    .bub.in{align-self:flex-start;background:#fff;color:#0F172A;border:1px solid #E2E8F0;border-bottom-left-radius:4px;}
+    .bub.out{align-self:flex-end;background:var(--p);color:#fff;border-bottom-right-radius:4px;}
+    .bub-time{font-size:10px;opacity:.65;margin-top:4px;text-align:right;}
+    .cv-input{background:#fff;padding:10px 12px;border-top:1px solid #E2E8F0;display:flex;gap:8px;flex-shrink:0;}
+    .cv-input input{flex:1;padding:9px 14px;border-radius:20px;border:1px solid #CBD5E1;font-size:13px;outline:none;background:#F8FAFC;}
+    .send-btn{width:36px;height:36px;border-radius:50%;background:var(--p);color:#fff;border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+    /* EMPTY */
+    .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:#94A3B8;font-size:13px;padding:40px;text-align:center;}
+
+    /* RIGHT PANEL */
+    .rp{flex:1;min-width:290px;max-width:440px;display:flex;flex-direction:column;gap:14px;}
+    .card{background:var(--s);border:1px solid var(--b);border-radius:14px;padding:18px;}
+    .card h3{font-size:14px;font-weight:700;margin-bottom:4px;}
+    .card p{font-size:12px;color:var(--m);margin-bottom:14px;}
+    .fl{margin-bottom:10px;}
+    .fl label{display:block;font-size:10px;font-weight:700;color:#94A3B8;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;}
+    .fl input,.fl textarea{width:100%;padding:8px 11px;border-radius:8px;border:1px solid var(--b);background:var(--bg);color:var(--t);font-size:13px;outline:none;font-family:inherit;}
+    .fl textarea{resize:vertical;min-height:60px;}
+    .fl input:focus,.fl textarea:focus{border-color:var(--p);}
+    .log{background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:10px;font-size:11px;font-family:monospace;color:#94A3B8;height:120px;overflow-y:auto;white-space:pre-wrap;}
+    ::-webkit-scrollbar{width:4px;}
+    ::-webkit-scrollbar-thumb{background:#334155;border-radius:4px;}
+
+    /* MODAL */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:999;display:grid;place-items:center;opacity:0;pointer-events:none;transition:.25s;}
+    .modal.open{opacity:1;pointer-events:auto;}
+    .modal-box{background:var(--s);border:1px solid var(--b);border-radius:18px;padding:26px;width:100%;max-width:390px;color:var(--t);}
+    .modal-box h2{font-size:18px;font-weight:700;margin-bottom:4px;}
+    .modal-box p{font-size:13px;color:var(--m);margin-bottom:18px;}
+    .err-msg{font-size:12px;color:var(--r);margin-bottom:8px;display:none;}
+  </style>
+</head>
+<body>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <h2>🔑 Sign In</h2>
+    <p>Sign in to load real conversations &amp; send live messages</p>
+    <div class="fl"><label>Email</label><input type="email" id="loginEmail" value="admin@evaturner.com"/></div>
+    <div class="fl"><label>Password</label><input type="password" id="loginPass" value="Admin123!"/></div>
+    <div class="err-msg" id="loginErr"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-o" onclick="closeModal()">Demo Mode</button>
+      <button class="btn btn-p" onclick="doLogin()">Sign In →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <span style="font-weight:700;font-size:15px;">💬 Live Chat Tester</span>
+    <span class="badge badge-red" id="sockBadge">⬤ Connecting…</span>
+    <span class="badge badge-blue" id="authBadge">Demo Mode</span>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-p" onclick="openModal()">🔑 Login</button>
+    <button class="btn btn-o" onclick="switchTab('chats')">↺ Refresh</button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- PHONE -->
+  <div class="phone">
+    <div class="ph-head">
+      <div class="ph-statusbar"><span id="clock">9:41</span><span>📶 🔋</span></div>
+      <div class="ph-nav">
+        <button class="back-btn" style="visibility:hidden">←</button>
+        <span class="ph-title">Messages</span>
+        <button class="btn btn-p" style="padding:4px 10px;font-size:11px;" onclick="switchTab('contacts')">+ New</button>
+      </div>
+      <div class="tabs">
+        <div class="tab on" id="t-chats" onclick="switchTab('chats')">Chats</div>
+        <div class="tab" id="t-contacts" onclick="switchTab('contacts')">Contacts</div>
+      </div>
+    </div>
+    <div class="ph-body" id="listBody">
+      <div class="empty"><div style="font-size:28px">💬</div><div>Loading…</div></div>
+    </div>
+
+    <!-- CHAT VIEW -->
+    <div class="cv" id="chatView">
+      <div class="cv-head">
+        <button class="back-btn" onclick="closeChat()">←</button>
+        <div class="av" id="cvAv" style="width:34px;height:34px;font-size:14px;">?</div>
+        <div class="cv-info">
+          <div class="cv-name" id="cvName">Chat</div>
+          <div class="cv-status">Online</div>
+        </div>
+      </div>
+      <div class="cv-msgs" id="cvMsgs"></div>
+      <div class="cv-input">
+        <input id="msgInput" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendMsg()"/>
+        <button class="send-btn" onclick="sendMsg()">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="rp">
+
+    <!-- Selected contact card -->
+    <div class="card">
+      <h3>👤 Selected Contact</h3>
+      <p>Click any contact from the Contacts tab</p>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--s2);border-radius:10px;margin-bottom:12px;">
+        <div class="av" id="selAv" style="width:44px;height:44px;">?</div>
+        <div style="min-width:0;">
+          <div style="font-weight:700;font-size:14px;" id="selName">No contact selected</div>
+          <div style="font-size:12px;color:var(--m);" id="selRole">—</div>
+          <div style="font-size:10px;color:#475569;font-family:monospace;word-break:break-all;margin-top:2px;" id="selId"></div>
+        </div>
+      </div>
+      <button class="btn btn-p" style="width:100%;padding:11px;" id="chatBtn" onclick="openChatWithSelected()" disabled>
+        💬 Start Chat
+      </button>
+      <div style="margin-top:8px;font-size:11px;color:#475569;text-align:center;" id="chatBtnHint">Login + select a contact</div>
+    </div>
+
+    <!-- REST sender -->
+    <div class="card">
+      <h3>📡 REST API Sender</h3>
+      <p>Send message via backend API directly</p>
+      <div class="fl"><label>Conversation ID</label><input id="apiConvId" placeholder="conv-uuid (auto-filled after open)" value=""/></div>
+      <div class="fl"><label>Message</label><textarea id="apiMsg">Hello, how are you?</textarea></div>
+      <button class="btn btn-p" style="width:100%;padding:10px;" onclick="apiSend()">💬 Send via API</button>
+    </div>
+
+    <!-- Log -->
+    <div class="card">
+      <h3>📋 Event Log</h3>
+      <p>API &amp; socket events</p>
+      <div class="log" id="log">Waiting for events…
+</div>
+      <button class="btn btn-o" style="margin-top:8px;padding:5px 12px;font-size:12px;" onclick="clearLog()">Clear</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ────────────────────────────────────────────────────────────────────
+const BASE = window.location.port === '5000' ? '' : 'http://localhost:5000';
+let socket = null;
+let activeConvId = '';
+let activeName = '';
+let selId = '', selName = '';
+let myUserId = '';
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  tick();
+  setInterval(tick, 30000);
+  loadSession();
+  initSocket();
+  switchTab('chats');
+});
+
+function tick() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+
+// ── SESSION ──────────────────────────────────────────────────────────────────
+function getToken() { return localStorage.getItem('chatToken') || ''; }
+function getMyId()  { return localStorage.getItem('chatUserId') || ''; }
+
+function loadSession() {
+  const tok = getToken();
+  const email = localStorage.getItem('chatEmail') || '';
+  myUserId = getMyId();
+  if (tok && myUserId) {
+    setBadge('authBadge', email || myUserId.slice(0,10), 'badge-green');
+  } else {
+    setBadge('authBadge', 'Demo Mode', 'badge-blue');
+  }
+  updateChatBtn();
+}
+
+function hdrs() {
+  const tok = getToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(tok ? {'Authorization': `Bearer ${tok}`} : {})
+  };
+}
+
+// ── MODAL ────────────────────────────────────────────────────────────────────
+function openModal() { document.getElementById('modal').classList.add('open'); }
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const err   = document.getElementById('loginErr');
+  err.style.display = 'none';
+
+  try {
+    const r = await fetch(`${BASE}/api/v1/auth/signin`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, password: pass})
+    });
+    const j = await safeJson(r);
+    if (!r.ok) { err.textContent = j.message||'Login failed'; err.style.display='block'; return; }
+
+    const d = j.data || j;
+    const tok = d.accessToken || d.token || '';
+    const user = d.user || {};
+
+    localStorage.setItem('chatToken', tok);
+    localStorage.setItem('chatUserId', user.id||'');
+    localStorage.setItem('chatEmail', user.email||email);
+    myUserId = user.id || '';
+
+    log(`✅ Signed in as ${user.email||email}`);
+    log(`🔑 Token: ${tok.slice(0,30)}…`);
+    loadSession();
+    closeModal();
+    switchTab('chats');
+  } catch(e) { err.textContent = e.message; err.style.display='block'; }
+}
+
+// ── SOCKET ───────────────────────────────────────────────────────────────────
+function initSocket() {
+  try {
+    socket = io(BASE || undefined, {transports:['websocket','polling']});
+    socket.on('connect', () => {
+      setBadge('sockBadge','⬤ Connected','badge-green');
+      log('🔗 Socket: '+socket.id);
+    });
+    socket.on('disconnect', () => {
+      setBadge('sockBadge','⬤ Disconnected','badge-red');
+      log('🔌 Socket disconnected');
+    });
+    socket.on('chat_message', msg => {
+      log('📩 Realtime: '+JSON.stringify(msg).slice(0,80));
+      if (msg.conversationId === activeConvId) {
+        addBubble(msg.message||'', msg.attachmentUrl||'', msg.senderId === myUserId);
+      }
+    });
+  } catch(e) {
+    setBadge('sockBadge','⬤ Error','badge-red');
+    log('⚠️ Socket error: '+e.message);
+  }
+}
+
+// ── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('t-chats').classList.toggle('on', tab==='chats');
+  document.getElementById('t-contacts').classList.toggle('on', tab==='contacts');
+  tab === 'chats' ? loadChats() : loadContacts();
+}
+
+// ── CHATS ────────────────────────────────────────────────────────────────────
+async function loadChats() {
+  setBody('<div class="empty"><div style="font-size:22px">⏳</div><div>Loading chats…</div></div>');
+  if (!getToken()) { renderDemoChats(); return; }
+  try {
+    const r = await fetch(`${BASE}/api/v1/messages/conversations`, {headers:hdrs()});
+    if (!r.ok) throw new Error(r.status);
+    const j = await safeJson(r);
+    const list = j.data || j;
+    if (Array.isArray(list) && list.length > 0) renderChats(list);
+    else renderDemoChats();
+  } catch(e) { log('ℹ️ Chats: '+e.message); renderDemoChats(); }
+}
+
+function renderChats(list) {
+  setBody(list.map(c => `
+    <div class="ci" onclick="openChat('${esc(c.id)}','${esc(c.title||'Chat')}')">
+      <div class="av av-dot">${(c.title||'C')[0].toUpperCase()}</div>
+      <div class="ci-info">
+        <div class="ci-row"><span class="ci-name">${esc(c.title||'Chat')}</span><span class="ci-time">Now</span></div>
+        <div class="ci-sub">${esc(c.lastMessage||'Tap to open…')}</div>
+      </div>
+    </div>
+  `).join(''));
+}
+
+function renderDemoChats() {
+  const list = [
+    {id:'demo-1',name:'Nanny Deepa',c:'#0F5B64',prev:"Uploaded today's activity photos! 📷",t:'1h'},
+    {id:'demo-2',name:'Rose (Grandmother)',c:'#D97706',prev:"See you at Eve's music class!",t:'Yesterday'},
+  ];
+  setBody(list.map(d=>`
+    <div class="ci" onclick="openChat('${d.id}','${d.name}')">
+      <div class="av av-dot" style="background:${d.c}">${d.name[0]}</div>
+      <div class="ci-info">
+        <div class="ci-row"><span class="ci-name">${d.name}</span><span class="ci-time">${d.t}</span></div>
+        <div class="ci-sub">${d.prev}</div>
+      </div>
+    </div>
+  `).join(''));
+}
+
+// ── CONTACTS ─────────────────────────────────────────────────────────────────
+async function loadContacts() {
+  setBody('<div class="empty"><div style="font-size:22px">⏳</div><div>Loading contacts…</div></div>');
+  if (!getToken()) {
+    setBody('<div class="empty"><div style="font-size:28px">🔐</div><div>Sign in to view contacts</div></div>');
+    return;
+  }
+  try {
+    const r = await fetch(`${BASE}/api/v1/messages/contacts`, {headers:hdrs()});
+    if (!r.ok) throw new Error(r.status);
+    const j = await safeJson(r);
+    const list = j.data || j;
+    if (Array.isArray(list) && list.length > 0) {
+      setBody(list.map(c => {
+        const name = c.fullName || c.name || 'Contact';
+        const role = c.role || 'Member';
+        return `
+          <div class="ci" id="ci-${esc(c.id)}" onclick="selectContact('${esc(c.id)}','${esc(name)}','${esc(role)}')">
+            <div class="av">${name[0].toUpperCase()}</div>
+            <div class="ci-info">
+              <div class="ci-name">${esc(name)}</div>
+              <div class="ci-sub">${esc(role)}</div>
+            </div>
+          </div>
+        `;
+      }).join(''));
+    } else {
+      setBody('<div class="empty"><div>No contacts found</div></div>');
+    }
+  } catch(e) {
+    log('⚠️ Contacts: '+e.message);
+    setBody(`<div class="empty"><div style="font-size:28px">⚠️</div><div>${e.message}</div></div>`);
+  }
+}
+
+// ── SELECT CONTACT ────────────────────────────────────────────────────────────
+function selectContact(id, name, role) {
+  selId = id; selName = name;
+
+  // Update right panel
+  document.getElementById('selAv').textContent = name[0].toUpperCase();
+  document.getElementById('selName').textContent = name;
+  document.getElementById('selRole').textContent = role || 'Member';
+  document.getElementById('selId').textContent = id;
+
+  // Highlight
+  document.querySelectorAll('.ci').forEach(el => el.classList.remove('sel'));
+  const el = document.getElementById('ci-'+id);
+  if (el) el.classList.add('sel');
+
+  log(`✅ Selected: ${name} | ID: ${id}`);
+  updateChatBtn();
+}
+
+function updateChatBtn() {
+  const btn = document.getElementById('chatBtn');
+  const hint = document.getElementById('chatBtnHint');
+  if (!btn) return;
+  if (getToken() && selId) {
+    btn.disabled = false;
+    btn.textContent = `💬 Start Chat with ${selName||'Contact'}`;
+    hint.textContent = 'Click to open conversation';
+  } else if (!getToken()) {
+    btn.disabled = true;
+    hint.textContent = '⚠️ Sign in first to start chatting';
+  } else {
+    btn.disabled = true;
+    hint.textContent = 'Go to Contacts tab and select someone';
+  }
+}
+
+// ── OPEN CHAT WITH SELECTED ──────────────────────────────────────────────────
+async function openChatWithSelected() {
+  if (!selId) { alert('Select a contact first'); return; }
+  const tok = getToken();
+  if (!tok) { openModal(); return; }
+
+  const btn = document.getElementById('chatBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Opening…';
+  log(`🔄 Creating conversation with ${selName} [${selId}]`);
+
+  try {
+    const body = JSON.stringify({participantIds:[selId], title:selName});
+    log(`📤 POST /conversations body: ${body}`);
+
+    const r = await fetch(`${BASE}/api/v1/messages/conversations`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},
+      body
+    });
+    const j = await safeJson(r);
+    log(`📡 ${r.status}: ${JSON.stringify(j).slice(0,300)}`);
+
+    if (r.status === 401) {
+      clearSession();
+      alert('Session expired. Please sign in again.');
+      openModal();
+      return;
+    }
+    if (r.status === 403) {
+      log('⚠️ 403 – check terminal for [MessageService] log line');
+      alert('403 Error: ' + (j.message || 'See event log and terminal'));
+      return;
+    }
+
+    const conv = j.data || j;
+    if (conv && conv.id) {
+      document.getElementById('apiConvId').value = conv.id;
+      openChat(conv.id, selName);
+      switchTab('chats');
+    } else {
+      alert('Error: ' + (j.message || JSON.stringify(j)));
+    }
+  } catch(e) {
+    log('⚠️ '+e.message);
+    alert('Error: '+e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = `💬 Start Chat with ${selName}`;
+  }
+}
+
+// ── OPEN / CLOSE CHAT ────────────────────────────────────────────────────────
+function openChat(convId, name) {
+  activeConvId = convId;
+  activeName = name;
+  document.getElementById('cvAv').textContent = (name||'?')[0].toUpperCase();
+  document.getElementById('cvName').textContent = name;
+  document.getElementById('apiConvId').value = convId;
+  document.getElementById('msgInput').value = '';
+  document.getElementById('chatView').classList.add('open');
+  loadMsgs(convId);
+}
+
+function closeChat() {
+  document.getElementById('chatView').classList.remove('open');
+  activeConvId = '';
+}
+
+// ── MESSAGES ─────────────────────────────────────────────────────────────────
+async function loadMsgs(convId) {
+  const box = document.getElementById('cvMsgs');
+  box.innerHTML = '<div style="text-align:center;color:#94A3B8;font-size:12px;padding:16px;">Loading…</div>';
+
+  if (convId.startsWith('demo-')) { renderDemoMsgs(convId); return; }
+
+  try {
+    const r = await fetch(`${BASE}/api/v1/messages/conversations/${convId}/messages`, {headers:hdrs()});
+    if (!r.ok) throw new Error(r.status);
+    const j = await safeJson(r);
+    const msgs = j.data || j;
+    if (Array.isArray(msgs) && msgs.length > 0) {
+      box.innerHTML = '';
+      msgs.forEach(m => addBubble(m.message||'', m.attachmentUrl||'', m.senderId===myUserId, m.createdAt));
+      box.scrollTop = box.scrollHeight;
+    } else {
+      box.innerHTML = '<div class="empty" style="height:auto;padding:30px;">No messages yet. Say hello! 👋</div>';
+    }
+  } catch(e) {
+    log('ℹ️ Msgs: '+e.message);
+    renderDemoMsgs(convId);
+  }
+}
+
+function renderDemoMsgs(convId) {
+  const sets = {
+    'demo-1': [
+      {t:"I've uploaded today's language activity photos for Eve! 📷", out:false, time:'10:14'},
+      {t:"Thanks Deepa! She completed 90% of her meal today too. 😊",  out:true,  time:'10:16'},
+      {t:"She was really focused during storytime! 🎉",                out:false, time:'10:18'},
+    ],
+    'demo-2': [
+      {t:"See you at Eve's music class tomorrow! 🎵", out:false, time:'Yesterday'},
+      {t:"We'll be there at 10am! ❤️",               out:true,  time:'Yesterday'},
+    ],
+  };
+  const msgs = sets[convId] || [{t:'Start the conversation!', out:false, time:'Now'}];
+  const box = document.getElementById('cvMsgs');
+  box.innerHTML = '';
+  msgs.forEach(m => addBubble(m.t, '', m.out, null, m.time));
+  box.scrollTop = box.scrollHeight;
+}
+
+function addBubble(text, attach, isOut, createdAt, timeStr) {
+  const box = document.getElementById('cvMsgs');
+  const t = timeStr || (createdAt
+    ? new Date(createdAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
+    : new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+  const d = document.createElement('div');
+  d.className = 'bub ' + (isOut ? 'out' : 'in');
+  d.innerHTML = (attach ? `<img src="${attach}" style="width:100%;border-radius:8px;margin-bottom:6px;" onerror="this.style.display='none'"/>` : '')
+    + (text ? `<div>${escHtml(text)}</div>` : '')
+    + `<div class="bub-time">${t}</div>`;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ── SEND MSG ──────────────────────────────────────────────────────────────────
+async function sendMsg() {
+  const inp = document.getElementById('msgInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  addBubble(text, '', true);
+
+  if (!activeConvId || activeConvId.startsWith('demo-')) return;
+  if (!getToken()) return;
+
+  try {
+    const r = await fetch(`${BASE}/api/v1/messages/conversations/${activeConvId}/messages`, {
+      method:'POST', headers:hdrs(), body:JSON.stringify({message:text})
+    });
+    if (!r.ok) { const j=await safeJson(r); log('⚠️ Send: '+(j.message||r.status)); }
+    else log('✅ Sent');
+  } catch(e) { log('⚠️ '+e.message); }
+}
+
+// ── REST API SEND ─────────────────────────────────────────────────────────────
+async function apiSend() {
+  const convId = document.getElementById('apiConvId').value.trim();
+  const text   = document.getElementById('apiMsg').value.trim();
+  if (!convId) { alert('No conversation ID. Open a chat first.'); return; }
+  if (!getToken()) { openModal(); return; }
+
+  if (convId.startsWith('demo-')) {
+    if (activeConvId === convId) addBubble(text, '', true);
+    log('ℹ️ Demo mode — not sent to server');
+    return;
+  }
+
+  try {
+    const r = await fetch(`${BASE}/api/v1/messages/conversations/${convId}/messages`, {
+      method:'POST', headers:hdrs(), body:JSON.stringify({message:text})
+    });
+    const j = await safeJson(r);
+    if (!r.ok) { log('⚠️ '+( j.message||r.status)); alert('Error: '+(j.message||r.status)); }
+    else { log('✅ Sent via API'); if (activeConvId===convId) addBubble(text,'',true); }
+  } catch(e) { log('⚠️ '+e.message); }
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function setBody(html) { document.getElementById('listBody').innerHTML = html; }
+function setBadge(id, txt, cls) { const el=document.getElementById(id); el.textContent=txt; el.className='badge '+cls; }
+
+function log(msg) {
+  const el = document.getElementById('log');
+  const t  = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  el.textContent += `[${t}] ${msg}\n`;
+  el.scrollTop = el.scrollHeight;
+}
+function clearLog() { document.getElementById('log').textContent = ''; }
+
+function clearSession() {
+  localStorage.removeItem('chatToken');
+  localStorage.removeItem('chatUserId');
+  localStorage.removeItem('chatEmail');
+  myUserId = '';
+  loadSession();
+}
+
+async function safeJson(r) {
+  const txt = await r.text();
+  if (!txt || txt.trim()==='') return {};
+  try { return JSON.parse(txt); } catch(e) { log('⚠️ JSON: '+e.message); return {}; }
+}
+function esc(s) { return String(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+function escHtml(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+</script>
+</body>
+</html>

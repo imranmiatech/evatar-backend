@@ -68,8 +68,44 @@ async function bootstrap() {
 
   const expressApp = app.getHttpAdapter().getInstance();
   
+  expressApp.get('/admin-dashboard', (req: any, res: any) => {
+    const fs = require('fs');
+    const path = require('path');
+    const possiblePaths = [
+      path.resolve(process.cwd(), 'public/admin-users.html'),
+      path.resolve(__dirname, '../public/admin-users.html'),
+      path.resolve(__dirname, '../../public/admin-users.html'),
+    ];
+    const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+    res.sendFile(targetPath);
+  });
+
+  expressApp.get('/notifications-ui', (req: any, res: any) => {
+    const fs = require('fs');
+    const path = require('path');
+    const possiblePaths = [
+      path.resolve(process.cwd(), 'public/mobile-notifications.html'),
+      path.resolve(__dirname, '../public/mobile-notifications.html'),
+      path.resolve(__dirname, '../../public/mobile-notifications.html'),
+    ];
+    const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+    res.sendFile(targetPath);
+  });
+
+  expressApp.get('/messages-ui', (req: any, res: any) => {
+    const fs = require('fs');
+    const path = require('path');
+    const possiblePaths = [
+      path.resolve(process.cwd(), 'public/mobile-messages.html'),
+      path.resolve(__dirname, '../public/mobile-messages.html'),
+      path.resolve(__dirname, '../../public/mobile-messages.html'),
+    ];
+    const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+    res.sendFile(targetPath);
+  });
+
   expressApp.get('/', (req: any, res: any) => {
-    res.redirect('/api/docs');
+    res.redirect('/admin-dashboard');
   });
 
  

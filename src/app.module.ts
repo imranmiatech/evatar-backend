@@ -23,9 +23,9 @@ import { CareModule } from './modules/care/care.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { RewardsModule } from './modules/rewards/rewards.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
-
 import { CaregiverModule } from './modules/caregiver/caregiver.module';
 import { ScheduleModule } from './modules/parent/schedule/schedule.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -48,12 +48,12 @@ import { ScheduleModule } from './modules/parent/schedule/schedule.module';
     LibraryModule,
     ScheduleModule,
     CaregiverModule,
-    LibraryModule,
     NannyFeedbackModule,
     CareModule,
     ProfileModule,
     RewardsModule,
     SubscriptionModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
