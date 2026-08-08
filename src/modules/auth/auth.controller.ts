@@ -67,6 +67,7 @@ export class AuthController {
   }
 
   @Post('signin')
+  @Post('login')
   @ApiOperation({ summary: 'User login' })
   @ApiResponse({ status: 200, description: 'User successfully logged in.' })
   @ApiResponse({ status: 400, description: 'Invalid credentials.' })

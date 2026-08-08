@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Gender, HealthCondition, DayOfWeek } from '@prisma/client';
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsOptional,
@@ -119,6 +120,14 @@ export class UpdateChildDto {
   @IsEnum(HealthCondition, { each: true })
   @IsOptional()
   healthConditions?: HealthCondition[];
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Flag indicating if the child has any food allergies',
+  })
+  @IsOptional()
+  @IsBoolean()
+  hasAllergy?: boolean;
 
   @ApiPropertyOptional({
     example: 'Allergic to peanuts.',

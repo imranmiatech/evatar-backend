@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Gender } from '@prisma/client';
+import { Gender, HealthCondition } from '@prisma/client';
 import {
+  IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsNotEmpty,
@@ -38,4 +40,22 @@ export class AddChildDto {
   @IsDateString()
   @IsOptional()
   birthDate?: string;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Flag indicating if the child has any food allergies',
+  })
+  @IsOptional()
+  hasAllergy?: boolean;
+
+  @ApiPropertyOptional({
+    enum: HealthCondition,
+    isArray: true,
+    example: [HealthCondition.FOOD_ALLERGIES],
+    description: "Child's health conditions",
+  })
+  @IsArray()
+  @IsEnum(HealthCondition, { each: true })
+  @IsOptional()
+  healthConditions?: HealthCondition[];
 }

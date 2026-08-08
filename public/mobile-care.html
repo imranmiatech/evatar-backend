@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Evatar – Care Module & Quiz Tester</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --p: #0F5B64;
+      --p-light: #E6F2F3;
+      --p-hover: #0a444b;
+      --bg: #0D1117;
+      --s: #161B22;
+      --s2: #21262D;
+      --b: #30363D;
+      --t: #E6EDF3;
+      --m: #7D8590;
+      --g: #10B981;
+      --g-bg: #D1FAE5;
+      --r: #EF4444;
+      --r-bg: #FEE2E2;
+      --y: #F59E0B;
+      --y-bg: #FEF3C7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: var(--bg); color: var(--t); min-height: 100vh; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+
+    /* TOPBAR */
+    .topbar { width: 100%; max-width: 1100px; background: var(--s); border: 1px solid var(--b); border-radius: 14px; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .topbar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; color: #fff; }
+    .badge-red { background: var(--r); }
+    .badge-green { background: var(--g); }
+    .badge-blue { background: #388BFD; }
+    .btn { padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; border: none; transition: .2s; }
+    .btn-p { background: var(--p); color: #fff; }
+    .btn-p:hover { background: var(--p-hover); }
+    .btn-o { background: transparent; border: 1px solid var(--b); color: var(--t); }
+    .btn-o:hover { background: var(--s2); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* MAIN LAYOUT */
+    .layout { display: flex; gap: 24px; width: 100%; max-width: 1100px; align-items: flex-start; flex-wrap: wrap; }
+
+    /* PHONE FRAME */
+    .phone { width: 380px; height: 800px; background: #F8FAFC; border-radius: 44px; border: 12px solid #1E293B; box-shadow: 0 0 0 2px #334155, 0 30px 60px rgba(0,0,0,.6); display: flex; flex-direction: column; overflow: hidden; position: relative; flex-shrink: 0; }
+    
+    /* PHONE STATUSBAR & HEADER */
+    .ph-statusbar { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: #0F172A; padding: 12px 20px 4px; background: #fff; flex-shrink: 0; }
+    .ph-header { background: #fff; padding: 8px 16px 12px; border-bottom: 1px solid #E2E8F0; flex-shrink: 0; }
+    .ph-user-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .ph-user-info { display: flex; align-items: center; gap: 8px; }
+    .ph-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--p); }
+    .ph-greeting { font-size: 10px; color: #64748B; font-weight: 600; }
+    .ph-username { font-size: 13px; font-weight: 700; color: #0F172A; }
+    .ph-header-actions { display: flex; gap: 8px; }
+    .ph-icon-btn { width: 32px; height: 32px; border-radius: 50%; background: #F1F5F9; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; position: relative; }
+    .ph-icon-btn .dot { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; background: #EF4444; border-radius: 50%; }
+
+    /* CHILD SELECTOR */
+    .child-selector { display: flex; gap: 12px; margin-bottom: 12px; }
+    .child-pill { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; background: #F1F5F9; border: 1.5px solid transparent; cursor: pointer; transition: .2s; }
+    .child-pill.active { background: var(--p-light); border-color: var(--p); }
+    .child-pill img { width: 22px; height: 22px; border-radius: 50%; }
+    .child-pill span { font-size: 11px; font-weight: 700; color: #0F172A; }
+
+    /* SEGMENT TABS */
+    .seg-tabs { display: flex; gap: 6px; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; }
+    .seg-tab { font-size: 12px; font-weight: 700; color: #64748B; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: .2s; }
+    .seg-tab.active { background: var(--p); color: #fff; }
+
+    /* CATEGORY PILLS */
+    .cat-scroll { display: flex; gap: 6px; overflow-x: auto; padding: 10px 14px; background: #fff; border-bottom: 1px solid #E2E8F0; flex-shrink: 0; scrollbar-width: none; }
+    .cat-scroll::-webkit-scrollbar { display: none; }
+    .cat-pill { font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 20px; background: #F1F5F9; color: #475569; white-space: nowrap; cursor: pointer; transition: .2s; flex-shrink: 0; }
+    .cat-pill.active { background: var(--p); color: #fff; }
+
+    /* PHONE BODY */
+    .ph-body { flex: 1; overflow-y: auto; background: #F8FAFC; position: relative; }
+
+    /* MODULE LIST SCREEN */
+    .screen { position: absolute; inset: 0; background: #F8FAFC; display: flex; flex-direction: column; overflow-y: auto; transition: transform .25s ease; }
+    .screen.hidden { transform: translateX(100%); pointer-events: none; }
+
+    .module-list-container { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+    .section-header { font-size: 13px; font-weight: 700; color: #334155; margin-top: 4px; }
+    
+    /* CARD DESIGN */
+    .mod-card { background: #fff; border-radius: 16px; border: 1px solid #E2E8F0; padding: 12px; display: flex; gap: 12px; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.03); cursor: pointer; transition: transform .15s, box-shadow .15s; }
+    .mod-card:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,.06); }
+    .mod-img { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
+    .mod-content { flex: 1; min-width: 0; }
+    .mod-title { font-size: 14px; font-weight: 800; color: #0F172A; margin-bottom: 4px; }
+    .mod-meta { font-size: 11px; color: #64748B; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .mod-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 12px; background: var(--p-light); color: var(--p); display: inline-block; }
+    .mod-actions { display: flex; gap: 6px; margin-top: 6px; }
+    .btn-xs { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; }
+    .btn-xs-p { background: var(--p); color: #fff; }
+    .btn-xs-o { background: #F1F5F9; color: #334155; border: 1px solid #CBD5E1; }
+
+    /* DETAIL SCREEN (SCREEN 3) */
+    .detail-head { background: #fff; padding: 10px 14px; border-bottom: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; sticky: top; }
+    .back-btn { font-size: 18px; color: var(--p); background: none; border: none; cursor: pointer; font-weight: 800; padding: 4px 8px; border-radius: 8px; }
+    .back-btn:hover { background: #F1F5F9; }
+    .detail-banner { width: 100%; height: 180px; object-fit: cover; }
+    .detail-body { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+    .detail-title { font-size: 20px; font-weight: 800; color: #0F172A; line-height: 1.2; }
+    .detail-sub { font-size: 13px; color: #64748B; font-weight: 500; }
+    
+    .card-sec { background: #fff; border-radius: 14px; border: 1px solid #E2E8F0; padding: 14px; }
+    .card-sec-title { font-size: 14px; font-weight: 800; color: var(--p); margin-bottom: 8px; }
+    .card-sec-body { font-size: 12px; color: #334155; line-height: 1.6; font-weight: 500; }
+    .bullet-list { margin-top: 8px; padding-left: 18px; font-size: 12px; color: #334155; display: flex; flex-direction: column; gap: 4px; }
+    
+    .takeaway-box { background: linear-gradient(135deg, #0F5B64 0%, #164E55 100%); color: #fff; border-radius: 14px; padding: 16px; text-align: center; }
+    .takeaway-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #99F6E4; margin-bottom: 6px; }
+    .takeaway-text { font-size: 13px; font-weight: 600; line-height: 1.5; font-style: italic; }
+
+    .sticky-footer { background: #fff; padding: 12px 16px; border-top: 1px solid #E2E8F0; flex-shrink: 0; }
+    .btn-full { width: 100%; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 800; background: var(--p); color: #fff; border: none; cursor: pointer; transition: .2s; text-align: center; }
+    .btn-full:hover { background: var(--p-hover); }
+
+    /* QUIZ SCREEN */
+    .quiz-body { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+    .quiz-card { background: #fff; border-radius: 16px; border: 1px solid #E2E8F0; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .q-num { font-size: 11px; font-weight: 800; color: var(--p); background: var(--p-light); width: fit-content; padding: 2px 8px; border-radius: 10px; }
+    .q-text { font-size: 14px; font-weight: 800; color: #0F172A; }
+    .opt-list { display: flex; flex-direction: column; gap: 8px; }
+    .opt-item { border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 10px 14px; font-size: 12px; font-weight: 600; color: #334155; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: .15s; background: #fff; }
+    .opt-item:hover { border-color: var(--p); background: #F8FAFC; }
+    .opt-item.sel-correct { border-color: var(--g); background: var(--g-bg); color: #065F46; font-weight: 700; }
+    .opt-item.sel-wrong { border-color: var(--r); background: var(--r-bg); color: #991B1B; font-weight: 700; }
+    .exp-box { background: #F8FAFC; border-left: 3px solid var(--p); padding: 10px; border-radius: 6px; font-size: 11px; color: #475569; line-height: 1.5; margin-top: 4px; display: none; }
+    .exp-box.show { display: block; }
+
+    /* RESULT MODAL OVERLAY IN PHONE */
+    .res-modal { position: absolute; inset: 0; background: rgba(15,23,42,.85); backdrop-filter: blur(4px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: .25s; }
+    .res-modal.open { opacity: 1; pointer-events: auto; }
+    .res-card { background: #fff; border-radius: 24px; padding: 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 320px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,.3); }
+    .res-circle { width: 80px; height: 80px; border-radius: 50%; background: var(--p-light); color: var(--p); font-size: 22px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 4px solid var(--p); }
+    .res-title { font-size: 18px; font-weight: 800; color: #0F172A; }
+    .res-sub { font-size: 12px; font-weight: 700; color: var(--p); }
+    .res-desc { font-size: 11px; color: #64748B; line-height: 1.5; }
+    .coin-badge { background: #FEF3C7; color: #D97706; font-size: 13px; font-weight: 800; padding: 6px 14px; border-radius: 20px; display: flex; align-items: center; gap: 6px; }
+
+    /* RIGHT DEVELOPER PANEL */
+    .rp { flex: 1; min-width: 320px; max-width: 480px; display: flex; flex-direction: column; gap: 16px; }
+    .card { background: var(--s); border: 1px solid var(--b); border-radius: 14px; padding: 18px; }
+    .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; color: var(--t); }
+    .card p { font-size: 12px; color: var(--m); margin-bottom: 14px; }
+    .fl { margin-bottom: 10px; }
+    .fl label { display: block; font-size: 10px; font-weight: 700; color: #94A3B8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+    .fl input, .fl select { width: 100%; padding: 8px 11px; border-radius: 8px; border: 1px solid var(--b); background: var(--bg); color: var(--t); font-size: 13px; outline: none; font-family: inherit; }
+    .fl input:focus, .fl select:focus { border-color: var(--p); }
+    .log { background: var(--bg); border: 1px solid var(--b); border-radius: 8px; padding: 10px; font-size: 11px; font-family: monospace; color: #94A3B8; height: 140px; overflow-y: auto; white-space: pre-wrap; }
+
+    /* MODAL */
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,.75); backdrop-filter: blur(8px); z-index: 999; display: grid; place-items: center; opacity: 0; pointer-events: none; transition: .25s; }
+    .modal.open { opacity: 1; pointer-events: auto; }
+    .modal-box { background: var(--s); border: 1px solid var(--b); border-radius: 18px; padding: 26px; width: 100%; max-width: 390px; color: var(--t); }
+    .modal-box h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .modal-box p { font-size: 13px; color: var(--m); margin-bottom: 18px; }
+    .err-msg { font-size: 12px; color: var(--r); margin-bottom: 8px; display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN MODAL -->
+  <div class="modal" id="modal">
+    <div class="modal-box">
+      <h2>🔐 Login to Caregiving Hub</h2>
+      <p>Log in as a Parent or Nanny to test live Care Modules & Quizzes.</p>
+      
+      <div class="err-msg" id="login-err"></div>
+
+      <div class="fl">
+        <label>Email</label>
+        <input type="email" id="login-email" value="p@e.com"/>
+      </div>
+      <div class="fl">
+        <label>Password</label>
+        <input type="password" id="login-pass" value="Password123!"/>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button class="btn btn-o" style="flex:1;font-size:11px;" onclick="quickFill('p@e.com')">Parent (p@e.com)</button>
+        <button class="btn btn-o" style="flex:1;font-size:11px;" onclick="quickFill('n@e.com')">Nanny (n@e.com)</button>
+      </div>
+
+      <button class="btn btn-p" style="width:100%;padding:10px;" id="login-btn" onclick="doLogin()">Log In & Start</button>
+    </div>
+  </div>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span style="font-weight:800;font-size:16px;">🌱 Evatar Caregiving Hub</span>
+      <span class="badge badge-green" id="api-status">API Connected</span>
+      <span class="badge badge-blue" id="user-role-badge">Parent Account</span>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-o" onclick="openLoginModal()">Switch User / Login</button>
+      <button class="btn btn-p" onclick="loadModules()">🔄 Refresh Modules</button>
+    </div>
+  </div>
+
+  <!-- LAYOUT -->
+  <div class="layout">
+
+    <!-- PHONE FRAME -->
+    <div class="phone">
+
+      <!-- STATUS BAR -->
+      <div class="ph-statusbar">
+        <span>9:41</span>
+        <span>📶 🔋</span>
+      </div>
+
+      <!-- HEADER (COMMON FOR LIST VIEW) -->
+      <div class="ph-header" id="ph-main-header">
+        <div class="ph-user-bar">
+          <div class="ph-user-info">
+            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200" class="ph-avatar" id="ph-user-img" alt="avatar"/>
+            <div>
+              <div class="ph-greeting">Good Morning</div>
+              <div class="ph-username" id="ph-user-name">Monica Steve</div>
+            </div>
+          </div>
+          <div class="ph-header-actions">
+            <button class="ph-icon-btn">🔔<span class="dot"></span></button>
+            <button class="ph-icon-btn">🔍</button>
+          </div>
+        </div>
+
+        <!-- CHILD SELECTOR -->
+        <div class="child-selector">
+          <div class="child-pill active">
+            <img src="https://images.unsplash.com/photo-1519689680058-324335c77eba?q=80&w=200" alt="child"/>
+            <span>Eve</span>
+          </div>
+          <div class="child-pill">
+            <img src="https://images.unsplash.com/photo-1595454038955-4d80d06358b2?q=80&w=200" alt="child"/>
+            <span>Rose</span>
+          </div>
+        </div>
+
+        <!-- SEGMENT TABS -->
+        <div class="seg-tabs">
+          <div class="seg-tab active">Caregiving Hub</div>
+          <div class="seg-tab">Insights</div>
+          <div class="seg-tab">For you</div>
+        </div>
+      </div>
+
+      <!-- PHONE BODY -->
+      <div class="ph-body">
+
+        <!-- SCREEN 1: MODULE LIST -->
+        <div class="screen" id="screen-list">
+          <div class="cat-scroll">
+            <div class="cat-pill active">All Topics (14)</div>
+            <div class="cat-pill">Child Safety</div>
+            <div class="cat-pill">Nutrition & Feeding</div>
+            <div class="cat-pill">Sleep & Routines</div>
+            <div class="cat-pill">Child Development</div>
+            <div class="cat-pill">First Aid</div>
+          </div>
+
+          <div class="module-list-container">
+            <div class="section-header">Suggested for Eve</div>
+            <div id="module-cards-list" style="display:flex;flex-direction:column;gap:10px;">
+              <!-- Dynamic Modules Rendered Here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- SCREEN 2: MODULE DETAIL (LESSON) -->
+        <div class="screen hidden" id="screen-detail">
+          <div class="detail-head">
+            <button class="back-btn" onclick="showScreen('screen-list')">←</button>
+            <div style="font-size:14px;font-weight:800;color:#0F172A;" id="detail-nav-title">Feeding & Mealtimes</div>
+            <button class="ph-icon-btn">ℹ️</button>
+          </div>
+
+          <div style="flex:1;overflow-y:auto;">
+            <img src="https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?q=80&w=1200" class="detail-banner" id="detail-banner-img" alt="cover"/>
+            <div class="detail-body">
+              <div>
+                <div class="detail-title" id="detail-title">Feeding & Mealtimes</div>
+                <div class="detail-sub" id="detail-sub">Why children's eating patterns naturally vary day to day</div>
+              </div>
+
+              <!-- REAL LIFE SITUATION -->
+              <div class="card-sec">
+                <div class="card-sec-title">Real-life situation</div>
+                <div class="card-sec-body" id="detail-real-life">
+                  A child eats well at breakfast one day, then barely touches the same foods the next day. Another child may refuse a familiar meal they usually enjoy, leaving caregiver's confused about whether something is wrong.
+                </div>
+              </div>
+
+              <!-- WHAT'S HAPPENING -->
+              <div class="card-sec">
+                <div class="card-sec-title">What's happening</div>
+                <div class="card-sec-body" id="detail-whats-happening">
+                  Children's appetite is highly dynamic in early childhood. It is influenced by growth patterns, energy levels, emotional state, sensory sensitivity, and recent activity. Unlike adults, children do not regulate eating primarily through fixed mealtimes or predictable hunger cycles. Their internal signals are still developing; meaning appetite can fluctuate significantly across days and even within the same day.
+                </div>
+              </div>
+
+              <!-- WHY IT HAPPENS -->
+              <div class="card-sec">
+                <div class="card-sec-title">Why it happens</div>
+                <div class="card-sec-body">Eating behaviour in children is shaped by multiple developing systems:</div>
+                <ul class="bullet-list">
+                  <li>Biological hunger regulation (still maturing)</li>
+                  <li>Emotional state (tiredness, excitement, frustration)</li>
+                  <li>Sensory processing (texture, temperature, appearance)</li>
+                  <li>Autonomy and control (desire to choose or refuse)</li>
+                </ul>
+                <div class="card-sec-body" style="margin-top:8px;font-style:italic;">Because these systems are not yet stable, variation in eating is expected rather than exceptional.</div>
+              </div>
+
+              <!-- PRACTICAL CAREGIVING SUPPORT -->
+              <div class="card-sec">
+                <div class="card-sec-title">Practical caregiving support</div>
+                <div style="font-size:12px;font-weight:800;color:#0F172A;margin-bottom:4px;">Immediate response:</div>
+                <ul class="bullet-list" style="margin-bottom:12px;">
+                  <li>Keep mealtimes calm and low-pressure</li>
+                  <li>Avoid negotiating or pressuring for intake</li>
+                  <li>Offer small, manageable portions instead of large expectations</li>
+                  <li>Allow children to engage with food at their own pace</li>
+                </ul>
+                <div style="font-size:12px;font-weight:800;color:#0F172A;margin-bottom:4px;">Long-term support:</div>
+                <ul class="bullet-list">
+                  <li>Provide repeated exposure to a variety of foods over time</li>
+                  <li>Avoid making each meal a "balanced outcome" requirement</li>
+                  <li>Maintain consistent mealtime structure without emotional pressure</li>
+                  <li>Support autonomy by allowing children to decide how much to eat</li>
+                </ul>
+              </div>
+
+              <!-- KEY TAKEAWAY -->
+              <div class="takeaway-box">
+                <div class="takeaway-label">Key Takeaway</div>
+                <div class="takeaway-text">"Variability in appetite is normal in childhood and reflects development, not inconsistency or refusal."</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sticky-footer">
+            <button class="btn-full" onclick="showScreen('screen-quiz')">Take Quiz</button>
+          </div>
+        </div>
+
+        <!-- SCREEN 3: QUIZ SCREEN -->
+        <div class="screen hidden" id="screen-quiz">
+          <div class="detail-head">
+            <button class="back-btn" onclick="showScreen('screen-detail')">←</button>
+            <div style="font-size:14px;font-weight:800;color:#0F172A;">Care Quiz</div>
+            <div style="font-size:12px;font-weight:800;color:var(--p);">3/3</div>
+          </div>
+
+          <div class="quiz-body" style="flex:1;overflow-y:auto;">
+            <!-- QUESTION 1 -->
+            <div class="quiz-card">
+              <div class="q-num">1</div>
+              <div class="q-text">What most influences children's appetite?</div>
+              <div class="opt-list">
+                <div class="opt-item" onclick="selectOpt(this, false, 'exp1')">
+                  <span>Strict mealtime schedules only</span>
+                </div>
+                <div class="opt-item sel-correct" onclick="selectOpt(this, true, 'exp1')">
+                  <span>A mix of biology, emotion, and environment</span>
+                  <span>✓</span>
+                </div>
+                <div class="opt-item" onclick="selectOpt(this, false, 'exp1')">
+                  <span>Willpower and discipline</span>
+                </div>
+              </div>
+              <div class="exp-box show" id="exp1">
+                <strong>Explanation:</strong> Appetite is dynamic and shaped by developing internal signals, emotional state, and growth patterns rather than discipline.
+              </div>
+            </div>
+
+            <!-- QUESTION 2 -->
+            <div class="quiz-card">
+              <div class="q-num">2</div>
+              <div class="q-text">What helps build healthy eating patterns long-term?</div>
+              <div class="opt-list">
+                <div class="opt-item sel-wrong" onclick="selectOpt(this, false, 'exp2')">
+                  <span>Pressure to finish meals</span>
+                  <span>✕</span>
+                </div>
+                <div class="opt-item sel-correct" onclick="selectOpt(this, true, 'exp2')">
+                  <span>Calm, low-pressure exposure to food variety</span>
+                  <span>✓</span>
+                </div>
+                <div class="opt-item" onclick="selectOpt(this, false, 'exp2')">
+                  <span>Willpower and discipline</span>
+                </div>
+              </div>
+              <div class="exp-box show" id="exp2">
+                <strong>Explanation:</strong> Appetite is dynamic and shaped by developing internal signals, emotional state, and growth patterns rather than discipline.
+              </div>
+            </div>
+
+            <!-- QUESTION 3 -->
+            <div class="quiz-card">
+              <div class="q-num">3</div>
+              <div class="q-text">Children's eating patterns are naturally variable in early childhood</div>
+              <div class="opt-list">
+                <div class="opt-item sel-correct" onclick="selectOpt(this, true, 'exp3')">
+                  <span>True</span>
+                  <span>✓</span>
+                </div>
+                <div class="opt-item" onclick="selectOpt(this, false, 'exp3')">
+                  <span>False</span>
+                </div>
+              </div>
+              <div class="exp-box show" id="exp3">
+                <strong>Explanation:</strong> Appetite is dynamic and shaped by developing internal signals, emotional state, and growth patterns rather than discipline.
+              </div>
+            </div>
+          </div>
+
+          <div class="sticky-footer">
+            <button class="btn-full" onclick="showResultModal()">Submit Quizzes</button>
+          </div>
+        </div>
+
+        <!-- QUIZ RESULT MODAL OVERLAY -->
+        <div class="res-modal" id="res-modal">
+          <div class="res-card">
+            <div class="res-circle">3/3</div>
+            <div class="coin-badge">⭐ +15 Coins Earned</div>
+            <div class="res-title">Great effort!</div>
+            <div class="res-sub">Your Care Has Been Recognized</div>
+            <div class="res-desc">
+              Thank you for your continued dedication. Every meaningful care moment helps create a better journey for your child while earning reward along the way.
+            </div>
+            <button class="btn-full" style="margin-top:8px;" onclick="closeResultModal()">Go to my module</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT DEVELOPER / API TESTER PANEL -->
+    <div class="rp">
+      <div class="card">
+        <h3>🔐 Authentication Control</h3>
+        <p>Log in with NestJS backend credentials to test API requests.</p>
+        <div class="fl">
+          <label>Active JWT Token</label>
+          <input type="text" id="dev-token" readonly placeholder="No token loaded"/>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-p" style="flex:1;" onclick="openLoginModal()">Login Dialog</button>
+          <button class="btn btn-o" onclick="logout()">Logout</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>⚡ Live API Actions</h3>
+        <p>Direct REST calls to `/api/v1/care/modules`</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn btn-o" onclick="loadModules()">GET /api/v1/care/modules</button>
+          <button class="btn btn-p" onclick="assignDemoModule()">POST /api/v1/care/assignments (Assign to Eve)</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📋 Console Output Log</h3>
+        <div class="log" id="dev-log">Connecting to Evatar Backend API...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let token = localStorage.getItem('access_token') || '';
+    let currentModules = [];
+
+    function log(msg) {
+      const el = document.getElementById('dev-log');
+      el.innerText = `[${new Date().toLocaleTimeString()}] ${msg}\n` + el.innerText;
+    }
+
+    function openLoginModal() {
+      document.getElementById('modal').classList.add('open');
+    }
+
+    function quickFill(email) {
+      document.getElementById('login-email').value = email;
+      document.getElementById('login-pass').value = 'Password123!';
+    }
+
+    function getApiUrl(path) {
+      if (window.location.origin.includes(':5500') || window.location.origin.includes(':5501') || window.location.protocol === 'file:') {
+        return 'http://localhost:5000' + path;
+      }
+      return path;
+    }
+
+    async function doLogin() {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-pass').value;
+      const errEl = document.getElementById('login-err');
+      errEl.style.display = 'none';
+
+      try {
+        log(`Logging in as ${email}...`);
+        const res = await fetch(getApiUrl('/api/v1/auth/signin'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const json = await res.json();
+
+        const accessToken = json.accessToken || json.data?.accessToken;
+        const user = json.user || json.data?.user;
+
+        if (res.ok && accessToken) {
+          token = accessToken;
+          localStorage.setItem('access_token', token);
+          document.getElementById('dev-token').value = token.substring(0, 20) + '...';
+          document.getElementById('modal').classList.remove('open');
+          if (user) {
+            document.getElementById('user-role-badge').innerText = `${user.role || 'User'} Account`;
+            document.getElementById('ph-user-name').innerText = user.fullName || 'User';
+          }
+          log(`Login successful! User: ${user?.fullName || email}`);
+          loadModules();
+        } else {
+          errEl.innerText = json.message || 'Login failed';
+          errEl.style.display = 'block';
+          log(`Login error: ${json.message}`);
+        }
+      } catch (err) {
+        errEl.innerText = 'Network error during login';
+        errEl.style.display = 'block';
+        log(`Network error: ${err.message}`);
+      }
+    }
+
+    function logout() {
+      token = '';
+      localStorage.removeItem('access_token');
+      document.getElementById('dev-token').value = '';
+      document.getElementById('user-role-badge').innerText = 'Logged Out';
+      log('User logged out');
+      openLoginModal();
+    }
+
+    async function loadModules() {
+      try {
+        log('Fetching care modules from GET /api/v1/care/modules...');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const res = await fetch(getApiUrl('/api/v1/care/modules'), { headers });
+        const json = await res.json();
+
+        if (json.data) {
+          currentModules = Array.isArray(json.data) ? json.data : (json.data.items || []);
+          log(`Loaded ${currentModules.length} modules from database`);
+          renderModuleCards(currentModules);
+        }
+      } catch (err) {
+        log(`Failed to fetch modules: ${err.message}`);
+      }
+    }
+
+    function renderModuleCards(modules) {
+      const container = document.getElementById('module-cards-list');
+      container.innerHTML = '';
+
+      if (!modules || modules.length === 0) {
+        container.innerHTML = `<div style="padding:20px;text-align:center;font-size:12px;color:#94A3B8;">No modules found. Please seed the database.</div>`;
+        return;
+      }
+
+      modules.forEach((mod, idx) => {
+        const card = document.createElement('div');
+        card.className = 'mod-card';
+        card.onclick = () => openModuleDetail(mod);
+
+        const imgUrl = mod.coverImageUrl || 'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?q=80&w=1200';
+        const mins = mod.estimatedMinutes ? `${Math.floor(mod.estimatedMinutes / 60)}h ${mod.estimatedMinutes % 60}m` : '1h 53m';
+        const coins = mod.coinReward || 15;
+        const progressTag = idx === 0 ? '3 of 5 answers were correct...' : 'In progress';
+
+        card.innerHTML = `
+          <img src="${imgUrl}" class="mod-img" alt="module"/>
+          <div class="mod-content">
+            <div class="mod-title">${mod.title}</div>
+            <div class="mod-meta">⏱ ${mins} • 🪙 ${coins} Coins</div>
+            <span class="mod-badge">${progressTag}</span>
+            <div class="mod-actions">
+              <button class="btn-xs btn-xs-p" onclick="event.stopPropagation(); openModuleDetailById('${mod.id}')">Visit module</button>
+              <button class="btn-xs btn-xs-o" onclick="event.stopPropagation(); assignModule('${mod.id}')">Assign Module</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function openModuleDetail(mod) {
+      document.getElementById('detail-nav-title').innerText = mod.title;
+      document.getElementById('detail-title').innerText = mod.title;
+      document.getElementById('detail-sub').innerText = mod.subtitle || 'Why children\'s eating patterns naturally vary day to day';
+      if (mod.coverImageUrl) {
+        document.getElementById('detail-banner-img').src = mod.coverImageUrl;
+      }
+      showScreen('screen-detail');
+      log(`Opened module: "${mod.title}"`);
+    }
+
+    function openModuleDetailById(id) {
+      const mod = currentModules.find(m => m.id === id);
+      if (mod) openModuleDetail(mod);
+    }
+
+    async function assignModule(moduleId) {
+      log(`Assigning module ${moduleId}...`);
+      if (!token) {
+        alert('Please login first');
+        openLoginModal();
+        return;
+      }
+      try {
+        const res = await fetch(getApiUrl('/api/v1/care/assignments'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ moduleId })
+        });
+        const json = await res.json();
+        log(`Module assignment response: ${JSON.stringify(json.message || json)}`);
+        alert('Module assigned successfully!');
+      } catch (err) {
+        log(`Assignment error: ${err.message}`);
+      }
+    }
+
+    function assignDemoModule() {
+      if (currentModules.length > 0) {
+        assignModule(currentModules[0].id);
+      } else {
+        alert('No modules loaded');
+      }
+    }
+
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+      document.getElementById(screenId).classList.remove('hidden');
+      if (screenId === 'screen-list') {
+        document.getElementById('ph-main-header').style.display = 'block';
+      } else {
+        document.getElementById('ph-main-header').style.display = 'none';
+      }
+    }
+
+    function selectOpt(el, isCorrect, expId) {
+      const parent = el.parentElement;
+      parent.querySelectorAll('.opt-item').forEach(item => {
+        item.classList.remove('sel-correct', 'sel-wrong');
+      });
+      if (isCorrect) {
+        el.classList.add('sel-correct');
+      } else {
+        el.classList.add('sel-wrong');
+      }
+      document.getElementById(expId).classList.add('show');
+    }
+
+    function showResultModal() {
+      document.getElementById('res-modal').classList.add('open');
+      log('Submitted quiz! Awarded +15 coins reward');
+    }
+
+    function closeResultModal() {
+      document.getElementById('res-modal').classList.remove('open');
+      showScreen('screen-list');
+    }
+
+    // Initialize
+    if (token) {
+      document.getElementById('dev-token').value = token.substring(0, 20) + '...';
+      loadModules();
+    } else {
+      openLoginModal();
+    }
+  </script>
+</body>
+</html>

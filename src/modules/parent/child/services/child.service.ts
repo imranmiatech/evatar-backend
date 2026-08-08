@@ -6,6 +6,7 @@ import {
 import {
   CaregiverAccessStatus,
   ChildMood,
+  HealthCondition,
   TaskCompletionRate,
   TaskEnjoymentLevel,
 } from '@prisma/client';
@@ -23,7 +24,25 @@ export class ChildService {
     private readonly storageService: StorageService,
   ) {}
 
+  private computeHasAllergy(child: {
+    healthConditions?: HealthCondition[] | null;
+    additionalNotes?: string | null;
+  }): boolean {
+    const hasFoodAllergiesEnum =
+      Array.isArray(child.healthConditions) &&
+      child.healthConditions.includes(HealthCondition.FOOD_ALLERGIES);
+    const hasAllergyInNotes = Boolean(
+      child.additionalNotes && /allerg/i.test(child.additionalNotes),
+    );
+    return hasFoodAllergiesEnum || hasAllergyInNotes;
+  }
+
   async addChild(parentUserId: string, dto: AddChildDto) {
+    const healthConditions = dto.healthConditions ? [...dto.healthConditions] : [];
+    if (dto.hasAllergy && !healthConditions.includes(HealthCondition.FOOD_ALLERGIES)) {
+      healthConditions.push(HealthCondition.FOOD_ALLERGIES);
+    }
+
     const child = await this.prisma.child.create({
       data: {
         parentUserId,
@@ -31,12 +50,16 @@ export class ChildService {
         gender: dto.gender,
         weight: dto.weight,
         birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
+        healthConditions: healthConditions.length > 0 ? healthConditions : undefined,
       },
     });
 
     return {
       message: 'Child added successfully',
-      data: child,
+      data: {
+        ...child,
+        hasAllergy: this.computeHasAllergy(child),
+      },
     };
   }
 
@@ -86,6 +109,7 @@ export class ChildService {
       message: 'Children fetched successfully',
       data: children.map((child) => ({
         ...child,
+        hasAllergy: this.computeHasAllergy(child),
         hasAssignedCaregivers: child.caregiverAccesses.length > 0,
         assignedCount: child.caregiverAccesses.length,
         assignedUsers: child.caregiverAccesses.map((access) => ({
@@ -131,7 +155,10 @@ export class ChildService {
 
     return {
       message: 'Child fetched successfully',
-      data: child,
+      data: {
+        ...child,
+        hasAllergy: this.computeHasAllergy(child),
+      },
     };
   }
 

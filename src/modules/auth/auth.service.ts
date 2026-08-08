@@ -237,7 +237,43 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
+    if (profile.role === UserRole.NANNY && profile.nannyProfile) {
+      const careScore = await this.calculateNannyCareScore(
+        userId,
+        profile.nannyProfile.averageRating,
+      );
+
+      return {
+        ...profile,
+        careScore,
+        nannyProfile: {
+          ...profile.nannyProfile,
+          careScore,
+        },
+      };
+    }
+
     return profile;
+  }
+
+  private async calculateNannyCareScore(
+    userId: string,
+    profileRating?: number | null,
+  ): Promise<number> {
+    const [completedProofs, completedCareAssignments] = await Promise.all([
+      this.prisma.dayActivityProof.count({
+        where: { uploadedByUserId: userId },
+      }),
+      this.prisma.careModuleAssignment.count({
+        where: { nannyUserId: userId, status: 'COMPLETED' },
+      }),
+    ]);
+
+    const baseScore = profileRating ? Math.round(profileRating * 20) : 80;
+    const activityBonus = Math.min(completedProofs * 2, 10);
+    const careModuleBonus = Math.min(completedCareAssignments * 5, 10);
+
+    return Math.min(100, Math.max(0, baseScore + activityBonus + careModuleBonus));
   }
 
   private relationshipType(value?: string) {
