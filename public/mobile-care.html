@@ -69,12 +69,23 @@
     .seg-tabs { display: flex; gap: 6px; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; }
     .seg-tab { font-size: 12px; font-weight: 700; color: #64748B; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: .2s; }
     .seg-tab.active { background: var(--p); color: #fff; }
+    .module-tabs { display: flex; gap: 14px; padding: 12px 14px 4px; background: #fff; overflow-x: auto; scrollbar-width: none; }
+    .module-tabs::-webkit-scrollbar { display: none; }
+    .module-tab { font-size: 11px; font-weight: 700; color: #475569; white-space: nowrap; padding-bottom: 7px; border-bottom: 2px solid transparent; cursor: pointer; }
+    .module-tab.active { color: var(--p); border-bottom-color: var(--p); }
+    .care-intro { background: #fff; padding: 12px 14px 4px; color: #0F172A; }
+    .care-intro-title { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+    .care-intro-sub { font-size: 11px; color: #64748B; line-height: 1.4; font-weight: 600; }
 
     /* CATEGORY PILLS */
     .cat-scroll { display: flex; gap: 6px; overflow-x: auto; padding: 10px 14px; background: #fff; border-bottom: 1px solid #E2E8F0; flex-shrink: 0; scrollbar-width: none; }
     .cat-scroll::-webkit-scrollbar { display: none; }
     .cat-pill { font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 20px; background: #F1F5F9; color: #475569; white-space: nowrap; cursor: pointer; transition: .2s; flex-shrink: 0; }
     .cat-pill.active { background: var(--p); color: #fff; }
+    .search-row { display: flex; gap: 8px; padding: 10px 14px 0; background: #fff; }
+    .search-row input { flex: 1; min-width: 0; height: 34px; border-radius: 10px; border: 1px solid #E2E8F0; background: #F8FAFC; color: #0F172A; font-size: 11px; font-weight: 600; padding: 0 12px; outline: none; }
+    .search-row input:focus { border-color: var(--p); background: #fff; }
+    .filter-btn { width: 34px; height: 34px; border: none; border-radius: 10px; background: var(--p); color: #fff; font-weight: 800; cursor: pointer; }
 
     /* PHONE BODY */
     .ph-body { flex: 1; overflow-y: auto; background: #F8FAFC; position: relative; }
@@ -131,6 +142,7 @@
     .opt-item:hover { border-color: var(--p); background: #F8FAFC; }
     .opt-item.sel-correct { border-color: var(--g); background: var(--g-bg); color: #065F46; font-weight: 700; }
     .opt-item.sel-wrong { border-color: var(--r); background: var(--r-bg); color: #991B1B; font-weight: 700; }
+    .opt-item.selected { border-color: var(--p); background: var(--p-light); color: var(--p); font-weight: 800; }
     .exp-box { background: #F8FAFC; border-left: 3px solid var(--p); padding: 10px; border-radius: 6px; font-size: 11px; color: #475569; line-height: 1.5; margin-top: 4px; display: none; }
     .exp-box.show { display: block; }
 
@@ -143,6 +155,19 @@
     .res-sub { font-size: 12px; font-weight: 700; color: var(--p); }
     .res-desc { font-size: 11px; color: #64748B; line-height: 1.5; }
     .coin-badge { background: #FEF3C7; color: #D97706; font-size: 13px; font-weight: 800; padding: 6px 14px; border-radius: 20px; display: flex; align-items: center; gap: 6px; }
+    .score-panel { background: #fff; border: 1px solid #E2E8F0; border-radius: 16px; margin: 16px; padding: 18px; text-align: center; color: #0F172A; }
+    .score-ring { width: 104px; height: 104px; border-radius: 50%; border: 10px solid #DDF5F1; outline: 8px solid #F1FAF8; margin: 0 auto 12px; display: grid; place-items: center; color: var(--p); font-weight: 800; font-size: 19px; }
+    .score-ring small { display: block; font-size: 9px; color: #64748B; margin-top: 1px; }
+    .score-title { font-size: 15px; font-weight: 800; color: #0F172A; margin-bottom: 5px; }
+    .score-sub { font-size: 11px; color: #64748B; line-height: 1.5; font-weight: 600; }
+    .answer-review { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+    .answer-card { background: #fff; border: 1px solid #E2E8F0; border-radius: 14px; padding: 12px; color: #0F172A; display: flex; flex-direction: column; gap: 10px; }
+    .answer-status { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 800; flex-shrink: 0; }
+    .answer-status.ok { background: var(--p); }
+    .answer-status.bad { background: var(--r); }
+    .review-option { border-radius: 10px; border: 1px solid #D8F3E8; background: #DDFBEF; color: #047857; padding: 10px; text-align: center; font-size: 12px; font-weight: 800; }
+    .review-option.bad { border-color: #FECACA; background: #FEE2E2; color: #B91C1C; }
+    .explanation { border-radius: 10px; background: #F8FAFC; border-left: 3px solid var(--p); padding: 10px; color: #64748B; font-size: 11px; line-height: 1.5; font-weight: 600; }
 
     /* RIGHT DEVELOPER PANEL */
     .rp { flex: 1; min-width: 320px; max-width: 480px; display: flex; flex-direction: column; gap: 16px; }
@@ -180,7 +205,7 @@
       </div>
       <div class="fl">
         <label>Password</label>
-        <input type="password" id="login-pass" value="Password123!"/>
+        <input type="password" id="login-pass" value="123456"/>
       </div>
 
       <div style="display:flex;gap:8px;margin-bottom:14px;">
@@ -223,7 +248,7 @@
           <div class="ph-user-info">
             <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200" class="ph-avatar" id="ph-user-img" alt="avatar"/>
             <div>
-              <div class="ph-greeting">Good Morning</div>
+              <div class="ph-greeting" id="ph-greeting">Good Morning</div>
               <div class="ph-username" id="ph-user-name">Monica Steve</div>
             </div>
           </div>
@@ -234,15 +259,7 @@
         </div>
 
         <!-- CHILD SELECTOR -->
-        <div class="child-selector">
-          <div class="child-pill active">
-            <img src="https://images.unsplash.com/photo-1519689680058-324335c77eba?q=80&w=200" alt="child"/>
-            <span>Eve</span>
-          </div>
-          <div class="child-pill">
-            <img src="https://images.unsplash.com/photo-1595454038955-4d80d06358b2?q=80&w=200" alt="child"/>
-            <span>Rose</span>
-          </div>
+        <div class="child-selector" id="child-selector">
         </div>
 
         <!-- SEGMENT TABS -->
@@ -258,17 +275,21 @@
 
         <!-- SCREEN 1: MODULE LIST -->
         <div class="screen" id="screen-list">
-          <div class="cat-scroll">
-            <div class="cat-pill active">All Topics (14)</div>
-            <div class="cat-pill">Child Safety</div>
-            <div class="cat-pill">Nutrition & Feeding</div>
-            <div class="cat-pill">Sleep & Routines</div>
-            <div class="cat-pill">Child Development</div>
-            <div class="cat-pill">First Aid</div>
+          <div class="care-intro">
+            <div class="care-intro-title" id="care-title">Explore Baby handling lesson</div>
+            <div class="care-intro-sub" id="care-subtitle">Assign care modules to your nanny based on your child's needs.</div>
+          </div>
+          <div class="module-tabs" id="module-tabs">
+          </div>
+          <div class="search-row">
+            <input id="module-search" type="search" placeholder="Search sleep, feeding, emotions..." onkeydown="handleSearchKey(event)"/>
+            <button class="filter-btn" onclick="applySearch()">≡</button>
+          </div>
+          <div class="cat-scroll" id="topic-list">
           </div>
 
           <div class="module-list-container">
-            <div class="section-header">Suggested for Eve</div>
+            <div class="section-header" id="module-section-title">All Modules</div>
             <div id="module-cards-list" style="display:flex;flex-direction:column;gap:10px;">
               <!-- Dynamic Modules Rendered Here -->
             </div>
@@ -284,160 +305,66 @@
           </div>
 
           <div style="flex:1;overflow-y:auto;">
-            <img src="https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?q=80&w=1200" class="detail-banner" id="detail-banner-img" alt="cover"/>
-            <div class="detail-body">
-              <div>
-                <div class="detail-title" id="detail-title">Feeding & Mealtimes</div>
-                <div class="detail-sub" id="detail-sub">Why children's eating patterns naturally vary day to day</div>
-              </div>
+	            <img src="https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?q=80&w=1200" class="detail-banner" id="detail-banner-img" alt="cover"/>
+	            <div class="detail-body">
+	              <div>
+	                <div class="detail-title" id="detail-title">Feeding & Mealtimes</div>
+	                <div class="detail-sub" id="detail-sub">Why children's eating patterns naturally vary day to day</div>
+	              </div>
+	              <div id="detail-sections"></div>
+	            </div>
+	          </div>
+	
+	          <div class="sticky-footer">
+	            <button class="btn-full" id="take-quiz-btn" onclick="openQuiz()">Take Quiz</button>
+	          </div>
+	        </div>
 
-              <!-- REAL LIFE SITUATION -->
-              <div class="card-sec">
-                <div class="card-sec-title">Real-life situation</div>
-                <div class="card-sec-body" id="detail-real-life">
-                  A child eats well at breakfast one day, then barely touches the same foods the next day. Another child may refuse a familiar meal they usually enjoy, leaving caregiver's confused about whether something is wrong.
-                </div>
-              </div>
-
-              <!-- WHAT'S HAPPENING -->
-              <div class="card-sec">
-                <div class="card-sec-title">What's happening</div>
-                <div class="card-sec-body" id="detail-whats-happening">
-                  Children's appetite is highly dynamic in early childhood. It is influenced by growth patterns, energy levels, emotional state, sensory sensitivity, and recent activity. Unlike adults, children do not regulate eating primarily through fixed mealtimes or predictable hunger cycles. Their internal signals are still developing; meaning appetite can fluctuate significantly across days and even within the same day.
-                </div>
-              </div>
-
-              <!-- WHY IT HAPPENS -->
-              <div class="card-sec">
-                <div class="card-sec-title">Why it happens</div>
-                <div class="card-sec-body">Eating behaviour in children is shaped by multiple developing systems:</div>
-                <ul class="bullet-list">
-                  <li>Biological hunger regulation (still maturing)</li>
-                  <li>Emotional state (tiredness, excitement, frustration)</li>
-                  <li>Sensory processing (texture, temperature, appearance)</li>
-                  <li>Autonomy and control (desire to choose or refuse)</li>
-                </ul>
-                <div class="card-sec-body" style="margin-top:8px;font-style:italic;">Because these systems are not yet stable, variation in eating is expected rather than exceptional.</div>
-              </div>
-
-              <!-- PRACTICAL CAREGIVING SUPPORT -->
-              <div class="card-sec">
-                <div class="card-sec-title">Practical caregiving support</div>
-                <div style="font-size:12px;font-weight:800;color:#0F172A;margin-bottom:4px;">Immediate response:</div>
-                <ul class="bullet-list" style="margin-bottom:12px;">
-                  <li>Keep mealtimes calm and low-pressure</li>
-                  <li>Avoid negotiating or pressuring for intake</li>
-                  <li>Offer small, manageable portions instead of large expectations</li>
-                  <li>Allow children to engage with food at their own pace</li>
-                </ul>
-                <div style="font-size:12px;font-weight:800;color:#0F172A;margin-bottom:4px;">Long-term support:</div>
-                <ul class="bullet-list">
-                  <li>Provide repeated exposure to a variety of foods over time</li>
-                  <li>Avoid making each meal a "balanced outcome" requirement</li>
-                  <li>Maintain consistent mealtime structure without emotional pressure</li>
-                  <li>Support autonomy by allowing children to decide how much to eat</li>
-                </ul>
-              </div>
-
-              <!-- KEY TAKEAWAY -->
-              <div class="takeaway-box">
-                <div class="takeaway-label">Key Takeaway</div>
-                <div class="takeaway-text">"Variability in appetite is normal in childhood and reflects development, not inconsistency or refusal."</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="sticky-footer">
-            <button class="btn-full" onclick="showScreen('screen-quiz')">Take Quiz</button>
-          </div>
+	        <!-- SCREEN 3: QUIZ SCREEN -->
+	        <div class="screen hidden" id="screen-quiz">
+	          <div class="detail-head">
+	            <button class="back-btn" onclick="showScreen('screen-detail')">←</button>
+	            <div style="font-size:14px;font-weight:800;color:#0F172A;" id="quiz-title">Care Quiz</div>
+	            <div style="font-size:12px;font-weight:800;color:var(--p);" id="quiz-count">0/0</div>
+	          </div>
+	
+	          <div class="quiz-body" id="quiz-body" style="flex:1;overflow-y:auto;"></div>
+	
+	          <div class="sticky-footer">
+	            <button class="btn-full" id="submit-quiz-btn" onclick="submitQuiz()">Submit Quizzes</button>
+	          </div>
         </div>
 
-        <!-- SCREEN 3: QUIZ SCREEN -->
-        <div class="screen hidden" id="screen-quiz">
+        <!-- SCREEN 4: QUIZ RESULT REVIEW -->
+        <div class="screen hidden" id="screen-result">
           <div class="detail-head">
-            <button class="back-btn" onclick="showScreen('screen-detail')">←</button>
+            <button class="back-btn" onclick="showScreen('screen-list')">←</button>
             <div style="font-size:14px;font-weight:800;color:#0F172A;">Care Quiz</div>
-            <div style="font-size:12px;font-weight:800;color:var(--p);">3/3</div>
+            <div style="width:28px;"></div>
           </div>
-
-          <div class="quiz-body" style="flex:1;overflow-y:auto;">
-            <!-- QUESTION 1 -->
-            <div class="quiz-card">
-              <div class="q-num">1</div>
-              <div class="q-text">What most influences children's appetite?</div>
-              <div class="opt-list">
-                <div class="opt-item" onclick="selectOpt(this, false, 'exp1')">
-                  <span>Strict mealtime schedules only</span>
-                </div>
-                <div class="opt-item sel-correct" onclick="selectOpt(this, true, 'exp1')">
-                  <span>A mix of biology, emotion, and environment</span>
-                  <span>✓</span>
-                </div>
-                <div class="opt-item" onclick="selectOpt(this, false, 'exp1')">
-                  <span>Willpower and discipline</span>
-                </div>
-              </div>
-              <div class="exp-box show" id="exp1">
-                <strong>Explanation:</strong> Appetite is dynamic and shaped by developing internal signals, emotional state, and growth patterns rather than discipline.
-              </div>
+          <div style="flex:1;overflow-y:auto;">
+            <div class="score-panel">
+              <div class="score-ring"><div><span id="review-score">0/0</span><small>Good effort</small></div></div>
+              <div class="score-title" id="review-title">Good effort!</div>
+              <div class="score-sub" id="review-sub">Review your answers below and keep building confidence.</div>
             </div>
-
-            <!-- QUESTION 2 -->
-            <div class="quiz-card">
-              <div class="q-num">2</div>
-              <div class="q-text">What helps build healthy eating patterns long-term?</div>
-              <div class="opt-list">
-                <div class="opt-item sel-wrong" onclick="selectOpt(this, false, 'exp2')">
-                  <span>Pressure to finish meals</span>
-                  <span>✕</span>
-                </div>
-                <div class="opt-item sel-correct" onclick="selectOpt(this, true, 'exp2')">
-                  <span>Calm, low-pressure exposure to food variety</span>
-                  <span>✓</span>
-                </div>
-                <div class="opt-item" onclick="selectOpt(this, false, 'exp2')">
-                  <span>Willpower and discipline</span>
-                </div>
-              </div>
-              <div class="exp-box show" id="exp2">
-                <strong>Explanation:</strong> Appetite is dynamic and shaped by developing internal signals, emotional state, and growth patterns rather than discipline.
-              </div>
-            </div>
-
-            <!-- QUESTION 3 -->
-            <div class="quiz-card">
-              <div class="q-num">3</div>
-              <div class="q-text">Children's eating patterns are naturally variable in early childhood</div>
-              <div class="opt-list">
-                <div class="opt-item sel-correct" onclick="selectOpt(this, true, 'exp3')">
-                  <span>True</span>
-                  <span>✓</span>
-                </div>
-                <div class="opt-item" onclick="selectOpt(this, false, 'exp3')">
-                  <span>False</span>
-                </div>
-              </div>
-              <div class="exp-box show" id="exp3">
-                <strong>Explanation:</strong> Appetite is dynamic and shaped by developing internal signals, emotional state, and growth patterns rather than discipline.
-              </div>
-            </div>
+            <div class="answer-review" id="answer-review"></div>
           </div>
-
           <div class="sticky-footer">
-            <button class="btn-full" onclick="showResultModal()">Submit Quizzes</button>
+            <button class="btn-full" onclick="finishReview()">Go to my module</button>
           </div>
         </div>
 
         <!-- QUIZ RESULT MODAL OVERLAY -->
         <div class="res-modal" id="res-modal">
           <div class="res-card">
-            <div class="res-circle">3/3</div>
-            <div class="coin-badge">⭐ +15 Coins Earned</div>
-            <div class="res-title">Great effort!</div>
-            <div class="res-sub">Your Care Has Been Recognized</div>
-            <div class="res-desc">
-              Thank you for your continued dedication. Every meaningful care moment helps create a better journey for your child while earning reward along the way.
-            </div>
+	            <div class="res-circle" id="result-score">0/0</div>
+	            <div class="coin-badge" id="result-coins">⭐ +0 Coins Earned</div>
+	            <div class="res-title" id="result-title">Great effort!</div>
+	            <div class="res-sub" id="result-sub">Your Care Has Been Recognized</div>
+	            <div class="res-desc" id="result-desc">
+	              Thank you for your continued dedication. Every meaningful care moment helps create a better journey for your child while earning reward along the way.
+	            </div>
             <button class="btn-full" style="margin-top:8px;" onclick="closeResultModal()">Go to my module</button>
           </div>
         </div>
@@ -462,9 +389,9 @@
 
       <div class="card">
         <h3>⚡ Live API Actions</h3>
-        <p>Direct REST calls to `/api/v1/care/modules`</p>
+        <p>Direct REST calls to `/api/v1/care/home`</p>
         <div style="display:flex;flex-direction:column;gap:8px;">
-          <button class="btn btn-o" onclick="loadModules()">GET /api/v1/care/modules</button>
+          <button class="btn btn-o" onclick="loadModules()">GET /api/v1/care/home</button>
           <button class="btn btn-p" onclick="assignDemoModule()">POST /api/v1/care/assignments (Assign to Eve)</button>
         </div>
       </div>
@@ -480,6 +407,13 @@
   <script>
     let token = localStorage.getItem('access_token') || '';
     let currentModules = [];
+    let selectedChildId = '';
+    let selectedNannyUserId = '';
+    let activeTab = 'ALL';
+    let activeCategory = '';
+    let activeSearch = '';
+    let activeModuleDetail = null;
+    let quizAnswers = {};
 
     function log(msg) {
       const el = document.getElementById('dev-log');
@@ -492,7 +426,7 @@
 
     function quickFill(email) {
       document.getElementById('login-email').value = email;
-      document.getElementById('login-pass').value = 'Password123!';
+      document.getElementById('login-pass').value = '123456';
     }
 
     function getApiUrl(path) {
@@ -554,19 +488,130 @@
 
     async function loadModules() {
       try {
-        log('Fetching care modules from GET /api/v1/care/modules...');
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        const res = await fetch(getApiUrl('/api/v1/care/modules'), { headers });
+        log('Fetching care home from GET /api/v1/care/home...');
+        if (!token) {
+          openLoginModal();
+          log('Login required before loading care home');
+          return;
+        }
+
+        const params = new URLSearchParams();
+        if (selectedChildId) params.set('childId', selectedChildId);
+        if (activeTab) params.set('tab', activeTab);
+        if (activeCategory) params.set('category', activeCategory);
+        if (activeSearch) params.set('search', activeSearch);
+
+        const headers = { 'Authorization': `Bearer ${token}` };
+        const res = await fetch(getApiUrl(`/api/v1/care/home?${params.toString()}`), { headers });
         const json = await res.json();
 
-        if (json.data) {
-          currentModules = Array.isArray(json.data) ? json.data : (json.data.items || []);
+        if (res.ok && json.data) {
+          const home = json.data;
+          currentModules = home.caregivingHub?.modules || [];
+          selectedChildId = home.caregivingHub?.selectedChildId || selectedChildId;
+          selectedNannyUserId = currentModules.find(mod => mod.assignment?.nannyUserId)?.assignment?.nannyUserId || selectedNannyUserId;
+          renderCareHome(home);
           log(`Loaded ${currentModules.length} modules from database`);
-          renderModuleCards(currentModules);
+        } else {
+          const message = Array.isArray(json.message) ? json.message.join(', ') : (json.message || 'Failed to load care home');
+          log(`Care home error: ${message}`);
+          if (res.status === 401) {
+            logout();
+          }
         }
       } catch (err) {
         log(`Failed to fetch modules: ${err.message}`);
       }
+    }
+
+    function handleSearchKey(event) {
+      if (event.key === 'Enter') {
+        applySearch();
+      }
+    }
+
+    function applySearch() {
+      activeSearch = document.getElementById('module-search').value.trim();
+      loadModules();
+    }
+
+    function renderCareHome(home) {
+      renderUser(home.user);
+      renderChildren(home.children || []);
+      renderHub(home.caregivingHub || {});
+      renderModuleCards(currentModules);
+    }
+
+    function renderUser(user) {
+      if (!user) return;
+      document.getElementById('ph-greeting').innerText = user.greeting || 'Good Morning';
+      document.getElementById('ph-user-name').innerText = user.name || 'User';
+      document.getElementById('user-role-badge').innerText = `${user.role || 'User'} Account`;
+      if (user.image) {
+        document.getElementById('ph-user-img').src = user.image;
+      }
+    }
+
+    function renderChildren(children) {
+      const container = document.getElementById('child-selector');
+      container.innerHTML = '';
+
+      children.forEach(child => {
+        const pill = document.createElement('div');
+        pill.className = `child-pill ${child.isActive ? 'active' : ''}`;
+        pill.onclick = () => {
+          selectedChildId = child.id;
+          loadModules();
+        };
+        pill.innerHTML = `
+          <img src="${child.image || child.avatar || 'https://images.unsplash.com/photo-1519689680058-324335c77eba?q=80&w=200'}" alt="child"/>
+          <span>${child.name}</span>
+        `;
+        container.appendChild(pill);
+      });
+    }
+
+    function renderHub(hub) {
+      document.getElementById('care-title').innerText = hub.title || 'Explore Baby handling lesson';
+      document.getElementById('care-subtitle').innerText = hub.subtitle || "Assign care modules to your nanny based on your child's needs.";
+
+      const activeTabItem = (hub.tabs || []).find(tab => tab.isActive);
+      document.getElementById('module-section-title').innerText = activeTabItem ? `${activeTabItem.label} (${activeTabItem.count})` : 'All Modules';
+
+      renderTabs(hub.tabs || []);
+      renderTopics(hub.topics || []);
+    }
+
+    function renderTabs(tabs) {
+      const container = document.getElementById('module-tabs');
+      container.innerHTML = '';
+
+      tabs.forEach(tab => {
+        const el = document.createElement('div');
+        el.className = `module-tab ${tab.isActive ? 'active' : ''}`;
+        el.innerText = `${tab.label} (${tab.count})`;
+        el.onclick = () => {
+          activeTab = tab.key;
+          loadModules();
+        };
+        container.appendChild(el);
+      });
+    }
+
+    function renderTopics(topics) {
+      const container = document.getElementById('topic-list');
+      container.innerHTML = '';
+
+      topics.forEach(topic => {
+        const el = document.createElement('div');
+        el.className = `cat-pill ${topic.isActive ? 'active' : ''}`;
+        el.innerText = topic.value ? topic.label : 'All Topics';
+        el.onclick = () => {
+          activeCategory = topic.value || '';
+          loadModules();
+        };
+        container.appendChild(el);
+      });
     }
 
     function renderModuleCards(modules) {
@@ -586,7 +631,8 @@
         const imgUrl = mod.coverImageUrl || 'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?q=80&w=1200';
         const mins = mod.estimatedMinutes ? `${Math.floor(mod.estimatedMinutes / 60)}h ${mod.estimatedMinutes % 60}m` : '1h 53m';
         const coins = mod.coinReward || 15;
-        const progressTag = idx === 0 ? '3 of 5 answers were correct...' : 'In progress';
+        const progressTag = moduleProgressText(mod, idx);
+        const saveLabel = mod.isSaved ? 'Saved' : 'Save';
 
         card.innerHTML = `
           <img src="${imgUrl}" class="mod-img" alt="module"/>
@@ -596,6 +642,7 @@
             <span class="mod-badge">${progressTag}</span>
             <div class="mod-actions">
               <button class="btn-xs btn-xs-p" onclick="event.stopPropagation(); openModuleDetailById('${mod.id}')">Visit module</button>
+              <button class="btn-xs btn-xs-o" onclick="event.stopPropagation(); toggleSaveModule('${mod.id}', ${Boolean(mod.isSaved)})">${saveLabel}</button>
               <button class="btn-xs btn-xs-o" onclick="event.stopPropagation(); assignModule('${mod.id}')">Assign Module</button>
             </div>
           </div>
@@ -604,20 +651,196 @@
       });
     }
 
-    function openModuleDetail(mod) {
+    function moduleProgressText(mod, idx) {
+      if (mod.assignment?.correctAnswers != null && mod.assignment?.totalQuestions) {
+        return `${mod.assignment.correctAnswers} of ${mod.assignment.totalQuestions} answers were correct.`;
+      }
+      if (mod.assignment?.status === 'COMPLETED') return 'Completed';
+      return 'In progress';
+    }
+
+    async function toggleSaveModule(moduleId, isSaved) {
+      if (!token) {
+        alert('Please login first');
+        openLoginModal();
+        return;
+      }
+
+      try {
+        const res = await fetch(getApiUrl(`/api/v1/care/modules/${moduleId}/save`), {
+          method: isSaved ? 'DELETE' : 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const json = await res.json();
+        log(`Save response: ${JSON.stringify(json.message || json)}`);
+        if (res.ok) {
+          loadModules();
+        } else {
+          alert(json.message || 'Save action failed');
+        }
+      } catch (err) {
+        log(`Save error: ${err.message}`);
+      }
+    }
+
+    async function openModuleDetail(mod) {
       document.getElementById('detail-nav-title').innerText = mod.title;
       document.getElementById('detail-title').innerText = mod.title;
-      document.getElementById('detail-sub').innerText = mod.subtitle || 'Why children\'s eating patterns naturally vary day to day';
-      if (mod.coverImageUrl) {
-        document.getElementById('detail-banner-img').src = mod.coverImageUrl;
-      }
+      document.getElementById('detail-sub').innerText = mod.subtitle || '';
+      document.getElementById('detail-sections').innerHTML = `<div class="card-sec"><div class="card-sec-body">Loading module...</div></div>`;
+      if (mod.coverImageUrl) document.getElementById('detail-banner-img').src = mod.coverImageUrl;
       showScreen('screen-detail');
-      log(`Opened module: "${mod.title}"`);
+
+      try {
+        const assignmentId = mod.assignment?.id;
+        const params = assignmentId ? `?assignmentId=${encodeURIComponent(assignmentId)}` : '';
+        const res = await fetch(getApiUrl(`/api/v1/care/modules/${mod.id}${params}`), {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const json = await res.json();
+
+        if (!res.ok || !json.data) {
+          throw new Error(json.message || 'Module detail failed');
+        }
+
+        activeModuleDetail = json.data;
+        selectedNannyUserId = activeModuleDetail.assignment?.nannyUserId || selectedNannyUserId;
+        renderModuleDetail(activeModuleDetail);
+        log(`Opened module: "${activeModuleDetail.title}"`);
+      } catch (err) {
+        document.getElementById('detail-sections').innerHTML = `<div class="card-sec"><div class="card-sec-body">${escapeHtml(err.message)}</div></div>`;
+        log(`Module detail error: ${err.message}`);
+      }
     }
 
     function openModuleDetailById(id) {
       const mod = currentModules.find(m => m.id === id);
       if (mod) openModuleDetail(mod);
+    }
+
+    function renderModuleDetail(mod) {
+      activeModuleDetail = mod;
+      quizAnswers = {};
+      document.getElementById('detail-nav-title').innerText = mod.title;
+      document.getElementById('detail-title').innerText = mod.title;
+      document.getElementById('detail-sub').innerText = mod.subtitle || mod.description || '';
+      document.getElementById('detail-banner-img').src = mod.coverImageUrl || 'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?q=80&w=1200';
+      document.getElementById('take-quiz-btn').disabled = !mod.questions?.length || !mod.assignment?.id;
+
+      const sections = Array.isArray(mod.contentSections) ? mod.contentSections : [];
+      const html = sections.map(renderContentSection).join('') + `
+        <div class="takeaway-box">
+          <div class="takeaway-label">Key Takeaway</div>
+          <div class="takeaway-text">${escapeHtml(mod.keyTakeaway || 'Keep care calm, consistent, and child-centered.')}</div>
+        </div>
+      `;
+      document.getElementById('detail-sections').innerHTML = html;
+    }
+
+    function renderContentSection(section) {
+      const heading = escapeHtml(section.heading || section.title || 'Care note');
+      const body = section.body ? `<div class="card-sec-body">${escapeHtml(section.body)}</div>` : '';
+      const bullets = Array.isArray(section.bullets) ? `<ul class="bullet-list">${section.bullets.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : '';
+      const footer = section.footer ? `<div class="card-sec-body" style="margin-top:8px;font-style:italic;">${escapeHtml(section.footer)}</div>` : '';
+      const subsections = Array.isArray(section.subsections) ? section.subsections.map(sub => `
+        <div style="font-size:12px;font-weight:800;color:#0F172A;margin:8px 0 4px;">${escapeHtml(sub.title || '')}</div>
+        <ul class="bullet-list">${(sub.items || []).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+      `).join('') : '';
+
+      return `
+        <div class="card-sec">
+          <div class="card-sec-title">${heading}</div>
+          ${body}${bullets}${subsections}${footer}
+        </div>
+      `;
+    }
+
+    function openQuiz() {
+      if (!activeModuleDetail?.questions?.length) {
+        alert('No quiz questions available');
+        return;
+      }
+      if (!activeModuleDetail.assignment?.id) {
+        alert('Assign this module first');
+        return;
+      }
+      quizAnswers = {};
+      document.getElementById('quiz-title').innerText = activeModuleDetail.title;
+      renderQuiz();
+      showScreen('screen-quiz');
+    }
+
+    function renderQuiz() {
+      const questions = activeModuleDetail.questions || [];
+      document.getElementById('quiz-count').innerText = `${Object.keys(quizAnswers).length}/${questions.length}`;
+      document.getElementById('quiz-body').innerHTML = questions.map((question, index) => `
+        <div class="quiz-card">
+          <div class="q-num">${index + 1}</div>
+          <div class="q-text">${escapeHtml(question.question)}</div>
+          <div class="opt-list">
+            ${(question.options || []).map(option => `
+              <div class="opt-item ${quizAnswers[question.id] === option.id ? 'selected' : ''}" onclick="selectQuizOption('${question.id}', '${option.id}')">
+                <span>${escapeHtml(option.label)}</span>
+                <span>${quizAnswers[question.id] === option.id ? '✓' : ''}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div class="exp-box" id="exp-${question.id}">
+            <strong>Explanation:</strong> ${escapeHtml(question.explanation || '')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function selectQuizOption(questionId, optionId) {
+      quizAnswers[questionId] = optionId;
+      renderQuiz();
+    }
+
+    async function submitQuiz() {
+      const questions = activeModuleDetail?.questions || [];
+      const assignmentId = activeModuleDetail?.assignment?.id;
+
+      if (!assignmentId) {
+        alert('No assignment found for this module');
+        return;
+      }
+
+      if (Object.keys(quizAnswers).length !== questions.length) {
+        alert('Answer all quiz questions before submit');
+        return;
+      }
+
+      const answers = questions.map(question => ({
+        questionId: question.id,
+        selectedOptionId: quizAnswers[question.id],
+      }));
+
+      try {
+        document.getElementById('submit-quiz-btn').disabled = true;
+        const res = await fetch(getApiUrl(`/api/v1/care/assignments/${assignmentId}/quiz`), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ answers })
+        });
+        const json = await res.json();
+
+        if (!res.ok) {
+          throw new Error(json.message || 'Quiz submit failed');
+        }
+
+        renderResultReview(json.data);
+        showScreen('screen-result');
+        loadModules();
+      } catch (err) {
+        alert(err.message);
+        log(`Quiz submit error: ${err.message}`);
+      } finally {
+        document.getElementById('submit-quiz-btn').disabled = false;
+      }
     }
 
     async function assignModule(moduleId) {
@@ -628,17 +851,31 @@
         return;
       }
       try {
+        const mod = currentModules.find(item => item.id === moduleId);
+        const nannyUserId = mod?.assignment?.nannyUserId || selectedNannyUserId;
+
+        if (!selectedChildId || !nannyUserId) {
+          alert('Child and nanny data missing. Load seeded care home data first.');
+          log('Assignment skipped: missing childId or nannyUserId');
+          return;
+        }
+
         const res = await fetch(getApiUrl('/api/v1/care/assignments'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ moduleId })
+          body: JSON.stringify({ moduleId, childId: selectedChildId, nannyUserId })
         });
         const json = await res.json();
         log(`Module assignment response: ${JSON.stringify(json.message || json)}`);
-        alert('Module assigned successfully!');
+        if (res.ok) {
+          alert('Module assigned successfully!');
+          loadModules();
+        } else {
+          alert(json.message || 'Module assignment failed');
+        }
       } catch (err) {
         log(`Assignment error: ${err.message}`);
       }
@@ -675,14 +912,82 @@
       document.getElementById(expId).classList.add('show');
     }
 
-    function showResultModal() {
+    function showResultModal(result) {
+      const assignment = result?.assignment || result;
+      const correct = assignment?.correctAnswers ?? 0;
+      const total = assignment?.totalQuestions ?? activeModuleDetail?.questions?.length ?? 0;
+      const points = assignment?.pointsEarned ?? 0;
+      const completed = assignment?.status === 'COMPLETED';
+
+      document.getElementById('result-score').innerText = `${correct}/${total}`;
+      document.getElementById('result-coins').innerText = `⭐ +${points} Coins Earned`;
+      document.getElementById('result-title').innerText = completed ? 'Great effort!' : 'Keep going';
+      document.getElementById('result-sub').innerText = completed ? 'Your Care Has Been Recognized' : 'Review and try again';
+      document.getElementById('result-desc').innerText = completed
+        ? 'Thank you for your continued dedication. Every meaningful care moment helps create a better journey for your child while earning reward along the way.'
+        : 'This module will stay in progress until every answer is correct.';
       document.getElementById('res-modal').classList.add('open');
-      log('Submitted quiz! Awarded +15 coins reward');
+      log(`Submitted quiz: ${correct}/${total}`);
+    }
+
+    function renderResultReview(data) {
+      const assignment = data?.assignment || {};
+      const result = data?.result || assignment;
+      const answers = data?.answers || [];
+      const correct = result.correctAnswers ?? assignment.correctAnswers ?? 0;
+      const total = result.totalQuestions ?? assignment.totalQuestions ?? answers.length;
+      const completed = assignment.status === 'COMPLETED' || correct === total;
+
+      document.getElementById('review-score').innerText = `${correct}/${total}`;
+      document.getElementById('review-title').innerText = completed ? 'Great effort!' : 'Good effort!';
+      document.getElementById('review-sub').innerText = completed
+        ? 'Your Care Has Been Recognized. Thank you for completing this care module.'
+        : 'Some answers need another look. This module stays in progress until every answer is correct.';
+
+      document.getElementById('answer-review').innerHTML = answers.map((answer, index) => {
+        const selected = answer.selectedOption || {};
+        const correctOption = (answer.options || []).find(option => option.isCorrect);
+        return `
+          <div class="answer-card">
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <div class="answer-status ${answer.isCorrect ? 'ok' : 'bad'}">${answer.isCorrect ? '✓' : '×'}</div>
+              <div>
+                <div class="q-num" style="margin-bottom:6px;">${index + 1}</div>
+                <div class="q-text">${escapeHtml(answer.question)}</div>
+              </div>
+            </div>
+            <div class="review-option ${answer.isCorrect ? '' : 'bad'}">
+              ${escapeHtml(selected.label || 'No answer selected')}
+            </div>
+            ${answer.isCorrect ? '' : `<div class="review-option">${escapeHtml(correctOption?.label || '')}</div>`}
+            <div class="explanation">
+              <strong>Explanation:</strong> ${escapeHtml(answer.explanation || '')}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      log(`Quiz review rendered: ${correct}/${total}`);
+    }
+
+    function finishReview() {
+      document.getElementById('res-modal').classList.remove('open');
+      showScreen('screen-list');
+      loadModules();
     }
 
     function closeResultModal() {
       document.getElementById('res-modal').classList.remove('open');
       showScreen('screen-list');
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
     }
 
     // Initialize

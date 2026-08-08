@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  CareModuleCategory,
   CareModuleAdminStatus,
   CareModuleAssignmentStatus,
   CareQuestionType,
@@ -97,6 +98,19 @@ const ACTIVITY_CATEGORY_KEYWORDS = [
   'MUSIC',
   'STORY',
 ];
+
+const CARE_HOME_TOPICS = [
+  { label: 'All Topics', value: null },
+  { label: 'Child Safety', value: CareModuleCategory.CHILD_SAFETY },
+  { label: 'Nutrition & Feeding', value: CareModuleCategory.NUTRITION_FEEDING },
+  { label: 'Sleep & Routines', value: CareModuleCategory.SLEEP_ROUTINES },
+  { label: 'Child Development', value: CareModuleCategory.CHILD_DEVELOPMENT },
+  { label: 'First Aid', value: CareModuleCategory.FIRST_AID },
+  { label: 'Play & Learning', value: CareModuleCategory.PLAY_LEARNING },
+  { label: 'Communication', value: CareModuleCategory.COMMUNICATION },
+  { label: 'Health & Hygiene', value: CareModuleCategory.HEALTH_HYGIENE },
+  { label: 'Other', value: CareModuleCategory.OTHER },
+] as const;
 
 type CareModuleSuggestedAgeRange = {
   suggestedMinAgeYears?: number;
@@ -422,6 +436,103 @@ export class CareService {
         page,
         limit,
         totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getCareHome(user: CurrentUserPayload, query: CareModuleQueryDto) {
+    const userId = this.currentUserId(user);
+    const childrenResponse = await this.getMyCareChildren(user);
+    const children = childrenResponse.data;
+    const selectedChildId = query.childId ?? children[0]?.id;
+    const homeQuery = {
+      ...query,
+      ...(selectedChildId && { childId: selectedChildId }),
+    };
+
+    const [account, moduleResponse, tabCounts] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          profilePictureUrl: true,
+          role: true,
+        },
+      }),
+      this.getModules(user, homeQuery),
+      this.careHomeTabCounts(user, homeQuery),
+    ]);
+
+    if (!account) {
+      throw new NotFoundException('User not found');
+    }
+
+    const activeTab = homeQuery.tab ?? CareModuleTab.ALL;
+
+    return {
+      success: true,
+      message: 'Care home fetched successfully',
+      data: {
+        user: {
+          id: account.id,
+          name: account.fullName,
+          email: account.email,
+          image: account.profilePictureUrl,
+          role: account.role,
+          greeting: this.timeGreeting(),
+        },
+        children: children.map((child) => ({
+          id: child.id,
+          name: child.name,
+          image: child.avatar,
+          avatar: child.avatar,
+          gender: child.gender,
+          ageYears: child.ageYears,
+          isActive: child.id === selectedChildId,
+        })),
+        caregivingHub: {
+          title: 'Explore Baby handling lesson',
+          subtitle: "Assign care modules to your nanny based on your child's needs.",
+          selectedChildId: selectedChildId ?? null,
+          activeTab,
+          tabs: [
+            {
+              key: CareModuleTab.ALL,
+              label: 'All Modules',
+              count: tabCounts.all,
+              isActive: activeTab === CareModuleTab.ALL,
+            },
+            {
+              key: CareModuleTab.IN_PROGRESS,
+              label: 'In progress',
+              count: tabCounts.inProgress,
+              isActive: activeTab === CareModuleTab.IN_PROGRESS,
+            },
+            {
+              key: CareModuleTab.COMPLETED,
+              label: 'Completed',
+              count: tabCounts.completed,
+              isActive: activeTab === CareModuleTab.COMPLETED,
+            },
+            {
+              key: CareModuleTab.SAVED,
+              label: 'Saved',
+              count: tabCounts.saved,
+              isActive: activeTab === CareModuleTab.SAVED,
+            },
+          ],
+          topics: CARE_HOME_TOPICS.map((topic) => ({
+            ...topic,
+            isActive:
+              topic.value === null
+                ? !homeQuery.category
+                : homeQuery.category === topic.value,
+          })),
+          modules: moduleResponse.data,
+        },
+        meta: moduleResponse.meta,
       },
     };
   }
@@ -1133,12 +1244,16 @@ export class CareService {
       },
       update: {
         assignedByUserId: userId,
+        status: CareModuleAssignmentStatus.IN_PROGRESS,
+        startedAt: new Date(),
       },
       create: {
         moduleId: dto.moduleId,
         childId: dto.childId,
         nannyUserId: dto.nannyUserId,
         assignedByUserId: userId,
+        status: CareModuleAssignmentStatus.IN_PROGRESS,
+        startedAt: new Date(),
       },
       include: this.assignmentInclude(),
     });
@@ -1409,6 +1524,69 @@ export class CareService {
         'suggestedMinAgeYears cannot be greater than suggestedMaxAgeYears',
       );
     }
+  }
+
+  private async careHomeTabCounts(
+    user: CurrentUserPayload,
+    query: CareModuleQueryDto,
+  ) {
+    const [all, inProgress, completed, saved] = await Promise.all([
+      this.countModulesForTab(user, query, CareModuleTab.ALL),
+      this.countModulesForTab(user, query, CareModuleTab.IN_PROGRESS),
+      this.countModulesForTab(user, query, CareModuleTab.COMPLETED),
+      this.countModulesForTab(user, query, CareModuleTab.SAVED),
+    ]);
+
+    return { all, inProgress, completed, saved };
+  }
+
+  private async countModulesForTab(
+    user: CurrentUserPayload,
+    query: CareModuleQueryDto,
+    tab: CareModuleTab,
+  ) {
+    const userId = this.currentUserId(user);
+    const countQuery = { ...query, tab };
+    const moduleWhere = this.moduleWhere(countQuery, user);
+
+    if (tab === CareModuleTab.SAVED) {
+      return this.prisma.careModuleSave.count({
+        where: {
+          userId,
+          module: moduleWhere,
+        },
+      });
+    }
+
+    if (
+      tab === CareModuleTab.IN_PROGRESS ||
+      tab === CareModuleTab.COMPLETED ||
+      this.isNanny(user)
+    ) {
+      const assignmentWhere = await this.assignmentWhereForUser(
+        user,
+        countQuery,
+        tab,
+      );
+
+      return this.prisma.careModuleAssignment.count({
+        where: {
+          ...assignmentWhere,
+          module: moduleWhere,
+        },
+      });
+    }
+
+    return this.prisma.careModule.count({ where: moduleWhere });
+  }
+
+  private timeGreeting() {
+    const hour = new Date().getHours();
+
+    if (hour >= 5 && hour < 12) return 'Good Morning';
+    if (hour >= 12 && hour < 17) return 'Good Afternoon';
+    if (hour >= 17 && hour < 21) return 'Good Evening';
+    return 'Good Night';
   }
 
   private childAgeYears(birthDate: Date) {
@@ -2021,6 +2199,10 @@ export class CareService {
   private effectiveAssignmentStatus(
     assignment: Prisma.CareModuleAssignmentGetPayload<object>,
   ) {
+    if (assignment.status === CareModuleAssignmentStatus.ASSIGNED) {
+      return CareModuleAssignmentStatus.IN_PROGRESS;
+    }
+
     if (
       assignment.status === CareModuleAssignmentStatus.COMPLETED &&
       (assignment.score ?? 0) < 100
