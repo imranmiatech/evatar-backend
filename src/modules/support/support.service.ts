@@ -4,8 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, UserRole } from '@prisma/client';
+import { NotificationType, Prisma, UserRole, UserStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
 import { CreateTicketDto, SendMessageDto } from './dto/support.dto';
 
 const supportMessageInclude = {
@@ -21,7 +22,10 @@ const supportMessageInclude = {
 
 @Injectable()
 export class SupportService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService,
+  ) {}
 
   async createTicket(userId: string, createTicketDto: CreateTicketDto) {
     const ticket = await this.prisma.supportTicket.create({
@@ -32,6 +36,35 @@ export class SupportService {
         status: 'PENDING',
       },
     });
+
+    // Notify active Admin users about new support ticket
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { fullName: true },
+      });
+      const senderName = user?.fullName || 'A user';
+
+      const admins = await this.prisma.user.findMany({
+        where: { role: UserRole.ADMIN, status: UserStatus.ACTIVE },
+        select: { id: true },
+      });
+
+      for (const admin of admins) {
+        await this.notificationService.createNotification({
+          userId: admin.id,
+          type: NotificationType.NEW_MESSAGE,
+          title: 'New Support Ticket',
+          message: `${senderName}: ${createTicketDto.subject}`,
+          iconType: 'CHAT',
+          actionText: 'View Ticket',
+          actionUrl: `/support/tickets/${ticket.id}`,
+          metadata: { ticketId: ticket.id, subject: createTicketDto.subject },
+        });
+      }
+    } catch (err) {
+      console.error('Failed to notify admins of support ticket:', err);
+    }
 
     return {
       success: true,
@@ -135,6 +168,44 @@ export class SupportService {
       include: supportMessageInclude,
     });
 
+    try {
+      const senderName = savedMessage.sender?.fullName || 'Someone';
+      const preview = dto.message || (dto.attachmentUrl ? 'Sent an attachment' : 'New support message');
+
+      if (userId === ticket.userId) {
+        const admins = await this.prisma.user.findMany({
+          where: { role: UserRole.ADMIN, status: UserStatus.ACTIVE },
+          select: { id: true },
+        });
+
+        for (const admin of admins) {
+          await this.notificationService.createNotification({
+            userId: admin.id,
+            type: NotificationType.NEW_MESSAGE,
+            title: `Support reply from ${senderName}`,
+            message: preview,
+            iconType: 'CHAT',
+            actionText: 'View Ticket',
+            actionUrl: `/support/tickets/${ticketId}`,
+            metadata: { ticketId },
+          });
+        }
+      } else {
+        await this.notificationService.createNotification({
+          userId: ticket.userId,
+          type: NotificationType.NEW_MESSAGE,
+          title: `Support update: ${ticket.subject}`,
+          message: preview,
+          iconType: 'CHAT',
+          actionText: 'View Support Reply',
+          actionUrl: `/support/tickets/${ticketId}`,
+          metadata: { ticketId },
+        });
+      }
+    } catch (err) {
+      console.error('Failed to notify support message:', err);
+    }
+
     return {
       success: true,
       message: 'Message sent',
@@ -203,6 +274,21 @@ export class SupportService {
       where: { id: ticketId },
       data: { status },
     });
+
+    try {
+      await this.notificationService.createNotification({
+        userId: ticket.userId,
+        type: NotificationType.NEW_MESSAGE,
+        title: `Support Ticket ${status}`,
+        message: `Your ticket "${ticket.subject}" status is now ${status}.`,
+        iconType: 'CHECK',
+        actionText: 'View Ticket',
+        actionUrl: `/support/tickets/${ticketId}`,
+        metadata: { ticketId, status },
+      });
+    } catch (err) {
+      console.error('Failed to notify user of ticket status update:', err);
+    }
 
     return {
       success: true,

@@ -5,6 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { SignupDto } from './dto/signup.dto';
 import * as bcrypt from 'bcrypt';
 import {
+  NotificationType,
   OtpPurpose,
   RelationshipType,
   UserRole,
@@ -13,6 +14,7 @@ import {
 } from '@prisma/client';
 import { TwilioService } from '../../common/twilio/twilio.service';
 import { MailService } from '../../common/mail/mail.service';
+import { NotificationService } from '../notification/notification.service';
 import { SigninDto } from './dto/signin.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -27,6 +29,7 @@ export class AuthService {
     private mailService: MailService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private notificationService: NotificationService,
   ) {}
 
   async signup(dto: SignupDto) {
@@ -116,6 +119,35 @@ export class AuthService {
 
       // Remove passwordHash before returning to client
       const { passwordHash: _, ...result } = user;
+
+      // Notify active Admin users about new user registration
+      try {
+        const admins = await this.prisma.user.findMany({
+          where: { role: UserRole.ADMIN, status: UserStatus.ACTIVE },
+          select: { id: true },
+        });
+
+        for (const admin of admins) {
+          await this.notificationService.createNotification({
+            userId: admin.id,
+            type: NotificationType.INVITATION_ACCEPTED,
+            title: 'New User Registration',
+            message: `${result.fullName} (${result.role}) registered.`,
+            iconType: 'AVATAR',
+            actionText: 'View Users',
+            actionUrl: `/admin/users/${result.id}`,
+            metadata: {
+              newUserId: result.id,
+              fullName: result.fullName,
+              email: result.email,
+              role: result.role,
+            },
+          });
+        }
+      } catch (err) {
+        console.error('Failed to notify admins of new signup:', err);
+      }
+
       return {
         message: 'Signup successful. Please verify your OTP.',
         user: result,

@@ -5,8 +5,10 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, UserRole, UserStatus } from '@prisma/client';
+import { NotificationType, Prisma, UserRole, UserStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
+import { LanguageService } from '../language/language.service';
 import { CreateConversationDto, SendChatMessageDto } from './dto/message.dto';
 
 const CHAT_ROLES: UserRole[] = [
@@ -37,7 +39,11 @@ type ConversationWithLatestMessage = Prisma.ConversationGetPayload<{
 @Injectable()
 export class MessageService {
   private readonly logger = new Logger(MessageService.name);
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService,
+    private readonly languageService: LanguageService,
+  ) {}
 
   async getContacts(currentUserId: string) {
     const users = await this.prisma.user.findMany({
@@ -85,6 +91,27 @@ export class MessageService {
       );
     }
 
+    const existingConversations = await this.prisma.conversation.findMany({
+      where: {
+        AND: participantIds.map((pId) => ({
+          participants: { some: { userId: pId } },
+        })),
+      },
+      include: this.conversationInclude(),
+    });
+
+    const exactMatch = existingConversations.find(
+      (c) => c.participants.length === participantIds.length,
+    );
+
+    if (exactMatch) {
+      return {
+        success: true,
+        message: 'Conversation retrieved',
+        data: exactMatch,
+      };
+    }
+
     const conversation = await this.prisma.conversation.create({
       data: {
         title: dto.title,
@@ -128,6 +155,12 @@ export class MessageService {
   async getMessages(userId: string, conversationId: string) {
     await this.assertParticipant(userId, conversationId);
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferredLanguage: true },
+    });
+    const recipientLang = user?.preferredLanguage || 'en';
+
     const messages = await this.prisma.chatMessage.findMany({
       where: { conversationId },
       include: messageInclude,
@@ -136,7 +169,23 @@ export class MessageService {
 
     await this.markAsRead(userId, conversationId);
 
-    return { success: true, data: messages };
+    const messagesWithTranslation = await Promise.all(
+      messages.map(async (msg) => {
+        let translatedMessage = msg.message;
+        if (msg.message) {
+          translatedMessage = (await this.languageService.translateAsync(
+            msg.message,
+            recipientLang as any,
+          )) as string;
+        }
+        return {
+          ...msg,
+          translatedMessage: translatedMessage ?? msg.message,
+        };
+      }),
+    );
+
+    return { success: true, data: messagesWithTranslation };
   }
 
   async sendMessage(
@@ -165,6 +214,35 @@ export class MessageService {
       where: { id: conversationId },
       data: { updatedAt: new Date() },
     });
+
+    const participantUserIds = await this.getParticipantUserIds(conversationId);
+    const recipientIds = participantUserIds.filter((pId) => pId !== userId);
+    const senderName = savedMessage.sender?.fullName || 'Someone';
+    const preview = dto.message || (dto.attachmentUrl ? 'Sent an attachment' : 'New message');
+
+    for (const recipientId of recipientIds) {
+      try {
+        await this.notificationService.createNotification({
+          userId: recipientId,
+          type: NotificationType.NEW_MESSAGE,
+          title: `New message from ${senderName}`,
+          message: preview,
+          iconType: 'CHAT',
+          avatarUrl: savedMessage.sender?.profilePictureUrl || undefined,
+          actionText: 'Open Chat',
+          actionUrl: `/mobile-messages.html?conversationId=${conversationId}`,
+          metadata: {
+            conversationId,
+            senderId: userId,
+            messageId: savedMessage.id,
+          },
+        });
+      } catch (err) {
+        this.logger.error(
+          `Failed to create notification for recipient ${recipientId}: ${err?.message || err}`,
+        );
+      }
+    }
 
     return { success: true, message: 'Message sent', data: savedMessage };
   }
@@ -260,10 +338,28 @@ export class MessageService {
 
     const { messages: latestMessages, ...rest } = conversation;
     const [latestMessage] = latestMessages;
+    let formattedLatestMessage: any = latestMessage ?? null;
+
+    if (latestMessage?.message) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { preferredLanguage: true },
+      });
+      const recipientLang = user?.preferredLanguage || 'en';
+      const translated = (await this.languageService.translateAsync(
+        latestMessage.message,
+        recipientLang as any,
+      )) as string;
+
+      formattedLatestMessage = {
+        ...latestMessage,
+        translatedMessage: translated ?? latestMessage.message,
+      };
+    }
 
     return {
       ...rest,
-      latestMessage: latestMessage ?? null,
+      latestMessage: formattedLatestMessage,
       unreadCount,
     };
   }

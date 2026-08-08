@@ -101,8 +101,8 @@
   <div class="modal-box">
     <h2>🔑 Sign In</h2>
     <p>Sign in to load real conversations &amp; send live messages</p>
-    <div class="fl"><label>Email</label><input type="email" id="loginEmail" value="admin@evaturner.com"/></div>
-    <div class="fl"><label>Password</label><input type="password" id="loginPass" value="Admin123!"/></div>
+    <div class="fl"><label>Email</label><input type="email" id="loginEmail" value="a@e.com"/></div>
+    <div class="fl"><label>Password</label><input type="password" id="loginPass" value="123456"/></div>
     <div class="err-msg" id="loginErr"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;">
       <button class="btn btn-o" onclick="closeModal()">Demo Mode</button>
@@ -282,30 +282,55 @@ async function doLogin() {
     log(`🔑 Token: ${tok.slice(0,30)}…`);
     loadSession();
     closeModal();
+    initSocket();
     switchTab('chats');
   } catch(e) { err.textContent = e.message; err.style.display='block'; }
 }
 
 // ── SOCKET ───────────────────────────────────────────────────────────────────
 function initSocket() {
+  if (socket) {
+    try { socket.disconnect(); } catch(e){}
+  }
+  const tok = getToken();
   try {
-    socket = io(BASE || undefined, {transports:['websocket','polling']});
+    const socketUrl = `${BASE}/messages`;
+    socket = io(socketUrl, {
+      auth: { token: tok },
+      transports: ['websocket', 'polling']
+    });
     socket.on('connect', () => {
-      setBadge('sockBadge','⬤ Connected','badge-green');
-      log('🔗 Socket: '+socket.id);
-    });
-    socket.on('disconnect', () => {
-      setBadge('sockBadge','⬤ Disconnected','badge-red');
-      log('🔌 Socket disconnected');
-    });
-    socket.on('chat_message', msg => {
-      log('📩 Realtime: '+JSON.stringify(msg).slice(0,80));
-      if (msg.conversationId === activeConvId) {
-        addBubble(msg.message||'', msg.attachmentUrl||'', msg.senderId === myUserId);
+      setBadge('sockBadge','抓 Connected','badge-green');
+      log('🔗 Socket connected to /messages: ' + socket.id);
+      if (myUserId) socket.emit('joinUser', { userId: myUserId });
+      if (activeConvId && !activeConvId.startsWith('demo-')) {
+        socket.emit('joinConversation', { conversationId: activeConvId, userId: myUserId });
       }
     });
+    socket.on('disconnect', () => {
+      setBadge('sockBadge','抓 Disconnected','badge-red');
+      log('🔌 Socket disconnected');
+    });
+    socket.on('receiveMessage', msg => {
+      log('📩 receiveMessage: ' + JSON.stringify(msg).slice(0,80));
+      if (msg && msg.conversationId === activeConvId) {
+        addBubble(msg.message||'', msg.attachmentUrl||'', msg.senderId === myUserId, msg.createdAt);
+      }
+      loadChats();
+    });
+    socket.on('chat_message', msg => {
+      log('📩 chat_message: ' + JSON.stringify(msg).slice(0,80));
+      if (msg && msg.conversationId === activeConvId) {
+        addBubble(msg.message||'', msg.attachmentUrl||'', msg.senderId === myUserId, msg.createdAt);
+      }
+      loadChats();
+    });
+    socket.on('conversationUpdated', data => {
+      log('🔄 conversationUpdated');
+      loadChats();
+    });
   } catch(e) {
-    setBadge('sockBadge','⬤ Error','badge-red');
+    setBadge('sockBadge','抓 Error','badge-red');
     log('⚠️ Socket error: '+e.message);
   }
 }
@@ -326,21 +351,41 @@ async function loadChats() {
     if (!r.ok) throw new Error(r.status);
     const j = await safeJson(r);
     const list = j.data || j;
-    if (Array.isArray(list) && list.length > 0) renderChats(list);
-    else renderDemoChats();
+    if (Array.isArray(list)) {
+      if (list.length > 0) {
+        renderChats(list);
+      } else {
+        setBody('<div class="empty"><div style="font-size:28px">💬</div><div>No real conversations yet.<br/><br/><button class="btn btn-p" onclick="switchTab(\'contacts\')" style="padding:6px 14px;font-size:12px;">Go to Contacts to start a chat</button></div></div>');
+      }
+    } else {
+      renderDemoChats();
+    }
   } catch(e) { log('ℹ️ Chats: '+e.message); renderDemoChats(); }
 }
 
 function renderChats(list) {
-  setBody(list.map(c => `
-    <div class="ci" onclick="openChat('${esc(c.id)}','${esc(c.title||'Chat')}')">
-      <div class="av av-dot">${(c.title||'C')[0].toUpperCase()}</div>
-      <div class="ci-info">
-        <div class="ci-row"><span class="ci-name">${esc(c.title||'Chat')}</span><span class="ci-time">Now</span></div>
-        <div class="ci-sub">${esc(c.lastMessage||'Tap to open…')}</div>
+  setBody(list.map(c => {
+    const otherParticipant = (c.participants || []).find(p => p.userId !== myUserId)?.user;
+    const displayTitle = c.title || otherParticipant?.fullName || 'Conversation';
+    const initial = (displayTitle || 'C')[0].toUpperCase();
+    const lastMsg = c.latestMessage;
+    const lastText = lastMsg ? (lastMsg.message || (lastMsg.attachmentUrl ? '📷 Attachment' : 'Message')) : 'Tap to open…';
+    const timeStr = lastMsg?.createdAt ? new Date(lastMsg.createdAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+    const unread = c.unreadCount > 0 ? `<span class="badge badge-red" style="font-size:10px;padding:2px 6px;">${c.unreadCount}</span>` : '';
+
+    return `
+      <div class="ci ${c.id === activeConvId ? 'sel' : ''}" onclick="openChat('${esc(c.id)}','${esc(displayTitle)}')">
+        <div class="av av-dot">${initial}</div>
+        <div class="ci-info">
+          <div class="ci-row"><span class="ci-name">${esc(displayTitle)}</span><span class="ci-time">${timeStr}</span></div>
+          <div class="ci-sub" style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(lastText)}</span>
+            ${unread}
+          </div>
+        </div>
       </div>
-    </div>
-  `).join(''));
+    `;
+  }).join(''));
 }
 
 function renderDemoChats() {
@@ -349,7 +394,7 @@ function renderDemoChats() {
     {id:'demo-2',name:'Rose (Grandmother)',c:'#D97706',prev:"See you at Eve's music class!",t:'Yesterday'},
   ];
   setBody(list.map(d=>`
-    <div class="ci" onclick="openChat('${d.id}','${d.name}')">
+    <div class="ci ${d.id === activeConvId ? 'sel' : ''}" onclick="openChat('${d.id}','${d.name}')">
       <div class="av av-dot" style="background:${d.c}">${d.name[0]}</div>
       <div class="ci-info">
         <div class="ci-row"><span class="ci-name">${d.name}</span><span class="ci-time">${d.t}</span></div>
@@ -376,7 +421,7 @@ async function loadContacts() {
         const name = c.fullName || c.name || 'Contact';
         const role = c.role || 'Member';
         return `
-          <div class="ci" id="ci-${esc(c.id)}" onclick="selectContact('${esc(c.id)}','${esc(name)}','${esc(role)}')">
+          <div class="ci ${c.id === selId ? 'sel' : ''}" id="ci-${esc(c.id)}" onclick="selectContact('${esc(c.id)}','${esc(name)}','${esc(role)}')">
             <div class="av">${name[0].toUpperCase()}</div>
             <div class="ci-info">
               <div class="ci-name">${esc(name)}</div>
@@ -409,7 +454,7 @@ function selectContact(id, name, role) {
   const el = document.getElementById('ci-'+id);
   if (el) el.classList.add('sel');
 
-  log(`✅ Selected: ${name} | ID: ${id}`);
+  log(`✅ Selected contact: ${name} | ID: ${id}`);
   updateChatBtn();
 }
 
@@ -439,7 +484,7 @@ async function openChatWithSelected() {
   const btn = document.getElementById('chatBtn');
   btn.disabled = true;
   btn.textContent = '⏳ Opening…';
-  log(`🔄 Creating conversation with ${selName} [${selId}]`);
+  log(`🔄 Creating/retrieving conversation with ${selName} [${selId}]`);
 
   try {
     const body = JSON.stringify({participantIds:[selId], title:selName});
@@ -460,8 +505,8 @@ async function openChatWithSelected() {
       return;
     }
     if (r.status === 403) {
-      log('⚠️ 403 – check terminal for [MessageService] log line');
-      alert('403 Error: ' + (j.message || 'See event log and terminal'));
+      log('⚠️ 403 Forbidden');
+      alert('403 Error: ' + (j.message || 'Access denied'));
       return;
     }
 
@@ -491,6 +536,11 @@ function openChat(convId, name) {
   document.getElementById('apiConvId').value = convId;
   document.getElementById('msgInput').value = '';
   document.getElementById('chatView').classList.add('open');
+
+  if (socket && socket.connected && !convId.startsWith('demo-')) {
+    socket.emit('joinConversation', { conversationId: convId, userId: myUserId });
+  }
+
   loadMsgs(convId);
 }
 
@@ -563,17 +613,27 @@ async function sendMsg() {
   const text = inp.value.trim();
   if (!text) return;
   inp.value = '';
-  addBubble(text, '', true);
 
-  if (!activeConvId || activeConvId.startsWith('demo-')) return;
+  if (!activeConvId || activeConvId.startsWith('demo-')) {
+    addBubble(text, '', true);
+    return;
+  }
   if (!getToken()) return;
 
   try {
     const r = await fetch(`${BASE}/api/v1/messages/conversations/${activeConvId}/messages`, {
       method:'POST', headers:hdrs(), body:JSON.stringify({message:text})
     });
-    if (!r.ok) { const j=await safeJson(r); log('⚠️ Send: '+(j.message||r.status)); }
-    else log('✅ Sent');
+    const j = await safeJson(r);
+    if (!r.ok) {
+      log('⚠️ Send: '+(j.message||r.status));
+      alert('Error sending message: ' + (j.message || r.status));
+    } else {
+      log('✅ Sent message');
+      const saved = j.data || j;
+      addBubble(saved.message || text, saved.attachmentUrl || '', true, saved.createdAt);
+      loadChats();
+    }
   } catch(e) { log('⚠️ '+e.message); }
 }
 
@@ -596,7 +656,12 @@ async function apiSend() {
     });
     const j = await safeJson(r);
     if (!r.ok) { log('⚠️ '+( j.message||r.status)); alert('Error: '+(j.message||r.status)); }
-    else { log('✅ Sent via API'); if (activeConvId===convId) addBubble(text,'',true); }
+    else {
+      log('✅ Sent via API');
+      const saved = j.data || j;
+      if (activeConvId===convId) addBubble(saved.message || text, saved.attachmentUrl || '', true, saved.createdAt);
+      loadChats();
+    }
   } catch(e) { log('⚠️ '+e.message); }
 }
 
