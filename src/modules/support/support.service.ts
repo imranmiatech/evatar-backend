@@ -28,12 +28,26 @@ export class SupportService {
   ) {}
 
   async createTicket(userId: string, createTicketDto: CreateTicketDto) {
+    const ticketId = await this.generateTicketId();
     const ticket = await this.prisma.supportTicket.create({
       data: {
+        ticketId,
         userId,
         subject: createTicketDto.subject,
         message: createTicketDto.message,
         status: 'PENDING',
+        messages: {
+          create: {
+            senderId: userId,
+            message: createTicketDto.message,
+          },
+        },
+      },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' },
+          include: supportMessageInclude,
+        },
       },
     });
 
@@ -86,8 +100,8 @@ export class SupportService {
   }
 
   async getTicketMessages(userId: string, ticketId: string, role?: string) {
-    const ticket = await this.prisma.supportTicket.findUnique({
-      where: { id: ticketId },
+    const ticket = await this.prisma.supportTicket.findFirst({
+      where: this.ticketLookupWhere(ticketId),
       include: {
         messages: {
           orderBy: { createdAt: 'asc' },
@@ -118,6 +132,7 @@ export class SupportService {
       data: {
         ticket: {
           id: ticket.id,
+          ticketId: ticket.ticketId,
           subject: ticket.subject,
           status: ticket.status,
           createdAt: ticket.createdAt,
@@ -133,8 +148,8 @@ export class SupportService {
     ticketId: string,
     dto: SendMessageDto,
   ) {
-    const ticket = await this.prisma.supportTicket.findUnique({
-      where: { id: ticketId },
+    const ticket = await this.prisma.supportTicket.findFirst({
+      where: this.ticketLookupWhere(ticketId),
     });
 
     if (!ticket) {
@@ -159,7 +174,7 @@ export class SupportService {
 
     const savedMessage = await this.prisma.ticketMessage.create({
       data: {
-        ticketId,
+        ticketId: ticket.id,
         senderId: userId,
         message: dto.message ?? null,
         attachmentUrl: dto.attachmentUrl ?? null,
@@ -214,8 +229,8 @@ export class SupportService {
   }
 
   async resolveTicket(userId: string, ticketId: string) {
-    const ticket = await this.prisma.supportTicket.findUnique({
-      where: { id: ticketId },
+    const ticket = await this.prisma.supportTicket.findFirst({
+      where: this.ticketLookupWhere(ticketId),
     });
 
     if (!ticket) {
@@ -227,7 +242,7 @@ export class SupportService {
     }
 
     const updatedTicket = await this.prisma.supportTicket.update({
-      where: { id: ticketId },
+      where: { id: ticket.id },
       data: { status: 'RESOLVED' },
     });
 
@@ -262,8 +277,8 @@ export class SupportService {
   }
 
   async updateTicketStatus(ticketId: string, status: 'PENDING' | 'REPLIED' | 'RESOLVED') {
-    const ticket = await this.prisma.supportTicket.findUnique({
-      where: { id: ticketId },
+    const ticket = await this.prisma.supportTicket.findFirst({
+      where: this.ticketLookupWhere(ticketId),
     });
 
     if (!ticket) {
@@ -271,7 +286,7 @@ export class SupportService {
     }
 
     const updatedTicket = await this.prisma.supportTicket.update({
-      where: { id: ticketId },
+      where: { id: ticket.id },
       data: { status },
     });
 
@@ -295,5 +310,27 @@ export class SupportService {
       message: `Ticket status updated to ${status}`,
       data: updatedTicket,
     };
+  }
+
+  private ticketLookupWhere(ticketId: string): Prisma.SupportTicketWhereInput {
+    return {
+      OR: [{ id: ticketId }, { ticketId }],
+    };
+  }
+
+  private async generateTicketId(): Promise<string> {
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const ticketId = `TX-${Math.floor(1000 + Math.random() * 9000)}`;
+      const existingTicket = await this.prisma.supportTicket.findUnique({
+        where: { ticketId },
+        select: { id: true },
+      });
+
+      if (!existingTicket) {
+        return ticketId;
+      }
+    }
+
+    throw new BadRequestException('Could not generate ticket id');
   }
 }

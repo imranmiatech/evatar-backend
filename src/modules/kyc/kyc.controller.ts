@@ -3,6 +3,8 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  Patch,
   Post,
   UploadedFile,
   UploadedFiles,
@@ -13,6 +15,7 @@ import {
   FileFieldsInterceptor,
   FileInterceptor,
 } from '@nestjs/platform-express';
+import type {} from 'multer';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -89,6 +92,66 @@ export class KycController {
   ) {
     KycController.validateFiles(files);
     return this.kycService.submitDocuments(user.userId, dto.docType, files);
+  }
+
+  @Patch('documents/:id')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'passport', maxCount: 1 },
+      { name: 'nidFront', maxCount: 1 },
+      { name: 'nidBack', maxCount: 1 },
+    ]),
+  )
+  @ApiOperation({
+    summary: 'Update parent Passport or National ID document images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['docType'],
+      properties: {
+        docType: {
+          type: 'string',
+          enum: ['PASSPORT', 'NATIONAL_ID'],
+          example: 'NATIONAL_ID',
+        },
+        passport: {
+          type: 'string',
+          format: 'binary',
+          description: 'Required when docType is PASSPORT.',
+        },
+        nidFront: {
+          type: 'string',
+          format: 'binary',
+          description: 'Required when docType is NATIONAL_ID.',
+        },
+        nidBack: {
+          type: 'string',
+          format: 'binary',
+          description: 'Required when docType is NATIONAL_ID.',
+        },
+      },
+    },
+  })
+  updateDocuments(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') id: string,
+    @Body() dto: SubmitDocumentsDto,
+    @UploadedFiles()
+    files: {
+      passport?: Express.Multer.File[];
+      nidFront?: Express.Multer.File[];
+      nidBack?: Express.Multer.File[];
+    },
+  ) {
+    KycController.validateFiles(files);
+    return this.kycService.updateDocuments(
+      user.userId,
+      id,
+      dto.docType,
+      files,
+    );
   }
 
   @Post('face-check')

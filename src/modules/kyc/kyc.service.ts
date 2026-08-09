@@ -1,5 +1,6 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DocumentType, IdentityDocType, VerificationStatus } from '@prisma/client';
+import type {} from 'multer';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
 
@@ -59,6 +60,77 @@ export class KycService {
         ...verification,
         documents: savedDocuments,
       },
+    };
+  }
+
+  async updateDocuments(
+    userId: string,
+    verificationId: string,
+    docType: IdentityDocType,
+    files: KycUploadFiles,
+  ) {
+    const verification = await this.prisma.kycVerification.findFirst({
+      where: { id: verificationId, userId },
+    });
+
+    if (!verification) {
+      throw new NotFoundException('KYC verification not found');
+    }
+
+    if (verification.status === VerificationStatus.APPROVED) {
+      throw new BadRequestException('Approved KYC documents cannot be updated');
+    }
+
+    const documents = this.documentsFromFiles(docType, files);
+    const uploadedDocuments = await Promise.all(
+      documents.map(async (document) => {
+        const fileUrl = await this.storageService.uploadFile(
+          document.file,
+          'kyc-documents',
+        );
+
+        return {
+          type: document.type,
+          fileUrl,
+          s3Key: fileUrl,
+          mimeType: document.file.mimetype,
+          fileSize: document.file.size,
+        };
+      }),
+    );
+
+    const updatedVerification = await this.prisma.$transaction(async (tx) => {
+      await tx.kycDocument.deleteMany({
+        where: { kycVerificationId: verification.id },
+      });
+
+      await tx.kycDocument.createMany({
+        data: uploadedDocuments.map((document) => ({
+          kycVerificationId: verification.id,
+          ...document,
+        })),
+      });
+
+      return tx.kycVerification.update({
+        where: { id: verification.id },
+        data: {
+          docType,
+          status: VerificationStatus.PENDING,
+          rejectionReason: null,
+          faceMatchScore: null,
+          isLivenessValid: false,
+          reviewedBy: null,
+          reviewedAt: null,
+          submittedAt: new Date(),
+        },
+        include: { documents: true },
+      });
+    });
+
+    return {
+      success: true,
+      message: 'Documents updated successfully',
+      data: updatedVerification,
     };
   }
 

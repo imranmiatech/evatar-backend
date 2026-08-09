@@ -102,6 +102,67 @@ export async function seedAdmin(prisma: PrismaClient) {
     });
     console.log(`Parent user seeded: ${parent.email}`);
 
+    const deleteTestParent = await prisma.user.upsert({
+        where: { email: 'p1@e.com' },
+        update: {
+            fullName: 'Delete Test Parent',
+            passwordHash: hashedPassword,
+            role: UserRole.PARENT,
+            status: UserStatus.ACTIVE,
+            isEmailVerified: true,
+            isPhoneVerified: true,
+            verificationStatus: 'APPROVED',
+        },
+        create: {
+            email: 'p1@e.com',
+            fullName: 'Delete Test Parent',
+            passwordHash: hashedPassword,
+            role: UserRole.PARENT,
+            status: UserStatus.ACTIVE,
+            isEmailVerified: true,
+            isPhoneVerified: true,
+            verificationStatus: 'APPROVED',
+            parentProfile: {
+                create: {
+                    relationship: RelationshipType.FATHER,
+                    address: 'Delete Test Address',
+                    street: 'Delete Test Street',
+                    postalCode: '00000',
+                    city: 'Test City',
+                    state: 'Test State',
+                    country: 'Test Country',
+                    membershipPlan: MembershipPlan.TRIAL,
+                },
+            },
+        },
+    });
+
+    await prisma.parentProfile.upsert({
+        where: { userId: deleteTestParent.id },
+        update: {
+            relationship: RelationshipType.FATHER,
+            address: 'Delete Test Address',
+            street: 'Delete Test Street',
+            postalCode: '00000',
+            city: 'Test City',
+            state: 'Test State',
+            country: 'Test Country',
+            membershipPlan: MembershipPlan.TRIAL,
+        },
+        create: {
+            userId: deleteTestParent.id,
+            relationship: RelationshipType.FATHER,
+            address: 'Delete Test Address',
+            street: 'Delete Test Street',
+            postalCode: '00000',
+            city: 'Test City',
+            state: 'Test State',
+            country: 'Test Country',
+            membershipPlan: MembershipPlan.TRIAL,
+        },
+    });
+    console.log(`Delete test parent user seeded: ${deleteTestParent.email}`);
+
     const childSeeds = [
         {
             name: 'Eve',

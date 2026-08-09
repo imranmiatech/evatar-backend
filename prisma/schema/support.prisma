@@ -1,5 +1,6 @@
 model SupportTicket {
   id        String              @id @default(uuid())
+  ticketId  String              @unique
   userId    String
   subject   String
   message   String
