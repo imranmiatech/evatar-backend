@@ -62,29 +62,51 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
-    // Ensure email and address fields are not updated
-    const updateData = { ...updateUserDto };
-    delete (updateData as any).email;
-    delete (updateData as any).street;
-    delete (updateData as any).city;
-    delete (updateData as any).state;
-    delete (updateData as any).country;
-    delete (updateData as any).postCode;
-    delete (updateData as any).postalCode;
+    const userSelect = {
+      id: true,
+      fullName: true,
+      email: true,
+      phoneNumber: true,
+      profilePictureUrl: true,
+      preferredLanguage: true,
+      role: true,
+      relationShip: true,
+    };
+
+    const allowedFields = [
+      'fullName',
+      'phoneNumber',
+      'profilePictureUrl',
+      'preferredLanguage',
+      'relationShip',
+    ] as const;
+
+    const updateData: Partial<Pick<UpdateUserDto, (typeof allowedFields)[number]>> = {};
+    for (const field of allowedFields) {
+      const value = updateUserDto[field];
+      if (typeof value === 'string') {
+        const trimmedValue = value.trim();
+        if (trimmedValue) {
+          updateData[field] = trimmedValue;
+        }
+        continue;
+      }
+      if (value !== undefined && value !== null) {
+        updateData[field] = value;
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return this.prisma.user.findUnique({
+        where: { id },
+        select: userSelect,
+      });
+    }
 
     return this.prisma.user.update({
       where: { id },
       data: updateData,
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        phoneNumber: true,
-        profilePictureUrl: true,
-        preferredLanguage: true,
-        role: true,
-        relationShip: true,
-      }
+      select: userSelect,
     });
   }
 
