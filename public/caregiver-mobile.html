@@ -1,0 +1,1526 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Manage Caregivers Tester</title>
+    <style>
+      :root {
+        --teal: #00636d;
+        --teal-2: #008a92;
+        --teal-soft: #e7f5f6;
+        --ink: #172331;
+        --muted: #6a7781;
+        --line: #dce8ea;
+        --bg: #f6f7f7;
+        --danger: #ef4444;
+        --warn: #fff0df;
+        --warn-text: #f59e0b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #444;
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+      }
+
+      .phone {
+        width: 320px;
+        height: 700px;
+        background: var(--bg);
+        border-radius: 0;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.38);
+      }
+
+      .statusbar {
+        height: 22px;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 14px;
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .header {
+        height: 42px;
+        background: white;
+        display: grid;
+        grid-template-columns: 36px 1fr 36px;
+        align-items: center;
+        border-bottom: 1px solid #edf1f2;
+      }
+
+      .back {
+        border: 0;
+        background: transparent;
+        color: var(--teal);
+        font-size: 22px;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .title {
+        text-align: center;
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      .content {
+        height: calc(100% - 64px);
+        overflow: auto;
+        padding: 12px 6px 22px;
+      }
+
+      .child-switch {
+        display: flex;
+        gap: 7px;
+        padding: 0 0 10px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+
+      .child-switch::-webkit-scrollbar {
+        display: none;
+      }
+
+      .child-chip {
+        border: 1px solid #cbe2e5;
+        background: white;
+        color: var(--teal);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 11px;
+        font-weight: 800;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .child-chip.active {
+        color: white;
+        background: var(--teal);
+        border-color: var(--teal);
+      }
+
+      .section-label {
+        margin: 10px 0 8px;
+        color: var(--teal);
+        font-size: 12px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .section-label::before {
+        content: '';
+        width: 5px;
+        height: 18px;
+        border-radius: 3px;
+        background: var(--teal);
+      }
+
+      .card {
+        min-height: 74px;
+        background: white;
+        border-radius: 12px;
+        padding: 14px 12px;
+        display: grid;
+        grid-template-columns: 38px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        box-shadow: 0 2px 8px rgba(16, 24, 40, 0.03);
+      }
+
+      .avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--teal);
+        background: #d9ecee;
+      }
+
+      .name {
+        font-size: 13px;
+        font-weight: 850;
+        line-height: 1.2;
+        margin-bottom: 3px;
+      }
+
+      .sub {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 600;
+        line-height: 1.3;
+      }
+
+      .role-mark {
+        color: var(--teal);
+        font-weight: 850;
+      }
+
+      .actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+      }
+
+      .pending {
+        background: var(--warn);
+        color: var(--warn-text);
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 800;
+        padding: 4px 11px;
+      }
+
+      .link {
+        border: 0;
+        background: transparent;
+        color: var(--teal-2);
+        font-size: 10px;
+        font-weight: 850;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .remove {
+        border: 0;
+        background: transparent;
+        color: var(--danger);
+        font-size: 17px;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .assign {
+        margin-top: 22px;
+        width: 100%;
+        min-height: 58px;
+        border: 1.5px dashed #9ccbd0;
+        border-radius: 20px;
+        background: transparent;
+        color: var(--teal);
+        font-size: 11px;
+        font-weight: 850;
+        display: grid;
+        place-items: center;
+        gap: 3px;
+        cursor: pointer;
+      }
+
+      .assign span {
+        display: block;
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .empty {
+        background: white;
+        border: 1px dashed var(--line);
+        border-radius: 12px;
+        padding: 14px;
+        color: var(--muted);
+        font-size: 11px;
+        text-align: center;
+      }
+
+      .overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.48);
+        display: none;
+        align-items: end;
+        justify-content: center;
+        z-index: 10;
+      }
+
+      .overlay.open {
+        display: flex;
+      }
+
+      .dialog {
+        width: 270px;
+        background: white;
+        border-radius: 10px;
+        margin-bottom: 16px;
+        padding: 18px 14px 12px;
+        text-align: center;
+      }
+
+      .dialog-icon {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        margin: 0 auto 8px;
+        display: grid;
+        place-items: center;
+        color: var(--danger);
+        background: #fff1f1;
+        font-size: 14px;
+        font-weight: 900;
+      }
+
+      .dialog-title {
+        font-size: 12px;
+        font-weight: 850;
+        margin-bottom: 5px;
+      }
+
+      .dialog-copy {
+        font-size: 9px;
+        color: var(--muted);
+        line-height: 1.4;
+        margin-bottom: 15px;
+      }
+
+      .dialog-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .btn {
+        height: 34px;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        background: white;
+        font-size: 10px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .btn-danger {
+        background: var(--danger);
+        color: white;
+        border-color: var(--danger);
+      }
+
+      .sheet {
+        width: 100%;
+        max-height: 88%;
+        overflow: auto;
+        background: white;
+        border-radius: 16px 16px 0 0;
+        padding: 14px 12px 16px;
+        animation: up 0.18s ease-out;
+      }
+
+      @keyframes up {
+        from {
+          transform: translateY(20px);
+          opacity: 0.4;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .sheet-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .sheet-title {
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .x {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 0;
+        background: #f1f5f6;
+        color: #8a98a0;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .option {
+        width: 100%;
+        height: 46px;
+        border: 1px solid var(--line);
+        background: #fbfdfd;
+        border-radius: 9px;
+        display: grid;
+        grid-template-columns: 30px 1fr 16px;
+        align-items: center;
+        gap: 8px;
+        padding: 0 10px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        text-align: left;
+        color: var(--ink);
+      }
+
+      .option-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 7px;
+        background: var(--teal-soft);
+        color: var(--teal);
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .option-label {
+        font-size: 11px;
+        font-weight: 850;
+      }
+
+      label {
+        display: block;
+        font-size: 9px;
+        color: #687781;
+        font-weight: 800;
+        margin: 10px 0 5px;
+      }
+
+      input,
+      select {
+        width: 100%;
+        height: 32px;
+        border: 1px solid #cfe0e2;
+        border-radius: 7px;
+        padding: 0 9px;
+        color: var(--ink);
+        font: inherit;
+        font-size: 11px;
+        outline: none;
+        background: #fbfdfd;
+      }
+
+      input:focus,
+      select:focus {
+        border-color: var(--teal);
+        box-shadow: 0 0 0 2px rgba(0, 99, 109, 0.1);
+      }
+
+      .segment {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .seg-btn {
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid var(--teal);
+        color: var(--teal);
+        background: white;
+        font-size: 10px;
+        font-weight: 850;
+        cursor: pointer;
+      }
+
+      .seg-btn.active {
+        color: white;
+        background: var(--teal);
+      }
+
+      .info {
+        border: 1px solid #badadd;
+        background: #edf9fa;
+        color: #2f6870;
+        border-radius: 8px;
+        padding: 9px;
+        font-size: 9px;
+        font-weight: 700;
+        line-height: 1.4;
+        margin: 8px 0;
+      }
+
+      .primary {
+        width: 100%;
+        height: 34px;
+        border: 0;
+        border-radius: 7px;
+        background: var(--teal);
+        color: white;
+        font-size: 10px;
+        font-weight: 900;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+
+      .ghost {
+        width: 100%;
+        height: 34px;
+        border: 1px solid #c4dfe2;
+        border-radius: 7px;
+        background: white;
+        color: var(--teal);
+        font-size: 10px;
+        font-weight: 850;
+        cursor: pointer;
+        margin-top: 8px;
+      }
+
+      .permission {
+        min-height: 50px;
+        display: grid;
+        grid-template-columns: 1fr 40px;
+        gap: 10px;
+        align-items: center;
+        border-bottom: 1px solid #edf1f2;
+        padding: 8px 0;
+      }
+
+      .permission:last-child {
+        border-bottom: 0;
+      }
+      .perm-title {
+        font-size: 10px;
+        font-weight: 850;
+        margin-bottom: 3px;
+      }
+      .perm-copy {
+        font-size: 8px;
+        color: var(--muted);
+        line-height: 1.35;
+      }
+
+      .switch {
+        width: 34px;
+        height: 18px;
+        border-radius: 999px;
+        background: #d9e2e4;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .switch::after {
+        content: '';
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        left: 2px;
+        top: 2px;
+        border-radius: 50%;
+        background: white;
+        transition: 0.15s;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      }
+
+      .switch.on {
+        background: var(--teal);
+      }
+      .switch.on::after {
+        transform: translateX(16px);
+      }
+
+      .toast {
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        padding: 10px;
+        border-radius: 9px;
+        background: #112d32;
+        color: white;
+        font-size: 10px;
+        font-weight: 800;
+        text-align: center;
+        display: none;
+        z-index: 20;
+      }
+
+      .toast.open {
+        display: block;
+      }
+
+      .login-panel {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, #f7fbfb 0%, #eff6f7 100%);
+        display: none;
+        z-index: 30;
+        padding: 78px 18px 18px;
+        overflow: auto;
+      }
+
+      .login-panel.open {
+        display: block;
+      }
+
+      .login-card {
+        background: white;
+        border-radius: 14px;
+        padding: 16px;
+        box-shadow: 0 14px 40px rgba(0, 52, 59, 0.1);
+      }
+
+      .login-brand {
+        text-align: center;
+        margin-bottom: 16px;
+      }
+
+      .login-logo {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: var(--teal);
+        color: white;
+        display: grid;
+        place-items: center;
+        margin: 0 auto 10px;
+        font-size: 22px;
+        font-weight: 900;
+      }
+
+      .login-name {
+        font-size: 17px;
+        font-weight: 900;
+        margin-bottom: 4px;
+      }
+
+      .login-copy {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 650;
+        line-height: 1.45;
+      }
+
+      .demo-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin: 10px 0 2px;
+      }
+
+      .token-pill {
+        margin-top: 10px;
+        border: 1px dashed #b7d5d9;
+        background: #f2fafb;
+        border-radius: 9px;
+        padding: 8px;
+        color: #416a70;
+        font-size: 9px;
+        font-weight: 750;
+        word-break: break-all;
+        line-height: 1.4;
+      }
+
+      .selected-user {
+        display: none;
+        grid-template-columns: 34px 1fr auto;
+        gap: 8px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 8px;
+        margin-top: 8px;
+      }
+
+      .selected-user.open {
+        display: grid;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span>●●● ▱</span></div>
+      <div class="header">
+        <button class="back" onclick="reloadData()">‹</button>
+        <div class="title">Manage caregivers</div>
+        <button class="back" onclick="openLogin()">⋯</button>
+      </div>
+
+      <div class="content">
+        <div class="child-switch" id="childSwitch"></div>
+        <div id="sections"></div>
+        <button class="assign" onclick="openRoleSheet()">
+          <span>♙+</span>
+          Assign a Caregiver/nanny
+        </button>
+      </div>
+
+      <div class="overlay" id="removeOverlay">
+        <div class="dialog">
+          <div class="dialog-icon">⌧</div>
+          <div class="dialog-title" id="removeTitle">Remove Nanny?</div>
+          <div class="dialog-copy">
+            This will permanently remove access to profile and care team
+            permissions.
+          </div>
+          <div class="dialog-row">
+            <button class="btn" onclick="closeOverlay('removeOverlay')">
+              Cancel
+            </button>
+            <button class="btn btn-danger" onclick="confirmRemove()">
+              Remove
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay" id="roleOverlay">
+        <div class="sheet">
+          <div class="sheet-head">
+            <div class="sheet-title">Who are you inviting?</div>
+            <button class="x" onclick="closeOverlay('roleOverlay')">×</button>
+          </div>
+          <button class="option" onclick="selectRole('NANNY')">
+            <span class="option-icon">♙</span
+            ><span class="option-label">Nanny</span><span>›</span>
+          </button>
+          <button class="option" onclick="selectRole('PARENT')">
+            <span class="option-icon">⚭</span
+            ><span class="option-label">Parents</span><span>›</span>
+          </button>
+          <button class="option" onclick="selectRole('FAMILY_MEMBER')">
+            <span class="option-icon">⌂</span
+            ><span class="option-label">Family Member</span><span>›</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="overlay" id="identityOverlay">
+        <div class="sheet">
+          <div class="sheet-head">
+            <div class="sheet-title" id="identityTitle">Member's Identity?</div>
+            <button class="x" onclick="closeOverlay('identityOverlay')">
+              ×
+            </button>
+          </div>
+          <label>Full name</label>
+          <input id="inviteName" placeholder="e.g. Martha Stewart" />
+          <div id="relationshipBlock">
+            <label>Relationship To Child</label>
+            <select id="relationship">
+              <option>GRANDMOTHER</option>
+              <option>GUARDIAN</option>
+              <option>GODPARENT</option>
+              <option>GRANDFATHER</option>
+              <option>UNCLE</option>
+              <option>SIBLING</option>
+              <option>AUNT</option>
+              <option>OTHER</option>
+            </select>
+          </div>
+          <button class="primary" onclick="openPermissionSheet(true)">
+            Next
+          </button>
+        </div>
+      </div>
+
+      <div class="overlay" id="inviteOverlay">
+        <div class="sheet">
+          <div class="sheet-head">
+            <div class="sheet-title" id="inviteTitle">Invite Nanny</div>
+            <button class="x" onclick="closeOverlay('inviteOverlay')">×</button>
+          </div>
+          <div class="segment">
+            <button
+              class="seg-btn active"
+              id="existingBtn"
+              onclick="setInviteMode('existing')"
+            >
+              In App Users
+            </button>
+            <button
+              class="seg-btn"
+              id="manualBtn"
+              onclick="setInviteMode('manual')"
+            >
+              Add Manually
+            </button>
+          </div>
+          <div class="info">
+            You can send an invite, or copy a shareable link for testing.
+          </div>
+          <div id="existingMode">
+            <label>Search by name or email</label>
+            <input
+              id="searchUser"
+              placeholder="Type a name or email..."
+              oninput="searchUsers()"
+            />
+            <div class="selected-user" id="selectedUser"></div>
+            <div id="searchResults"></div>
+          </div>
+          <div id="manualMode" style="display: none">
+            <label>Email address</label>
+            <input id="inviteEmail" placeholder="caregiver@example.com" />
+            <label>Phone number</label>
+            <input id="invitePhone" placeholder="+8801700000000" />
+          </div>
+          <button class="primary" onclick="sendInvite()">Send Invite</button>
+          <button class="ghost" onclick="copyInviteLink()">
+            Copy Invite Link
+          </button>
+        </div>
+      </div>
+
+      <div class="overlay" id="permissionOverlay">
+        <div class="sheet">
+          <div class="sheet-head">
+            <div class="sheet-title" id="permTitle">Access & Permissions</div>
+            <button class="x" onclick="closeOverlay('permissionOverlay')">
+              ×
+            </button>
+          </div>
+          <div class="info">
+            Set what this person can do for the selected child.
+          </div>
+          <div id="permissionsList"></div>
+          <button class="primary" onclick="savePermissions()">Next</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="successOverlay">
+        <div class="dialog">
+          <div
+            class="dialog-icon"
+            style="color: var(--teal); background: var(--teal-soft)"
+          >
+            ✓
+          </div>
+          <div class="dialog-title">Invitation Sent</div>
+          <div class="dialog-copy" id="successText">
+            Invitation sent successfully.
+          </div>
+          <button class="btn" style="width: 100%" onclick="finishSuccess()">
+            Close
+          </button>
+        </div>
+      </div>
+
+      <div class="login-panel" id="loginPanel">
+        <div class="login-brand">
+          <div class="login-logo">✓</div>
+          <div class="login-name">Caregiver Flow Tester</div>
+          <div class="login-copy">
+            Login once. The token is saved automatically and used for every
+            caregiver API call.
+          </div>
+        </div>
+        <div class="login-card">
+          <div class="sheet-head">
+            <div class="sheet-title">Login</div>
+            <button class="x" id="loginClose" onclick="closeLogin()">×</button>
+          </div>
+          <label>Base URL</label>
+          <input id="baseUrl" value="http://localhost:5000" />
+          <label>Email</label>
+          <input id="email" value="p@e.com" />
+          <label>Password</label>
+          <input id="password" type="password" value="123456" />
+          <button class="primary" onclick="login()">Login & Save Token</button>
+          <div class="demo-row">
+            <button class="ghost" onclick="fillLogin('p@e.com')">Parent</button>
+            <button class="ghost" onclick="fillLogin('n@e.com')">Nanny</button>
+          </div>
+          <button class="ghost" onclick="fillLogin('a@e.com')">Admin</button>
+          <button class="ghost" onclick="logout()">Clear Saved Token</button>
+          <div class="token-pill" id="loginTokenStatus">No saved token</div>
+        </div>
+      </div>
+
+      <div class="toast" id="toast"></div>
+    </div>
+
+    <script>
+      const TOKEN_KEYS = [
+        'api_test_access_token',
+        'access_token',
+        'adminToken',
+      ];
+      const allPermissionKeys = [
+        'dailyActivitiesRecipes',
+        'manageDailyPlans',
+        'manageGroceryLists',
+        'editChildProfile',
+        'accessChildInsights',
+        'addRemoveChildren',
+        'manageBilling',
+        'manageCareTeam',
+        'manageGroceryOrders',
+        'groceryOrdering',
+        'careLearningAccess',
+        'nannyDevelopment',
+        'memoriesStories',
+      ];
+
+      const permissionMetaByRole = {
+        NANNY: [
+          [
+            'manageDailyPlans',
+            'Manage Daily Plans',
+            'Allow the nanny to adjust, generate activities, meals, and schedules when needed.',
+          ],
+          [
+            'manageGroceryLists',
+            'Manage Grocery Lists',
+            'Allow the nanny to add or remove grocery items based on daily needs.',
+          ],
+          [
+            'editChildProfile',
+            'Edit Child Profile',
+            "Allow the nanny to update your child's profile information and preferences.",
+          ],
+          [
+            'accessChildInsights',
+            'Access Child Insights',
+            'Allow the nanny to view developmental progress, milestones, and care insights.',
+          ],
+        ],
+        PARENT: [
+          [
+            'manageDailyPlans',
+            'Manage Daily Plans',
+            'Allow this parent to adjust, generate activities, meals, and schedules when needed.',
+          ],
+          [
+            'manageBilling',
+            'Manage Subscription & Billing',
+            'Allow this parent to manage memberships, payments, and billing details.',
+          ],
+          [
+            'manageCareTeam',
+            'Manage Nannies & Family Members',
+            'Allow this parent to invite, manage, and remove caregivers and family members.',
+          ],
+          [
+            'manageGroceryOrders',
+            'Manage Grocery Orders',
+            'Allow this parent to review, place, and track grocery orders for the family.',
+          ],
+          [
+            'addRemoveChildren',
+            'Manage Child Profiles',
+            'Allow this parent to add, edit, or remove child profiles within the family account.',
+          ],
+        ],
+        FAMILY_MEMBER: [
+          [
+            'dailyActivitiesRecipes',
+            'Daily Activities & Recipes',
+            "Allow access to view your child's daily activities, recipes, and completed tasks.",
+          ],
+          [
+            'manageDailyPlans',
+            'Manage Daily Plans',
+            'Allow this member to create, edit, and organize activities and recipes for your child.',
+          ],
+          [
+            'manageCareTeam',
+            'Care Team Management',
+            'Allow this member to add, remove, and manage nannies assigned to your child.',
+          ],
+          [
+            'manageGroceryLists',
+            'Grocery Management',
+            'Allow this member to manage grocery lists, create requests, and update grocery items.',
+          ],
+          [
+            'groceryOrdering',
+            'Grocery Ordering',
+            'Allow this member to generate vouchers, review quotations, and place grocery orders.',
+          ],
+          [
+            'careLearningAccess',
+            'Care Learning Access',
+            'Allow this member to access childcare lessons, guidance, and educational care modules.',
+          ],
+          [
+            'nannyDevelopment',
+            'Nanny Development',
+            'Allow this member to assign care modules and monitor the nanny learning progress.',
+          ],
+          [
+            'accessChildInsights',
+            'Child Insights & Progress',
+            'Allow this member to view developmental insights, milestones, nutrition reports, and added observations.',
+          ],
+          [
+            'memoriesStories',
+            'Memories & Stories',
+            "Allow this member to access, download, and contribute to your child's photos, memories, and bedtime stories.",
+          ],
+        ],
+      };
+
+      const state = {
+        user: null,
+        children: [],
+        childId: null,
+        sections: [],
+        caregivers: [],
+        inviteRole: 'NANNY',
+        inviteMode: 'existing',
+        selectedUser: null,
+        removeAccessId: null,
+        permissionAccessId: null,
+        permissionRole: null,
+        permissionValues: {},
+      };
+
+      function token() {
+        for (const key of TOKEN_KEYS) {
+          const value = localStorage.getItem(key);
+          if (value) return value;
+        }
+        return '';
+      }
+
+      function renderTokenStatus() {
+        const savedToken = token();
+        const status = document.getElementById('loginTokenStatus');
+        const closeButton = document.getElementById('loginClose');
+        if (!status || !closeButton) return;
+        status.textContent = savedToken
+          ? `Saved token: ${savedToken.slice(0, 28)}...`
+          : 'No saved token';
+        closeButton.style.display = savedToken ? 'block' : 'none';
+      }
+
+      function base() {
+        return (
+          localStorage.getItem('api_test_base_url') ||
+          document.getElementById('baseUrl')?.value ||
+          'http://localhost:5000'
+        ).replace(/\/$/, '');
+      }
+
+      function headers(json = false) {
+        return {
+          Authorization: `Bearer ${token()}`,
+          ...(json ? { 'Content-Type': 'application/json' } : {}),
+        };
+      }
+
+      async function api(path, options = {}) {
+        const res = await fetch(`${base()}${path}`, {
+          ...options,
+          headers: {
+            ...headers(Boolean(options.body)),
+            ...(options.headers || {}),
+          },
+        });
+        const text = await res.text();
+        let json = null;
+        try {
+          json = text ? JSON.parse(text) : null;
+        } catch {
+          json = { message: text };
+        }
+        if (!res.ok) throw new Error(json?.message || JSON.stringify(json));
+        return json?.data ?? json;
+      }
+
+      function toast(message) {
+        const el = document.getElementById('toast');
+        el.textContent = message;
+        el.classList.add('open');
+        setTimeout(() => el.classList.remove('open'), 2400);
+      }
+
+      function openOverlay(id) {
+        document.getElementById(id).classList.add('open');
+      }
+      function closeOverlay(id) {
+        document.getElementById(id).classList.remove('open');
+      }
+      function openLogin() {
+        renderTokenStatus();
+        document.getElementById('loginPanel').classList.add('open');
+      }
+
+      function closeLogin() {
+        if (!token()) {
+          toast('Login first');
+          return;
+        }
+        document.getElementById('loginPanel').classList.remove('open');
+      }
+
+      function fillLogin(email) {
+        document.getElementById('email').value = email;
+        document.getElementById('password').value = '123456';
+      }
+
+      function logout() {
+        TOKEN_KEYS.forEach((key) => localStorage.removeItem(key));
+        state.user = null;
+        state.children = [];
+        state.childId = null;
+        state.sections = [];
+        document.getElementById('childSwitch').innerHTML = '';
+        document.getElementById('sections').innerHTML = '';
+        renderTokenStatus();
+        toast('Token cleared');
+      }
+
+      async function login() {
+        const baseUrl = document
+          .getElementById('baseUrl')
+          .value.replace(/\/$/, '');
+        localStorage.setItem('api_test_base_url', baseUrl);
+        try {
+          const res = await fetch(`${baseUrl}/api/v1/auth/signin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: document.getElementById('email').value.trim(),
+              password: document.getElementById('password').value,
+            }),
+          });
+          const json = await res.json();
+          const accessToken = json.accessToken || json.data?.accessToken;
+          if (!res.ok || !accessToken) {
+            toast(json.message || 'Login failed');
+            return;
+          }
+          localStorage.setItem('api_test_access_token', accessToken);
+          renderTokenStatus();
+          document.getElementById('loginPanel').classList.remove('open');
+          toast('Logged in');
+          await init();
+        } catch (error) {
+          toast(error.message || 'Login failed');
+        }
+      }
+
+      async function init() {
+        renderTokenStatus();
+        if (!token()) {
+          openLogin();
+          return;
+        }
+        try {
+          document.getElementById('sections').innerHTML =
+            '<div class="empty">Loading caregiver data...</div>';
+          state.user = await api('/api/v1/auth/me');
+          const childrenPayload = await api('/api/v1/parent/children');
+          state.children = Array.isArray(childrenPayload)
+            ? childrenPayload
+            : childrenPayload?.data || [];
+          state.childId = state.childId || state.children[0]?.id || null;
+          renderChildren();
+          await loadCaregivers();
+        } catch (error) {
+          document.getElementById('sections').innerHTML =
+            `<div class="empty">${error.message}</div>`;
+          toast(error.message);
+          openLogin();
+        }
+      }
+
+      async function reloadData() {
+        await init();
+        toast('Refreshed');
+      }
+
+      function renderChildren() {
+        const box = document.getElementById('childSwitch');
+        box.innerHTML = state.children
+          .map(
+            (child) => `
+        <button class="child-chip ${child.id === state.childId ? 'active' : ''}" onclick="selectChild('${child.id}')">
+          ${child.name}
+        </button>
+      `,
+          )
+          .join('');
+      }
+
+      async function selectChild(id) {
+        state.childId = id;
+        renderChildren();
+        await loadCaregivers();
+      }
+
+      async function loadCaregivers() {
+        if (!state.childId) {
+          document.getElementById('sections').innerHTML =
+            '<div class="empty">No child found.</div>';
+          return;
+        }
+        const payload = await api(
+          `/api/v1/caregivers/children/${state.childId}`,
+        );
+        state.sections = payload.sections || [];
+        state.caregivers = payload.caregivers || [];
+        renderSections();
+      }
+
+      function img(src) {
+        return (
+          src ||
+          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop'
+        );
+      }
+
+      function cardSub(item) {
+        if (item.isOwner) {
+          return `Caring for ${item.childName || (item.childNames || []).join(', ')}`;
+        }
+        const relation = item.relationship
+          ? ` <span class="role-mark">(${titleCase(item.relationship)})</span>`
+          : '';
+        return `Caring for ${item.child?.name || 'child'}${relation}`;
+      }
+
+      function titleCase(value) {
+        return String(value || '')
+          .toLowerCase()
+          .split('_')
+          .map((w) => w[0]?.toUpperCase() + w.slice(1))
+          .join(' ');
+      }
+
+      function renderSections() {
+        document.getElementById('sections').innerHTML = state.sections
+          .map(
+            (section) => `
+        <div class="section-label">${section.title}</div>
+        ${(section.items || []).length ? section.items.map((item) => renderCard(item, section.key)).join('') : '<div class="empty">No members yet.</div>'}
+      `,
+          )
+          .join('');
+      }
+
+      function renderCard(item, sectionKey) {
+        const name =
+          item.fullName ||
+          item.displayName ||
+          item.invitedName ||
+          'Invited member';
+        const photo = item.image || item.invitedUser?.image;
+        const pending = item.status === 'PENDING';
+        const isOwner = sectionKey === 'ACCOUNT_OWNER' || item.isOwner;
+        return `
+        <div class="card">
+          <img class="avatar" src="${img(photo)}" alt="">
+          <div>
+            <div class="name">${name}</div>
+            <div class="sub">${cardSub(item)}</div>
+          </div>
+          <div class="actions">
+            ${pending ? '<span class="pending">Pending</span>' : ''}
+            ${!isOwner && item.status === 'ACCEPTED' && item.role === 'NANNY' ? `<button class="link" onclick="viewProfile('${item.invitedUser?.id || ''}')">View Profile</button>` : ''}
+            ${!isOwner ? `<button class="link" onclick="openExistingPermissions('${item.id}')">Manage Permissions</button>` : ''}
+            ${!isOwner ? `<button class="remove" onclick="openRemove('${item.id}','${item.role}')">♧</button>` : ''}
+          </div>
+        </div>
+      `;
+      }
+
+      async function viewProfile(nannyUserId) {
+        if (!nannyUserId) return toast('No accepted nanny user yet');
+        try {
+          const profile = await api(
+            `/api/v1/nanny/${nannyUserId}/profile?childId=${state.childId}`,
+          );
+          toast(
+            profile?.nanny?.fullName
+              ? `Loaded ${profile.nanny.fullName}`
+              : 'Profile loaded',
+          );
+        } catch (error) {
+          toast(error.message);
+        }
+      }
+
+      function openRemove(accessId, role) {
+        state.removeAccessId = accessId;
+        document.getElementById('removeTitle').textContent =
+          `Remove ${titleCase(role)}?`;
+        openOverlay('removeOverlay');
+      }
+
+      async function confirmRemove() {
+        if (!state.removeAccessId) return;
+        await api(`/api/v1/caregivers/access/${state.removeAccessId}`, {
+          method: 'DELETE',
+        });
+        closeOverlay('removeOverlay');
+        toast('Removed');
+        await loadCaregivers();
+      }
+
+      function openRoleSheet() {
+        openOverlay('roleOverlay');
+      }
+
+      function selectRole(role) {
+        state.inviteRole = role;
+        closeOverlay('roleOverlay');
+        if (role === 'FAMILY_MEMBER') {
+          document.getElementById('relationshipBlock').style.display = 'block';
+          openOverlay('identityOverlay');
+        } else {
+          document.getElementById('relationshipBlock').style.display = 'none';
+          openPermissionSheet(true);
+        }
+      }
+
+      function defaultPermissions(role) {
+        const allOff = Object.fromEntries(
+          allPermissionKeys.map((key) => [key, false]),
+        );
+        if (role === 'NANNY') return { ...allOff, manageGroceryLists: true };
+        if (role === 'PARENT')
+          return { ...allOff, manageDailyPlans: true, manageCareTeam: true };
+        return {
+          ...allOff,
+          dailyActivitiesRecipes: true,
+          careLearningAccess: true,
+          accessChildInsights: true,
+          memoriesStories: true,
+        };
+      }
+
+      function roleTitle(role) {
+        if (role === 'NANNY') return 'Nanny Access & Permissions';
+        if (role === 'PARENT') return 'Parent Access & Permissions';
+        return 'Member Access & Permissions';
+      }
+
+      function visiblePermissionMeta(role) {
+        return permissionMetaByRole[role] || permissionMetaByRole.FAMILY_MEMBER;
+      }
+
+      function visiblePermissionKeys(role) {
+        return visiblePermissionMeta(role).map(([key]) => key);
+      }
+
+      function visiblePermissionPayload(role) {
+        return Object.fromEntries(
+          visiblePermissionKeys(role).map((key) => [
+            key,
+            Boolean(state.permissionValues[key]),
+          ]),
+        );
+      }
+
+      function openPermissionSheet(isNewInvite) {
+        closeOverlay('identityOverlay');
+        state.permissionAccessId = isNewInvite
+          ? null
+          : state.permissionAccessId;
+        state.permissionRole = isNewInvite
+          ? state.inviteRole
+          : state.permissionRole;
+        state.permissionValues = isNewInvite
+          ? defaultPermissions(state.inviteRole)
+          : state.permissionValues;
+        document.getElementById('permTitle').textContent = roleTitle(
+          state.permissionRole || state.inviteRole,
+        );
+        renderPermissions();
+        openOverlay('permissionOverlay');
+      }
+
+      async function openExistingPermissions(accessId) {
+        state.permissionAccessId = accessId;
+        const payload = await api(
+          `/api/v1/caregivers/access/${accessId}/permissions`,
+        );
+        state.permissionRole = payload.role;
+        state.permissionValues = payload.permissions || {};
+        document.getElementById('permTitle').textContent = roleTitle(
+          payload.role,
+        );
+        renderPermissions();
+        openOverlay('permissionOverlay');
+      }
+
+      function renderPermissions() {
+        const role = state.permissionRole || state.inviteRole;
+        document.getElementById('permissionsList').innerHTML =
+          visiblePermissionMeta(role)
+            .map(
+              ([key, title, copy]) => `
+        <div class="permission">
+          <div>
+            <div class="perm-title">${title}</div>
+            <div class="perm-copy">${copy}</div>
+          </div>
+          <div class="switch ${state.permissionValues[key] ? 'on' : ''}" onclick="togglePerm('${key}')"></div>
+        </div>
+      `,
+            )
+            .join('');
+      }
+
+      function togglePerm(key) {
+        state.permissionValues[key] = !state.permissionValues[key];
+        renderPermissions();
+      }
+
+      async function savePermissions() {
+        if (state.permissionAccessId) {
+          await api(
+            `/api/v1/caregivers/access/${state.permissionAccessId}/permissions`,
+            {
+              method: 'PATCH',
+              body: JSON.stringify(
+                visiblePermissionPayload(state.permissionRole),
+              ),
+            },
+          );
+          closeOverlay('permissionOverlay');
+          toast('Permissions saved');
+          return;
+        }
+        closeOverlay('permissionOverlay');
+        openInviteSheet();
+      }
+
+      function openInviteSheet() {
+        document.getElementById('inviteTitle').textContent =
+          `Invite ${titleCase(state.inviteRole)}`;
+        setInviteMode('existing');
+        openOverlay('inviteOverlay');
+      }
+
+      function setInviteMode(mode) {
+        state.inviteMode = mode;
+        document
+          .getElementById('existingBtn')
+          .classList.toggle('active', mode === 'existing');
+        document
+          .getElementById('manualBtn')
+          .classList.toggle('active', mode === 'manual');
+        document.getElementById('existingMode').style.display =
+          mode === 'existing' ? 'block' : 'none';
+        document.getElementById('manualMode').style.display =
+          mode === 'manual' ? 'block' : 'none';
+      }
+
+      let searchTimer;
+      function searchUsers() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(async () => {
+          const query = document.getElementById('searchUser').value.trim();
+          if (!query) {
+            document.getElementById('searchResults').innerHTML = '';
+            return;
+          }
+          const users = await api(
+            `/api/v1/caregivers/search?query=${encodeURIComponent(query)}&role=${state.inviteRole}`,
+          );
+          document.getElementById('searchResults').innerHTML = users
+            .map(
+              (user) => `
+          <button class="option" onclick='chooseUser(${JSON.stringify(user)})'>
+            <img class="avatar" src="${img(user.image)}" alt="">
+            <span class="option-label">${user.fullName}<br><span class="sub">${user.email}</span></span>
+            <span>›</span>
+          </button>
+        `,
+            )
+            .join('');
+        }, 300);
+      }
+
+      function chooseUser(user) {
+        state.selectedUser = user;
+        document.getElementById('selectedUser').classList.add('open');
+        document.getElementById('selectedUser').innerHTML = `
+        <img class="avatar" src="${img(user.image)}" alt="">
+        <div><div class="name">${user.fullName}</div><div class="sub">${user.email}</div></div>
+        <button class="x" onclick="clearSelectedUser()">×</button>
+      `;
+        document.getElementById('searchResults').innerHTML = '';
+        document.getElementById('searchUser').value = '';
+      }
+
+      function clearSelectedUser() {
+        state.selectedUser = null;
+        document.getElementById('selectedUser').classList.remove('open');
+      }
+
+      function inviteBody(channel) {
+        const body = {
+          role: state.inviteRole,
+          inviteChannel: channel,
+          ...visiblePermissionPayload(state.inviteRole),
+        };
+        if (state.inviteRole === 'FAMILY_MEMBER') {
+          body.invitedName =
+            document.getElementById('inviteName').value.trim() ||
+            'Family Member';
+          body.relationship = document.getElementById('relationship').value;
+        }
+        if (state.selectedUser && state.inviteMode === 'existing')
+          body.invitedUserId = state.selectedUser.id;
+        if (state.inviteMode === 'manual') {
+          const email = document.getElementById('inviteEmail').value.trim();
+          const phone = document.getElementById('invitePhone').value.trim();
+          if (email) body.invitedEmail = email;
+          if (phone) body.invitedPhone = phone;
+        }
+        return body;
+      }
+
+      async function sendInvite() {
+        const body = inviteBody(undefined);
+        const payload = await api(
+          `/api/v1/caregivers/children/${state.childId}/invitations`,
+          {
+            method: 'POST',
+            body: JSON.stringify(body),
+          },
+        );
+        closeOverlay('inviteOverlay');
+        showSuccess(payload.inviteUrl);
+      }
+
+      async function copyInviteLink() {
+        const payload = await api(
+          `/api/v1/caregivers/children/${state.childId}/invitations`,
+          {
+            method: 'POST',
+            body: JSON.stringify(inviteBody('LINK')),
+          },
+        );
+        await navigator.clipboard.writeText(payload.inviteUrl);
+        closeOverlay('inviteOverlay');
+        showSuccess('Copied: ' + payload.inviteUrl);
+      }
+
+      function showSuccess(text) {
+        document.getElementById('successText').textContent =
+          text || 'Invitation sent successfully.';
+        openOverlay('successOverlay');
+      }
+
+      async function finishSuccess() {
+        closeOverlay('successOverlay');
+        await loadCaregivers();
+      }
+
+      init();
+    </script>
+  </body>
+</html>

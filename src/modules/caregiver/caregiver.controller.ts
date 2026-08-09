@@ -23,6 +23,7 @@ import {
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CaregiverService } from './caregiver.service';
 import { CreateCaregiverInvitationDto } from './dto/create-caregiver-invitation.dto';
+import { ListNanniesDto } from './dto/list-nannies.dto';
 import { SearchCaregiversDto } from './dto/search-caregivers.dto';
 import { UpdateCaregiverPermissionsDto } from './dto/update-caregiver-permissions.dto';
 
@@ -40,6 +41,14 @@ export class CaregiverController {
     @Query() query: SearchCaregiversDto,
   ) {
     return this.caregiverService.searchUsers(user.userId, query);
+  }
+
+  @Get('nannies')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all nanny users in the app' })
+  listNannies(@Query() query: ListNanniesDto) {
+    return this.caregiverService.listNannies(query);
   }
 
   @Get('children/:childId')
@@ -87,6 +96,18 @@ export class CaregiverController {
     return this.caregiverService.acceptInvitation(user.userId, token);
   }
 
+  @Get('access/:accessId/permissions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get caregiver permissions for permission modal' })
+  @ApiParam({ name: 'accessId', description: 'Caregiver access ID' })
+  getPermissions(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('accessId') accessId: string,
+  ) {
+    return this.caregiverService.getPermissions(user.userId, accessId);
+  }
+
   @Patch('access/:accessId/permissions')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -115,7 +136,10 @@ export class CaregiverController {
   @Delete('members/:accessId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Remove any nanny, parent, or family member from a child care team' })
+  @ApiOperation({
+    summary:
+      'Remove any nanny, parent, or family member from a child care team',
+  })
   @ApiParam({ name: 'accessId', description: 'Caregiver access ID' })
   removeMember(
     @CurrentUser() user: CurrentUserPayload,

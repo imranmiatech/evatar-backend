@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login Token Tester</title>
+  <style>
+    :root {
+      --bg: #f6f8f8;
+      --panel: #ffffff;
+      --ink: #15242c;
+      --muted: #667780;
+      --line: #dbe5e7;
+      --primary: #00606b;
+      --primary-dark: #004b54;
+      --danger: #b42318;
+      --ok: #067647;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    main {
+      width: min(920px, 100%);
+      display: grid;
+      grid-template-columns: minmax(280px, 380px) 1fr;
+      gap: 16px;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: 0 12px 34px rgba(19, 40, 46, 0.08);
+    }
+
+    h1, h2 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1 { font-size: 22px; }
+    h2 { font-size: 15px; margin-bottom: 12px; }
+    p { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 8px 0 18px; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #31444d;
+      margin: 12px 0 6px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 10px 11px;
+      font: inherit;
+      font-size: 14px;
+      color: var(--ink);
+      background: #fbfdfd;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 145px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0, 96, 107, 0.12);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 7px;
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      background: var(--primary);
+      color: white;
+    }
+
+    button:hover { background: var(--primary-dark); }
+    button.secondary {
+      background: #ecf4f5;
+      color: var(--primary);
+      border: 1px solid #c6dde1;
+    }
+    button.secondary:hover { background: #dcecef; }
+    button.danger {
+      background: #fff1f0;
+      color: var(--danger);
+      border: 1px solid #ffd0cc;
+    }
+
+    .token-box {
+      word-break: break-all;
+      min-height: 76px;
+      padding: 11px;
+      border-radius: 7px;
+      background: #f1f6f7;
+      border: 1px dashed #aac9cf;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .status {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 7px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .status.ok {
+      display: block;
+      color: var(--ok);
+      background: #ecfdf3;
+      border: 1px solid #abefc6;
+    }
+
+    .status.err {
+      display: block;
+      color: var(--danger);
+      background: #fff1f0;
+      border: 1px solid #ffd0cc;
+    }
+
+    pre {
+      margin: 0;
+      max-height: 520px;
+      overflow: auto;
+      padding: 12px;
+      border-radius: 7px;
+      background: #101828;
+      color: #e6edf3;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 12px; place-items: start center; }
+      main { grid-template-columns: 1fr; }
+      .row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <h1>Login Token Tester</h1>
+      <p>Sign in once, save the bearer token, then test protected backend routes quickly.</p>
+
+      <label for="baseUrl">Base URL</label>
+      <input id="baseUrl" value="http://localhost:5000" />
+
+      <div class="row">
+        <div>
+          <label for="email">Email</label>
+          <input id="email" type="email" value="p@e.com" autocomplete="username" />
+        </div>
+        <div>
+          <label for="password">Password</label>
+          <input id="password" type="password" value="123456" autocomplete="current-password" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button onclick="login()">Login</button>
+        <button class="secondary" onclick="loadMe()">Check Me</button>
+        <button class="secondary" onclick="copyToken()">Copy Token</button>
+        <button class="danger" onclick="clearToken()">Clear</button>
+      </div>
+
+      <label>Saved Token</label>
+      <div class="token-box" id="tokenBox">No token saved</div>
+      <div class="status" id="status"></div>
+    </section>
+
+    <section>
+      <h2>Authenticated Request</h2>
+      <div class="row">
+        <div>
+          <label for="method">Method</label>
+          <select id="method">
+            <option>GET</option>
+            <option>POST</option>
+            <option>PATCH</option>
+            <option>DELETE</option>
+          </select>
+        </div>
+        <div>
+          <label for="path">Path</label>
+          <input id="path" value="/api/v1/auth/me" />
+        </div>
+      </div>
+
+      <label for="body">JSON Body</label>
+      <textarea id="body" placeholder='{"role":"NANNY","inviteChannel":"LINK"}'></textarea>
+
+      <div class="actions">
+        <button onclick="sendRequest()">Send Request</button>
+        <button class="secondary" onclick="setCaregiverInviteSample()">Caregiver Invite Sample</button>
+      </div>
+
+      <label>Response</label>
+      <pre id="output">Ready.</pre>
+    </section>
+  </main>
+
+  <script>
+    const TOKEN_KEY = 'api_test_access_token';
+    const BASE_KEY = 'api_test_base_url';
+
+    function getBaseUrl() {
+      return document.getElementById('baseUrl').value.replace(/\/$/, '');
+    }
+
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || '';
+    }
+
+    function setStatus(message, type = 'ok') {
+      const el = document.getElementById('status');
+      el.className = `status ${type}`;
+      el.textContent = message;
+    }
+
+    function setOutput(value) {
+      document.getElementById('output').textContent =
+        typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+    }
+
+    function renderToken() {
+      const token = getToken();
+      document.getElementById('tokenBox').textContent = token || 'No token saved';
+    }
+
+    async function readJson(res) {
+      const text = await res.text();
+      try {
+        return text ? JSON.parse(text) : null;
+      } catch {
+        return text;
+      }
+    }
+
+    async function login() {
+      const baseUrl = getBaseUrl();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      localStorage.setItem(BASE_KEY, baseUrl);
+      setStatus('Logging in...', 'ok');
+
+      try {
+        const res = await fetch(`${baseUrl}/api/v1/auth/signin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const json = await readJson(res);
+        const token =
+          json?.accessToken ||
+          json?.data?.accessToken ||
+          json?.token ||
+          json?.data?.token;
+
+        setOutput(json);
+
+        if (!res.ok || !token) {
+          setStatus('Login failed or token missing.', 'err');
+          return;
+        }
+
+        localStorage.setItem(TOKEN_KEY, token);
+        renderToken();
+        setStatus('Logged in. Token saved automatically.');
+      } catch (error) {
+        setStatus(error.message || 'Network error', 'err');
+      }
+    }
+
+    async function loadMe() {
+      document.getElementById('method').value = 'GET';
+      document.getElementById('path').value = '/api/v1/auth/me';
+      document.getElementById('body').value = '';
+      await sendRequest();
+    }
+
+    async function sendRequest() {
+      const token = getToken();
+      if (!token) {
+        setStatus('Login first. No saved token found.', 'err');
+        return;
+      }
+
+      const baseUrl = getBaseUrl();
+      const method = document.getElementById('method').value;
+      const path = document.getElementById('path').value.trim();
+      const bodyText = document.getElementById('body').value.trim();
+
+      const options = {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
+
+      if (bodyText && !['GET', 'DELETE'].includes(method)) {
+        try {
+          options.body = JSON.stringify(JSON.parse(bodyText));
+          options.headers['Content-Type'] = 'application/json';
+        } catch {
+          setStatus('JSON body is invalid.', 'err');
+          return;
+        }
+      }
+
+      setStatus('Sending request...', 'ok');
+      try {
+        const res = await fetch(`${baseUrl}${path.startsWith('/') ? path : `/${path}`}`, options);
+        const json = await readJson(res);
+        setOutput(json);
+        setStatus(`${res.status} ${res.statusText}`, res.ok ? 'ok' : 'err');
+      } catch (error) {
+        setStatus(error.message || 'Network error', 'err');
+      }
+    }
+
+    async function copyToken() {
+      const token = getToken();
+      if (!token) {
+        setStatus('No token to copy.', 'err');
+        return;
+      }
+      await navigator.clipboard.writeText(token);
+      setStatus('Token copied.');
+    }
+
+    function clearToken() {
+      localStorage.removeItem(TOKEN_KEY);
+      renderToken();
+      setStatus('Token cleared.');
+    }
+
+    function setCaregiverInviteSample() {
+      document.getElementById('method').value = 'POST';
+      document.getElementById('path').value = '/api/v1/caregivers/children/PASTE_CHILD_ID/invitations';
+      document.getElementById('body').value = JSON.stringify(
+        { role: 'NANNY', inviteChannel: 'LINK' },
+        null,
+        2,
+      );
+    }
+
+    const savedBase = localStorage.getItem(BASE_KEY);
+    if (savedBase) document.getElementById('baseUrl').value = savedBase;
+    renderToken();
+  </script>
+</body>
+</html>

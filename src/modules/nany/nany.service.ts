@@ -268,9 +268,10 @@ export class NanyService {
           id: true,
           acceptedAt: true,
           createdAt: true,
-          dailyActivitiesRecipes: true,
-          nannyDevelopment: true,
-          memoriesStories: true,
+          manageDailyPlans: true,
+          manageGroceryLists: true,
+          editChildProfile: true,
+          accessChildInsights: true,
         },
       }),
       this.prisma.nannyChildLink.findUnique({
@@ -479,9 +480,10 @@ export class NanyService {
           careTeamAccess: caregiverAccess
             ? {
                 id: caregiverAccess.id,
-                dailyActivitiesRecipes: caregiverAccess.dailyActivitiesRecipes,
-                nannyDevelopment: caregiverAccess.nannyDevelopment,
-                memoriesStories: caregiverAccess.memoriesStories,
+                manageDailyPlans: caregiverAccess.manageDailyPlans,
+                manageGroceryLists: caregiverAccess.manageGroceryLists,
+                editChildProfile: caregiverAccess.editChildProfile,
+                accessChildInsights: caregiverAccess.accessChildInsights,
               }
             : null,
           careScore,

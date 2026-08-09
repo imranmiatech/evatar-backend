@@ -18,6 +18,7 @@ import { MailService } from '../../common/mail/mail.service';
 import { TwilioService } from '../../common/twilio/twilio.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCaregiverInvitationDto } from './dto/create-caregiver-invitation.dto';
+import { ListNanniesDto } from './dto/list-nannies.dto';
 import { SearchCaregiversDto } from './dto/search-caregivers.dto';
 import { UpdateCaregiverPermissionsDto } from './dto/update-caregiver-permissions.dto';
 
@@ -39,6 +40,89 @@ const PERMISSION_KEYS = [
 
 type PermissionKey = (typeof PERMISSION_KEYS)[number];
 type PermissionMap = Record<PermissionKey, boolean>;
+
+const ROLE_PERMISSION_KEYS = {
+  [CaregiverAccessRole.NANNY]: [
+    'manageDailyPlans',
+    'manageGroceryLists',
+    'editChildProfile',
+    'accessChildInsights',
+  ],
+  [CaregiverAccessRole.PARENT]: [
+    'manageDailyPlans',
+    'manageBilling',
+    'manageCareTeam',
+    'manageGroceryOrders',
+    'addRemoveChildren',
+  ],
+  [CaregiverAccessRole.FAMILY_MEMBER]: [
+    'dailyActivitiesRecipes',
+    'manageDailyPlans',
+    'manageCareTeam',
+    'manageGroceryLists',
+    'groceryOrdering',
+    'careLearningAccess',
+    'nannyDevelopment',
+    'accessChildInsights',
+    'memoriesStories',
+  ],
+} satisfies Record<CaregiverAccessRole, readonly PermissionKey[]>;
+
+const DEFAULT_TRUE_BY_ROLE = {
+  [CaregiverAccessRole.NANNY]: ['manageGroceryLists'],
+  [CaregiverAccessRole.PARENT]: ['manageDailyPlans', 'manageCareTeam'],
+  [CaregiverAccessRole.FAMILY_MEMBER]: [
+    'dailyActivitiesRecipes',
+    'careLearningAccess',
+    'accessChildInsights',
+    'memoriesStories',
+  ],
+} satisfies Record<CaregiverAccessRole, readonly PermissionKey[]>;
+
+const PERMISSION_LABELS = {
+  dailyActivitiesRecipes: 'Daily Activities & Recipes',
+  manageDailyPlans: 'Manage Daily Plans',
+  manageGroceryLists: 'Manage Grocery Lists',
+  editChildProfile: 'Edit Child Profile',
+  accessChildInsights: 'Child Insights & Progress',
+  addRemoveChildren: 'Manage Child Profiles',
+  manageBilling: 'Manage Subscription & Billing',
+  manageCareTeam: 'Care Team Management',
+  manageGroceryOrders: 'Manage Grocery Orders',
+  groceryOrdering: 'Grocery Ordering',
+  careLearningAccess: 'Care Learning Access',
+  nannyDevelopment: 'Nanny Development',
+  memoriesStories: 'Memories & Stories',
+} satisfies Record<PermissionKey, string>;
+
+const PERMISSION_DESCRIPTIONS = {
+  dailyActivitiesRecipes:
+    "Allow access to view your child's daily activities, recipes, and completed tasks.",
+  manageDailyPlans:
+    'Allow this caregiver to create, edit, and organize activities and recipes for your child.',
+  manageGroceryLists:
+    'Allow this caregiver to manage grocery lists, create requests, and update grocery items.',
+  editChildProfile:
+    "Allow this caregiver to update your child's profile information and preferences.",
+  accessChildInsights:
+    'Allow access to developmental insights, milestones, nutrition reports, and child observations.',
+  addRemoveChildren:
+    'Allow this caregiver to add, edit, or remove child profiles within the family account.',
+  manageBilling:
+    'Allow this caregiver to manage memberships, payments, and billing details.',
+  manageCareTeam:
+    'Allow this caregiver to add, remove, and manage nannies and caregivers for the child.',
+  manageGroceryOrders:
+    'Allow this caregiver to review, place, and track grocery orders for the family.',
+  groceryOrdering:
+    'Allow this caregiver to generate vouchers, review quotes, and place grocery orders.',
+  careLearningAccess:
+    'Allow this caregiver to access childcare lessons, guidance, and educational care modules.',
+  nannyDevelopment:
+    'Allow this caregiver to assign care modules and monitor nanny learning progress.',
+  memoriesStories:
+    "Allow this caregiver to access, download, and contribute to your child's photos, memories, and bedtime stories.",
+} satisfies Record<PermissionKey, string>;
 
 const accessInclude = {
   child: {
@@ -120,11 +204,13 @@ export class CaregiverService {
     }
 
     const accountOwner = {
-      ...child.parentUser,
+      id: child.parentUser.id,
+      fullName: child.parentUser.fullName,
+      email: child.parentUser.email,
+      image: child.parentUser.profilePictureUrl,
       childId: child.id,
       childName: child.name,
       isOwner: true,
-      permissions: this.fullPermissions(),
     };
     const caregivers = accesses.map((access) => this.formatAccess(access));
 
@@ -163,16 +249,6 @@ export class CaregiverService {
       this.assertUserMatchesCaregiverRole(invitedUser.role, dto.role);
     }
 
-    if (!invitedUser && !dto.invitedEmail && !dto.invitedPhone) {
-      throw new BadRequestException(
-        'Invite an existing user, email, phone number, or share returned inviteUrl',
-      );
-    }
-
-    const token = randomBytes(32).toString('base64url');
-    const inviteTokenHash = this.hashToken(token);
-    const permissions = this.permissionsForRole(dto.role, dto);
-    const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
     const inviteChannel =
       dto.inviteChannel ??
       (dto.invitedUserId
@@ -184,6 +260,22 @@ export class CaregiverService {
             : dto.invitedPhone
               ? CaregiverInviteChannel.WHATSAPP
               : CaregiverInviteChannel.LINK);
+
+    if (
+      inviteChannel !== CaregiverInviteChannel.LINK &&
+      !invitedUser &&
+      !dto.invitedEmail &&
+      !dto.invitedPhone
+    ) {
+      throw new BadRequestException(
+        'Invite an existing user, email, phone number, or share returned inviteUrl',
+      );
+    }
+
+    const token = randomBytes(32).toString('base64url');
+    const inviteTokenHash = this.hashToken(token);
+    const permissions = this.permissionsForRole(dto.role, dto);
+    const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
 
     this.assertInviteChannelTarget(inviteChannel, dto);
 
@@ -227,7 +319,8 @@ export class CaregiverService {
         });
 
     const inviteUrl = this.inviteUrl(token);
-    const delivered = await this.deliverInvite(access, inviteUrl);
+    const shareLinks = this.inviteShareLinks(access, inviteUrl);
+    const delivered = await this.deliverInvite(access, shareLinks.message);
 
     return {
       success: true,
@@ -237,6 +330,19 @@ export class CaregiverService {
         inviteUrl,
         inviteToken: token,
         delivered,
+        delivery: {
+          email: {
+            requested: this.shouldSendEmail(access),
+            sent: delivered.email,
+            to: access.invitedEmail,
+          },
+          whatsapp: {
+            requested: this.shouldSendWhatsapp(access),
+            sent: delivered.whatsapp,
+            to: access.invitedPhone,
+          },
+        },
+        shareLinks,
       },
     };
   }
@@ -299,6 +405,25 @@ export class CaregiverService {
     };
   }
 
+  async getPermissions(userId: string, accessId: string) {
+    const access = await this.prisma.caregiverAccess.findUnique({
+      where: { id: accessId },
+      include: accessInclude,
+    });
+
+    if (!access) {
+      throw new NotFoundException('Caregiver access not found');
+    }
+
+    await this.assertChildPermission(userId, access.childId, 'manageCareTeam');
+
+    return {
+      success: true,
+      message: 'Permissions fetched',
+      data: this.formatAccessPermissions(access),
+    };
+  }
+
   async updatePermissions(
     userId: string,
     accessId: string,
@@ -306,7 +431,7 @@ export class CaregiverService {
   ) {
     const access = await this.prisma.caregiverAccess.findUnique({
       where: { id: accessId },
-      select: { id: true, childId: true, status: true },
+      select: { id: true, childId: true, role: true, status: true },
     });
 
     if (!access) {
@@ -317,14 +442,17 @@ export class CaregiverService {
 
     const updated = await this.prisma.caregiverAccess.update({
       where: { id: accessId },
-      data: this.permissionUpdates(dto),
+      data: {
+        ...this.nonRolePermissionResets(access.role),
+        ...this.permissionUpdates(dto, access.role),
+      },
       include: accessInclude,
     });
 
     return {
       success: true,
       message: 'Permissions updated',
-      data: this.formatAccess(updated),
+      data: this.formatAccessPermissions(updated),
     };
   }
 
@@ -423,7 +551,95 @@ export class CaregiverService {
       take: 20,
     });
 
-    return { success: true, data: users };
+    return {
+      success: true,
+      data: users.map((user) => ({
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+        image: user.profilePictureUrl,
+      })),
+    };
+  }
+
+  async listNannies(query: ListNanniesDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+    const search = query.search?.trim();
+    const where: Prisma.UserWhereInput = {
+      role: UserRole.NANNY,
+      status: UserStatus.ACTIVE,
+      ...(search && {
+        OR: [
+          { fullName: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          { phoneNumber: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
+    };
+
+    const [nannies, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          phoneNumber: true,
+          profilePictureUrl: true,
+          status: true,
+          createdAt: true,
+          nannyProfile: {
+            select: {
+              id: true,
+              headline: true,
+              bio: true,
+              hourlyRateCents: true,
+              completedJobs: true,
+              repeatFamilies: true,
+              averageRating: true,
+              totalReviews: true,
+              yearsExperience: true,
+              skills: true,
+              languages: true,
+              portfolioImageUrls: true,
+              backgroundCheckVerified: true,
+              emergencyContactVerified: true,
+              status: true,
+              joinedAt: true,
+            },
+          },
+        },
+        orderBy: [{ fullName: 'asc' }, { createdAt: 'desc' }],
+        skip,
+        take: limit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      success: true,
+      message: 'Nannies fetched successfully',
+      data: nannies.map((nanny) => ({
+        id: nanny.id,
+        fullName: nanny.fullName,
+        email: nanny.email,
+        phoneNumber: nanny.phoneNumber,
+        image: nanny.profilePictureUrl,
+        status: nanny.status,
+        createdAt: nanny.createdAt,
+        profile: nanny.nannyProfile,
+      })),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
   }
 
   private async getManageCaregivers(userId: string, childId?: string) {
@@ -467,11 +683,13 @@ export class CaregiverService {
     const ownerUser = children[0]?.parentUser;
     const accountOwner = ownerUser
       ? {
-          ...ownerUser,
+          id: ownerUser.id,
+          fullName: ownerUser.fullName,
+          email: ownerUser.email,
+          image: ownerUser.profilePictureUrl,
           childIds: children.map((child) => child.id),
           childNames: children.map((child) => child.name),
           isOwner: true,
-          permissions: this.fullPermissions(),
         }
       : null;
     const caregivers = accesses.map((access) => this.formatAccess(access));
@@ -588,6 +806,33 @@ export class CaregiverService {
     dto: CreateCaregiverInvitationDto,
     invitedUserId?: string,
   ) {
+    const targetWhere = [
+      invitedUserId ? { invitedUserId } : undefined,
+      dto.invitedEmail
+        ? { invitedEmail: dto.invitedEmail.toLowerCase() }
+        : undefined,
+      dto.invitedPhone ? { invitedPhone: dto.invitedPhone } : undefined,
+    ].filter(Boolean) as Prisma.CaregiverAccessWhereInput[];
+
+    if (targetWhere.length === 0) {
+      return this.prisma.caregiverAccess.findFirst({
+        where: {
+          childId,
+          role: dto.role,
+          relationship:
+            dto.role === CaregiverAccessRole.FAMILY_MEMBER
+              ? dto.relationship
+              : null,
+          inviteChannel: CaregiverInviteChannel.LINK,
+          invitedUserId: null,
+          invitedEmail: null,
+          invitedPhone: null,
+          status: CaregiverAccessStatus.PENDING,
+        },
+        select: { id: true },
+      });
+    }
+
     return this.prisma.caregiverAccess.findFirst({
       where: {
         childId,
@@ -595,13 +840,7 @@ export class CaregiverService {
         status: {
           in: [CaregiverAccessStatus.PENDING, CaregiverAccessStatus.ACCEPTED],
         },
-        OR: [
-          invitedUserId ? { invitedUserId } : undefined,
-          dto.invitedEmail
-            ? { invitedEmail: dto.invitedEmail.toLowerCase() }
-            : undefined,
-          dto.invitedPhone ? { invitedPhone: dto.invitedPhone } : undefined,
-        ].filter(Boolean) as Prisma.CaregiverAccessWhereInput[],
+        OR: targetWhere,
       },
       select: { id: true },
     });
@@ -688,33 +927,42 @@ export class CaregiverService {
     role: CaregiverAccessRole,
     dto: UpdateCaregiverPermissionsDto,
   ): PermissionMap {
-    const defaults: Record<CaregiverAccessRole, PermissionMap> = {
-      [CaregiverAccessRole.NANNY]: {
-        ...this.emptyPermissions(),
-        manageGroceryLists: true,
-      },
-      [CaregiverAccessRole.PARENT]: {
-        ...this.emptyPermissions(),
-        manageDailyPlans: true,
-        manageCareTeam: true,
-      },
-      [CaregiverAccessRole.FAMILY_MEMBER]: {
-        ...this.emptyPermissions(),
-        dailyActivitiesRecipes: true,
-        careLearningAccess: true,
-        accessChildInsights: true,
-        memoriesStories: true,
-      },
+    return {
+      ...this.defaultPermissionsForRole(role),
+      ...this.permissionUpdates(dto, role),
     };
-
-    return { ...defaults[role], ...this.permissionUpdates(dto) };
   }
 
-  private permissionUpdates(dto: UpdateCaregiverPermissionsDto) {
+  private permissionUpdates(
+    dto: UpdateCaregiverPermissionsDto,
+    role?: CaregiverAccessRole,
+  ) {
+    const keys = role ? ROLE_PERMISSION_KEYS[role] : PERMISSION_KEYS;
+
     return Object.fromEntries(
-      PERMISSION_KEYS.filter((key) => dto[key] !== undefined).map((key) => [
+      keys
+        .filter((key) => dto[key] !== undefined)
+        .map((key) => [key, dto[key]]),
+    ) as Partial<PermissionMap>;
+  }
+
+  private defaultPermissionsForRole(role: CaregiverAccessRole): PermissionMap {
+    const permissions = this.emptyPermissions();
+
+    for (const key of DEFAULT_TRUE_BY_ROLE[role]) {
+      permissions[key] = true;
+    }
+
+    return permissions;
+  }
+
+  private nonRolePermissionResets(role: CaregiverAccessRole) {
+    const roleKeys = new Set<PermissionKey>(ROLE_PERMISSION_KEYS[role]);
+
+    return Object.fromEntries(
+      PERMISSION_KEYS.filter((key) => !roleKeys.has(key)).map((key) => [
         key,
-        dto[key],
+        false,
       ]),
     ) as Partial<PermissionMap>;
   }
@@ -743,6 +991,27 @@ export class CaregiverService {
     ) as PermissionMap;
   }
 
+  private pickRolePermissions(
+    role: CaregiverAccessRole,
+    access: Partial<PermissionMap>,
+  ) {
+    return Object.fromEntries(
+      ROLE_PERMISSION_KEYS[role].map((key) => [key, Boolean(access[key])]),
+    ) as Partial<PermissionMap>;
+  }
+
+  private permissionFields(
+    role: CaregiverAccessRole,
+    access: Partial<PermissionMap>,
+  ) {
+    return ROLE_PERMISSION_KEYS[role].map((key) => ({
+      key,
+      label: PERMISSION_LABELS[key],
+      description: PERMISSION_DESCRIPTIONS[key],
+      value: Boolean(access[key]),
+    }));
+  }
+
   private hashToken(token: string) {
     return createHash('sha256').update(token).digest('hex');
   }
@@ -760,26 +1029,17 @@ export class CaregiverService {
 
   private async deliverInvite(
     access: Prisma.CaregiverAccessGetPayload<{ include: typeof accessInclude }>,
-    inviteUrl: string,
+    message: string,
   ) {
-    const message = `${access.invitedByUser.fullName} invited you to care for ${access.child.name}. Accept here: ${inviteUrl}`;
     const delivered = {
       email: false,
       whatsapp: false,
     };
 
-    if (
-      access.invitedEmail &&
-      (
-        [
-          CaregiverInviteChannel.EMAIL,
-          CaregiverInviteChannel.EMAIL_WHATSAPP,
-        ] as CaregiverInviteChannel[]
-      ).includes(access.inviteChannel)
-    ) {
+    if (this.shouldSendEmail(access)) {
       try {
         delivered.email = await this.mailService.sendDummyEmail(
-          access.invitedEmail,
+          access.invitedEmail!,
           `Invitation to care for ${access.child.name}`,
           message,
         );
@@ -788,17 +1048,9 @@ export class CaregiverService {
       }
     }
 
-    if (
-      access.invitedPhone &&
-      (
-        [
-          CaregiverInviteChannel.WHATSAPP,
-          CaregiverInviteChannel.EMAIL_WHATSAPP,
-        ] as CaregiverInviteChannel[]
-      ).includes(access.inviteChannel)
-    ) {
+    if (this.shouldSendWhatsapp(access)) {
       try {
-        await this.twilioService.sendSms(access.invitedPhone, message);
+        await this.twilioService.sendWhatsapp(access.invitedPhone!, message);
         delivered.whatsapp = true;
       } catch {
         delivered.whatsapp = false;
@@ -806,6 +1058,54 @@ export class CaregiverService {
     }
 
     return delivered;
+  }
+
+  private shouldSendEmail(
+    access: Prisma.CaregiverAccessGetPayload<{ include: typeof accessInclude }>,
+  ) {
+    return (
+      Boolean(access.invitedEmail) &&
+      (
+        [
+          CaregiverInviteChannel.EMAIL,
+          CaregiverInviteChannel.EMAIL_WHATSAPP,
+        ] as CaregiverInviteChannel[]
+      ).includes(access.inviteChannel)
+    );
+  }
+
+  private shouldSendWhatsapp(
+    access: Prisma.CaregiverAccessGetPayload<{ include: typeof accessInclude }>,
+  ) {
+    return (
+      Boolean(access.invitedPhone) &&
+      (
+        [
+          CaregiverInviteChannel.WHATSAPP,
+          CaregiverInviteChannel.EMAIL_WHATSAPP,
+        ] as CaregiverInviteChannel[]
+      ).includes(access.inviteChannel)
+    );
+  }
+
+  private inviteShareLinks(
+    access: Prisma.CaregiverAccessGetPayload<{ include: typeof accessInclude }>,
+    inviteUrl: string,
+  ) {
+    const subject = `Invitation to care for ${access.child.name}`;
+    const message = `${access.invitedByUser.fullName} invited you to care for ${access.child.name}. Accept here: ${inviteUrl}`;
+    const whatsappNumber = access.invitedPhone?.replace(/[^\d]/g, '');
+
+    return {
+      inviteUrl,
+      message,
+      email: access.invitedEmail
+        ? `mailto:${encodeURIComponent(access.invitedEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`
+        : null,
+      whatsapp: whatsappNumber
+        ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
+        : null,
+    };
   }
 
   private formatAccess(
@@ -816,7 +1116,7 @@ export class CaregiverService {
       child: {
         id: access.child.id,
         name: access.child.name,
-        avatar: access.child.avatar,
+        image: access.child.avatar,
       },
       role: access.role,
       relationship: access.relationship,
@@ -828,15 +1128,54 @@ export class CaregiverService {
         access.invitedName ??
         access.invitedEmail ??
         access.invitedPhone,
+      image: access.invitedUser?.profilePictureUrl ?? null,
       invitedEmail: access.invitedEmail,
       invitedPhone: access.invitedPhone,
-      invitedUser: access.invitedUser,
-      invitedByUser: access.invitedByUser,
-      permissions: this.pickPermissions(access),
+      invitedUser: access.invitedUser
+        ? {
+            id: access.invitedUser.id,
+            fullName: access.invitedUser.fullName,
+            email: access.invitedUser.email,
+            phoneNumber: access.invitedUser.phoneNumber,
+            role: access.invitedUser.role,
+            image: access.invitedUser.profilePictureUrl,
+          }
+        : null,
+      invitedByUser: {
+        id: access.invitedByUser.id,
+        fullName: access.invitedByUser.fullName,
+        email: access.invitedByUser.email,
+        image: access.invitedByUser.profilePictureUrl,
+      },
       acceptedAt: access.acceptedAt,
       revokedAt: access.revokedAt,
       expiresAt: access.expiresAt,
       createdAt: access.createdAt,
+      updatedAt: access.updatedAt,
+    };
+  }
+
+  private formatAccessPermissions(
+    access: Prisma.CaregiverAccessGetPayload<{ include: typeof accessInclude }>,
+  ) {
+    return {
+      accessId: access.id,
+      role: access.role,
+      relationship: access.relationship,
+      status: access.status,
+      displayName:
+        access.invitedUser?.fullName ??
+        access.invitedName ??
+        access.invitedEmail ??
+        access.invitedPhone,
+      image: access.invitedUser?.profilePictureUrl ?? null,
+      child: {
+        id: access.child.id,
+        name: access.child.name,
+        image: access.child.avatar,
+      },
+      permissions: this.pickRolePermissions(access.role, access),
+      permissionFields: this.permissionFields(access.role, access),
       updatedAt: access.updatedAt,
     };
   }

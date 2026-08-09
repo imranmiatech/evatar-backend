@@ -7,6 +7,7 @@ import {
   ChildMood,
   DayPlanBuildMode,
   DayPlanStatus,
+  MediaType,
   Prisma,
   PrismaClient,
   TaskCompletionRate,
@@ -697,11 +698,16 @@ async function seedSampleCareAssignments(
   prisma: PrismaClient,
   modules: Array<{ id: string; title: string }>,
 ) {
-  const [parent, nanny, eve] = await Promise.all([
+  const [parent, nanny, eve, ava] = await Promise.all([
     prisma.user.findUnique({ where: { email: 'p@e.com' }, select: { id: true } }),
     prisma.user.findUnique({ where: { email: 'n@e.com' }, select: { id: true } }),
     prisma.child.findFirst({
       where: { name: 'Eve' },
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+    }),
+    prisma.child.findFirst({
+      where: { name: 'Ava' },
       select: { id: true },
       orderBy: { createdAt: 'asc' },
     }),
@@ -785,16 +791,31 @@ async function seedSampleCareAssignments(
 
   await seedCareInsightActivities(prisma, {
     childId: eve.id,
+    childName: 'Eve',
     parentUserId: parent.id,
     nannyUserId: nanny.id,
   });
+
+  if (ava) {
+    await seedCareInsightActivities(prisma, {
+      childId: ava.id,
+      childName: 'Ava',
+      parentUserId: parent.id,
+      nannyUserId: nanny.id,
+    });
+  }
 
   console.log(`Care assignments seeded for Eve: ${modules.length}`);
 }
 
 async function seedCareInsightActivities(
   prisma: PrismaClient,
-  input: { childId: string; parentUserId: string; nannyUserId: string },
+  input: {
+    childId: string;
+    childName: string;
+    parentUserId: string;
+    nannyUserId: string;
+  },
 ) {
   const plan = await prisma.dayPlan.upsert({
     where: {
@@ -806,7 +827,7 @@ async function seedCareInsightActivities(
     update: {
       mode: DayPlanBuildMode.MANUAL,
       status: DayPlanStatus.READY,
-      title: 'Eve care insights seed day',
+      title: `${input.childName} care insights seed day`,
       summary: 'Seeded care activities and meals for insight widgets.',
       createdByUserId: input.parentUserId,
     },
@@ -815,7 +836,7 @@ async function seedCareInsightActivities(
       date: new Date('2026-08-08T00:00:00.000Z'),
       mode: DayPlanBuildMode.MANUAL,
       status: DayPlanStatus.READY,
-      title: 'Eve care insights seed day',
+      title: `${input.childName} care insights seed day`,
       summary: 'Seeded care activities and meals for insight widgets.',
       createdByUserId: input.parentUserId,
     },
@@ -825,12 +846,12 @@ async function seedCareInsightActivities(
     {
       category: 'ACTIVITY_CREATIVE_PLAY',
       title: 'Drawing & Coloring',
-      description: 'Eve stayed focused and proudly described her picture.',
+      description: `${input.childName} stayed focused and proudly described the picture.`,
       imageUrl:
         'https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=800&auto=format&fit=crop',
       startTime: new Date('2026-08-08T09:30:00.000Z'),
       endTime: new Date('2026-08-08T10:00:00.000Z'),
-      note: 'Eve loved choosing colors and asked to show the drawing later.',
+      note: `${input.childName} loved choosing colors and asked to show the drawing later.`,
       enjoyment: TaskEnjoymentLevel.LOVE_IT,
       childMood: ChildMood.HAPPY,
       completionRate: TaskCompletionRate.FULL_PLATE,
@@ -839,7 +860,7 @@ async function seedCareInsightActivities(
     {
       category: 'ACTIVITY_STORY_TIME',
       title: 'Story Time',
-      description: 'Eve listened closely and repeated new words from the book.',
+      description: `${input.childName} listened closely and repeated new words from the book.`,
       imageUrl:
         'https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=800&auto=format&fit=crop',
       startTime: new Date('2026-08-08T10:30:00.000Z'),
@@ -935,9 +956,64 @@ async function seedCareInsightActivities(
         submittedAt: new Date('2026-08-08T16:00:00.000Z'),
       },
     });
+
+    const existingMedia = await prisma.mediaAsset.findFirst({
+      where: {
+        ownerUserId: input.nannyUserId,
+        url: seed.imageUrl,
+      },
+      select: { id: true },
+    });
+
+    const mediaAsset =
+      existingMedia ??
+      (await prisma.mediaAsset.create({
+        data: {
+          ownerUserId: input.nannyUserId,
+          type: MediaType.IMAGE,
+          url: seed.imageUrl,
+          storageKey: seed.imageUrl,
+          mimeType: 'image/jpeg',
+        },
+        select: { id: true },
+      }));
+
+    const existingProof = await prisma.dayActivityProof.findFirst({
+      where: {
+        dayActivityId: activity.id,
+        mediaAssetId: mediaAsset.id,
+      },
+      select: { id: true },
+    });
+
+    if (existingProof) {
+      await prisma.dayActivityProof.update({
+        where: { id: existingProof.id },
+        data: {
+          uploadedByUserId: input.nannyUserId,
+          caption: seed.note,
+        },
+      });
+    } else {
+      await prisma.dayActivityProof.create({
+        data: {
+          dayActivityId: activity.id,
+          mediaAssetId: mediaAsset.id,
+          uploadedByUserId: input.nannyUserId,
+          caption: seed.note,
+        },
+      });
+    }
+
+    await prisma.dayActivity.update({
+      where: { id: activity.id },
+      data: { proofMediaId: mediaAsset.id },
+    });
   }
 
-  console.log(`Care insight activities seeded for Eve: ${activities.length}`);
+  console.log(
+    `Care insight activities seeded for ${input.childName}: ${activities.length}`,
+  );
 }
 
 function assignmentData(assignedByUserId: string, index: number) {

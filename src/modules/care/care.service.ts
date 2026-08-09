@@ -24,7 +24,12 @@ import { RewardsService } from '../rewards/rewards.service';
 import { StorageService } from '../../common/storage/storage.service';
 import { AssignCareModuleDto } from './dto/assign-care-module.dto';
 import { CareChildInsightsQueryDto } from './dto/care-child-insights-query.dto';
-import { CareModuleQueryDto, CareModuleTab } from './dto/care-module-query.dto';
+import {
+  CareHomeQueryDto,
+  CareHomeTabsQueryDto,
+  CareModuleQueryDto,
+  CareModuleTab,
+} from './dto/care-module-query.dto';
 import { CareMonthlyHighlightsQueryDto } from './dto/care-monthly-highlights-query.dto';
 import { CreateCareChildNoteDto } from './dto/create-care-child-note.dto';
 import { CreateCareModuleDto } from './dto/create-care-module.dto';
@@ -100,16 +105,16 @@ const ACTIVITY_CATEGORY_KEYWORDS = [
 ];
 
 const CARE_HOME_TOPICS = [
-  { label: 'All Topics', value: null },
-  { label: 'Child Safety', value: CareModuleCategory.CHILD_SAFETY },
-  { label: 'Nutrition & Feeding', value: CareModuleCategory.NUTRITION_FEEDING },
-  { label: 'Sleep & Routines', value: CareModuleCategory.SLEEP_ROUTINES },
-  { label: 'Child Development', value: CareModuleCategory.CHILD_DEVELOPMENT },
-  { label: 'First Aid', value: CareModuleCategory.FIRST_AID },
-  { label: 'Play & Learning', value: CareModuleCategory.PLAY_LEARNING },
-  { label: 'Communication', value: CareModuleCategory.COMMUNICATION },
-  { label: 'Health & Hygiene', value: CareModuleCategory.HEALTH_HYGIENE },
-  { label: 'Other', value: CareModuleCategory.OTHER },
+  { id: 'ALL', label: 'All Topics', value: null },
+  { id: CareModuleCategory.CHILD_SAFETY, label: 'Child Safety', value: CareModuleCategory.CHILD_SAFETY },
+  { id: CareModuleCategory.NUTRITION_FEEDING, label: 'Nutrition & Feeding', value: CareModuleCategory.NUTRITION_FEEDING },
+  { id: CareModuleCategory.SLEEP_ROUTINES, label: 'Sleep & Routines', value: CareModuleCategory.SLEEP_ROUTINES },
+  { id: CareModuleCategory.CHILD_DEVELOPMENT, label: 'Child Development', value: CareModuleCategory.CHILD_DEVELOPMENT },
+  { id: CareModuleCategory.FIRST_AID, label: 'First Aid', value: CareModuleCategory.FIRST_AID },
+  { id: CareModuleCategory.PLAY_LEARNING, label: 'Play & Learning', value: CareModuleCategory.PLAY_LEARNING },
+  { id: CareModuleCategory.COMMUNICATION, label: 'Communication', value: CareModuleCategory.COMMUNICATION },
+  { id: CareModuleCategory.HEALTH_HYGIENE, label: 'Health & Hygiene', value: CareModuleCategory.HEALTH_HYGIENE },
+  { id: CareModuleCategory.OTHER, label: 'Other', value: CareModuleCategory.OTHER },
 ] as const;
 
 type CareModuleSuggestedAgeRange = {
@@ -440,17 +445,27 @@ export class CareService {
     };
   }
 
-  async getCareHome(user: CurrentUserPayload, query: CareModuleQueryDto) {
+  async getCareHome(user: CurrentUserPayload, query: CareHomeQueryDto) {
     const userId = this.currentUserId(user);
-    const childrenResponse = await this.getMyCareChildren(user);
-    const children = childrenResponse.data;
-    const selectedChildId = query.childId ?? children[0]?.id;
+    const { adminStatus, ageGroup, category, topicId, ...baseHomeQuery } = query;
+    const selectedTopicId = topicId && topicId !== 'ALL' ? topicId : null;
+    if (
+      selectedTopicId &&
+      !Object.values(CareModuleCategory).includes(
+        selectedTopicId as CareModuleCategory,
+      )
+    ) {
+      throw new BadRequestException('Invalid topicId');
+    }
+
     const homeQuery = {
-      ...query,
-      ...(selectedChildId && { childId: selectedChildId }),
+      ...baseHomeQuery,
+      ...(selectedTopicId && {
+        category: selectedTopicId as CareModuleCategory,
+      }),
     };
 
-    const [account, moduleResponse, tabCounts] = await Promise.all([
+    const [account, moduleResponse] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -462,14 +477,11 @@ export class CareService {
         },
       }),
       this.getModules(user, homeQuery),
-      this.careHomeTabCounts(user, homeQuery),
     ]);
 
     if (!account) {
       throw new NotFoundException('User not found');
     }
-
-    const activeTab = homeQuery.tab ?? CareModuleTab.ALL;
 
     return {
       success: true,
@@ -483,57 +495,61 @@ export class CareService {
           role: account.role,
           greeting: this.timeGreeting(),
         },
-        children: children.map((child) => ({
-          id: child.id,
-          name: child.name,
-          image: child.avatar,
-          avatar: child.avatar,
-          gender: child.gender,
-          ageYears: child.ageYears,
-          isActive: child.id === selectedChildId,
-        })),
-        caregivingHub: {
-          title: 'Explore Baby handling lesson',
-          subtitle: "Assign care modules to your nanny based on your child's needs.",
-          selectedChildId: selectedChildId ?? null,
-          activeTab,
-          tabs: [
-            {
-              key: CareModuleTab.ALL,
-              label: 'All Modules',
-              count: tabCounts.all,
-              isActive: activeTab === CareModuleTab.ALL,
-            },
-            {
-              key: CareModuleTab.IN_PROGRESS,
-              label: 'In progress',
-              count: tabCounts.inProgress,
-              isActive: activeTab === CareModuleTab.IN_PROGRESS,
-            },
-            {
-              key: CareModuleTab.COMPLETED,
-              label: 'Completed',
-              count: tabCounts.completed,
-              isActive: activeTab === CareModuleTab.COMPLETED,
-            },
-            {
-              key: CareModuleTab.SAVED,
-              label: 'Saved',
-              count: tabCounts.saved,
-              isActive: activeTab === CareModuleTab.SAVED,
-            },
-          ],
-          topics: CARE_HOME_TOPICS.map((topic) => ({
-            ...topic,
-            isActive:
-              topic.value === null
-                ? !homeQuery.category
-                : homeQuery.category === topic.value,
-          })),
-          modules: moduleResponse.data,
-        },
+        selectedChildId: homeQuery.childId ?? null,
+        activeTab: homeQuery.tab ?? CareModuleTab.ALL,
+        activeTopicId: topicId ?? 'ALL',
+        modules: moduleResponse.data,
         meta: moduleResponse.meta,
       },
+    };
+  }
+
+  async getCareHomeTabs(user: CurrentUserPayload, query: CareHomeTabsQueryDto) {
+    const homeQuery = { ...query };
+    const activeTab = homeQuery.tab ?? CareModuleTab.ALL;
+    const tabCounts = await this.careHomeTabCounts(user, homeQuery);
+
+    return {
+      success: true,
+      message: 'Care home tabs fetched successfully',
+      data: [
+        {
+          id: CareModuleTab.ALL,
+          key: CareModuleTab.ALL,
+          label: 'All Modules',
+          count: tabCounts.all,
+          isActive: activeTab === CareModuleTab.ALL,
+        },
+        {
+          id: CareModuleTab.IN_PROGRESS,
+          key: CareModuleTab.IN_PROGRESS,
+          label: 'In progress',
+          count: tabCounts.inProgress,
+          isActive: activeTab === CareModuleTab.IN_PROGRESS,
+        },
+        {
+          id: CareModuleTab.COMPLETED,
+          key: CareModuleTab.COMPLETED,
+          label: 'Completed',
+          count: tabCounts.completed,
+          isActive: activeTab === CareModuleTab.COMPLETED,
+        },
+        {
+          id: CareModuleTab.SAVED,
+          key: CareModuleTab.SAVED,
+          label: 'Saved',
+          count: tabCounts.saved,
+          isActive: activeTab === CareModuleTab.SAVED,
+        },
+      ],
+    };
+  }
+
+  getCareHomeTopics() {
+    return {
+      success: true,
+      message: 'Care home topics fetched successfully',
+      data: CARE_HOME_TOPICS.map(({ id, label }) => ({ id, label })),
     };
   }
 
@@ -1606,6 +1622,9 @@ export class CareService {
     const isAdmin = user && this.isAdmin(user);
     const adminStatus = query.adminStatus;
     const category = query.category;
+    const searchCategories = query.search
+      ? this.matchingCareCategories(query.search)
+      : [];
 
     return {
       ...(!isAdmin && { isPublished: true }),
@@ -1624,9 +1643,36 @@ export class CareService {
           {
             description: { contains: query.search, mode: 'insensitive' as const },
           },
+          ...(searchCategories.length > 0
+            ? [{ category: { in: searchCategories } }]
+            : []),
         ],
       }),
     } satisfies Prisma.CareModuleWhereInput;
+  }
+
+  private matchingCareCategories(search: string): CareModuleCategory[] {
+    const normalizedSearch = search.toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+    const searchWords = normalizedSearch.split(' ').filter(Boolean);
+
+    if (searchWords.length === 0) {
+      return [];
+    }
+
+    return CARE_HOME_TOPICS.flatMap((topic) => {
+      if (!topic.value) {
+        return [];
+      }
+
+      const topicWords = `${topic.id} ${topic.label}`
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ');
+
+      return topicWords.includes(normalizedSearch.trim()) ||
+        searchWords.some((word) => topicWords.includes(word))
+        ? [topic.value]
+        : [];
+    });
   }
 
   private formatAgeRange(min?: number | null, max?: number | null): string {

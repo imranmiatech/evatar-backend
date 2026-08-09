@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Twilio } from 'twilio';
 
@@ -13,7 +13,9 @@ export class TwilioService {
     if (accountSid && authToken) {
       this.client = new Twilio(accountSid, authToken);
     } else {
-      this.logger.warn('Twilio credentials not provided in environment variables.');
+      this.logger.warn(
+        'Twilio credentials not provided in environment variables.',
+      );
     }
   }
 
@@ -29,7 +31,7 @@ export class TwilioService {
       return message;
     } catch (error: any) {
       this.logger.error(`Failed to send SMS to ${to}:`, error);
-      
+
       // If Twilio complains about an invalid number (e.g. error code 21211)
       if (error.code === 21211) {
         throw new BadRequestException(`Invalid phone number: ${to}`);
@@ -37,11 +39,54 @@ export class TwilioService {
 
       // If Twilio Trial Limit Reached (63038) or From Number Mismatch (21659)
       if (error.code === 63038 || error.code === 21659) {
-        this.logger.warn(`[DEV MODE] Twilio limit/config error. Bypassing SMS delivery so signup can proceed. Code: ${error.code}`);
+        this.logger.warn(
+          `[DEV MODE] Twilio limit/config error. Bypassing SMS delivery so signup can proceed. Code: ${error.code}`,
+        );
         return { sid: 'mock_sid_due_to_twilio_limits' };
       }
 
       throw error;
     }
+  }
+
+  async sendWhatsapp(to: string, body: string) {
+    const from = this.configService.get<string>('TWILIO_WHATSAPP_FROM');
+
+    if (!from) {
+      throw new BadRequestException(
+        'TWILIO_WHATSAPP_FROM is required for WhatsApp delivery',
+      );
+    }
+
+    try {
+      const message = await this.client.messages.create({
+        body,
+        from: this.whatsappAddress(from),
+        to: this.whatsappAddress(to),
+      });
+      this.logger.log(
+        `WhatsApp sent successfully to ${to}, SID: ${message.sid}`,
+      );
+      return message;
+    } catch (error: any) {
+      this.logger.error(`Failed to send WhatsApp to ${to}:`, error);
+
+      if (error.code === 21211) {
+        throw new BadRequestException(`Invalid WhatsApp number: ${to}`);
+      }
+
+      if (error.code === 63038 || error.code === 21659) {
+        this.logger.warn(
+          `[DEV MODE] Twilio WhatsApp limit/config error. Code: ${error.code}`,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  private whatsappAddress(phoneNumber: string) {
+    const value = phoneNumber.trim();
+    return value.startsWith('whatsapp:') ? value : `whatsapp:${value}`;
   }
 }

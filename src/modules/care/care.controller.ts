@@ -31,7 +31,11 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AssignCareModuleDto } from './dto/assign-care-module.dto';
-import { CareModuleQueryDto } from './dto/care-module-query.dto';
+import {
+  CareHomeQueryDto,
+  CareHomeTabsQueryDto,
+  CareModuleQueryDto,
+} from './dto/care-module-query.dto';
 import { CreateCareModuleDto } from './dto/create-care-module.dto';
 import { UpdateCareModuleDto } from './dto/update-care-module.dto';
 import { SubmitCareQuizDto } from './dto/submit-care-quiz.dto';
@@ -55,105 +59,52 @@ const careHomeResponseExample = {
       role: 'PARENT',
       greeting: 'Good Morning',
     },
-    children: [
+    selectedChildId: 'child_eve_001',
+    activeTab: 'IN_PROGRESS',
+    activeTopicId: 'CHILD_DEVELOPMENT',
+    modules: [
       {
-        id: 'child_eve_001',
-        name: 'Eve',
-        image:
-          'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?q=80&w=300&auto=format&fit=crop',
-        avatar:
-          'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?q=80&w=300&auto=format&fit=crop',
-        gender: 'GIRL',
-        ageYears: 5,
-        isActive: true,
-      },
-      {
-        id: 'child_rose_001',
-        name: 'Rose',
-        image:
-          'https://images.unsplash.com/photo-1542810634-71277d95dcbb?q=80&w=300&auto=format&fit=crop',
-        avatar:
-          'https://images.unsplash.com/photo-1542810634-71277d95dcbb?q=80&w=300&auto=format&fit=crop',
-        gender: 'GIRL',
-        ageYears: 6,
-        isActive: false,
+        id: 'care_module_behavior_001',
+        title: "Handling child's behavior",
+        subtitle: 'Understanding emotional regulation and response strategies',
+        description:
+          'Learn calm, practical ways to respond to tantrums and big feelings.',
+        coverImageUrl:
+          'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=1200&auto=format&fit=crop',
+        videoUrl: null,
+        category: 'CHILD_DEVELOPMENT',
+        estimatedMinutes: 130,
+        coinReward: 15,
+        suggestedMinAgeYears: 2,
+        suggestedMaxAgeYears: 6,
+        keyTakeaway:
+          'Behavior is communication. Respond to the need before correcting the action.',
+        isPublished: true,
+        isSaved: false,
+        questionCount: 5,
+        assignment: {
+          id: 'assignment_behavior_001',
+          moduleId: 'care_module_behavior_001',
+          childId: 'child_eve_001',
+          nannyUserId: 'usr_nanny_001',
+          assignedByUserId: 'usr_parent_001',
+          status: 'IN_PROGRESS',
+          score: 60,
+          totalQuestions: 5,
+          correctAnswers: 3,
+          pointsEarned: 0,
+          pointsAwardedAt: null,
+          canRetakeQuiz: true,
+          quizLockedUntil: null,
+          startedAt: '2026-08-08T03:00:00.000Z',
+          completedAt: null,
+          createdAt: '2026-08-08T02:30:00.000Z',
+          updatedAt: '2026-08-08T03:10:00.000Z',
+        },
+        createdAt: '2026-08-08T02:00:00.000Z',
+        updatedAt: '2026-08-08T02:00:00.000Z',
       },
     ],
-    caregivingHub: {
-      title: 'Explore Baby handling lesson',
-      subtitle: "Assign care modules to your nanny based on your child's needs.",
-      selectedChildId: 'child_eve_001',
-      activeTab: 'IN_PROGRESS',
-      tabs: [
-        { key: 'ALL', label: 'All Modules', count: 14, isActive: false },
-        { key: 'IN_PROGRESS', label: 'In progress', count: 10, isActive: true },
-        { key: 'COMPLETED', label: 'Completed', count: 4, isActive: false },
-        { key: 'SAVED', label: 'Saved', count: 3, isActive: false },
-      ],
-      topics: [
-        { label: 'All Topics', value: null, isActive: true },
-        { label: 'Child Safety', value: 'CHILD_SAFETY', isActive: false },
-        {
-          label: 'Nutrition & Feeding',
-          value: 'NUTRITION_FEEDING',
-          isActive: false,
-        },
-        { label: 'Sleep & Routines', value: 'SLEEP_ROUTINES', isActive: false },
-        {
-          label: 'Child Development',
-          value: 'CHILD_DEVELOPMENT',
-          isActive: false,
-        },
-        { label: 'First Aid', value: 'FIRST_AID', isActive: false },
-        { label: 'Play & Learning', value: 'PLAY_LEARNING', isActive: false },
-        { label: 'Communication', value: 'COMMUNICATION', isActive: false },
-        { label: 'Health & Hygiene', value: 'HEALTH_HYGIENE', isActive: false },
-        { label: 'Other', value: 'OTHER', isActive: false },
-      ],
-      modules: [
-        {
-          id: 'care_module_behavior_001',
-          title: "Handling child's behavior",
-          subtitle: 'Understanding emotional regulation and response strategies',
-          description:
-            'Learn calm, practical ways to respond to tantrums and big feelings.',
-          coverImageUrl:
-            'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=1200&auto=format&fit=crop',
-          videoUrl: null,
-          category: 'CHILD_DEVELOPMENT',
-          estimatedMinutes: 130,
-          coinReward: 15,
-          suggestedMinAgeYears: 2,
-          suggestedMaxAgeYears: 6,
-          keyTakeaway:
-            'Behavior is communication. Respond to the need before correcting the action.',
-          isPublished: true,
-          isSaved: false,
-          questionCount: 5,
-          assignment: {
-            id: 'assignment_behavior_001',
-            moduleId: 'care_module_behavior_001',
-            childId: 'child_eve_001',
-            nannyUserId: 'usr_nanny_001',
-            assignedByUserId: 'usr_parent_001',
-            status: 'IN_PROGRESS',
-            score: 60,
-            totalQuestions: 5,
-            correctAnswers: 3,
-            pointsEarned: 0,
-            pointsAwardedAt: null,
-            canRetakeQuiz: true,
-            quizLockedUntil: null,
-            startedAt: '2026-08-08T03:00:00.000Z',
-            completedAt: null,
-            createdAt: '2026-08-08T02:30:00.000Z',
-            updatedAt: '2026-08-08T03:10:00.000Z',
-          },
-          createdAt: '2026-08-08T02:00:00.000Z',
-          updatedAt: '2026-08-08T02:00:00.000Z',
-        },
-      ],
-    },
     meta: {
       total: 10,
       page: 1,
@@ -162,7 +113,7 @@ const careHomeResponseExample = {
     },
   },
   timestamp: '2026-08-08T04:00:00.000Z',
-  path: '/api/v1/care/home?tab=IN_PROGRESS',
+  path: '/api/v1/care/home?tab=IN_PROGRESS&topicId=CHILD_DEVELOPMENT',
 };
 
 @ApiBearerAuth()
@@ -334,21 +285,44 @@ export class CareController {
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
   @ApiOperation({
     summary:
-      'Home screen: logged-in user, greeting, child list, tabs, topics, and filtered modules',
+      'Home screen: logged-in user, child list, and filtered modules',
   })
   @ApiResponse({
     status: 200,
     description:
-      'Care home screen payload matching the mobile Caregiving Hub design.',
+      'Care home payload with modules filtered by child, tab, topic, and search.',
     schema: {
       example: careHomeResponseExample,
     },
   })
   getCareHome(
     @CurrentUser() user: CurrentUserPayload,
-    @Query() query: CareModuleQueryDto,
+    @Query() query: CareHomeQueryDto,
   ) {
     return this.careService.getCareHome(user, query);
+  }
+
+  @Get('home/tabs')
+  @ApiTags('CareHub')
+  @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
+  @ApiOperation({
+    summary: 'Get Care Hub module tabs with counts',
+  })
+  getCareHomeTabs(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query() query: CareHomeTabsQueryDto,
+  ) {
+    return this.careService.getCareHomeTabs(user, query);
+  }
+
+  @Get('home/topics')
+  @ApiTags('CareHub')
+  @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
+  @ApiOperation({
+    summary: 'Get Care Hub topic filters',
+  })
+  getCareHomeTopics() {
+    return this.careService.getCareHomeTopics();
   }
 
   @Get('children/:childId/suggested-modules')
