@@ -1234,10 +1234,7 @@ export class CareService {
         where: { id: dto.moduleId, isPublished: true },
         select: { id: true },
       }),
-      this.prisma.user.findUnique({
-        where: { id: dto.nannyUserId },
-        select: { id: true, role: true, fullName: true },
-      }),
+      this.resolveAssignmentNanny(dto.nannyUserId, dto.childId),
     ]);
 
     if (!module) {
@@ -1252,14 +1249,14 @@ export class CareService {
       throw new BadRequestException('Assigned user must be a nanny');
     }
 
-    await this.assertNannyBelongsToChild(dto.nannyUserId, dto.childId);
+    await this.assertNannyBelongsToChild(nanny.id, dto.childId);
 
     const assignment = await this.prisma.careModuleAssignment.upsert({
       where: {
         moduleId_childId_nannyUserId: {
           moduleId: dto.moduleId,
           childId: dto.childId,
-          nannyUserId: dto.nannyUserId,
+          nannyUserId: nanny.id,
         },
       },
       update: {
@@ -1270,7 +1267,7 @@ export class CareService {
       create: {
         moduleId: dto.moduleId,
         childId: dto.childId,
-        nannyUserId: dto.nannyUserId,
+        nannyUserId: nanny.id,
         assignedByUserId: userId,
         status: CareModuleAssignmentStatus.IN_PROGRESS,
         startedAt: new Date(),
@@ -1949,6 +1946,44 @@ export class CareService {
     ];
   }
 
+  private async resolveAssignmentNanny(
+    nannyUserIdOrAccessId: string,
+    childId: string,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: nannyUserIdOrAccessId },
+      select: { id: true, role: true, fullName: true },
+    });
+
+    if (user) {
+      return user;
+    }
+
+    const access = await this.prisma.caregiverAccess.findFirst({
+      where: {
+        id: nannyUserIdOrAccessId,
+        childId,
+        role: CaregiverAccessRole.NANNY,
+      },
+      select: {
+        invitedUserId: true,
+        invitedUser: {
+          select: { id: true, role: true, fullName: true },
+        },
+      },
+    });
+
+    if (!access) {
+      throw new NotFoundException('Nanny user or access record not found');
+    }
+
+    if (!access.invitedUserId || !access.invitedUser) {
+      throw new BadRequestException('Nanny invitation is not linked to a user yet');
+    }
+
+    return access.invitedUser;
+  }
+
   private async assertNannyBelongsToChild(
     nannyUserId: string,
     childId: string,
@@ -1959,7 +1994,9 @@ export class CareService {
           childId,
           invitedUserId: nannyUserId,
           role: CaregiverAccessRole.NANNY,
-          status: CaregiverAccessStatus.ACCEPTED,
+          status: {
+            in: [CaregiverAccessStatus.PENDING, CaregiverAccessStatus.ACCEPTED],
+          },
         },
         select: { id: true },
       }),
