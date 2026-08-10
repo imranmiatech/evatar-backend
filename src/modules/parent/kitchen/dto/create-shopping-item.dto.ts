@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { KitchenItemCategory, ItemUnit } from '@prisma/client';
 import {
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -8,6 +9,14 @@ import {
 } from 'class-validator';
 
 export class CreateShoppingItemDto {
+  @ApiPropertyOptional({
+    description: 'Target parent user ID. Admin/nanny only; parent requests ignore this value.',
+    example: '74424fe6-492c-481f-92ab-6d2b10d1dfd8',
+  })
+  @IsString()
+  @IsOptional()
+  userId?: string;
+
   @ApiProperty({ description: 'Item name', example: 'Organic Whole Milk' })
   @IsString()
   @IsNotEmpty()
@@ -40,4 +49,20 @@ export class CreateShoppingItemDto {
   @IsString()
   @IsOptional()
   note?: string;
+
+  @ApiPropertyOptional({
+    description: 'Whether this item was entered as a custom order.',
+    example: true,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isCustomOrder?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'When checked, also add this shopping/custom order item to kitchen inventory.',
+    example: true,
+  })
+  @IsBoolean()
+  @IsOptional()
+  addToKitchen?: boolean;
 }

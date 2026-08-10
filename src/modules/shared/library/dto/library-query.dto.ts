@@ -40,7 +40,16 @@ export class LibraryQueryDto {
   location?: ActivityLocation;
 
   @ApiPropertyOptional({
-    description: 'Filter by minimum age in months (e.g. 0 for "Age: 0-12 months")',
+    description:
+      'Filter recipes by UI age group. Examples: "6 months", "6-9 months", "9-12 months", "12-24 months", "2+ years", "2-4 years".',
+    example: '6-9 months',
+  })
+  @IsString()
+  @IsOptional()
+  ageGroup?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter activities by minimum age in months',
     example: 0,
   })
   @IsInt()
@@ -50,7 +59,7 @@ export class LibraryQueryDto {
   minAge?: number;
 
   @ApiPropertyOptional({
-    description: 'Filter by maximum age in months (e.g. 12 for "Age: 0-12 months")',
+    description: 'Filter activities by maximum age in months',
     example: 12,
   })
   @IsInt()

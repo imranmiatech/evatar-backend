@@ -1,10 +1,17 @@
 import { Injectable } from '@nestjs/common';
+import { KitchenInventoryItemStatus } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { LibraryQueryDto } from '../dto/library-query.dto';
+import { resolveAgeGroupRange } from '../../../../common/helpers/age-group.helper';
+import type { CurrentUserPayload } from '../../../../common/decorators/current-user.decorator';
+import { KitchenAccessService } from '../../../parent/kitchen/services/kitchen-access.service';
 
 @Injectable()
 export class LibraryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly kitchenAccess: KitchenAccessService,
+  ) {}
 
   async getAll(query: LibraryQueryDto) {
     const page = query.page ?? 1;
@@ -210,6 +217,113 @@ export class LibraryService {
     };
   }
 
+  async getRecipes(user: CurrentUserPayload, query: LibraryQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const recipeWhere = {
+      isActive: true,
+      ...(query.recipeMealType && { recipeMealType: query.recipeMealType }),
+      ...this.searchWhere(query.search),
+      ...this.recipeAgeWhere(query),
+    };
+
+    const [recipes, recipeCount, kitchenItems] = await Promise.all([
+      this.prisma.recipe.findMany({
+        where: recipeWhere,
+        select: this.recipeCardSelect(),
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.recipe.count({ where: recipeWhere }),
+      this.getKitchenItemsForReadiness(user),
+    ]);
+
+    return {
+      message: 'Recipes fetched successfully',
+      data: {
+        recipes: recipes.map((recipe) =>
+          this.formatRecipeCard(recipe, kitchenItems),
+        ),
+      },
+      meta: {
+        recipes: {
+          total: recipeCount,
+          page,
+          limit,
+          totalPages: Math.ceil(recipeCount / limit),
+        },
+      },
+    };
+  }
+
+  async getRecipeSuggestions(user: CurrentUserPayload, query: LibraryQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const recipeWhere = {
+      isActive: true,
+      ...(query.recipeMealType && { recipeMealType: query.recipeMealType }),
+      ...this.searchWhere(query.search),
+      ...this.recipeAgeWhere(query),
+    };
+
+    const [recipes, recipeCount, kitchenItems] = await Promise.all([
+      this.prisma.recipe.findMany({
+        where: recipeWhere,
+        select: {
+          id: true,
+          title: true,
+          recipeMealType: true,
+          minAgeMonths: true,
+          maxAgeMonths: true,
+          ingredients: {
+            select: {
+              name: true,
+              isOptional: true,
+            },
+          },
+        },
+        orderBy: { title: 'asc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.recipe.count({ where: recipeWhere }),
+      this.getKitchenItemsForReadiness(user),
+    ]);
+
+    return {
+      message: 'Recipe suggestions fetched successfully',
+      data: recipes.map((recipe) => {
+        const readiness = this.getIngredientReadiness(
+          recipe.ingredients,
+          kitchenItems,
+        );
+
+        return {
+          id: recipe.id,
+          name: recipe.title,
+          recipeMealType: recipe.recipeMealType,
+          status: readiness.status,
+          missingIngredients: readiness.missingIngredients,
+          ageSuitability:
+            recipe.minAgeMonths !== null && recipe.maxAgeMonths !== null
+              ? `${this.formatAge(recipe.minAgeMonths)} - ${this.formatAge(recipe.maxAgeMonths)}`
+              : null,
+        };
+      }),
+      meta: {
+        total: recipeCount,
+        page,
+        limit,
+        totalPages: Math.ceil(recipeCount / limit),
+      },
+    };
+  }
+
   async getActivityById(id: string) {
     const activity = await this.prisma.activity.findUnique({
       where: { id, isActive: true },
@@ -299,7 +413,6 @@ export class LibraryService {
             name: true,
             amount: true,
             unit: true,
-            substitute: true,
             isOptional: true,
           },
         },
@@ -361,6 +474,26 @@ export class LibraryService {
     };
   }
 
+  private recipeAgeWhere(query: LibraryQueryDto) {
+    const ageRange = resolveAgeGroupRange(query.ageGroup);
+
+    if (ageRange) {
+      return {
+        minAgeMonths: { lte: ageRange.maxAgeMonths },
+        maxAgeMonths: { gte: ageRange.minAgeMonths },
+      };
+    }
+
+    return {
+      ...(query.minAge !== undefined && {
+        minAgeMonths: { lte: query.minAge },
+      }),
+      ...(query.maxAge !== undefined && {
+        maxAgeMonths: { gte: query.maxAge },
+      }),
+    };
+  }
+
   private searchWhere(search?: string) {
     return search
       ? { title: { contains: search, mode: 'insensitive' as const } }
@@ -380,6 +513,29 @@ export class LibraryService {
       energyLevel: true,
       location: true,
       connectionMoment: true,
+    };
+  }
+
+  private recipeCardSelect() {
+    return {
+      id: true,
+      title: true,
+      imageUrl: true,
+      recipeMealType: true,
+      shortDescription: true,
+      minAgeMonths: true,
+      maxAgeMonths: true,
+      prepTimeMin: true,
+      cookTimeMin: true,
+      difficulty: true,
+      servings: true,
+      nutritionalFocus: true,
+      ingredients: {
+        select: {
+          name: true,
+          isOptional: true,
+        },
+      },
     };
   }
 
@@ -415,4 +571,92 @@ export class LibraryService {
       connectionMoment: activity.connectionMoment,
     };
   }
+
+  private formatRecipeCard(recipe: {
+    id: string;
+    title: string;
+    imageUrl: string | null;
+    recipeMealType: unknown;
+    shortDescription: string | null;
+    minAgeMonths: number | null;
+    maxAgeMonths: number | null;
+    prepTimeMin: number | null;
+    cookTimeMin: number | null;
+    difficulty: unknown;
+    servings: string | null;
+    nutritionalFocus: string[];
+    ingredients: { name: string; isOptional: boolean }[];
+  }, kitchenItems: KitchenReadinessItem[] = []) {
+    const readiness = this.getIngredientReadiness(recipe.ingredients, kitchenItems);
+
+    return {
+      id: recipe.id,
+      type: 'recipe' as const,
+      title: recipe.title,
+      imageUrl: recipe.imageUrl,
+      category: recipe.recipeMealType,
+      shortDescription: recipe.shortDescription,
+      ageSuitability:
+        recipe.minAgeMonths !== null && recipe.maxAgeMonths !== null
+          ? `${this.formatAge(recipe.minAgeMonths)} - ${this.formatAge(recipe.maxAgeMonths)}`
+          : null,
+      prepTimeMin: recipe.prepTimeMin,
+      cookTimeMin: recipe.cookTimeMin,
+      difficulty: recipe.difficulty,
+      servings: recipe.servings,
+      nutritionalFocus: recipe.nutritionalFocus,
+      status: readiness.status,
+      missingIngredients: readiness.missingIngredients,
+    };
+  }
+
+  private async getKitchenItemsForReadiness(user: CurrentUserPayload) {
+    const parentUserIds = await this.kitchenAccess.resolveReadableParentUserIds(
+      user,
+      'manageGroceryLists',
+    );
+
+    return this.prisma.kitchenItem.findMany({
+      where: parentUserIds ? { userId: { in: parentUserIds } } : {},
+      select: {
+        name: true,
+        status: true,
+      },
+    });
+  }
+
+  private getIngredientReadiness(
+    ingredients: { name: string; isOptional?: boolean }[],
+    kitchenItems: KitchenReadinessItem[],
+  ) {
+    const kitchenByName = new Map(
+      kitchenItems.map((item) => [this.normalizeName(item.name), item]),
+    );
+
+    const missingIngredients = ingredients
+      .filter((ingredient) => !ingredient.isOptional)
+      .filter((ingredient) => {
+        const kitchenItem = kitchenByName.get(this.normalizeName(ingredient.name));
+
+        return (
+          !kitchenItem ||
+          kitchenItem.status === KitchenInventoryItemStatus.MISSING
+        );
+      })
+      .map((ingredient) => ingredient.name);
+
+    return {
+      status: missingIngredients.length ? 'Needs ingredients' : 'Ready',
+      missingIngredients,
+    };
+  }
+
+  private normalizeName(value: string) {
+    return value.trim().toLowerCase();
+  }
 }
+
+type KitchenReadinessItem = {
+  name: string;
+  status: KitchenInventoryItemStatus;
+};

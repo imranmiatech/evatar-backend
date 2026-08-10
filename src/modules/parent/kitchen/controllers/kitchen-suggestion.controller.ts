@@ -17,7 +17,7 @@ import { PaginationQueryDto } from '../dto/pagination-query.dto';
 @ApiTags('(Parent) > Kitchen > Suggestions')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.PARENT)
+@Roles(UserRole.PARENT, UserRole.NANNY)
 @Controller('parent/kitchen/suggestions')
 export class KitchenSuggestionController {
   constructor(
@@ -48,6 +48,6 @@ export class KitchenSuggestionController {
     @CurrentUser() user: CurrentUserPayload,
     @Query() query: PaginationQueryDto,
   ) {
-    return this.kitchenSuggestionService.getSuggestedItems(user.userId, query);
+    return this.kitchenSuggestionService.getSuggestedItems(user, query);
   }
 }

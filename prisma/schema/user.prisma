@@ -55,6 +55,7 @@ model User {
   usedRewardRedemptions         RewardRedemption[]           @relation("PartnerUsedRewardRedemptions")
   rewardRedemptions             RewardRedemption[]
   rewardSavedOffers             RewardSavedOffer[]
+  createdShoppingListItems       ShoppingListItem[]           @relation("ShoppingListItemCreatedBy")
   shoppingListItems             ShoppingListItem[]
   stores                        Store[]
   subscriptionFeedbacks         SubscriptionCancelFeedback[]

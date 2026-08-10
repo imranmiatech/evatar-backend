@@ -5,6 +5,7 @@ import { KitchenSuggestionController } from './controllers/kitchen-suggestion.co
 import { KitchenItemService } from './services/kitchen-item.service';
 import { ShoppingListService } from './services/shopping-list.service';
 import { KitchenSuggestionService } from './services/kitchen-suggestion.service';
+import { KitchenAccessService } from './services/kitchen-access.service';
 
 @Module({
   controllers: [
@@ -12,7 +13,11 @@ import { KitchenSuggestionService } from './services/kitchen-suggestion.service'
     ShoppingListController,
     KitchenSuggestionController,
   ],
-  providers: [KitchenItemService, ShoppingListService, KitchenSuggestionService],
+  providers: [
+    KitchenAccessService,
+    KitchenItemService,
+    ShoppingListService,
+    KitchenSuggestionService,
+  ],
 })
 export class KitchenModule {}
-

@@ -4,15 +4,19 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { KitchenInventoryItemStatus, KitchenItemAdminStatus, UserRole } from '@prisma/client';
+import { KitchenInventoryItemStatus, UserRole } from '@prisma/client';
 import { CreateKitchenItemDto } from '../dto/create-kitchen-item.dto';
 import { UpdateKitchenItemDto } from '../dto/update-kitchen-item.dto';
 import { KitchenItemQueryDto } from '../dto/kitchen-item-query.dto';
 import type { CurrentUserPayload } from '../../../../common/decorators/current-user.decorator';
+import { KitchenAccessService } from './kitchen-access.service';
 
 @Injectable()
 export class KitchenItemService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly kitchenAccess: KitchenAccessService,
+  ) {}
 
   /**
    * Derives status from stock percentage:
@@ -28,33 +32,66 @@ export class KitchenItemService {
 
   /** Strip internal user-reference fields from the DB record */
   private formatItem(item: any) {
-    const { userId, createdByUserId, lastUpdatedByUserId, ...rest } = item;
-    return rest;
+    const {
+      userId,
+      createdByUserId,
+      lastUpdatedByUserId,
+      createdByUser,
+      ...rest
+    } = item;
+
+    return {
+      ...rest,
+      ownerStatus: createdByUser?.role ?? null,
+    };
   }
 
   async create(userPayload: CurrentUserPayload, dto: CreateKitchenItemDto) {
     const isAdmin = userPayload.role === UserRole.ADMIN;
-    const targetUserId = (isAdmin && dto.userId) ? dto.userId : userPayload.userId;
+    const targetUserId = await this.kitchenAccess.resolveWritableParentUserId(
+      userPayload,
+      dto.userId,
+      'manageGroceryLists',
+    );
     const stockPercent = dto.currentStockPercent ?? 100;
     const status = this.deriveStatus(stockPercent);
 
-    const adminStatus = isAdmin
-      ? (dto.adminStatus ?? KitchenItemAdminStatus.ACTIVE)
-      : undefined;
+    const item = await this.prisma.$transaction(async (tx) => {
+      const kitchenItem = await tx.kitchenItem.create({
+        data: {
+          userId: targetUserId,
+          createdByUserId: userPayload.userId,
+          name: dto.name,
+          unit: dto.unit,
+          category: dto.category,
+          currentStockPercent: stockPercent,
+          status,
+          notes: dto.notes,
+          lastStockedAt: stockPercent > 0 ? new Date() : undefined,
+        },
+        include: {
+          createdByUser: {
+            select: { role: true },
+          },
+        },
+      });
 
-    const item = await this.prisma.kitchenItem.create({
-      data: {
-        userId: targetUserId,
-        createdByUserId: userPayload.userId,
-        name: dto.name,
-        unit: dto.unit,
-        category: dto.category,
-        currentStockPercent: stockPercent,
-        status,
-        ...(adminStatus && { adminStatus }),
-        notes: dto.notes,
-        lastStockedAt: stockPercent > 0 ? new Date() : undefined,
-      },
+      if (!isAdmin) {
+        await tx.shoppingListItem.create({
+          data: {
+            userId: targetUserId,
+            createdByUserId: userPayload.userId,
+            name: dto.name,
+            unit: dto.unit ?? 'OTHER',
+            quantity: '1',
+            category: dto.category,
+            note: dto.notes,
+            addedToKitchen: true,
+          },
+        });
+      }
+
+      return kitchenItem;
     });
 
     return {
@@ -68,19 +105,29 @@ export class KitchenItemService {
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const isAdmin = userPayload.role === UserRole.ADMIN;
+    const readableParentIds = await this.kitchenAccess.resolveReadableParentUserIds(
+      userPayload,
+      'manageGroceryLists',
+    );
     const where: any = {
       ...(query.status && { status: query.status }),
-      ...(query.adminStatus && { adminStatus: query.adminStatus }),
+      ...(query.ownerStatus && {
+        createdByUser: { role: query.ownerStatus },
+      }),
     };
 
-    if (!isAdmin) {
-      where.userId = userPayload.userId;
+    if (readableParentIds) {
+      where.userId = { in: readableParentIds };
     }
 
     const [items, total] = await Promise.all([
       this.prisma.kitchenItem.findMany({
         where,
+        include: {
+          createdByUser: {
+            select: { role: true },
+          },
+        },
         orderBy: [{ status: 'asc' }, { name: 'asc' }],
         skip,
         take: limit,
@@ -101,56 +148,71 @@ export class KitchenItemService {
   }
 
   async getAdminStats(userPayload: CurrentUserPayload) {
-    const isAdmin = userPayload.role === UserRole.ADMIN;
+    const readableParentIds = await this.kitchenAccess.resolveReadableParentUserIds(
+      userPayload,
+      'manageGroceryLists',
+    );
     const where: any = {};
 
-    if (!isAdmin) {
-      where.userId = userPayload.userId;
+    if (readableParentIds) {
+      where.userId = { in: readableParentIds };
     }
 
-    const [totalItems, archived, categoriesGroup] = await Promise.all([
+    const [totalItems, categoriesGroup, ownerGroups] = await Promise.all([
       this.prisma.kitchenItem.count({ where }),
-      this.prisma.kitchenItem.count({
-        where: {
-          ...where,
-          adminStatus: KitchenItemAdminStatus.ARCHIVE,
-        },
-      }),
       this.prisma.kitchenItem.groupBy({
         by: ['category'],
         where,
       }),
+      this.prisma.kitchenItem.findMany({
+        where,
+        select: {
+          createdByUser: {
+            select: { role: true },
+          },
+        },
+      }),
     ]);
 
-    const active = totalItems - archived;
+    const ownerCounts = ownerGroups.reduce(
+      (counts, item) => {
+        const role = item.createdByUser.role;
+        counts[role] = (counts[role] ?? 0) + 1;
+        return counts;
+      },
+      {} as Record<string, number>,
+    );
 
     return {
       message: 'Kitchen inventory stats fetched successfully',
       data: {
         totalItems,
-        active,
-        archived,
         categories: categoriesGroup.length,
+        ownerCounts,
       },
     };
   }
 
   async getSummary(userPayload: CurrentUserPayload) {
-    const userId = userPayload.userId;
+    const readableParentIds = await this.kitchenAccess.resolveReadableParentUserIds(
+      userPayload,
+      'manageGroceryLists',
+    );
+    const userWhere = readableParentIds ? { userId: { in: readableParentIds } } : {};
     const [total, missingCount, lowCount, stockCount, itemsToBuy] =
       await Promise.all([
-        this.prisma.kitchenItem.count({ where: { userId } }),
+        this.prisma.kitchenItem.count({ where: userWhere }),
         this.prisma.kitchenItem.count({
-          where: { userId, status: KitchenInventoryItemStatus.MISSING },
+          where: { ...userWhere, status: KitchenInventoryItemStatus.MISSING },
         }),
         this.prisma.kitchenItem.count({
-          where: { userId, status: KitchenInventoryItemStatus.LOW },
+          where: { ...userWhere, status: KitchenInventoryItemStatus.LOW },
         }),
         this.prisma.kitchenItem.count({
-          where: { userId, status: KitchenInventoryItemStatus.IN_STOCK },
+          where: { ...userWhere, status: KitchenInventoryItemStatus.IN_STOCK },
         }),
         // itemsToBuy = actual count of shopping list items
-        this.prisma.shoppingListItem.count({ where: { userId } }),
+        this.prisma.shoppingListItem.count({ where: userWhere }),
       ]);
 
     return {
@@ -166,10 +228,17 @@ export class KitchenItemService {
   }
 
   async findOne(userPayload: CurrentUserPayload, id: string) {
-    const item = await this.prisma.kitchenItem.findUnique({ where: { id } });
+    const item = await this.prisma.kitchenItem.findUnique({
+      where: { id },
+      include: {
+        createdByUser: {
+          select: { role: true },
+        },
+      },
+    });
 
     if (!item) throw new NotFoundException('Kitchen item not found');
-    if (item.userId !== userPayload.userId && userPayload.role !== UserRole.ADMIN)
+    if (!(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId)))
       throw new ForbiddenException('You do not have access to this item');
 
     return {
@@ -182,7 +251,7 @@ export class KitchenItemService {
     const item = await this.prisma.kitchenItem.findUnique({ where: { id } });
 
     if (!item) throw new NotFoundException('Kitchen item not found');
-    if (item.userId !== userPayload.userId && userPayload.role !== UserRole.ADMIN)
+    if (!(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId)))
       throw new ForbiddenException('You do not have access to this item');
 
     const stockPercent =
@@ -191,8 +260,6 @@ export class KitchenItemService {
         : item.currentStockPercent;
 
     const status = this.deriveStatus(stockPercent);
-    const isAdmin = userPayload.role === UserRole.ADMIN;
-
     const updated = await this.prisma.kitchenItem.update({
       where: { id },
       data: {
@@ -200,7 +267,6 @@ export class KitchenItemService {
         ...(dto.unit !== undefined && { unit: dto.unit }),
         ...(dto.category !== undefined && { category: dto.category }),
         ...(dto.notes !== undefined && { notes: dto.notes }),
-        ...(isAdmin && dto.adminStatus !== undefined && { adminStatus: dto.adminStatus }),
         ...(dto.currentStockPercent !== undefined && {
           currentStockPercent: dto.currentStockPercent,
           // Update lastStockedAt only when stock is being increased
@@ -210,6 +276,11 @@ export class KitchenItemService {
         }),
         status,
         lastUpdatedByUserId: userPayload.userId,
+      },
+      include: {
+        createdByUser: {
+          select: { role: true },
+        },
       },
     });
 
@@ -223,47 +294,11 @@ export class KitchenItemService {
     const item = await this.prisma.kitchenItem.findUnique({ where: { id } });
 
     if (!item) throw new NotFoundException('Kitchen item not found');
-    if (item.userId !== userPayload.userId && userPayload.role !== UserRole.ADMIN)
+    if (!(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId)))
       throw new ForbiddenException('You do not have access to this item');
 
     await this.prisma.kitchenItem.delete({ where: { id } });
 
     return { message: 'Kitchen item deleted successfully' };
   }
-
-  async toggleAdminStatus(
-    userPayload: CurrentUserPayload,
-    id: string,
-    targetStatus?: KitchenItemAdminStatus,
-  ) {
-    const item = await this.prisma.kitchenItem.findUnique({ where: { id } });
-
-    if (!item) throw new NotFoundException('Kitchen item not found');
-    if (item.userId !== userPayload.userId && userPayload.role !== UserRole.ADMIN)
-      throw new ForbiddenException('You do not have access to this item');
-
-    let nextStatus: KitchenItemAdminStatus;
-    if (targetStatus) {
-      nextStatus = targetStatus;
-    } else {
-      nextStatus =
-        item.adminStatus === KitchenItemAdminStatus.ARCHIVE
-          ? KitchenItemAdminStatus.ACTIVE
-          : KitchenItemAdminStatus.ARCHIVE;
-    }
-
-    const updated = await this.prisma.kitchenItem.update({
-      where: { id },
-      data: {
-        adminStatus: nextStatus,
-        lastUpdatedByUserId: userPayload.userId,
-      },
-    });
-
-    return {
-      message: `Kitchen item admin status updated to ${nextStatus}`,
-      data: this.formatItem(updated),
-    };
-  }
 }
-

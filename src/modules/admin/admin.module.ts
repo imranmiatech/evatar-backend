@@ -4,11 +4,12 @@ import { DashboardController } from './dashboard/dashboard.controller';
 import { DashboardService } from './dashboard/dashboard.service';
 import { AdminRecipeModule } from './recipe/admin-recipe.module';
 import { AdminActivityModule } from './activity/admin-activity.module';
+import { AdminPartnerModule } from './adminPartner/admin-partner.module';
 import { AdminUsersController } from './users/admin-users.controller';
 import { AdminUsersService } from './users/admin-users.service';
 
 @Module({
-  imports: [PrismaModule, AdminRecipeModule, AdminActivityModule],
+  imports: [PrismaModule, AdminRecipeModule, AdminActivityModule, AdminPartnerModule],
   controllers: [DashboardController, AdminUsersController],
   providers: [DashboardService, AdminUsersService],
 })

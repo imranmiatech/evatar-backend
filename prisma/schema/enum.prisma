@@ -156,11 +156,6 @@ enum KitchenInventoryItemStatus {
   IN_STOCK
 }
 
-enum KitchenItemAdminStatus {
-  ACTIVE
-  ARCHIVE
-}
-
 enum KitchenItemCategory {
   PRODUCE
   DAIRY

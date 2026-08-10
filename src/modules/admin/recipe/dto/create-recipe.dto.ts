@@ -25,11 +25,6 @@ class RecipeIngredientDto {
   @IsEnum(ItemUnit)
   unit?: ItemUnit;
 
-  @ApiPropertyOptional({ example: 'Strawberries' })
-  @IsOptional()
-  @IsString()
-  substitute?: string;
-
   @ApiPropertyOptional({ example: false })
   @IsOptional()
   @IsBoolean()
@@ -68,15 +63,14 @@ export class CreateRecipeDto {
   @IsEnum(RecipeMealType)
   recipeMealType: RecipeMealType;
 
-  @ApiPropertyOptional({ example: 6 })
+  @ApiPropertyOptional({
+    description:
+      'UI age group label. Examples: "6 months", "6-9 months", "9-12 months", "12-24 months", "2+ years", "2-4 years". If minAgeMonths/maxAgeMonths are also sent, they take priority.',
+    example: '6-9 months',
+  })
   @IsOptional()
-  @IsNumber()
-  minAgeMonths?: number;
-
-  @ApiPropertyOptional({ example: 24 })
-  @IsOptional()
-  @IsNumber()
-  maxAgeMonths?: number;
+  @IsString()
+  ageGroup?: string;
 
   @ApiPropertyOptional({ example: 5 })
   @IsOptional()
@@ -176,9 +170,9 @@ export class CreateRecipeDto {
     return value;
   })
   @ApiProperty({ type: 'string', description: 'JSON stringified array of ingredients', example: `[
-  { "name": "Organic Banana", "amount": "1", "unit": "UNIT", "substitute": "Apple puree", "isOptional": false },
-  { "name": "Egg", "amount": "1", "unit": "UNIT", "substitute": "Flax egg", "isOptional": false },
-  { "name": "Oats", "amount": "3", "unit": "TBSP", "substitute": "Oat flour", "isOptional": false }
+  { "name": "Organic Banana", "amount": "1", "unit": "UNIT", "isOptional": false },
+  { "name": "Egg", "amount": "1", "unit": "UNIT", "isOptional": false },
+  { "name": "Oats", "amount": "3", "unit": "TBSP", "isOptional": false }
 ]` })
   @IsArray()
   @ValidateNested({ each: true })

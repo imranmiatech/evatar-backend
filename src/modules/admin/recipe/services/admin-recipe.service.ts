@@ -4,6 +4,7 @@ import { CreateRecipeDto } from '../dto/create-recipe.dto';
 import { UpdateRecipeDto } from '../dto/update-recipe.dto';
 import { AdminRecipeQueryDto } from '../dto/recipe-query.dto';
 import { StorageService } from '../../../../common/storage/storage.service';
+import { resolveAgeGroupRange } from '../../../../common/helpers/age-group.helper';
 
 @Injectable()
 export class AdminRecipeService {
@@ -16,7 +17,8 @@ export class AdminRecipeService {
     dto: CreateRecipeDto,
     files?: { coverImage?: Express.Multer.File[]; video?: Express.Multer.File[] },
   ) {
-    const { ingredients, steps, coverImage, video, ...recipeData } = dto;
+    const { ingredients, steps, coverImage, video, ageGroup, ...recipeData } = dto;
+    const ageRange = resolveAgeGroupRange(ageGroup);
     
     let imageUrl: string | undefined = undefined;
     let videoUrl: string | undefined = undefined;
@@ -31,6 +33,8 @@ export class AdminRecipeService {
     return this.prisma.recipe.create({
       data: {
         ...recipeData,
+        minAgeMonths: ageRange?.minAgeMonths,
+        maxAgeMonths: ageRange?.maxAgeMonths,
         isActive: recipeData.status === 'PUBLISHED',
         imageUrl,
         videoUrl,
@@ -53,7 +57,8 @@ export class AdminRecipeService {
     const recipe = await this.prisma.recipe.findUnique({ where: { id } });
     if (!recipe) throw new NotFoundException('Recipe not found');
 
-    const { ingredients, steps, coverImage, video, ...recipeData } = dto;
+    const { ingredients, steps, coverImage, video, ageGroup, ...recipeData } = dto;
+    const ageRange = resolveAgeGroupRange(ageGroup);
 
     let imageUrl: string | undefined = undefined;
     let videoUrl: string | undefined = undefined;
@@ -69,6 +74,10 @@ export class AdminRecipeService {
       where: { id },
       data: {
         ...recipeData,
+        ...(ageRange && {
+          minAgeMonths: ageRange.minAgeMonths,
+          maxAgeMonths: ageRange.maxAgeMonths,
+        }),
         ...(recipeData.status && { isActive: recipeData.status === 'PUBLISHED' }),
         ...(imageUrl && { imageUrl }),
         ...(videoUrl && { videoUrl }),

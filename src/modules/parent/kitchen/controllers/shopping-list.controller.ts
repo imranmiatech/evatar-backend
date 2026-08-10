@@ -30,7 +30,7 @@ import { PaginationQueryDto } from '../dto/pagination-query.dto';
 @ApiTags('(Parent) > Kitchen > Shopping List Manage')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.PARENT)
+@Roles(UserRole.PARENT, UserRole.ADMIN, UserRole.NANNY)
 @Controller('parent/kitchen/shopping')
 export class ShoppingListController {
   constructor(private readonly shoppingListService: ShoppingListService) { }
@@ -45,7 +45,7 @@ export class ShoppingListController {
     @CurrentUser() user: CurrentUserPayload,
     @Body() dto: CreateShoppingItemDto,
   ) {
-    return this.shoppingListService.create(user.userId, dto);
+    return this.shoppingListService.create(user, dto);
   }
 
   @Get()
@@ -58,7 +58,7 @@ export class ShoppingListController {
     @CurrentUser() user: CurrentUserPayload,
     @Query() query: PaginationQueryDto,
   ) {
-    return this.shoppingListService.findAll(user.userId, query);
+    return this.shoppingListService.findAll(user, query);
   }
 
   @Get(':id')
@@ -70,7 +70,7 @@ export class ShoppingListController {
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,
   ) {
-    return this.shoppingListService.findOne(user.userId, id);
+    return this.shoppingListService.findOne(user, id);
   }
 
   @Patch(':id')
@@ -83,7 +83,7 @@ export class ShoppingListController {
     @Param('id') id: string,
     @Body() dto: UpdateShoppingItemDto,
   ) {
-    return this.shoppingListService.update(user.userId, id, dto);
+    return this.shoppingListService.update(user, id, dto);
   }
 
   @Delete(':id')
@@ -95,6 +95,6 @@ export class ShoppingListController {
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,
   ) {
-    return this.shoppingListService.remove(user.userId, id);
+    return this.shoppingListService.remove(user, id);
   }
 }
