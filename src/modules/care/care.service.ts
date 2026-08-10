@@ -1244,7 +1244,11 @@ export class CareService {
       throw new NotFoundException('Published care module not found');
     }
 
-    if (!nanny || nanny.role !== UserRole.NANNY) {
+    if (!nanny) {
+      throw new NotFoundException('Nanny user not found');
+    }
+
+    if (nanny.role !== UserRole.NANNY) {
       throw new BadRequestException('Assigned user must be a nanny');
     }
 
