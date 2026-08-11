@@ -21,14 +21,14 @@ export class AdminRewardController {
 
   @Get('overview')
   @ApiOperation({
-    summary: 'Get admin reward overview cards and recent activity',
+    summary: 'Get admin reward overview cards',
     description:
       'Returns monthly comparison metrics for Rewards dashboard cards. changeLabel is signed monthly growth, for example +7.1%, -2.3%, or +1 uses.',
   })
   @ApiResponse({
     status: 200,
     description:
-      'Reward metrics and recent reward activity returned successfully.',
+      'Reward metrics returned successfully.',
   })
   getOverview() {
     return this.adminRewardService.getOverview();

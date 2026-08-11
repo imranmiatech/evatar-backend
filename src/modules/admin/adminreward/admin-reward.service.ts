@@ -55,7 +55,6 @@ export class AdminRewardService {
       topOffer,
       currentTopOfferUses,
       previousTopOfferUses,
-      recentActivity,
       issuedSparkline,
       redeemedSparkline,
       usersSparkline,
@@ -77,7 +76,6 @@ export class AdminRewardService {
       this.mostRedeemedOffer(),
       this.redemptionUses(currentMonth),
       this.redemptionUses(previousMonth),
-      this.getRecentActivity(8),
       this.monthlyDailySeries('issued', currentMonthStart, nextMonthStart),
       this.monthlyDailySeries('redeemed', currentMonthStart, nextMonthStart),
       this.monthlyDailySeries('users', currentMonthStart, nextMonthStart),
@@ -139,7 +137,6 @@ export class AdminRewardService {
           previousMonthStart,
         },
         metrics,
-        recentActivity,
       },
     };
   }
