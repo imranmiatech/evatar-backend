@@ -80,6 +80,18 @@ async function bootstrap() {
     res.sendFile(targetPath);
   });
 
+  expressApp.get(['/admin-partner-approval', '/admin-partners-ui'], (req: any, res: any) => {
+    const fs = require('fs');
+    const path = require('path');
+    const possiblePaths = [
+      path.resolve(process.cwd(), 'public/admin-partner-approval.html'),
+      path.resolve(__dirname, '../public/admin-partner-approval.html'),
+      path.resolve(__dirname, '../../public/admin-partner-approval.html'),
+    ];
+    const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+    res.sendFile(targetPath);
+  });
+
   expressApp.get('/notifications-ui', (req: any, res: any) => {
     const fs = require('fs');
     const path = require('path');
@@ -112,6 +124,18 @@ async function bootstrap() {
       path.resolve(process.cwd(), 'public/login-token.html'),
       path.resolve(__dirname, '../public/login.html'),
       path.resolve(__dirname, '../public/login-token.html'),
+    ];
+    const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+    res.sendFile(targetPath);
+  });
+
+  expressApp.get(['/partner-auth', '/partner-auth-ui'], (req: any, res: any) => {
+    const fs = require('fs');
+    const path = require('path');
+    const possiblePaths = [
+      path.resolve(process.cwd(), 'public/partner-auth.html'),
+      path.resolve(__dirname, '../public/partner-auth.html'),
+      path.resolve(__dirname, '../../public/partner-auth.html'),
     ];
     const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
     res.sendFile(targetPath);

@@ -198,6 +198,12 @@ export class AuthService {
       throw new BadRequestException('User not found');
     }
 
+    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+
+    if (!isPasswordValid) {
+      throw new BadRequestException('Invalid password');
+    }
+
     if (
       user.status === UserStatus.DELETED ||
       user.status === UserStatus.INACTIVE ||
@@ -211,13 +217,17 @@ export class AuthService {
         );
       }
 
+      if (
+        user.role === UserRole.PARTNER &&
+        user.verificationStatus === VerificationStatus.REJECTED
+      ) {
+        throw new BadRequestException(
+          user.rejectionReason ||
+            'Your partner request was not approved. Please contact support.',
+        );
+      }
+
       throw new BadRequestException('Account is not active. Please contact support.');
-    }
-
-    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
-
-    if (!isPasswordValid) {
-      throw new BadRequestException('Invalid password');
     }
 
     // Remove passwordHash before returning to client
@@ -261,6 +271,7 @@ export class AuthService {
         updatedAt: true,
         parentProfile: true,
         nannyProfile: true,
+        partnerProfile: true,
       },
     });
 

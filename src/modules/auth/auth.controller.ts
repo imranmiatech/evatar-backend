@@ -23,7 +23,11 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('signup')
-  @ApiOperation({ summary: 'Register a new user (Nanny or Parent)' })
+  @ApiOperation({
+    summary: 'Register a Parent, Nanny, or Partner',
+    description:
+      'Parent and Nanny accounts receive signup OTP verification. Partner accounts are submitted as PENDING and can log in only after admin approval.',
+  })
   @ApiBody({
     type: SignupDto,
     examples: {
@@ -58,19 +62,72 @@ export class AuthController {
           otpDeliveryMethod: 'EMAIL',
         },
       },
+      partner: {
+        summary: 'Partner signup request',
+        description:
+          'Creates a pending partner request, partner profile, and first store. No signup OTP is required; admin approval is required before login.',
+        value: {
+          role: 'PARTNER',
+          businessName: 'Carrefour',
+          businessCategory: 'Grocery & Supermarket',
+          shortDescription: 'Family grocery partner with in-store rewards.',
+          website: 'https://partner.example.com',
+          email: 'hello@business.com',
+          phoneNumber: '+447700900000',
+          password: 'Password123!',
+          businessCountry: 'United Arab Emirates',
+          businessCity: 'Dubai',
+          businessAddress: '123 High Street, Dubai',
+          openingHours: 'Mon-Fri 9:00-18:00',
+          contactPerson: 'Jane Smith',
+          contactRole: 'Manager',
+          contactEmail: 'jane@business.com',
+          contactPhone: '+447700900001',
+        },
+      },
     },
   })
-  @ApiResponse({ status: 201, description: 'User successfully created and OTP generated.' })
+  @ApiResponse({
+    status: 201,
+    description:
+      'Parent/Nanny: account created and OTP generated. Partner: request submitted and waiting for admin approval.',
+  })
   @ApiResponse({ status: 400, description: 'Validation failed or user already exists.' })
   async signup(@Body() signupDto: SignupDto) {
     return this.authService.signup(signupDto);
   }
 
-  @Post('signin')
-  @Post('login')
-  @ApiOperation({ summary: 'User login' })
+  @Post(['signin', 'login'])
+  @ApiOperation({
+    summary: 'User login',
+    description:
+      'Partner users can log in only after admin approval. Pending or rejected partner accounts receive a blocking message.',
+  })
+  @ApiBody({
+    type: SigninDto,
+    examples: {
+      parentOrNanny: {
+        summary: 'Parent/Nanny login',
+        value: {
+          email: 'parent@example.com',
+          password: 'Password123!',
+        },
+      },
+      partner: {
+        summary: 'Approved Partner login',
+        value: {
+          email: 'hello@business.com',
+          password: 'Password123!',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 200, description: 'User successfully logged in.' })
-  @ApiResponse({ status: 400, description: 'Invalid credentials.' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid credentials, inactive account, pending partner approval, or rejected partner request.',
+  })
   async signin(
     @Body() signinDto: SigninDto,
     @Res({ passthrough: true }) res: Response,
@@ -122,7 +179,24 @@ export class AuthController {
   }
 
   @Post('forgot-password')
-  @ApiOperation({ summary: 'Request password reset OTP' })
+  @ApiOperation({
+    summary: 'Request password reset OTP',
+    description:
+      'Works for Parent, Nanny, and Partner accounts. Partner approval status does not change during password reset.',
+  })
+  @ApiBody({
+    type: ForgotPasswordDto,
+    examples: {
+      email: {
+        summary: 'Send reset OTP by email',
+        value: { email: 'hello@business.com' },
+      },
+      phone: {
+        summary: 'Send reset OTP by phone',
+        value: { phoneNumber: '+447700900000' },
+      },
+    },
+  })
   @ApiResponse({ status: 200, description: 'OTP sent to email or phone successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -138,7 +212,24 @@ export class AuthController {
   }
 
   @Post('reset-password')
-  @ApiOperation({ summary: 'Reset user password using OTP' })
+  @ApiOperation({
+    summary: 'Reset user password using OTP',
+    description:
+      'Works for Parent, Nanny, and Partner accounts. Pending/rejected partners still cannot log in until approved.',
+  })
+  @ApiBody({
+    type: ResetPasswordDto,
+    examples: {
+      partner: {
+        summary: 'Partner reset password',
+        value: {
+          email: 'hello@business.com',
+          otpCode: '1234',
+          newPassword: 'NewPassword123!',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 200, description: 'Password successfully reset.' })
   @ApiResponse({ status: 400, description: 'Invalid OTP or expired.' })
   async resetPassword(@Body() dto: ResetPasswordDto) {

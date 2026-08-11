@@ -118,13 +118,20 @@ export class SignupDto {
 
   // --- PARTNER SPECIFIC FIELDS ---
 
-  @ApiPropertyOptional({ example: 'Little Stars Nursery', description: 'Partner business name' })
+  @ApiPropertyOptional({
+    example: 'Carrefour',
+    description: 'Required when role is PARTNER. Official partner business name.',
+  })
   @ValidateIf((o) => o.role === UserRole.PARTNER)
   @IsString()
   @IsNotEmpty()
   businessName?: string;
 
-  @ApiPropertyOptional({ example: 'Children’s Cafés', description: 'Partner business category' })
+  @ApiPropertyOptional({
+    example: 'Grocery & Supermarket',
+    description:
+      'Required when role is PARTNER. Examples: Supermarket, Entertainment, Toy Stores, Indoor Playgrounds, Learning Centres, Book Stores, Children’s Cafés, Other.',
+  })
   @ValidateIf((o) => o.role === UserRole.PARTNER)
   @IsString()
   @IsNotEmpty()
@@ -145,19 +152,28 @@ export class SignupDto {
   @IsOptional()
   website?: string;
 
-  @ApiPropertyOptional({ example: 'United Arab Emirates', description: 'Partner business country' })
+  @ApiPropertyOptional({
+    example: 'United Arab Emirates',
+    description: 'Required when role is PARTNER. Partner business country.',
+  })
   @ValidateIf((o) => o.role === UserRole.PARTNER)
   @IsString()
   @IsNotEmpty()
   businessCountry?: string;
 
-  @ApiPropertyOptional({ example: 'Dubai', description: 'Partner business city' })
+  @ApiPropertyOptional({
+    example: 'Dubai',
+    description: 'Required when role is PARTNER. Partner business city.',
+  })
   @ValidateIf((o) => o.role === UserRole.PARTNER)
   @IsString()
   @IsNotEmpty()
   businessCity?: string;
 
-  @ApiPropertyOptional({ example: '123 High Street, Dubai', description: 'Partner business address' })
+  @ApiPropertyOptional({
+    example: '123 High Street, Dubai',
+    description: 'Required when role is PARTNER. Partner business address.',
+  })
   @ValidateIf((o) => o.role === UserRole.PARTNER)
   @IsString()
   @IsNotEmpty()
@@ -169,7 +185,10 @@ export class SignupDto {
   @IsOptional()
   openingHours?: string;
 
-  @ApiPropertyOptional({ example: 'Jane Smith', description: 'Primary contact person' })
+  @ApiPropertyOptional({
+    example: 'Jane Smith',
+    description: 'Required when role is PARTNER. Primary contact person.',
+  })
   @ValidateIf((o) => o.role === UserRole.PARTNER)
   @IsString()
   @IsNotEmpty()

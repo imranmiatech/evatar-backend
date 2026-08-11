@@ -92,6 +92,36 @@ enum MembershipPlan {
   TRIAL
 }
 
+enum PartnerProductCategory {
+  PRODUCE
+  DAIRY
+  BAKERY
+  PANTRY
+  BABY
+  FRUIT
+  MEAT
+  OTHER
+}
+
+enum PartnerProductUnit {
+  LITER
+  GRAM
+  PCS
+  PACK
+  OTHER
+}
+
+enum PartnerProductAvailability {
+  IN_STOCK
+  OUT_OF_STOCK
+  LIMITED
+}
+
+enum PartnerProductStatus {
+  DRAFT
+  PUBLISHED
+}
+
 enum ChildGender {
   BOY
   GIRL

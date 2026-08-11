@@ -331,7 +331,9 @@ export class CareController {
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
   @ApiOperation({
     summary:
-      'Get suggested modules for a child by age and module suggested year range',
+      'Get suggested modules for a child',
+    description:
+      'If the child has birthDate, modules are filtered by suggested year range. If birthDate is missing, modules are returned without age filtering and meta.warning explains the fallback.',
   })
   @ApiParam({ name: 'childId' })
   getSuggestedModules(
@@ -466,8 +468,12 @@ export class CareController {
   @Post('modules/:moduleId/save')
   @ApiTags('CareHub')
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
-  @ApiOperation({ summary: 'Save a module to the Saved tab' })
-  @ApiParam({ name: 'moduleId' })
+  @ApiOperation({
+    summary: 'Save a module to the selected child Saved tab',
+    description:
+      'Requires childId in the body. Saves are scoped by moduleId + userId + childId, so saving for one child does not affect another child.',
+  })
+  @ApiParam({ name: 'moduleId', description: 'Care module ID to save' })
   @ApiBody({ type: SaveCareModuleDto })
   saveModule(
     @CurrentUser() user: CurrentUserPayload,
@@ -480,8 +486,12 @@ export class CareController {
   @Delete('modules/:moduleId/save')
   @ApiTags('CareHub')
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
-  @ApiOperation({ summary: 'Remove a module from the Saved tab' })
-  @ApiParam({ name: 'moduleId' })
+  @ApiOperation({
+    summary: 'Remove a module from the selected child Saved tab',
+    description:
+      'Requires childId in the body. Only removes the saved module for that selected child; other children keep their saved state.',
+  })
+  @ApiParam({ name: 'moduleId', description: 'Care module ID to remove from saved' })
   @ApiBody({ type: SaveCareModuleDto })
   removeSavedModule(
     @CurrentUser() user: CurrentUserPayload,

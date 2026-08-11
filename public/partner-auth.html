@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alurei Partner Auth Flow Tester</title>
+  <style>
+    :root {
+      --bg: #f5f7f8;
+      --panel: #ffffff;
+      --panel-soft: #eef4f5;
+      --line: #d7e2e4;
+      --text: #1d2935;
+      --muted: #66798a;
+      --brand: #075d68;
+      --brand-dark: #044852;
+      --danger: #b42318;
+      --danger-bg: #fff0ee;
+      --success: #087443;
+      --success-bg: #ecfdf3;
+      --warning: #946200;
+      --warning-bg: #fffaeb;
+      --shadow: 0 18px 45px rgba(16, 24, 40, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(14px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .topbar {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .base-url {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 320px;
+    }
+
+    label {
+      display: block;
+      color: var(--text);
+      font-weight: 650;
+      font-size: 12px;
+      margin: 0 0 7px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #f9fbfc;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 11px 12px;
+      font: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 88px;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #86c8cf;
+      box-shadow: 0 0 0 3px rgba(7, 93, 104, 0.12);
+    }
+
+    button {
+      border: 0;
+      background: var(--brand);
+      color: #fff;
+      border-radius: 8px;
+      padding: 11px 16px;
+      font-weight: 750;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    button:hover { background: var(--brand-dark); }
+    button.secondary { background: #edf2f4; color: var(--text); }
+    button.secondary:hover { background: #dde8eb; }
+    button.danger { background: var(--danger); }
+    button.danger:hover { background: #8f1d14; }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 26px 22px 44px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.8fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-head {
+      padding: 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .panel-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .panel-body { padding: 18px; }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      padding: 8px;
+      background: var(--panel-soft);
+      border-radius: 8px;
+      margin-bottom: 18px;
+      overflow-x: auto;
+    }
+
+    .tab {
+      background: transparent;
+      color: var(--muted);
+      white-space: nowrap;
+      padding: 9px 12px;
+    }
+
+    .tab.active {
+      background: var(--brand);
+      color: #fff;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .span-2 { grid-column: 1 / -1; }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .flow {
+      display: grid;
+      gap: 10px;
+    }
+
+    .step {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfcfd;
+    }
+
+    .step strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .step span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: var(--warning-bg);
+      color: var(--warning);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .pill.success {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      overflow: auto;
+      background: #101828;
+      color: #e6edf3;
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 260px;
+      max-height: 560px;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .notice {
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 14px;
+      background: var(--warning-bg);
+      color: #5f4300;
+      font-size: 13px;
+    }
+
+    .notice.success {
+      background: var(--success-bg);
+      color: #064e3b;
+    }
+
+    .notice.error {
+      background: var(--danger-bg);
+      color: var(--danger);
+    }
+
+    .hidden { display: none; }
+
+    @media (max-width: 900px) {
+      .topbar,
+      .grid,
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .base-url { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div class="brand">
+        <h1>Alurei Partner Auth Flow Tester</h1>
+        <p>Signup, pending approval, login, forgot password, reset password, and admin review.</p>
+      </div>
+      <div class="base-url">
+        <label for="baseUrl">API base</label>
+        <input id="baseUrl" value="http://localhost:5000/api/v1" />
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="grid">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Partner Flow</h2>
+            <p>Use the tabs in order, or test each endpoint directly.</p>
+          </div>
+          <span id="statusPill" class="pill">No partner submitted</span>
+        </div>
+        <div class="panel-body">
+          <div class="tabs">
+            <button class="tab active" data-tab="signup">Signup</button>
+            <button class="tab" data-tab="signin">Signin</button>
+            <button class="tab" data-tab="forgot">Forgot Password</button>
+            <button class="tab" data-tab="reset">Reset Password</button>
+            <button class="tab" data-tab="admin">Admin Review</button>
+          </div>
+
+          <form id="signup" class="tab-panel">
+            <div class="notice">
+              Partner signup creates a PENDING account. Login is blocked until admin approval.
+            </div>
+            <div class="form-grid">
+              <div>
+                <label>Business Name</label>
+                <input name="businessName" value="Carrefour Test Partner" required />
+              </div>
+              <div>
+                <label>Business Category</label>
+                <select name="businessCategory" required>
+                  <option>Grocery & Supermarket</option>
+                  <option>Entertainment</option>
+                  <option>Toy Stores</option>
+                  <option>General Store</option>
+                  <option>Indoor Playgrounds</option>
+                  <option>Learning Centres</option>
+                  <option>Book Stores</option>
+                  <option>Children's Cafes</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div class="span-2">
+                <label>Short Description</label>
+                <textarea name="shortDescription">Family grocery partner with in-store rewards.</textarea>
+              </div>
+              <div>
+                <label>Website</label>
+                <input name="website" value="https://partner.example.com" />
+              </div>
+              <div>
+                <label>Email</label>
+                <input name="email" type="email" value="hello.partner@example.com" required />
+              </div>
+              <div>
+                <label>Phone Number</label>
+                <input name="phoneNumber" value="+447700900000" />
+              </div>
+              <div>
+                <label>Password</label>
+                <input name="password" type="password" value="Password123!" required />
+              </div>
+              <div>
+                <label>Country</label>
+                <input name="businessCountry" value="United Arab Emirates" required />
+              </div>
+              <div>
+                <label>City</label>
+                <input name="businessCity" value="Dubai" required />
+              </div>
+              <div class="span-2">
+                <label>Address</label>
+                <input name="businessAddress" value="123 High Street, Dubai" required />
+              </div>
+              <div>
+                <label>Opening Hours</label>
+                <input name="openingHours" value="Mon-Fri 9:00-18:00" />
+              </div>
+              <div>
+                <label>Contact Person</label>
+                <input name="contactPerson" value="Jane Smith" required />
+              </div>
+              <div>
+                <label>Contact Role</label>
+                <input name="contactRole" value="Manager" />
+              </div>
+              <div>
+                <label>Contact Email</label>
+                <input name="contactEmail" type="email" value="jane.partner@example.com" />
+              </div>
+              <div>
+                <label>Contact Phone</label>
+                <input name="contactPhone" value="+447700900001" />
+              </div>
+            </div>
+            <div class="actions">
+              <button type="button" class="secondary" id="randomEmail">Use Random Email</button>
+              <button type="submit">Submit Partner Request</button>
+            </div>
+          </form>
+
+          <form id="signin" class="tab-panel hidden">
+            <div class="notice">
+              Before admin approval this should fail with a pending approval message. After approval it should return tokens.
+            </div>
+            <div class="form-grid">
+              <div>
+                <label>Email</label>
+                <input name="email" type="email" value="hello.partner@example.com" required />
+              </div>
+              <div>
+                <label>Password</label>
+                <input name="password" type="password" value="Password123!" required />
+              </div>
+            </div>
+            <div class="actions">
+              <button type="submit">Signin</button>
+              <button type="button" class="secondary" id="meButton">Call /auth/me</button>
+            </div>
+          </form>
+
+          <form id="forgot" class="tab-panel hidden">
+            <div class="notice">
+              This sends a password reset OTP by email. Check backend logs/email inbox for the code.
+            </div>
+            <div class="form-grid">
+              <div class="span-2">
+                <label>Email</label>
+                <input name="email" type="email" value="hello.partner@example.com" required />
+              </div>
+            </div>
+            <div class="actions">
+              <button type="submit">Send OTP</button>
+            </div>
+          </form>
+
+          <form id="reset" class="tab-panel hidden">
+            <div class="notice">
+              Resetting password does not approve a pending partner account.
+            </div>
+            <div class="form-grid">
+              <div>
+                <label>Email</label>
+                <input name="email" type="email" value="hello.partner@example.com" required />
+              </div>
+              <div>
+                <label>OTP Code</label>
+                <input name="otpCode" value="" placeholder="1234" required />
+              </div>
+              <div>
+                <label>New Password</label>
+                <input name="newPassword" type="password" value="NewPassword123!" required />
+              </div>
+              <div>
+                <label>Confirm Password</label>
+                <input name="confirmPassword" type="password" value="NewPassword123!" required />
+              </div>
+            </div>
+            <div class="actions">
+              <button type="submit">Reset Password</button>
+            </div>
+          </form>
+
+          <form id="admin" class="tab-panel hidden">
+            <div class="notice">
+              Paste an ADMIN access token. Then list pending partners, approve the submitted partner, or reject it.
+            </div>
+            <div class="form-grid">
+              <div class="span-2">
+                <label>Admin Bearer Token</label>
+                <input name="adminToken" placeholder="eyJ..." />
+              </div>
+              <div>
+                <label>Partner User ID</label>
+                <input name="partnerId" placeholder="Filled after signup or list pending" />
+              </div>
+              <div>
+                <label>Status Filter</label>
+                <select name="status">
+                  <option>PENDING</option>
+                  <option>APPROVED</option>
+                  <option>REJECTED</option>
+                  <option>ALL</option>
+                </select>
+              </div>
+              <div class="span-2">
+                <label>Reject Reason</label>
+                <input name="reason" value="Business documents could not be verified." />
+              </div>
+            </div>
+            <div class="actions">
+              <button type="button" class="secondary" id="listPartners">List Partners</button>
+              <button type="button" id="approvePartner">Approve Partner</button>
+              <button type="button" class="danger" id="rejectPartner">Reject Partner</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Run Order</h2>
+            <p>Useful checks for the screenshots.</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="flow">
+            <div class="step">
+              <strong>1. Signup</strong>
+              <span>Creates partner user as PENDING and sends wait-for-approval email.</span>
+            </div>
+            <div class="step">
+              <strong>2. Try Signin</strong>
+              <span>Should fail until admin approves the request.</span>
+            </div>
+            <div class="step">
+              <strong>3. Forgot Password</strong>
+              <span>Sends reset OTP to partner email.</span>
+            </div>
+            <div class="step">
+              <strong>4. Reset Password</strong>
+              <span>Updates password; approval status remains unchanged.</span>
+            </div>
+            <div class="step">
+              <strong>5. Admin Review</strong>
+              <span>Approve partner, then signin should succeed.</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <section class="panel" style="margin-top: 18px;">
+      <div class="panel-head">
+        <div>
+          <h2>Response</h2>
+          <p>Raw API output and saved local state.</p>
+        </div>
+        <button class="secondary" id="clearOutput">Clear</button>
+      </div>
+      <div class="panel-body">
+        <pre id="output">Ready.</pre>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      partnerId: localStorage.getItem('partnerAuth.partnerId') || '',
+      accessToken: localStorage.getItem('partnerAuth.accessToken') || '',
+      adminToken: localStorage.getItem('partnerAuth.adminToken') || '',
+    };
+
+    const output = document.getElementById('output');
+    const statusPill = document.getElementById('statusPill');
+    const baseUrlInput = document.getElementById('baseUrl');
+
+    function apiBase() {
+      return baseUrlInput.value.replace(/\/$/, '');
+    }
+
+    function setOutput(label, data) {
+      output.textContent = `${label}\n\n${JSON.stringify(data, null, 2)}`;
+    }
+
+    function formData(form) {
+      return Object.fromEntries(new FormData(form).entries());
+    }
+
+    function clean(payload) {
+      return Object.fromEntries(
+        Object.entries(payload).filter(([, value]) => value !== '')
+      );
+    }
+
+    async function request(path, options = {}) {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      };
+
+      const response = await fetch(`${apiBase()}${path}`, {
+        ...options,
+        headers,
+      });
+
+      const text = await response.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        data = text;
+      }
+
+      if (!response.ok) {
+        const error = new Error(data?.message || data?.error || response.statusText);
+        error.response = data;
+        error.status = response.status;
+        throw error;
+      }
+
+      return data;
+    }
+
+    function syncFormsFromEmail(email) {
+      document.querySelector('#signin [name="email"]').value = email;
+      document.querySelector('#forgot [name="email"]').value = email;
+      document.querySelector('#reset [name="email"]').value = email;
+    }
+
+    function setPartnerId(id) {
+      if (!id) return;
+      state.partnerId = id;
+      localStorage.setItem('partnerAuth.partnerId', id);
+      document.querySelector('#admin [name="partnerId"]').value = id;
+      statusPill.textContent = `Partner ID: ${id}`;
+    }
+
+    function setPartnerToken(token) {
+      if (!token) return;
+      state.accessToken = token;
+      localStorage.setItem('partnerAuth.accessToken', token);
+      statusPill.textContent = 'Partner logged in';
+      statusPill.classList.add('success');
+    }
+
+    function initStoredValues() {
+      if (state.partnerId) {
+        document.querySelector('#admin [name="partnerId"]').value = state.partnerId;
+        statusPill.textContent = `Partner ID: ${state.partnerId}`;
+      }
+      if (state.adminToken) {
+        document.querySelector('#admin [name="adminToken"]').value = state.adminToken;
+      }
+    }
+
+    document.querySelectorAll('.tab').forEach((button) => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach((item) => item.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.add('hidden'));
+        button.classList.add('active');
+        document.getElementById(button.dataset.tab).classList.remove('hidden');
+      });
+    });
+
+    document.getElementById('randomEmail').addEventListener('click', () => {
+      const stamp = Date.now();
+      const email = `partner.${stamp}@example.com`;
+      document.querySelector('#signup [name="email"]').value = email;
+      document.querySelector('#signup [name="contactEmail"]').value = `contact.${stamp}@example.com`;
+      syncFormsFromEmail(email);
+    });
+
+    document.getElementById('signup').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const payload = clean({
+        role: 'PARTNER',
+        ...formData(event.currentTarget),
+      });
+
+      try {
+        const data = await request('/auth/signup', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        const partner = data?.data?.user || data?.user;
+        setPartnerId(partner?.id);
+        syncFormsFromEmail(payload.email);
+        setOutput('POST /auth/signup', data);
+      } catch (error) {
+        setOutput(`POST /auth/signup failed (${error.status || 'error'})`, error.response || error.message);
+      }
+    });
+
+    document.getElementById('signin').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const payload = clean(formData(event.currentTarget));
+
+      try {
+        const data = await request('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        setPartnerToken(data?.data?.accessToken || data?.accessToken);
+        setPartnerId(data?.data?.user?.id || data?.user?.id);
+        setOutput('POST /auth/login', data);
+      } catch (error) {
+        setOutput(`POST /auth/login failed (${error.status || 'error'})`, error.response || error.message);
+      }
+    });
+
+    document.getElementById('forgot').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const payload = clean(formData(event.currentTarget));
+
+      try {
+        const data = await request('/auth/forgot-password', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        setOutput('POST /auth/forgot-password', data);
+      } catch (error) {
+        setOutput(`POST /auth/forgot-password failed (${error.status || 'error'})`, error.response || error.message);
+      }
+    });
+
+    document.getElementById('reset').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const payload = clean(formData(event.currentTarget));
+
+      if (payload.newPassword !== payload.confirmPassword) {
+        setOutput('Reset password blocked', { message: 'New password and confirm password do not match.' });
+        return;
+      }
+
+      delete payload.confirmPassword;
+
+      try {
+        const data = await request('/auth/reset-password', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        document.querySelector('#signin [name="password"]').value = payload.newPassword;
+        setOutput('POST /auth/reset-password', data);
+      } catch (error) {
+        setOutput(`POST /auth/reset-password failed (${error.status || 'error'})`, error.response || error.message);
+      }
+    });
+
+    document.getElementById('meButton').addEventListener('click', async () => {
+      if (!state.accessToken) {
+        setOutput('GET /auth/me skipped', { message: 'Signin first to save a partner access token.' });
+        return;
+      }
+
+      try {
+        const data = await request('/auth/me', {
+          headers: { Authorization: `Bearer ${state.accessToken}` },
+        });
+        setOutput('GET /auth/me', data);
+      } catch (error) {
+        setOutput(`GET /auth/me failed (${error.status || 'error'})`, error.response || error.message);
+      }
+    });
+
+    function adminAuth() {
+      const token = document.querySelector('#admin [name="adminToken"]').value.trim();
+      if (token) {
+        state.adminToken = token;
+        localStorage.setItem('partnerAuth.adminToken', token);
+      }
+      return token;
+    }
+
+    document.getElementById('listPartners').addEventListener('click', async () => {
+      const token = adminAuth();
+      const status = document.querySelector('#admin [name="status"]').value;
+      if (!token) {
+        setOutput('GET /admin/partners skipped', { message: 'Admin token is required.' });
+        return;
+      }
+
+      try {
+        const data = await request(`/admin/partners?status=${encodeURIComponent(status)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const first = data?.data?.[0];
+        if (first?.id) setPartnerId(first.id);
+        setOutput('GET /admin/partners', data);
+      } catch (error) {
+        setOutput(`GET /admin/partners failed (${error.status || 'error'})`, error.response || error.message);
+      }
+    });
+
+    document.getElementById('approvePartner').addEventListener('click', async () => {
+      const token = adminAuth();
+      const partnerId = document.querySelector('#admin [name="partnerId"]').value.trim();
+      if (!token || !partnerId) {
+        setOutput('PATCH approve skipped', { message: 'Admin token and partner user ID are required.' });
+        return;
+      }
+
+      try {
+        const data = await request(`/admin/partners/${partnerId}/approve`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}` },
+          body: JSON.stringify({}),
+        });
+        statusPill.textContent = 'Partner approved';
+        statusPill.classList.add('success');
+        setOutput('PATCH /admin/partners/:id/approve', data);
+      } catch (error) {
+        setOutput(`PATCH approve failed (${error.status || 'error'})`, error.response || error.message);
+      }
+    });
+
+    document.getElementById('rejectPartner').addEventListener('click', async () => {
+      const token = adminAuth();
+      const partnerId = document.querySelector('#admin [name="partnerId"]').value.trim();
+      const reason = document.querySelector('#admin [name="reason"]').value.trim();
+      if (!token || !partnerId || !reason) {
+        setOutput('PATCH reject skipped', { message: 'Admin token, partner user ID, and reason are required.' });
+        return;
+      }
+
+      try {
+        const data = await request(`/admin/partners/${partnerId}/reject`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ reason }),
+        });
+        statusPill.textContent = 'Partner rejected';
+        statusPill.classList.remove('success');
+        setOutput('PATCH /admin/partners/:id/reject', data);
+      } catch (error) {
+        setOutput(`PATCH reject failed (${error.status || 'error'})`, error.response || error.message);
+      }
+    });
+
+    document.getElementById('clearOutput').addEventListener('click', () => {
+      output.textContent = 'Ready.';
+    });
+
+    initStoredValues();
+  </script>
+</body>
+</html>

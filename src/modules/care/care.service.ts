@@ -384,20 +384,16 @@ export class CareService {
       throw new NotFoundException('Child not found');
     }
 
-    if (!child.birthDate) {
-      throw new BadRequestException(
-        'Child birthDate is required for suggestions',
-      );
-    }
-
-    const ageYears = this.childAgeYears(child.birthDate);
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
+    const ageYears = child.birthDate ? this.childAgeYears(child.birthDate) : null;
     const moduleWhere = {
       ...this.moduleWhere(query, user),
-      suggestedMinAgeYears: { lte: ageYears },
-      suggestedMaxAgeYears: { gte: ageYears },
+      ...(ageYears !== null && {
+        suggestedMinAgeYears: { lte: ageYears },
+        suggestedMaxAgeYears: { gte: ageYears },
+      }),
     } satisfies Prisma.CareModuleWhereInput;
 
     const [modules, total] = await Promise.all([
@@ -443,6 +439,11 @@ export class CareService {
         page,
         limit,
         totalPages: Math.ceil(total / limit),
+        ageMatched: ageYears !== null,
+        warning:
+          ageYears === null
+            ? 'Child birthDate is missing, so suggestions are not filtered by age.'
+            : undefined,
       },
     };
   }

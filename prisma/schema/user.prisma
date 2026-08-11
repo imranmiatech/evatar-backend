@@ -37,6 +37,7 @@ model User {
   otpCodes                      OtpCode[]
   partnerProfile                PartnerProfile?
   parentProfile                 ParentProfile?
+  partnerProducts               PartnerProduct[]
   supportTickets                SupportTicket[]
   ticketMessages                TicketMessage[]
   authoredCareChildNotes        CareChildNote[]              @relation("CareChildNotesAuthored")

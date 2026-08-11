@@ -26,6 +26,7 @@ import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { CaregiverModule } from './modules/caregiver/caregiver.module';
 import { ScheduleModule } from './modules/parent/schedule/schedule.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { PartnerModule } from './modules/partner/partner.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { NotificationModule } from './modules/notification/notification.module';
     RewardsModule,
     SubscriptionModule,
     NotificationModule,
+    PartnerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
