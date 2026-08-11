@@ -1,8 +1,25 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { KitchenItemCategory, ItemUnit } from '@prisma/client';
-import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class UpdateKitchenItemDto {
+  @ApiProperty({
+    description:
+      'Logged-in user ID. Must match the user who created this item.',
+    example: 'user-uuid-1234',
+  })
+  @IsString()
+  @IsNotEmpty()
+  userId: string;
+
   @ApiPropertyOptional({
     description: 'Item name',
     example: 'Organic Whole Milk',

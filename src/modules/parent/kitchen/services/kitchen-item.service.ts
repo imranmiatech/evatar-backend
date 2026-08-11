@@ -277,10 +277,14 @@ export class KitchenItemService {
     const item = await this.prisma.kitchenItem.findUnique({ where: { id } });
 
     if (!item) throw new NotFoundException('Kitchen item not found');
-    if (
-      !(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId))
-    )
-      throw new ForbiddenException('You do not have access to this item');
+    if (dto.userId !== userPayload.userId) {
+      throw new ForbiddenException('Request userId must match logged-in user');
+    }
+    if (item.createdByUserId !== dto.userId) {
+      throw new ForbiddenException(
+        'Only the user who created this item can update it',
+      );
+    }
 
     const stockPercent =
       dto.currentStockPercent !== undefined
