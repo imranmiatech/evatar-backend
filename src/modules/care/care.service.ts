@@ -36,6 +36,7 @@ import { CreateCareModuleDto } from './dto/create-care-module.dto';
 import { UpdateCareModuleDto } from './dto/update-care-module.dto';
 import { SubmitCareQuizDto } from './dto/submit-care-quiz.dto';
 import { ToggleCareModuleStatusDto } from './dto/toggle-care-module-status.dto';
+import { SaveCareModuleDto } from './dto/save-care-module.dto';
 
 const moduleListSelect = {
   id: true,
@@ -414,6 +415,7 @@ export class CareService {
       this.savedModuleIds(
         userId,
         modules.map((module) => module.id),
+        childId,
       ),
       this.assignmentMapForCards(
         user,
@@ -914,6 +916,7 @@ export class CareService {
     if (tab === CareModuleTab.SAVED) {
       const where = {
         userId,
+        ...(query.childId && { childId: query.childId }),
         module: moduleWhere,
       } satisfies Prisma.CareModuleSaveWhereInput;
 
@@ -973,6 +976,7 @@ export class CareService {
       const savedIds = await this.savedModuleIds(
         userId,
         assignments.map((assignment) => assignment.moduleId),
+        query.childId,
       );
 
       return this.paginatedModules(
@@ -1003,6 +1007,7 @@ export class CareService {
       this.savedModuleIds(
         userId,
         modules.map((module) => module.id),
+        query.childId,
       ),
       this.assignmentMapForCards(
         user,
@@ -1177,6 +1182,7 @@ export class CareService {
     user: CurrentUserPayload,
     moduleId: string,
     assignmentId?: string,
+    childId?: string,
   ) {
     const userId = this.currentUserId(user);
     const module = await this.prisma.careModule.findFirst({
@@ -1210,10 +1216,19 @@ export class CareService {
       assignment.startedAt = new Date();
     }
 
-    const isSaved = await this.prisma.careModuleSave.findUnique({
-      where: { moduleId_userId: { moduleId, userId } },
-      select: { id: true },
-    });
+    const savedChildId = childId ?? assignment?.childId;
+    const isSaved = savedChildId
+      ? await this.prisma.careModuleSave.findUnique({
+          where: {
+            moduleId_userId_childId: {
+              moduleId,
+              userId,
+              childId: savedChildId,
+            },
+          },
+          select: { id: true },
+        })
+      : null;
 
     return {
       success: true,
@@ -1282,14 +1297,25 @@ export class CareService {
     };
   }
 
-  async saveModule(user: CurrentUserPayload, moduleId: string) {
+  async saveModule(
+    user: CurrentUserPayload,
+    moduleId: string,
+    dto: SaveCareModuleDto,
+  ) {
     const userId = this.currentUserId(user);
     await this.assertPublishedModule(moduleId);
+    await this.assertCanSaveModuleForChild(user, dto.childId);
 
     const save = await this.prisma.careModuleSave.upsert({
-      where: { moduleId_userId: { moduleId, userId } },
+      where: {
+        moduleId_userId_childId: {
+          moduleId,
+          userId,
+          childId: dto.childId,
+        },
+      },
       update: {},
-      create: { moduleId, userId },
+      create: { moduleId, userId, childId: dto.childId },
     });
 
     return {
@@ -1299,10 +1325,16 @@ export class CareService {
     };
   }
 
-  async removeSavedModule(user: CurrentUserPayload, moduleId: string) {
+  async removeSavedModule(
+    user: CurrentUserPayload,
+    moduleId: string,
+    dto: SaveCareModuleDto,
+  ) {
     const userId = this.currentUserId(user);
+    await this.assertCanSaveModuleForChild(user, dto.childId);
+
     await this.prisma.careModuleSave.deleteMany({
-      where: { moduleId, userId },
+      where: { moduleId, userId, childId: dto.childId },
     });
 
     return {
@@ -1570,6 +1602,7 @@ export class CareService {
       return this.prisma.careModuleSave.count({
         where: {
           userId,
+          ...(query.childId && { childId: query.childId }),
           module: moduleWhere,
         },
       });
@@ -1774,11 +1807,15 @@ export class CareService {
     );
   }
 
-  private async savedModuleIds(userId: string, moduleIds: string[]) {
-    if (moduleIds.length === 0) return new Set<string>();
+  private async savedModuleIds(
+    userId: string,
+    moduleIds: string[],
+    childId?: string,
+  ) {
+    if (moduleIds.length === 0 || !childId) return new Set<string>();
 
     const saves = await this.prisma.careModuleSave.findMany({
-      where: { userId, moduleId: { in: moduleIds } },
+      where: { userId, childId, moduleId: { in: moduleIds } },
       select: { moduleId: true },
     });
 
@@ -1840,6 +1877,20 @@ export class CareService {
       'manageCareTeam',
       'nannyDevelopment',
     ]);
+  }
+
+  private async assertCanSaveModuleForChild(
+    user: CurrentUserPayload,
+    childId: string,
+  ) {
+    const userId = this.currentUserId(user);
+
+    if (this.isNanny(user)) {
+      await this.assertNannyCanViewChildCare(userId, childId);
+      return;
+    }
+
+    await this.assertCanViewCare(userId, childId);
   }
 
   private async assertNannyCanViewChildCare(

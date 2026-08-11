@@ -77,6 +77,14 @@ export class CaregiverController {
     return this.caregiverService.createInvitation(user.userId, childId, dto);
   }
 
+  @Get('my/invitations/pending')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get pending invitations for the logged-in caregiver' })
+  getMyPendingInvitations(@CurrentUser() user: CurrentUserPayload) {
+    return this.caregiverService.getMyPendingInvitations(user.userId);
+  }
+
   @Get('invitations/:token')
   @ApiOperation({ summary: 'Preview caregiver invitation by token' })
   @ApiParam({ name: 'token', description: 'Invitation token' })

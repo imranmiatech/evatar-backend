@@ -40,6 +40,7 @@ import { CreateCareModuleDto } from './dto/create-care-module.dto';
 import { UpdateCareModuleDto } from './dto/update-care-module.dto';
 import { SubmitCareQuizDto } from './dto/submit-care-quiz.dto';
 import { ToggleCareModuleStatusDto } from './dto/toggle-care-module-status.dto';
+import { SaveCareModuleDto } from './dto/save-care-module.dto';
 import { CareService } from './care.service';
 import { CareChildInsightsQueryDto } from './dto/care-child-insights-query.dto';
 import { CreateCareChildNoteDto } from './dto/create-care-child-note.dto';
@@ -434,12 +435,18 @@ export class CareController {
     description:
       'Optional. Pass only when you want this module detail with a specific child/nanny assignment progress.',
   })
+  @ApiQuery({
+    name: 'childId',
+    required: false,
+    description: 'Optional. Pass selected child ID to get child-scoped saved state.',
+  })
   getModuleDetail(
     @CurrentUser() user: CurrentUserPayload,
     @Param('moduleId') moduleId: string,
     @Query('assignmentId') assignmentId?: string,
+    @Query('childId') childId?: string,
   ) {
-    return this.careService.getModuleDetail(user, moduleId, assignmentId);
+    return this.careService.getModuleDetail(user, moduleId, assignmentId, childId);
   }
 
   @Post('assignments')
@@ -461,11 +468,13 @@ export class CareController {
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
   @ApiOperation({ summary: 'Save a module to the Saved tab' })
   @ApiParam({ name: 'moduleId' })
+  @ApiBody({ type: SaveCareModuleDto })
   saveModule(
     @CurrentUser() user: CurrentUserPayload,
     @Param('moduleId') moduleId: string,
+    @Body() dto: SaveCareModuleDto,
   ) {
-    return this.careService.saveModule(user, moduleId);
+    return this.careService.saveModule(user, moduleId, dto);
   }
 
   @Delete('modules/:moduleId/save')
@@ -473,11 +482,13 @@ export class CareController {
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
   @ApiOperation({ summary: 'Remove a module from the Saved tab' })
   @ApiParam({ name: 'moduleId' })
+  @ApiBody({ type: SaveCareModuleDto })
   removeSavedModule(
     @CurrentUser() user: CurrentUserPayload,
     @Param('moduleId') moduleId: string,
+    @Body() dto: SaveCareModuleDto,
   ) {
-    return this.careService.removeSavedModule(user, moduleId);
+    return this.careService.removeSavedModule(user, moduleId, dto);
   }
 
   @Post('assignments/:assignmentId/quiz')

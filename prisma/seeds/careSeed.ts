@@ -762,28 +762,32 @@ async function seedSampleCareAssignments(
     modules.slice(0, 3).flatMap((module) => [
       prisma.careModuleSave.upsert({
         where: {
-          moduleId_userId: {
+          moduleId_userId_childId: {
             moduleId: module.id,
             userId: parent.id,
+            childId: eve.id,
           },
         },
         update: {},
         create: {
           moduleId: module.id,
           userId: parent.id,
+          childId: eve.id,
         },
       }),
       prisma.careModuleSave.upsert({
         where: {
-          moduleId_userId: {
+          moduleId_userId_childId: {
             moduleId: module.id,
             userId: nanny.id,
+            childId: eve.id,
           },
         },
         update: {},
         create: {
           moduleId: module.id,
           userId: nanny.id,
+          childId: eve.id,
         },
       }),
     ]),

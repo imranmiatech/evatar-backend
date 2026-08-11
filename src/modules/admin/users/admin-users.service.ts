@@ -28,6 +28,7 @@ export class AdminUsersService {
       suspended,
       parentCount,
       nannyCount,
+      partnerCount,
       adminCount,
       activeStatusCount,
       trialStatusCount,
@@ -67,6 +68,7 @@ export class AdminUsersService {
       // Role Enum Counts
       this.prisma.user.count({ where: { role: UserRole.PARENT } }),
       this.prisma.user.count({ where: { role: UserRole.NANNY } }),
+      this.prisma.user.count({ where: { role: UserRole.PARTNER } }),
       this.prisma.user.count({ where: { role: UserRole.ADMIN } }),
 
       // Status Enum Counts
@@ -107,6 +109,7 @@ export class AdminUsersService {
           ALL: totalUsers,
           PARENT: parentCount,
           NANNY: nannyCount,
+          PARTNER: partnerCount,
           ADMIN: adminCount,
         },
         statuses: {
@@ -205,6 +208,7 @@ export class AdminUsersService {
 
       let roleBadge = 'Parent';
       if (u.role === UserRole.NANNY) roleBadge = 'Nanny';
+      if (u.role === UserRole.PARTNER) roleBadge = 'Partner';
       if (u.role === UserRole.ADMIN) roleBadge = 'Admin';
 
       const joinedFormatted = new Date(u.createdAt).toLocaleDateString('en-US', {

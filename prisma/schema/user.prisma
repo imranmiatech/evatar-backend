@@ -35,6 +35,7 @@ model User {
   nannyPortfolioHighlights      NannyPortfolioHighlight[]    @relation("UserNannyPortfolioHighlights")
   nannyProfile                  NannyProfile?
   otpCodes                      OtpCode[]
+  partnerProfile                PartnerProfile?
   parentProfile                 ParentProfile?
   supportTickets                SupportTicket[]
   ticketMessages                TicketMessage[]

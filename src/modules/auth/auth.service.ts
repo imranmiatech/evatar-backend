@@ -60,7 +60,10 @@ export class AuthService {
       const user = await this.prisma.$transaction(async (tx) => {
         const createdUser = await tx.user.create({
           data: {
-            fullName: dto.fullName,
+            fullName:
+              dto.role === UserRole.PARTNER
+                ? dto.businessName!
+                : dto.fullName!,
             email: dto.email,
             phoneNumber: dto.phoneNumber,
             passwordHash,
@@ -94,6 +97,40 @@ export class AuthService {
           });
         }
 
+        if (dto.role === UserRole.PARTNER) {
+          await tx.partnerProfile.create({
+            data: {
+              userId: createdUser.id,
+              businessName: dto.businessName!,
+              businessCategory: dto.businessCategory!,
+              shortDescription: dto.shortDescription,
+              website: dto.website,
+              country: dto.businessCountry!,
+              city: dto.businessCity!,
+              address: dto.businessAddress!,
+              openingHours: dto.openingHours,
+              contactPerson: dto.contactPerson!,
+              contactRole: dto.contactRole,
+              contactEmail: dto.contactEmail || dto.email,
+              contactPhone: dto.contactPhone || dto.phoneNumber,
+            },
+          });
+
+          await tx.store.create({
+            data: {
+              userId: createdUser.id,
+              name: dto.businessName!,
+              description: dto.shortDescription,
+              address: dto.businessAddress,
+              city: dto.businessCity,
+            },
+          });
+        }
+
+        if (dto.role === UserRole.PARTNER) {
+          return createdUser;
+        }
+
         // 4. Generate 4-digit OTP
         const otpCode = Math.floor(1000 + Math.random() * 9000).toString(); // e.g., '4821'
 
@@ -120,33 +157,18 @@ export class AuthService {
       // Remove passwordHash before returning to client
       const { passwordHash: _, ...result } = user;
 
-      // Notify active Admin users about new user registration
-      try {
-        const admins = await this.prisma.user.findMany({
-          where: { role: UserRole.ADMIN, status: UserStatus.ACTIVE },
-          select: { id: true },
-        });
+      if (result.role === UserRole.PARTNER) {
+        await this.sendPartnerSubmittedEmail(result.email, result.fullName);
+        await this.notifyAdminsOfSignup(result);
 
-        for (const admin of admins) {
-          await this.notificationService.createNotification({
-            userId: admin.id,
-            type: NotificationType.INVITATION_ACCEPTED,
-            title: 'New User Registration',
-            message: `${result.fullName} (${result.role}) registered.`,
-            iconType: 'AVATAR',
-            actionText: 'View Users',
-            actionUrl: `/admin/users/${result.id}`,
-            metadata: {
-              newUserId: result.id,
-              fullName: result.fullName,
-              email: result.email,
-              role: result.role,
-            },
-          });
-        }
-      } catch (err) {
-        console.error('Failed to notify admins of new signup:', err);
+        return {
+          message:
+            'Your partner request has been submitted. Please wait for admin approval before logging in.',
+          user: result,
+        };
       }
+
+      await this.notifyAdminsOfSignup(result);
 
       return {
         message: 'Signup successful. Please verify your OTP.',
@@ -178,9 +200,18 @@ export class AuthService {
 
     if (
       user.status === UserStatus.DELETED ||
-      user.status === UserStatus.INACTIVE
+      user.status === UserStatus.INACTIVE ||
+      user.status === UserStatus.PENDING ||
+      user.status === UserStatus.BLOCKED ||
+      user.status === UserStatus.SUSPENDED
     ) {
-      throw new BadRequestException('Account has been deleted or deactivated.');
+      if (user.role === UserRole.PARTNER && user.status === UserStatus.PENDING) {
+        throw new BadRequestException(
+          'Your partner request is pending admin approval. Please wait for approval before logging in.',
+        );
+      }
+
+      throw new BadRequestException('Account is not active. Please contact support.');
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
@@ -294,6 +325,66 @@ export class AuthService {
       .join(', ');
   }
 
+  private async sendPartnerSubmittedEmail(email: string, fullName: string) {
+    await this.mailService.sendDummyEmail(
+      email,
+      'Alurei Partners request received',
+      `Hi ${fullName},
+
+Your partner request has been submitted successfully.
+
+Our team will review your business details and get in touch shortly. Please allow 3-5 business days for the review process.
+
+You will be able to log in after your partner account is approved.
+
+Thank you,
+Alurei Partners Team`,
+    );
+  }
+
+  private async notifyAdminsOfSignup(result: {
+    id: string;
+    fullName: string;
+    email: string;
+    role: UserRole;
+  }) {
+    try {
+      const admins = await this.prisma.user.findMany({
+        where: { role: UserRole.ADMIN, status: UserStatus.ACTIVE },
+        select: { id: true },
+      });
+
+      const title =
+        result.role === UserRole.PARTNER
+          ? 'New Partner Request'
+          : 'New User Registration';
+      const actionUrl =
+        result.role === UserRole.PARTNER
+          ? `/admin/partners/${result.id}`
+          : `/admin/users/${result.id}`;
+
+      for (const admin of admins) {
+        await this.notificationService.createNotification({
+          userId: admin.id,
+          type: NotificationType.INVITATION_ACCEPTED,
+          title,
+          message: `${result.fullName} (${result.role}) registered.`,
+          iconType: 'AVATAR',
+          actionText: 'View Users',
+          actionUrl,
+          metadata: {
+            newUserId: result.id,
+            fullName: result.fullName,
+            email: result.email,
+            role: result.role,
+          },
+        });
+      }
+    } catch (err) {
+      console.error('Failed to notify admins of new signup:', err);
+    }
+  }
+
   async forgotPassword(dto: ForgotPasswordDto) {
     if (!dto.email && !dto.phoneNumber) {
       throw new BadRequestException('Email or phone number is required');
@@ -384,7 +475,7 @@ export class AuthService {
           isEmailVerified: Boolean(dto.email) || user.isEmailVerified,
           isPhoneVerified: Boolean(dto.phoneNumber) || user.isPhoneVerified,
           status: UserStatus.ACTIVE,
-          verificationStatus: VerificationStatus.APPROVED,
+          verificationStatus: user.verificationStatus,
         },
       }),
       this.prisma.otpCode.update({

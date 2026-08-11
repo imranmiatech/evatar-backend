@@ -6,6 +6,7 @@ export enum AdminUserRoleFilter {
   ALL = 'ALL',
   PARENT = 'PARENT',
   NANNY = 'NANNY',
+  PARTNER = 'PARTNER',
   ADMIN = 'ADMIN',
 }
 

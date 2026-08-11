@@ -3,9 +3,11 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
+  Req,
   UploadedFile,
   UploadedFiles,
   UseGuards,
@@ -28,18 +30,49 @@ import type { CurrentUserPayload } from '../../common/decorators/current-user.de
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { SubmitDocumentsDto } from './dto/submit-documents.dto';
 import { KycService } from './kyc.service';
+import { SumsubService } from './sumsub.service';
 
 const KYC_DOCUMENT_MAX_BYTES = 25 * 1024 * 1024;
 const KYC_DOCUMENT_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 @ApiTags('KYC Documents')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('kyc')
 export class KycController {
-  constructor(private readonly kycService: KycService) {}
+  constructor(
+    private readonly kycService: KycService,
+    private readonly sumsubService: SumsubService,
+  ) {}
+
+  @Post('sumsub/access-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Generate Sumsub SDK access token for identity verification',
+  })
+  generateSumsubAccessToken(@CurrentUser() user: CurrentUserPayload) {
+    return this.sumsubService.generateSdkAccessToken(user.userId);
+  }
+
+  @Post('sumsub/webhook')
+  @ApiOperation({
+    summary: 'Public Sumsub webhook endpoint for verification status updates',
+  })
+  handleSumsubWebhook(
+    @Req() req: any,
+    @Body() payload: any,
+    @Headers('x-payload-digest') digest?: string,
+    @Headers('x-payload-digest-alg') digestAlg?: string,
+  ) {
+    const rawBody = req.rawBody instanceof Buffer
+      ? req.rawBody
+      : Buffer.from(JSON.stringify(payload || {}));
+
+    return this.sumsubService.handleWebhook(payload, rawBody, digest, digestAlg);
+  }
 
   @Post('documents')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'passport', maxCount: 1 },
@@ -95,6 +128,8 @@ export class KycController {
   }
 
   @Patch('documents/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'passport', maxCount: 1 },
@@ -155,6 +190,8 @@ export class KycController {
   }
 
   @Post('face-check')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('selfie'))
   @ApiOperation({
     summary: 'Save live selfie image after document upload for identity check',
@@ -182,6 +219,8 @@ export class KycController {
   }
 
   @Get('documents')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get my saved KYC document submissions' })
   getDocuments(@CurrentUser() user: CurrentUserPayload) {
     return this.kycService.getMyDocuments(user.userId);

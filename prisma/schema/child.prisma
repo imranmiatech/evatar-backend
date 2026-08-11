@@ -22,6 +22,7 @@ model Child {
   schoolSchedule           SchoolSchedule?
   careChildNotes           CareChildNote[]
   careAssignments          CareModuleAssignment[]
+  savedCareModules         CareModuleSave[]
   childSchedules           ChildSchedule[]
 
   @@index([parentUserId])

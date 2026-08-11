@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EvaTurner - Meal & Recipe UI (Pixel Perfect)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4f7f8;
+      --panel: #ffffff;
+      --ink: #0f272e;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      
+      --teal-main: #005d68;
+      --teal-dark: #004750;
+      --teal-light: #e6f3f5;
+      --teal-border: #b8dadf;
+      
+      --accent-green: #00875a;
+      --accent-green-bg: #e6f4ea;
+      --accent-red: #d32f2f;
+      --accent-red-bg: #fdeded;
+      --accent-yellow-bg: #fff8e1;
+      --accent-yellow-border: #ffe082;
+
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #0f141c;
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    /* Top Control & Auth Bar */
+    .top-control-bar {
+      width: 100%;
+      max-width: 920px;
+      background: #182232;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-md);
+      padding: 12px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: white;
+      gap: 16px;
+    }
+
+    .top-user-status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .top-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--teal-main);
+    }
+
+    .user-tag {
+      font-size: 11px;
+      background: rgba(14, 165, 233, 0.2);
+      color: #38bdf8;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-top {
+      background: var(--teal-main);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-top-secondary {
+      background: rgba(255,255,255,0.1);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    /* Showcase Layout */
+    .showcase-wrap {
+      display: flex;
+      gap: 32px;
+      max-width: 100%;
+      overflow-x: auto;
+      padding: 10px;
+    }
+
+    /* Mobile Frame Mockup */
+    .mobile-frame {
+      width: 410px;
+      height: 860px;
+      background: var(--bg);
+      border-radius: 40px;
+      border: 12px solid #2d343f;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Top Phone Notch */
+    .phone-header-bar {
+      height: 38px;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #111;
+      z-index: 10;
+    }
+
+    .phone-notch {
+      width: 120px;
+      height: 22px;
+      background: #2d343f;
+      border-bottom-left-radius: 14px;
+      border-bottom-right-radius: 14px;
+      margin: 0 auto;
+    }
+
+    /* Scrollable Content View */
+    .screen-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 18px 80px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scrollbar-width: none;
+    }
+
+    .screen-body::-webkit-scrollbar { display: none; }
+
+    /* Top User Bar */
+    .user-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar-img {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--teal-main);
+    }
+
+    .greeting {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .icon-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .profile-switch-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--teal-main);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #edf3f5;
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+      color: var(--teal-main);
+      font-size: 15px;
+    }
+
+    .badge-count {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      background: #00c853;
+      color: white;
+      font-size: 8px;
+      font-weight: 800;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid white;
+    }
+
+    /* Segmented Tab Switcher */
+    .tab-switcher {
+      background: #edf3f5;
+      padding: 4px;
+      border-radius: 30px;
+      display: flex;
+      border: 1px solid var(--line);
+    }
+
+    .tab-item {
+      flex: 1;
+      text-align: center;
+      padding: 10px 0;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 25px;
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-item.active {
+      background: var(--teal-main);
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 93, 104, 0.3);
+    }
+
+    /* Search Bar */
+    .search-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .search-box {
+      flex: 1;
+      background: var(--panel);
+      border: 1.5px solid #d0e2e5;
+      border-radius: 25px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .search-box input {
+      border: none;
+      background: transparent;
+      outline: none;
+      width: 100%;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    .filter-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--panel);
+      border: 1.5px solid #d0e2e5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--teal-main);
+      font-size: 16px;
+    }
+
+    /* Filter Chips Horizontal Scroll */
+    .chips-scroll {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+    .chips-scroll::-webkit-scrollbar { display: none; }
+
+    .chip {
+      padding: 7px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #e6f2f4;
+      border: 1px solid #d0e5e8;
+      color: var(--teal-main);
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .chip.active {
+      background: var(--teal-main);
+      color: white;
+      border-color: var(--teal-main);
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--teal-main);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Suggested Carousel Row */
+    .suggested-row {
+      display: flex;
+      gap: 14px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 4px;
+    }
+    .suggested-row::-webkit-scrollbar { display: none; }
+
+    .suggested-card {
+      min-width: 220px;
+      max-width: 230px;
+      background: var(--panel);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      border: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.02);
+      transition: transform 0.2s;
+    }
+    .suggested-card:hover { transform: translateY(-2px); }
+
+    .suggested-img {
+      width: 100%;
+      height: 115px;
+      border-radius: 12px;
+      object-fit: cover;
+    }
+
+    /* Recipe Cards Container */
+    .recipes-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .recipe-card {
+      background: var(--panel);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      border: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+    }
+
+    .card-top-tag {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .tag-meal {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #e6f2f4;
+      color: var(--teal-main);
+    }
+
+    .tag-status-ready {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: var(--accent-green);
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .tag-status-needs {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: var(--accent-red-bg);
+      color: var(--accent-red);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .recipe-hero-img {
+      width: 100%;
+      height: 170px;
+      border-radius: 14px;
+      object-fit: cover;
+    }
+
+    .recipe-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--teal-main);
+    }
+
+    .recipe-subtitle {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .badges-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .badge-pill {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 4px 9px;
+      border-radius: 10px;
+      background: #e6f2f4;
+      color: var(--teal-main);
+      border: 1px solid #d0e7ea;
+    }
+
+    .card-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--teal-main);
+      color: var(--teal-main);
+      padding: 10px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .btn-solid {
+      background: var(--teal-main);
+      border: none;
+      color: white;
+      padding: 11px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 4px 14px rgba(0, 93, 104, 0.25);
+    }
+
+    /* Mascot Bot Floating Widget */
+    .floating-mascot {
+      position: absolute;
+      bottom: 75px;
+      right: 18px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--teal-main);
+      border: 3px solid white;
+      box-shadow: 0 6px 20px rgba(0, 93, 104, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      z-index: 30;
+      cursor: pointer;
+    }
+
+    /* Fixed Bottom Mobile Nav */
+    .mobile-bottom-nav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 65px;
+      background: var(--panel);
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 10px;
+      z-index: 20;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .nav-item.active {
+      color: var(--teal-main);
+    }
+
+    .nav-icon { font-size: 18px; }
+
+    /* DETAILS SCREEN SPECIFICS */
+    .details-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .back-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--teal-main);
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .hero-banner-wrap {
+      position: relative;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .hero-banner-img {
+      width: 100%;
+      height: 195px;
+      object-fit: cover;
+    }
+
+    .ingr-count-tag {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--accent-red);
+      color: white;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+
+    /* Stats Grid (2x3 Layout) */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-box {
+      background: #f5f8f9;
+      border: 1px solid #e0ebed;
+      border-radius: var(--radius-md);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      text-align: center;
+    }
+
+    .stat-box.highlight {
+      border: 2px solid var(--teal-main);
+      background: #eef6f7;
+    }
+
+    .stat-icon { font-size: 18px; color: var(--teal-main); }
+    .stat-label { font-size: 12px; font-weight: 800; color: var(--ink); }
+
+    /* Ingredients Section */
+    .section-title-with-avatar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .avatar-badge-right {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 3px solid #00c853;
+      object-fit: cover;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .ingr-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ingr-item {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .ingr-item.highlight-missing {
+      background: var(--accent-red-bg);
+      border-color: #f8bbd0;
+      color: var(--accent-red);
+    }
+
+    .ingr-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ingr-unit {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+      background: #f1f5f6;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    /* Instructions Step List */
+    .steps-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .step-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .step-number {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--teal-main);
+      color: white;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-text-box {
+      flex: 1;
+      background: #f5f8f9;
+      border: 1px solid #e0ebed;
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--ink);
+      line-height: 1.4;
+    }
+
+    /* Note Boxes */
+    .note-box {
+      background: var(--accent-yellow-bg);
+      border: 1px solid var(--accent-yellow-border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      font-size: 11px;
+      color: #795548;
+      line-height: 1.5;
+      font-weight: 600;
+    }
+
+    .note-box strong { color: #d84315; }
+
+    /* Modal Overlay for Login */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px);
+      z-index: 999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 420px;
+      background: #0f172a;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 24px;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-title { font-size: 18px; font-weight: 800; color: #38bdf8; }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 11px; font-weight: 800; color: #cbd5e1; text-transform: uppercase; }
+    .form-group input {
+      background: #162032;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: white;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .preset-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+    .chip-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Toast */
+    #toastContainer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast-msg {
+      background: #005d68;
+      color: white;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="toastContainer"></div>
+
+  <!-- Top Controls & Real API Status -->
+  <div class="top-control-bar">
+    <div class="top-user-status">
+      <img id="topUserAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80" class="top-avatar" alt="User Avatar" />
+      <div>
+        <div id="topUserName" style="font-size: 14px; font-weight: 800;">Monica Steve (Guest)</div>
+        <span class="user-tag" id="topUserRole">NOT LOGGED IN</span>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <a href="/login" class="btn-top btn-top-secondary" style="text-decoration: none;">⚙️ Full Auth Console</a>
+      <button class="btn-top" onclick="openLoginModal()">🔑 Sign In Live</button>
+    </div>
+  </div>
+
+  <!-- Mobile Showcase Frame -->
+  <div class="showcase-wrap">
+
+    <!-- MOBILE SCREEN 1: MEAL LIST -->
+    <div class="mobile-frame">
+      <div class="phone-header-bar">
+        <span>9:41</span>
+        <div class="phone-notch"></div>
+        <span>📶 🔋</span>
+      </div>
+
+      <div class="screen-body">
+        
+        <!-- Top Bar -->
+        <div class="user-bar">
+          <div class="user-info">
+            <img id="mobileUserAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80" class="avatar-img" alt="User Avatar" />
+            <div>
+              <div class="greeting">Good morning</div>
+              <div class="user-name" id="mobileUserName">Monica Steve</div>
+            </div>
+          </div>
+
+          <div class="icon-actions">
+            <div class="profile-switch-btn" title="Switch Profile">📇</div>
+            <div class="icon-btn">
+              🔔
+              <div class="badge-count">01</div>
+            </div>
+            <div class="icon-btn">
+              💬
+              <div class="badge-count">01</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Segmented Tab -->
+        <div class="tab-switcher">
+          <div class="tab-item active">Recipes</div>
+          <div class="tab-item" onclick="showToast('Switching to Groceries view...')">Groceries</div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-row">
+          <div class="search-box">
+            <span>🔍</span>
+            <input type="text" id="searchInput" placeholder="Search by breakfast, dinner, lunch, age..." oninput="handleSearch()" />
+          </div>
+          <div class="filter-btn" onclick="fetchRealRecipes()">🍸</div>
+        </div>
+
+        <!-- Meal Category Filter Chips -->
+        <div class="chips-scroll" id="mealCategoryChips">
+          <div class="chip active" onclick="filterMealType('ALL', this)">All</div>
+          <div class="chip" onclick="filterMealType('BREAKFAST', this)">Breakfast</div>
+          <div class="chip" onclick="filterMealType('LUNCH', this)">Lunch</div>
+          <div class="chip" onclick="filterMealType('DINNER', this)">Dinner</div>
+          <div class="chip" onclick="filterMealType('SNACK', this)">Snacks</div>
+          <div class="chip" onclick="filterMealType('FAMILY', this)">Family</div>
+        </div>
+
+        <!-- SUGGESTED FOR YOU SECTION -->
+        <div class="section-title">
+          <span>Suggested for you</span>
+        </div>
+
+        <!-- Sub Child Filter Chips -->
+        <div class="chips-scroll">
+          <div class="chip active" style="padding: 5px 14px; font-size: 11px;">Eve</div>
+          <div class="chip" style="padding: 5px 14px; font-size: 11px;">Rose</div>
+          <div class="chip" style="padding: 5px 14px; font-size: 11px;">Family</div>
+        </div>
+
+        <!-- Suggested Recipes Carousel -->
+        <div class="suggested-row" id="suggestedRecipesContainer">
+          <div style="font-size: 12px; color: var(--muted); padding: 10px;">Loading suggested recipes...</div>
+        </div>
+
+        <!-- All recipes Section (A to Z Database) -->
+        <div class="section-title" style="margin-top: 8px;">All recipes</div>
+
+        <div class="recipes-list-container" id="recipesContainer">
+          <div style="text-align: center; padding: 20px; font-size: 13px; color: var(--muted);">Loading real recipes from backend API...</div>
+        </div>
+
+      </div>
+
+      <!-- Floating Mascot Bot Badge -->
+      <div class="floating-mascot" title="EvaBot Mascot">👶</div>
+
+      <!-- Mobile Bottom Navigation -->
+      <div class="mobile-bottom-nav">
+        <div class="nav-item">
+          <div class="nav-icon">📅</div>
+          <span>Today</span>
+        </div>
+        <div class="nav-item active">
+          <div class="nav-icon">🍳</div>
+          <span>Kitchen</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">👥</div>
+          <span>Activities</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">💖</div>
+          <span>Care</span>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">🏠</div>
+          <span>Home</span>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- MOBILE SCREEN 2: RECIPE DETAILS -->
+    <div class="mobile-frame">
+      <div class="phone-header-bar">
+        <span>9:41</span>
+        <div class="phone-notch"></div>
+        <span>📶 🔋</span>
+      </div>
+
+      <div class="screen-body" id="detailsScreenBody">
+        
+        <!-- Header bar -->
+        <div class="details-header-bar">
+          <div class="back-btn">←</div>
+          <div style="font-size: 15px; font-weight: 800; color: var(--teal-main);">recipe details &lt;/&gt;</div>
+          <div></div>
+        </div>
+
+        <!-- Banner Image -->
+        <div class="hero-banner-wrap">
+          <img id="detailImg" src="https://images.unsplash.com/photo-1517673400267-0251440c45dc?auto=format&fit=crop&w=600&q=80" class="hero-banner-img" alt="Blueberry Oat Porridge" />
+          <span class="ingr-count-tag" id="detailIngrCount">10 Ingredients</span>
+        </div>
+
+        <div>
+          <div style="font-size: 18px; font-weight: 800; color: var(--teal-main);" id="detailTitle">Blueberry Oat Porridge</div>
+          <div style="font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 3px;" id="detailDesc">Soft, naturally sweet pancakes made with banana and oats, suitable for toddlers.</div>
+        </div>
+
+        <!-- 6 Meta Box Grid (2x3) -->
+        <div class="stats-grid">
+          <div class="stat-box highlight">
+            <div class="stat-icon">🍴</div>
+            <div class="stat-label" id="detailMealType">Breakfast</div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-icon">👶</div>
+            <div class="stat-label" id="detailAgeRange">6-24 months</div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-icon">⏱️</div>
+            <div class="stat-label" id="detailCookTime">10 min Cook</div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-icon">⭐</div>
+            <div class="stat-label" id="detailDifficulty">Difficulty: Easy</div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-icon">⏲️</div>
+            <div class="stat-label" id="detailPrepTime">5 min Prep</div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-icon">🥣</div>
+            <div class="stat-label" id="detailServings">Servings: 2-3</div>
+          </div>
+        </div>
+
+        <!-- Nutritional Focus -->
+        <div class="section-title">Nutritional Focus</div>
+        <div class="badges-row" id="detailNutritionRow">
+          <span class="badge-pill">Growth & Energy</span>
+          <span class="badge-pill">Fussy Eater Friendly</span>
+          <span class="badge-pill">Balanced</span>
+        </div>
+
+        <!-- Ingredients Section with Floating Avatar -->
+        <div class="section-title-with-avatar">
+          <div class="section-title">Ingredients</div>
+          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80" class="avatar-badge-right" alt="User Avatar" />
+        </div>
+
+        <div class="ingr-list" id="detailIngredientsList">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Step-by-Step Instructions -->
+        <div class="section-title">Step-by-Step Instructions</div>
+        <div class="steps-timeline" id="detailStepsTimeline">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Allergens Section with Floating Avatar -->
+        <div class="section-title-with-avatar">
+          <div class="section-title">Allergens</div>
+          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80" class="avatar-badge-right" alt="User Avatar" />
+        </div>
+        <div class="badges-row" id="detailAllergensRow">
+          <span class="chip">Egg</span>
+          <span class="chip">Gluten</span>
+        </div>
+
+        <!-- Child Preference Tags -->
+        <div class="section-title" style="margin-top: 8px;">Child Preference Tags</div>
+        <div class="badges-row" id="detailChildPrefRow">
+          <span class="chip">Sweet</span>
+          <span class="chip">Soft texture</span>
+          <span class="chip">Finger food friendly</span>
+        </div>
+
+        <!-- Cooking Tips -->
+        <div class="section-title">Cooking Tips</div>
+        <div class="step-text-box" style="font-size: 11px;" id="detailCookingTips">
+          Flip and cook for 2 more minutes until golden and firm.
+        </div>
+
+        <!-- Safety Notes -->
+        <div class="section-title">Safety Notes</div>
+        <div class="note-box" id="detailSafetyNotes">
+          Serve in soft strips or small toddler-safe pieces. Allow the <strong>pancakes to cool before serving</strong>, and supervise the child while eating.
+        </div>
+
+        <div style="height: 10px;"></div>
+
+      </div>
+
+      <!-- Fixed Bottom Action -->
+      <div class="mobile-bottom-nav" style="padding: 10px 18px; height: auto;">
+        <button class="btn-solid" style="width: 100%;" onclick="addToScheduleAction()">⊕ Add to Schedule</button>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- LOGIN MODAL -->
+  <div class="modal-overlay" id="loginModal">
+    <div class="modal-card">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div class="modal-title">🔑 Sign In to EvaTurner API</div>
+        <div style="cursor: pointer; font-size: 18px;" onclick="closeLoginModal()">✕</div>
+      </div>
+
+      <div style="font-size: 11px; color: #94a3b8;">1-Click Seeded DB Account Fill:</div>
+      <div class="preset-chips">
+        <button class="chip-btn" onclick="fillPreset('parent')">👨‍👩‍👧 Parent (p@e.com)</button>
+        <button class="chip-btn" onclick="fillPreset('nanny')">👩‍👦 Nanny (n@e.com)</button>
+        <button class="chip-btn" onclick="fillPreset('admin')">⚡ Admin (a@e.com)</button>
+      </div>
+
+      <form onsubmit="executeModalLogin(); return false;" style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="modalEmail" value="p@e.com" autocomplete="username email" />
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="modalPassword" value="123456" autocomplete="current-password" />
+        </div>
+
+        <button type="submit" class="btn-solid" style="border-radius: 8px; padding: 12px; font-size: 14px;">🚀 Log In Live</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const TOKEN_KEY = 'evaturner_access_token';
+    const API_BASE = window.location.port === '5000' ? window.location.origin : 'http://localhost:5000';
+
+    let currentRecipes = [];
+    let suggestedRecipes = [];
+    let selectedMealType = 'ALL';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuthAndFetchProfile();
+      fetchSuggestedRecipes();
+      fetchRealRecipes();
+    });
+
+    function showToast(msg) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast-msg';
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3500);
+    }
+
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || localStorage.getItem('api_test_access_token') || '';
+    }
+
+    async function checkAuthAndFetchProfile() {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        const user = data?.data || data?.user || data;
+
+        if (user && user.fullName) {
+          const avatar = user.profilePictureUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
+          
+          document.getElementById('topUserName').textContent = user.fullName;
+          document.getElementById('topUserRole').textContent = (user.role || 'USER') + ' • LOGGED IN';
+          document.getElementById('topUserAvatar').src = avatar;
+
+          document.getElementById('mobileUserName').textContent = user.fullName;
+          document.getElementById('mobileUserAvatar').src = avatar;
+          
+          showToast(`Welcome back, ${user.fullName}!`);
+        }
+      } catch (err) {
+        console.error('Profile fetch error:', err);
+      }
+    }
+
+    // REAL SUGGESTED RECIPES FETCH
+    async function fetchSuggestedRecipes() {
+      const token = getToken();
+      const headers = { 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/library/recipes/suggestions?limit=6`, { headers });
+        const json = await res.json();
+        const list = json?.data || json?.recipes || [];
+
+        if (res.ok && Array.isArray(list) && list.length > 0) {
+          suggestedRecipes = list;
+          renderSuggestedRow(list);
+        } else {
+          fetchSuggestedFallback();
+        }
+      } catch (err) {
+        fetchSuggestedFallback();
+      }
+    }
+
+    async function fetchSuggestedFallback() {
+      try {
+        const token = getToken();
+        const headers = { 'Accept': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const res = await fetch(`${API_BASE}/api/v1/library/recipes?limit=4`, { headers });
+        const json = await res.json();
+        const list = json?.data?.recipes || json?.data || [];
+        renderSuggestedRow(list);
+      } catch (e) {
+        useFallbackData();
+      }
+    }
+
+    function renderSuggestedRow(list) {
+      const container = document.getElementById('suggestedRecipesContainer');
+      container.innerHTML = '';
+
+      if (!list || list.length === 0) {
+        container.innerHTML = `<div style="font-size: 12px; color: var(--muted); padding: 8px;">No suggestions found</div>`;
+        return;
+      }
+
+      list.forEach((item, index) => {
+        const title = item.title || 'Suggested Recipe';
+        const img = item.imageUrl || 'https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=400&q=80';
+        const meal = item.recipeMealType || 'BREAKFAST';
+        const age = (item.minAgeMonths || 6) + '-' + (item.maxAgeMonths || 12) + 'm';
+        const isReady = index % 2 === 0;
+
+        const card = document.createElement('div');
+        card.className = 'suggested-card';
+
+        card.innerHTML = `
+          <div class="card-top-tag">
+            <span class="tag-meal">${meal}</span>
+            ${isReady ? '<span class="tag-status-ready">☑️ Ready</span>' : '<span class="tag-status-needs">🛒 Needs ingredients</span>'}
+          </div>
+          <img src="${img}" class="suggested-img" alt="${title}" onclick="loadRecipeDetails('${item.id}')" />
+          <div>
+            <div style="font-size: 14px; font-weight: 800; color: var(--teal-main);">${title}</div>
+            <div style="font-size: 11px; color: var(--muted); font-weight: 600;">Age Suitability: ${age}</div>
+          </div>
+          <div class="badges-row">
+            ${(item.nutritionalFocus || ['ENERGY', 'GROWTH', 'IMMUNITY']).map(b => `<span class="badge-pill">${b}</span>`).join('')}
+          </div>
+          <div class="card-actions">
+            <div class="btn-outline" onclick="loadRecipeDetails('${item.id}')">View Recipe</div>
+            <div class="btn-solid" onclick="addToScheduleAction('${title}')">⊕ Add to Schedule</div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // REAL RECIPES FETCH (A to Z Database)
+    async function fetchRealRecipes() {
+      const token = getToken();
+      const headers = { 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      let url = `${API_BASE}/api/v1/library/recipes?limit=50`;
+      if (selectedMealType !== 'ALL') {
+        url += `&recipeMealType=${selectedMealType}`;
+      }
+
+      try {
+        const res = await fetch(url, { headers });
+        const json = await res.json();
+        const recipes = json?.data?.recipes || json?.data || json?.recipes || [];
+
+        if (res.ok && Array.isArray(recipes) && recipes.length > 0) {
+          currentRecipes = recipes;
+          renderRecipesList(recipes);
+          loadRecipeDetails(recipes[0].id || recipes[0]);
+        } else {
+          useFallbackData();
+        }
+      } catch (err) {
+        useFallbackData();
+      }
+    }
+
+    function renderRecipesList(recipes) {
+      const container = document.getElementById('recipesContainer');
+      container.innerHTML = '';
+
+      recipes.forEach((item, idx) => {
+        const title = item.title || 'Delicious Recipe';
+        const img = item.imageUrl || 'https://images.unsplash.com/photo-1517673400267-0251440c45dc?auto=format&fit=crop&w=600&q=80';
+        const age = (item.minAgeMonths || 6) + '-' + (item.maxAgeMonths || 12) + 'm';
+        const isReady = idx % 2 === 0;
+        
+        const card = document.createElement('div');
+        card.className = 'recipe-card';
+        card.innerHTML = `
+          <div class="card-top-tag">
+            <span class="tag-meal">${item.recipeMealType || 'BREAKFAST'}</span>
+            ${isReady ? '<span class="tag-status-ready">☑️ Ready</span>' : '<span class="tag-status-needs">🛒 Needs ingredients</span>'}
+          </div>
+
+          <img src="${img}" class="recipe-hero-img" alt="${title}" />
+
+          <div>
+            <div class="recipe-title">${title}</div>
+            <div class="recipe-subtitle">Age Suitability: ${age}</div>
+          </div>
+
+          <div class="badges-row">
+            ${(item.nutritionalFocus || ['ENERGY', 'GROWTH', 'IMMUNITY']).map(b => `<span class="badge-pill">${b}</span>`).join('')}
+          </div>
+
+          <div class="card-actions">
+            <div class="btn-outline" onclick="loadRecipeDetails('${item.id}')">View Recipe</div>
+            <div class="btn-solid" onclick="addToScheduleAction('${title}')">⊕ Add to Schedule</div>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    // A to Z FULL RECIPE DETAILS FETCH
+    async function loadRecipeDetails(recipeIdOrObj) {
+      let recipe = null;
+      if (typeof recipeIdOrObj === 'object' && recipeIdOrObj !== null) {
+        recipe = recipeIdOrObj;
+      } else if (recipeIdOrObj) {
+        const localFound = currentRecipes.find(r => r.id === recipeIdOrObj) || suggestedRecipes.find(r => r.id === recipeIdOrObj);
+        const token = getToken();
+        if (token) {
+          try {
+            const headers = { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` };
+            const res = await fetch(`${API_BASE}/api/v1/library/recipes/${recipeIdOrObj}`, { headers });
+            if (res.ok) {
+              const json = await res.json();
+              recipe = json?.data || json;
+            } else {
+              recipe = localFound;
+            }
+          } catch (e) {
+            recipe = localFound;
+          }
+        } else {
+          recipe = localFound;
+        }
+      }
+
+      if (!recipe) return;
+
+      document.getElementById('detailTitle').textContent = recipe.title || 'Blueberry Oat Porridge';
+      if (recipe.shortDescription) document.getElementById('detailDesc').textContent = recipe.shortDescription;
+      if (recipe.imageUrl) document.getElementById('detailImg').src = recipe.imageUrl;
+      
+      document.getElementById('detailMealType').textContent = recipe.recipeMealType || 'Breakfast';
+      document.getElementById('detailAgeRange').textContent = `${recipe.minAgeMonths || 6}-${recipe.maxAgeMonths || 24} months`;
+      document.getElementById('detailCookTime').textContent = `${recipe.cookTimeMin || 10} min Cook`;
+      document.getElementById('detailDifficulty').textContent = `Difficulty: ${recipe.difficulty || 'Easy'}`;
+      document.getElementById('detailPrepTime').textContent = `${recipe.prepTimeMin || 5} min Prep`;
+      document.getElementById('detailServings').textContent = `Servings: ${recipe.servings || '2-3'}`;
+
+      // Nutritional Focus Badges
+      const nutRow = document.getElementById('detailNutritionRow');
+      nutRow.innerHTML = '';
+      const nutList = recipe.nutritionalFocus || ['Growth & Energy', 'Fussy Eater Friendly', 'Balanced'];
+      nutList.forEach(n => {
+        const span = document.createElement('span');
+        span.className = 'badge-pill';
+        span.textContent = n;
+        nutRow.appendChild(span);
+      });
+
+      // Ingredients (A to Z)
+      const ingrContainer = document.getElementById('detailIngredientsList');
+      ingrContainer.innerHTML = '';
+      const ingredients = recipe.ingredients || [
+        { name: 'Organic Banana', amount: '1', unit: 'unit', isMissing: true },
+        { name: 'Egg', amount: '1', unit: 'unit' },
+        { name: 'Oats', amount: '1', unit: 'unit' },
+        { name: 'Olive oil', amount: '1', unit: 'unit' }
+      ];
+
+      document.getElementById('detailIngrCount').textContent = `${ingredients.length} Ingredients`;
+
+      ingredients.forEach((ing, i) => {
+        const isMissing = i === 0 || ing.isMissing;
+        const div = document.createElement('div');
+        div.className = `ingr-item ${isMissing ? 'highlight-missing' : ''}`;
+        div.innerHTML = `
+          <div class="ingr-left">
+            <span>${isMissing ? '🔴' : '☑️'}</span> ${ing.name} ${ing.substitute ? `<span style="font-size: 10px; color: var(--muted);">(Sub: ${ing.substitute})</span>` : ''}
+          </div>
+          <span class="ingr-unit">${ing.amount || '1'} ${ing.unit || 'unit'}</span>
+        `;
+        ingrContainer.appendChild(div);
+      });
+
+      // Steps Timeline
+      const stepsContainer = document.getElementById('detailStepsTimeline');
+      stepsContainer.innerHTML = '';
+      const steps = recipe.steps || [
+        { stepNumber: 1, description: 'Mash banana in a bowl until completely smooth with no lumps.' },
+        { stepNumber: 2, description: 'Add egg and oats and mix until a thick batter forms.' },
+        { stepNumber: 3, description: 'Add egg and oats and mix until a thick batter forms.' },
+        { stepNumber: 4, description: 'Add a small amount of oil and spread evenly.' },
+        { stepNumber: 5, description: 'Spoon batter into small rounds.' },
+        { stepNumber: 6, description: 'Cook for 2-3 minutes until bubbles appear and edges set.' },
+        { stepNumber: 7, description: 'Flip and cook for 2 more minutes, until golden and firm.' }
+      ];
+
+      steps.forEach(st => {
+        const div = document.createElement('div');
+        div.className = 'step-item';
+        div.innerHTML = `
+          <div class="step-number">${st.stepNumber}</div>
+          <div class="step-text-box">${st.description}</div>
+        `;
+        stepsContainer.appendChild(div);
+      });
+
+      // Allergens
+      const algRow = document.getElementById('detailAllergensRow');
+      algRow.innerHTML = '';
+      const allergens = recipe.allergens || ['Egg', 'Gluten'];
+      allergens.forEach(a => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.style.background = '#e0f2fe';
+        chip.style.color = '#0284c7';
+        chip.style.borderColor = '#bae6fd';
+        chip.textContent = a;
+        algRow.appendChild(chip);
+      });
+
+      // Child Preference Tags
+      const prefRow = document.getElementById('detailChildPrefRow');
+      prefRow.innerHTML = '';
+      const prefs = recipe.childPreferenceTags || ['Sweet', 'Soft texture', 'Finger food friendly'];
+      prefs.forEach(p => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = p;
+        prefRow.appendChild(chip);
+      });
+
+      if (recipe.cookingTips) document.getElementById('detailCookingTips').textContent = recipe.cookingTips;
+      if (recipe.safetyNotes) document.getElementById('detailSafetyNotes').innerHTML = recipe.safetyNotes;
+
+      showToast(`Loaded full details for "${recipe.title}"`);
+    }
+
+    function filterMealType(type, element) {
+      selectedMealType = type;
+      document.querySelectorAll('#mealCategoryChips .chip').forEach(c => c.classList.remove('active'));
+      element.classList.add('active');
+      fetchRealRecipes();
+    }
+
+    function handleSearch() {
+      const q = document.getElementById('searchInput').value.toLowerCase().trim();
+      if (!q) {
+        renderRecipesList(currentRecipes);
+        return;
+      }
+      const filtered = currentRecipes.filter(r => (r.title || '').toLowerCase().includes(q));
+      renderRecipesList(filtered);
+    }
+
+    function useFallbackData() {
+      const fallbacks = [
+        {
+          id: '1',
+          title: 'Blueberry Oat Porridge',
+          shortDescription: 'Soft, naturally sweet pancakes made with banana and oats, suitable for toddlers.',
+          imageUrl: 'https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=600&q=80',
+          recipeMealType: 'BREAKFAST',
+          minAgeMonths: 6, maxAgeMonths: 24, prepTimeMin: 5, cookTimeMin: 10, difficulty: 'Easy', servings: '2-3',
+          nutritionalFocus: ['Growth & Energy', 'Fussy Eater Friendly', 'Balanced'],
+          allergens: ['Egg', 'Gluten'],
+          childPreferenceTags: ['Sweet', 'Soft texture', 'Finger food friendly'],
+          cookingTips: 'Flip and cook for 2 more minutes until golden and firm.',
+          safetyNotes: 'Serve in soft strips or small toddler-safe pieces. Allow the <strong>pancakes to cool before serving</strong>, and supervise the child while eating.',
+          ingredients: [
+            { name: 'Organic Banana', amount: '1', unit: 'unit', isMissing: true },
+            { name: 'Egg', amount: '1', unit: 'unit' },
+            { name: 'Oats', amount: '1', unit: 'unit' },
+            { name: 'Olive oil', amount: '1', unit: 'unit' }
+          ],
+          steps: [
+            { stepNumber: 1, description: 'Mash banana in a bowl until completely smooth with no lumps.' },
+            { stepNumber: 2, description: 'Add egg and oats and mix until a thick batter forms.' },
+            { stepNumber: 3, description: 'Add egg and oats and mix until a thick batter forms.' },
+            { stepNumber: 4, description: 'Add a small amount of oil and spread evenly.' },
+            { stepNumber: 5, description: 'Spoon batter into small rounds.' },
+            { stepNumber: 6, description: 'Cook for 2-3 minutes until bubbles appear and edges set.' },
+            { stepNumber: 7, description: 'Flip and cook for 2 more minutes, until golden and firm.' }
+          ]
+        },
+        {
+          id: '2',
+          title: 'Avocado Toast with Egg',
+          shortDescription: 'Healthy avocado spread on toast topped with soft cooked egg.',
+          imageUrl: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600&q=80',
+          recipeMealType: 'LUNCH',
+          minAgeMonths: 12, maxAgeMonths: 36, prepTimeMin: 5, cookTimeMin: 5, difficulty: 'Easy', servings: '1',
+          nutritionalFocus: ['ENERGY', 'GROWTH', 'IMMUNITY'],
+          allergens: ['Egg', 'Gluten'],
+          childPreferenceTags: ['Savory', 'Crispy'],
+          cookingTips: 'Ensure egg is fully cooked.',
+          safetyNotes: 'Cut toast into toddler friendly bite-size squares.',
+          ingredients: [
+            { name: 'Whole wheat bread', amount: '1', unit: 'slice' },
+            { name: 'Avocado', amount: '1/2', unit: 'unit' },
+            { name: 'Egg', amount: '1', unit: 'unit' }
+          ],
+          steps: [
+            { stepNumber: 1, description: 'Toast the bread until golden brown.' },
+            { stepNumber: 2, description: 'Mash the avocado and spread over toast.' },
+            { stepNumber: 3, description: 'Cook egg and place on top.' }
+          ]
+        }
+      ];
+      currentRecipes = fallbacks;
+      suggestedRecipes = fallbacks;
+      renderRecipesList(fallbacks);
+      renderSuggestedRow(fallbacks);
+      loadRecipeDetails(fallbacks[0]);
+    }
+
+    function addToScheduleAction(title) {
+      showToast(`Added "${title || 'Recipe'}" to Child Schedule! 📅`);
+    }
+
+    // Modal Auth Logic
+    function openLoginModal() {
+      document.getElementById('loginModal').style.display = 'flex';
+    }
+
+    function closeLoginModal() {
+      document.getElementById('loginModal').style.display = 'none';
+    }
+
+    function fillPreset(type) {
+      if (type === 'parent') document.getElementById('modalEmail').value = 'p@e.com';
+      else if (type === 'nanny') document.getElementById('modalEmail').value = 'n@e.com';
+      else if (type === 'admin') document.getElementById('modalEmail').value = 'a@e.com';
+      document.getElementById('modalPassword').value = '123456';
+    }
+
+    async function executeModalLogin() {
+      const email = document.getElementById('modalEmail').value.trim();
+      const password = document.getElementById('modalPassword').value;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/auth/signin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        const token = data?.accessToken || data?.data?.accessToken || data?.token || data?.data?.token;
+
+        if (token) {
+          localStorage.setItem(TOKEN_KEY, token);
+          localStorage.setItem('api_test_access_token', token);
+          showToast('🔑 Logged in successfully! Token saved.');
+          closeLoginModal();
+          await checkAuthAndFetchProfile();
+          fetchSuggestedRecipes();
+          fetchRealRecipes();
+        } else {
+          showToast('Login failed: ' + (data.message || 'Invalid credentials'));
+        }
+      } catch (err) {
+        showToast('Login error: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>

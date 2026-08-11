@@ -12,6 +12,7 @@ import {
   Prisma,
   UserRole,
   UserStatus,
+  VerificationStatus,
 } from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
 import { MailService } from '../../common/mail/mail.service';
@@ -129,6 +130,7 @@ const accessInclude = {
     select: {
       id: true,
       name: true,
+      birthDate: true,
       avatar: true,
       parentUserId: true,
       parentUser: {
@@ -136,7 +138,18 @@ const accessInclude = {
           id: true,
           fullName: true,
           email: true,
+          phoneNumber: true,
           profilePictureUrl: true,
+          parentProfile: {
+            select: {
+              address: true,
+              street: true,
+              city: true,
+              state: true,
+              country: true,
+              postalCode: true,
+            },
+          },
         },
       },
     },
@@ -353,7 +366,37 @@ export class CaregiverService {
 
     return {
       success: true,
-      data: this.formatAccess(access),
+      data: this.formatInvitationReview(access),
+    };
+  }
+
+  async getMyPendingInvitations(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, phoneNumber: true, role: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const accesses = await this.prisma.caregiverAccess.findMany({
+      where: {
+        role: this.caregiverRoleForUserRole(user.role),
+        status: CaregiverAccessStatus.PENDING,
+        OR: [
+          { invitedUserId: user.id },
+          { invitedEmail: user.email.toLowerCase() },
+          user.phoneNumber ? { invitedPhone: user.phoneNumber } : undefined,
+        ].filter(Boolean) as Prisma.CaregiverAccessWhereInput[],
+      },
+      include: accessInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      success: true,
+      data: accesses.map((access) => this.formatInvitationReview(access)),
     };
   }
 
@@ -367,7 +410,13 @@ export class CaregiverService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, phoneNumber: true, role: true },
+      select: {
+        id: true,
+        email: true,
+        phoneNumber: true,
+        role: true,
+        verificationStatus: true,
+      },
     });
 
     if (!user) {
@@ -386,6 +435,7 @@ export class CaregiverService {
     }
 
     this.assertUserMatchesCaregiverRole(user.role, access.role);
+    this.assertUserCanAcceptInvitation(user.verificationStatus, access.role);
 
     const accepted = await this.prisma.caregiverAccess.update({
       where: { id: access.id },
@@ -890,10 +940,30 @@ export class CaregiverService {
     }
   }
 
+  private assertUserCanAcceptInvitation(
+    verificationStatus: VerificationStatus,
+    caregiverRole: CaregiverAccessRole,
+  ) {
+    if (
+      caregiverRole === CaregiverAccessRole.NANNY &&
+      verificationStatus !== VerificationStatus.APPROVED
+    ) {
+      throw new BadRequestException(
+        'Complete identity verification before accepting a nanny invitation',
+      );
+    }
+  }
+
   private userRoleForCaregiverRole(role?: CaregiverAccessRole) {
     if (role === CaregiverAccessRole.NANNY) return UserRole.NANNY;
     if (role === CaregiverAccessRole.PARENT) return UserRole.PARENT;
     return undefined;
+  }
+
+  private caregiverRoleForUserRole(role: UserRole) {
+    if (role === UserRole.NANNY) return CaregiverAccessRole.NANNY;
+    if (role === UserRole.PARENT) return CaregiverAccessRole.PARENT;
+    return CaregiverAccessRole.FAMILY_MEMBER;
   }
 
   private assertInviteChannelTarget(
@@ -1108,6 +1178,62 @@ export class CaregiverService {
     };
   }
 
+  private formatInvitationReview(
+    access: Prisma.CaregiverAccessGetPayload<{ include: typeof accessInclude }>,
+  ) {
+    return {
+      invitation: {
+        id: access.id,
+        role: access.role,
+        relationship: access.relationship,
+        status: access.status,
+        expiresAt: access.expiresAt,
+        createdAt: access.createdAt,
+      },
+      parent: {
+        id: access.child.parentUser.id,
+        fullName: access.child.parentUser.fullName,
+        email: access.child.parentUser.email,
+        phoneNumber: access.child.parentUser.phoneNumber,
+        image: access.child.parentUser.profilePictureUrl,
+        address: access.child.parentUser.parentProfile?.address ?? null,
+        street: access.child.parentUser.parentProfile?.street ?? null,
+        city: access.child.parentUser.parentProfile?.city ?? null,
+        state: access.child.parentUser.parentProfile?.state ?? null,
+        country: access.child.parentUser.parentProfile?.country ?? null,
+        postalCode: access.child.parentUser.parentProfile?.postalCode ?? null,
+      },
+      child: {
+        id: access.child.id,
+        name: access.child.name,
+        image: access.child.avatar,
+        birthDate: access.child.birthDate,
+        age: this.formatChildAge(access.child.birthDate),
+      },
+      invitedCaregiver: {
+        displayName:
+          access.invitedUser?.fullName ??
+          access.invitedName ??
+          access.invitedEmail ??
+          access.invitedPhone,
+        email: access.invitedEmail,
+        phoneNumber: access.invitedPhone,
+        user: access.invitedUser
+          ? {
+              id: access.invitedUser.id,
+              fullName: access.invitedUser.fullName,
+              email: access.invitedUser.email,
+              phoneNumber: access.invitedUser.phoneNumber,
+              role: access.invitedUser.role,
+              image: access.invitedUser.profilePictureUrl,
+            }
+          : null,
+      },
+      permissions: this.pickRolePermissions(access.role, access),
+      rawAccess: this.formatAccess(access),
+    };
+  }
+
   private formatAccess(
     access: Prisma.CaregiverAccessGetPayload<{ include: typeof accessInclude }>,
   ) {
@@ -1153,6 +1279,29 @@ export class CaregiverService {
       createdAt: access.createdAt,
       updatedAt: access.updatedAt,
     };
+  }
+
+  private formatChildAge(birthDate?: Date | null) {
+    if (!birthDate) return null;
+
+    const today = new Date();
+    let years = today.getUTCFullYear() - birthDate.getUTCFullYear();
+    let months = today.getUTCMonth() - birthDate.getUTCMonth();
+
+    if (today.getUTCDate() < birthDate.getUTCDate()) {
+      months -= 1;
+    }
+
+    if (months < 0) {
+      years -= 1;
+      months += 12;
+    }
+
+    if (years > 0) {
+      return months > 0 ? `${years} years ${months} months old` : `${years} years old`;
+    }
+
+    return `${months} months old`;
   }
 
   private formatAccessPermissions(

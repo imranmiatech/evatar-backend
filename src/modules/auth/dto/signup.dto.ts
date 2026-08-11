@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { UserRole, MembershipPlan } from '@prisma/client';
 import {
   IsEmail,
@@ -7,18 +8,31 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUrl,
   MinLength,
   ValidateIf,
 } from 'class-validator';
 
-export const SIGNUP_ROLE_OPTIONS = [UserRole.PARENT, UserRole.NANNY] as const;
+export const SIGNUP_ROLE_OPTIONS = [UserRole.PARENT, UserRole.NANNY, UserRole.PARTNER] as const;
 export const OTP_DELIVERY_OPTIONS = ['EMAIL', 'PHONE'] as const;
 
+const optionalString = ({ value }: { value: unknown }) => {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value !== 'string') return value;
+
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+};
+
 export class SignupDto {
-  @ApiProperty({ example: 'John Doe', description: 'Full name of the user' })
+  @ApiPropertyOptional({
+    example: 'John Doe',
+    description: 'Full name of the user. Required for Parent and Nanny; Partner uses businessName.',
+  })
+  @ValidateIf((o) => o.role !== UserRole.PARTNER)
   @IsString()
   @IsNotEmpty()
-  fullName: string;
+  fullName?: string;
 
   @ApiProperty({ example: 'john@example.com', description: 'User email address' })
   @IsEmail()
@@ -26,6 +40,7 @@ export class SignupDto {
   email: string;
 
   @ApiPropertyOptional({ example: '+971501234567', description: 'User mobile number' })
+  @Transform(optionalString)
   @IsString()
   @IsOptional()
   phoneNumber?: string;
@@ -100,4 +115,81 @@ export class SignupDto {
   @IsEnum(MembershipPlan)
   @IsOptional()
   membershipPlan?: MembershipPlan;
+
+  // --- PARTNER SPECIFIC FIELDS ---
+
+  @ApiPropertyOptional({ example: 'Little Stars Nursery', description: 'Partner business name' })
+  @ValidateIf((o) => o.role === UserRole.PARTNER)
+  @IsString()
+  @IsNotEmpty()
+  businessName?: string;
+
+  @ApiPropertyOptional({ example: 'Children’s Cafés', description: 'Partner business category' })
+  @ValidateIf((o) => o.role === UserRole.PARTNER)
+  @IsString()
+  @IsNotEmpty()
+  businessCategory?: string;
+
+  @ApiPropertyOptional({
+    example: 'Family-friendly cafe with healthy snacks and play space.',
+    description: 'Short business description',
+  })
+  @Transform(optionalString)
+  @IsString()
+  @IsOptional()
+  shortDescription?: string;
+
+  @ApiPropertyOptional({ example: 'https://partner.example.com', description: 'Business website' })
+  @Transform(optionalString)
+  @IsUrl({ require_protocol: true })
+  @IsOptional()
+  website?: string;
+
+  @ApiPropertyOptional({ example: 'United Arab Emirates', description: 'Partner business country' })
+  @ValidateIf((o) => o.role === UserRole.PARTNER)
+  @IsString()
+  @IsNotEmpty()
+  businessCountry?: string;
+
+  @ApiPropertyOptional({ example: 'Dubai', description: 'Partner business city' })
+  @ValidateIf((o) => o.role === UserRole.PARTNER)
+  @IsString()
+  @IsNotEmpty()
+  businessCity?: string;
+
+  @ApiPropertyOptional({ example: '123 High Street, Dubai', description: 'Partner business address' })
+  @ValidateIf((o) => o.role === UserRole.PARTNER)
+  @IsString()
+  @IsNotEmpty()
+  businessAddress?: string;
+
+  @ApiPropertyOptional({ example: 'Mon-Fri 9:00-18:00', description: 'Opening hours' })
+  @Transform(optionalString)
+  @IsString()
+  @IsOptional()
+  openingHours?: string;
+
+  @ApiPropertyOptional({ example: 'Jane Smith', description: 'Primary contact person' })
+  @ValidateIf((o) => o.role === UserRole.PARTNER)
+  @IsString()
+  @IsNotEmpty()
+  contactPerson?: string;
+
+  @ApiPropertyOptional({ example: 'Manager', description: 'Primary contact role/title' })
+  @Transform(optionalString)
+  @IsString()
+  @IsOptional()
+  contactRole?: string;
+
+  @ApiPropertyOptional({ example: 'jane@business.com', description: 'Primary contact email' })
+  @Transform(optionalString)
+  @IsEmail()
+  @IsOptional()
+  contactEmail?: string;
+
+  @ApiPropertyOptional({ example: '+447700900001', description: 'Primary contact phone' })
+  @Transform(optionalString)
+  @IsString()
+  @IsOptional()
+  contactPhone?: string;
 }

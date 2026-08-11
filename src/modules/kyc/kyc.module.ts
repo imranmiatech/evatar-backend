@@ -3,10 +3,11 @@ import { StorageModule } from '../../common/storage/storage.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { KycController } from './kyc.controller';
 import { KycService } from './kyc.service';
+import { SumsubService } from './sumsub.service';
 
 @Module({
   imports: [PrismaModule, StorageModule],
   controllers: [KycController],
-  providers: [KycService],
+  providers: [KycService, SumsubService],
 })
 export class KycModule {}

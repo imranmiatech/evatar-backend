@@ -9,7 +9,7 @@ import { ValidationException } from './common/exceptions';
 import { LanguageService } from './modules/language/language.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   // Global prefix
   app.setGlobalPrefix('api/v1');
@@ -104,13 +104,14 @@ async function bootstrap() {
     res.sendFile(targetPath);
   });
 
-  expressApp.get('/login-token', (req: any, res: any) => {
+  expressApp.get(['/login', '/login-ui', '/login-token'], (req: any, res: any) => {
     const fs = require('fs');
     const path = require('path');
     const possiblePaths = [
+      path.resolve(process.cwd(), 'public/login.html'),
       path.resolve(process.cwd(), 'public/login-token.html'),
+      path.resolve(__dirname, '../public/login.html'),
       path.resolve(__dirname, '../public/login-token.html'),
-      path.resolve(__dirname, '../../public/login-token.html'),
     ];
     const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
     res.sendFile(targetPath);
@@ -135,6 +136,18 @@ async function bootstrap() {
       path.resolve(process.cwd(), 'public/mobile-care.html'),
       path.resolve(__dirname, '../public/mobile-care.html'),
       path.resolve(__dirname, '../../public/mobile-care.html'),
+    ];
+    const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+    res.sendFile(targetPath);
+  });
+
+  expressApp.get(['/meal-ui', '/recipes-ui', '/meal'], (req: any, res: any) => {
+    const fs = require('fs');
+    const path = require('path');
+    const possiblePaths = [
+      path.resolve(process.cwd(), 'public/mobile-meal.html'),
+      path.resolve(__dirname, '../public/mobile-meal.html'),
+      path.resolve(__dirname, '../../public/mobile-meal.html'),
     ];
     const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
     res.sendFile(targetPath);
