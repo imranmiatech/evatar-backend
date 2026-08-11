@@ -32,6 +32,25 @@ model RewardLedgerEntry {
   @@map("reward_ledger_entries")
 }
 
+model RewardRule {
+  id                String               @id @default(uuid())
+  activityKey       String               @unique
+  activityName      String
+  eligibleUserTypes RewardRuleUserType[]
+  alureiValue       Int
+  weeklyLimit       Int?
+  status            RewardRuleStatus     @default(ACTIVE)
+  internalNotes     String?
+  createdByUserId   String?
+  updatedByUserId   String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@index([status])
+  @@index([activityName])
+  @@map("reward_rules")
+}
+
 model RewardOffer {
   id                  String                @id @default(uuid())
   partnerUserId       String

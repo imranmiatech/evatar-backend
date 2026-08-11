@@ -7,7 +7,10 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import { KitchenInventoryItemStatus, UserRole } from '@prisma/client';
 import { CreateKitchenItemDto } from '../dto/create-kitchen-item.dto';
 import { UpdateKitchenItemDto } from '../dto/update-kitchen-item.dto';
-import { KitchenItemQueryDto } from '../dto/kitchen-item-query.dto';
+import {
+  KitchenItemQueryDto,
+  KitchenItemTab,
+} from '../dto/kitchen-item-query.dto';
 import type { CurrentUserPayload } from '../../../../common/decorators/current-user.decorator';
 import { KitchenAccessService } from './kitchen-access.service';
 
@@ -42,6 +45,7 @@ export class KitchenItemService {
 
     return {
       ...rest,
+      itemStatus: rest.isArchived ? 'ARCHIVED' : 'ACTIVE',
       ownerStatus: createdByUser?.role ?? null,
     };
   }
@@ -105,11 +109,21 @@ export class KitchenItemService {
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const readableParentIds = await this.kitchenAccess.resolveReadableParentUserIds(
-      userPayload,
-      'manageGroceryLists',
-    );
+    const readableParentIds =
+      await this.kitchenAccess.resolveReadableParentUserIds(
+        userPayload,
+        'manageGroceryLists',
+      );
     const where: any = {
+      ...(query.search?.trim() && {
+        OR: [
+          { name: { contains: query.search.trim(), mode: 'insensitive' } },
+          { notes: { contains: query.search.trim(), mode: 'insensitive' } },
+        ],
+      }),
+      ...(query.category && { category: query.category }),
+      ...(query.tab === KitchenItemTab.ACTIVE && { isArchived: false }),
+      ...(query.tab === KitchenItemTab.ARCHIVED && { isArchived: true }),
       ...(query.status && { status: query.status }),
       ...(query.ownerStatus && {
         createdByUser: { role: query.ownerStatus },
@@ -128,7 +142,7 @@ export class KitchenItemService {
             select: { role: true },
           },
         },
-        orderBy: [{ status: 'asc' }, { name: 'asc' }],
+        orderBy: [{ isArchived: 'asc' }, { status: 'asc' }, { name: 'asc' }],
         skip,
         take: limit,
       }),
@@ -148,10 +162,11 @@ export class KitchenItemService {
   }
 
   async getAdminStats(userPayload: CurrentUserPayload) {
-    const readableParentIds = await this.kitchenAccess.resolveReadableParentUserIds(
-      userPayload,
-      'manageGroceryLists',
-    );
+    const readableParentIds =
+      await this.kitchenAccess.resolveReadableParentUserIds(
+        userPayload,
+        'manageGroceryLists',
+      );
     const where: any = {};
 
     if (readableParentIds) {
@@ -194,11 +209,14 @@ export class KitchenItemService {
   }
 
   async getSummary(userPayload: CurrentUserPayload) {
-    const readableParentIds = await this.kitchenAccess.resolveReadableParentUserIds(
-      userPayload,
-      'manageGroceryLists',
-    );
-    const userWhere = readableParentIds ? { userId: { in: readableParentIds } } : {};
+    const readableParentIds =
+      await this.kitchenAccess.resolveReadableParentUserIds(
+        userPayload,
+        'manageGroceryLists',
+      );
+    const userWhere = readableParentIds
+      ? { userId: { in: readableParentIds } }
+      : {};
     const [total, missingCount, lowCount, stockCount, itemsToBuy] =
       await Promise.all([
         this.prisma.kitchenItem.count({ where: userWhere }),
@@ -238,7 +256,9 @@ export class KitchenItemService {
     });
 
     if (!item) throw new NotFoundException('Kitchen item not found');
-    if (!(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId)))
+    if (
+      !(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId))
+    )
       throw new ForbiddenException('You do not have access to this item');
 
     return {
@@ -247,11 +267,17 @@ export class KitchenItemService {
     };
   }
 
-  async update(userPayload: CurrentUserPayload, id: string, dto: UpdateKitchenItemDto) {
+  async update(
+    userPayload: CurrentUserPayload,
+    id: string,
+    dto: UpdateKitchenItemDto,
+  ) {
     const item = await this.prisma.kitchenItem.findUnique({ where: { id } });
 
     if (!item) throw new NotFoundException('Kitchen item not found');
-    if (!(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId)))
+    if (
+      !(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId))
+    )
       throw new ForbiddenException('You do not have access to this item');
 
     const stockPercent =
@@ -290,11 +316,69 @@ export class KitchenItemService {
     };
   }
 
+  async archive(userPayload: CurrentUserPayload, id: string) {
+    const item = await this.prisma.kitchenItem.findUnique({ where: { id } });
+
+    if (!item) throw new NotFoundException('Kitchen item not found');
+    if (
+      !(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId))
+    )
+      throw new ForbiddenException('You do not have access to this item');
+
+    const updated = await this.prisma.kitchenItem.update({
+      where: { id },
+      data: {
+        isArchived: true,
+        lastUpdatedByUserId: userPayload.userId,
+      },
+      include: {
+        createdByUser: {
+          select: { role: true },
+        },
+      },
+    });
+
+    return {
+      message: 'Kitchen item archived successfully',
+      data: this.formatItem(updated),
+    };
+  }
+
+  async restore(userPayload: CurrentUserPayload, id: string) {
+    const item = await this.prisma.kitchenItem.findUnique({ where: { id } });
+
+    if (!item) throw new NotFoundException('Kitchen item not found');
+    if (
+      !(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId))
+    )
+      throw new ForbiddenException('You do not have access to this item');
+
+    const updated = await this.prisma.kitchenItem.update({
+      where: { id },
+      data: {
+        isArchived: false,
+        lastUpdatedByUserId: userPayload.userId,
+      },
+      include: {
+        createdByUser: {
+          select: { role: true },
+        },
+      },
+    });
+
+    return {
+      message: 'Kitchen item restored successfully',
+      data: this.formatItem(updated),
+    };
+  }
+
   async remove(userPayload: CurrentUserPayload, id: string) {
     const item = await this.prisma.kitchenItem.findUnique({ where: { id } });
 
     if (!item) throw new NotFoundException('Kitchen item not found');
-    if (!(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId)))
+    if (
+      !(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId))
+    )
       throw new ForbiddenException('You do not have access to this item');
 
     await this.prisma.kitchenItem.delete({ where: { id } });

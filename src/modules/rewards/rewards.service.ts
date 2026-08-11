@@ -13,6 +13,8 @@ import {
   RewardOfferChannel,
   RewardOfferStatus,
   RewardRedemptionStatus,
+  RewardRuleStatus,
+  RewardRuleUserType,
   Store,
   UserRole,
 } from '@prisma/client';
@@ -36,6 +38,8 @@ import { UseRedemptionDto } from './dto/use-redemption.dto';
 
 const POINTS_PER_COMPLETED_TASK = 2;
 const REDEMPTION_EXPIRY_DAYS = 180;
+const DAILY_FLOW_REWARD_RULE_KEY = 'COMPLETE_DAILY_FLOW';
+const CARE_MODULE_REWARD_RULE_KEY = 'COMPLETE_CARE_MODULE';
 
 @Injectable()
 export class RewardsService {
@@ -389,7 +393,7 @@ export class RewardsService {
         : 'Task was already rewarded',
       data: {
         dayActivityId,
-        pointsEarned: award.awarded ? POINTS_PER_COMPLETED_TASK : 0,
+        pointsEarned: award.awarded ? award.points : 0,
         account: award.account,
       },
     };
@@ -794,13 +798,33 @@ export class RewardsService {
     dayActivityId: string,
     metadata?: Prisma.InputJsonValue,
   ) {
+    const rule = await this.resolveRewardRule(
+      DAILY_FLOW_REWARD_RULE_KEY,
+      (metadata as Record<string, unknown> | undefined)?.completedByRole as
+        UserRole | undefined,
+      POINTS_PER_COMPLETED_TASK,
+    );
+
+    if (!rule.shouldAward) {
+      const account = await this.ensureRewardAccount(userId);
+      return {
+        awarded: false,
+        account,
+        ledgerEntry: null,
+        points: 0,
+        reason: rule.reason,
+      };
+    }
+
     return this.awardOnce({
       userId,
-      points: POINTS_PER_COMPLETED_TASK,
+      points: rule.points,
       sourceType: RewardLedgerSourceType.DAY_ACTIVITY,
       sourceId: dayActivityId,
       description: 'Completed task',
-      metadata,
+      metadata: this.withRewardRuleMetadata(metadata, rule),
+      rewardRuleActivityKey: rule.activityKey,
+      weeklyLimit: rule.weeklyLimit,
     });
   }
 
@@ -810,13 +834,33 @@ export class RewardsService {
     points: number,
     metadata?: Prisma.InputJsonValue,
   ) {
+    const rule = await this.resolveRewardRule(
+      CARE_MODULE_REWARD_RULE_KEY,
+      (metadata as Record<string, unknown> | undefined)?.completedByRole as
+        UserRole | undefined,
+      points,
+    );
+
+    if (!rule.shouldAward) {
+      const account = await this.ensureRewardAccount(userId);
+      return {
+        awarded: false,
+        account,
+        ledgerEntry: null,
+        points: 0,
+        reason: rule.reason,
+      };
+    }
+
     return this.awardOnce({
       userId,
-      points,
+      points: rule.points,
       sourceType: RewardLedgerSourceType.CARE_MODULE_ASSIGNMENT,
       sourceId: assignmentId,
       description: 'Completed care module',
-      metadata,
+      metadata: this.withRewardRuleMetadata(metadata, rule),
+      rewardRuleActivityKey: rule.activityKey,
+      weeklyLimit: rule.weeklyLimit,
     });
   }
 
@@ -827,12 +871,44 @@ export class RewardsService {
     sourceId: string;
     description: string;
     metadata?: Prisma.InputJsonValue;
+    rewardRuleActivityKey?: string;
+    weeklyLimit?: number | null;
   }) {
     if (input.points <= 0) {
       throw new BadRequestException('Reward points must be greater than zero');
     }
 
     return this.prisma.$transaction(async (tx) => {
+      if (input.rewardRuleActivityKey && input.weeklyLimit) {
+        const now = new Date();
+        const weekStart = new Date(now);
+        weekStart.setUTCHours(0, 0, 0, 0);
+        weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay());
+
+        const weeklyAwardCount = await tx.rewardLedgerEntry.count({
+          where: {
+            userId: input.userId,
+            entryType: RewardLedgerEntryType.EARN,
+            createdAt: { gte: weekStart },
+            metadata: {
+              path: ['rewardRuleActivityKey'],
+              equals: input.rewardRuleActivityKey,
+            },
+          },
+        });
+
+        if (weeklyAwardCount >= input.weeklyLimit) {
+          const account = await this.ensureRewardAccountForTx(tx, input.userId);
+          return {
+            awarded: false,
+            account,
+            ledgerEntry: null,
+            points: 0,
+            reason: 'WEEKLY_LIMIT_REACHED',
+          };
+        }
+      }
+
       const existing = await tx.rewardLedgerEntry.findUnique({
         where: {
           entryType_sourceType_sourceId: {
@@ -845,7 +921,13 @@ export class RewardsService {
 
       if (existing) {
         const account = await this.ensureRewardAccountForTx(tx, input.userId);
-        return { awarded: false, account, ledgerEntry: existing };
+        return {
+          awarded: false,
+          account,
+          ledgerEntry: existing,
+          points: 0,
+          reason: 'ALREADY_REWARDED',
+        };
       }
 
       const account = await tx.rewardAccount.upsert({
@@ -874,8 +956,91 @@ export class RewardsService {
         },
       });
 
-      return { awarded: true, account, ledgerEntry };
+      return { awarded: true, account, ledgerEntry, points: input.points };
     });
+  }
+
+  private async resolveRewardRule(
+    activityKey: string,
+    role: UserRole | undefined,
+    fallbackPoints: number,
+  ) {
+    const rule = await this.prisma.rewardRule.findUnique({
+      where: { activityKey },
+    });
+
+    if (!rule) {
+      return {
+        shouldAward: true,
+        activityKey,
+        ruleId: null,
+        points: fallbackPoints,
+        weeklyLimit: null,
+      };
+    }
+
+    if (rule.status !== RewardRuleStatus.ACTIVE) {
+      return {
+        shouldAward: false,
+        activityKey,
+        ruleId: rule.id,
+        points: 0,
+        weeklyLimit: rule.weeklyLimit,
+        reason: 'REWARD_RULE_DISABLED',
+      };
+    }
+
+    if (role && !this.isEligibleForRewardRule(rule.eligibleUserTypes, role)) {
+      return {
+        shouldAward: false,
+        activityKey,
+        ruleId: rule.id,
+        points: 0,
+        weeklyLimit: rule.weeklyLimit,
+        reason: 'USER_TYPE_NOT_ELIGIBLE',
+      };
+    }
+
+    return {
+      shouldAward: true,
+      activityKey: rule.activityKey,
+      ruleId: rule.id,
+      points: rule.alureiValue,
+      weeklyLimit: rule.weeklyLimit,
+    };
+  }
+
+  private isEligibleForRewardRule(
+    eligibleUserTypes: RewardRuleUserType[],
+    role: UserRole,
+  ) {
+    return (
+      eligibleUserTypes.includes(RewardRuleUserType.ALL) ||
+      eligibleUserTypes.includes(role as unknown as RewardRuleUserType)
+    );
+  }
+
+  private withRewardRuleMetadata(
+    metadata: Prisma.InputJsonValue | undefined,
+    rule: {
+      activityKey: string;
+      ruleId: string | null;
+      points: number;
+      weeklyLimit: number | null;
+    },
+  ) {
+    const base =
+      metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+        ? (metadata as Record<string, unknown>)
+        : {};
+
+    return {
+      ...base,
+      rewardRuleId: rule.ruleId,
+      rewardRuleActivityKey: rule.activityKey,
+      rewardRulePoints: rule.points,
+      rewardRuleWeeklyLimit: rule.weeklyLimit,
+    } satisfies Prisma.InputJsonValue;
   }
 
   private async ensureRewardAccount(userId: string) {

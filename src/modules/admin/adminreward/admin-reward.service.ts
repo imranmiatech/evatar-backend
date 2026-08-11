@@ -1,10 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   Prisma,
   RewardLedgerEntryType,
   RewardOfferStatus,
+  RewardRuleStatus,
 } from '@prisma/client';
+import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../../prisma/prisma.service';
+import {
+  CreateRewardRuleDto,
+  UpdateRewardRuleDto,
+} from './dto/reward-rule.dto';
 
 type RewardMetric = {
   key: string;
@@ -196,6 +206,141 @@ export class AdminRewardService {
     return activities
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, take);
+  }
+
+  async getRewardRules(query: { search?: string; status?: string }) {
+    const status = this.parseRewardRuleStatus(query.status);
+    const search = query.search?.trim();
+
+    const where = {
+      ...(status && { status }),
+      ...(search && {
+        OR: [
+          {
+            activityName: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+          {
+            activityKey: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+          {
+            internalNotes: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+        ],
+      }),
+    } as any;
+
+    const rules = await this.prisma.rewardRule.findMany({
+      where,
+      orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    return {
+      success: true,
+      message: 'Reward rules fetched successfully',
+      data: rules.map((rule) => this.formatRewardRule(rule)),
+    };
+  }
+
+  async createRewardRule(user: CurrentUserPayload, dto: CreateRewardRuleDto) {
+    const duplicate = await this.prisma.rewardRule.findUnique({
+      where: { activityKey: dto.activityKey },
+      select: { id: true },
+    });
+
+    if (duplicate) {
+      throw new BadRequestException(
+        'Reward rule already exists for this activity',
+      );
+    }
+
+    const rule = await this.prisma.rewardRule.create({
+      data: {
+        activityKey: dto.activityKey,
+        activityName: dto.activityName.trim(),
+        eligibleUserTypes: dto.eligibleUserTypes,
+        alureiValue: dto.alureiValue,
+        weeklyLimit: dto.weeklyLimit ?? null,
+        status: dto.status ?? RewardRuleStatus.ACTIVE,
+        internalNotes: dto.internalNotes?.trim() || null,
+        createdByUserId: user.userId,
+        updatedByUserId: user.userId,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Reward rule created successfully',
+      data: this.formatRewardRule(rule),
+    };
+  }
+
+  async updateRewardRule(
+    user: CurrentUserPayload,
+    id: string,
+    dto: UpdateRewardRuleDto,
+  ) {
+    await this.assertRewardRuleExists(id);
+
+    if (dto.activityKey) {
+      const duplicate = await this.prisma.rewardRule.findFirst({
+        where: { activityKey: dto.activityKey, NOT: { id } },
+        select: { id: true },
+      });
+
+      if (duplicate) {
+        throw new BadRequestException(
+          'Reward rule already exists for this activity',
+        );
+      }
+    }
+
+    const rule = await this.prisma.rewardRule.update({
+      where: { id },
+      data: {
+        ...(dto.activityKey && { activityKey: dto.activityKey }),
+        ...(dto.activityName !== undefined && {
+          activityName: dto.activityName.trim(),
+        }),
+        ...(dto.eligibleUserTypes !== undefined && {
+          eligibleUserTypes: dto.eligibleUserTypes,
+        }),
+        ...(dto.alureiValue !== undefined && { alureiValue: dto.alureiValue }),
+        ...(dto.weeklyLimit !== undefined && {
+          weeklyLimit: dto.weeklyLimit ?? null,
+        }),
+        ...(dto.status && { status: dto.status }),
+        ...(dto.internalNotes !== undefined && {
+          internalNotes: dto.internalNotes?.trim() || null,
+        }),
+        updatedByUserId: user.userId,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Reward rule updated successfully',
+      data: this.formatRewardRule(rule),
+    };
+  }
+
+  async deleteRewardRule(id: string) {
+    await this.assertRewardRuleExists(id);
+    await this.prisma.rewardRule.delete({ where: { id } });
+
+    return {
+      success: true,
+      message: 'Reward rule deleted successfully',
+      data: { id, deleted: true },
+    };
   }
 
   private async issuedPoints(createdAt?: Prisma.DateTimeFilter) {
@@ -424,6 +569,62 @@ export class AdminRewardService {
       ),
       30,
     );
+  }
+
+  private parseRewardRuleStatus(status?: string) {
+    if (!status) return undefined;
+    const normalized = status.toUpperCase();
+
+    if (
+      !Object.values(RewardRuleStatus).includes(normalized as RewardRuleStatus)
+    ) {
+      throw new BadRequestException('Invalid reward rule status');
+    }
+
+    return normalized as RewardRuleStatus;
+  }
+
+  private async assertRewardRuleExists(id: string) {
+    const rule = await this.prisma.rewardRule.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!rule) {
+      throw new NotFoundException('Reward rule not found');
+    }
+
+    return rule;
+  }
+
+  private formatRewardRule(rule: {
+    id: string;
+    activityKey: string;
+    activityName: string;
+    eligibleUserTypes: string[];
+    alureiValue: number;
+    weeklyLimit: number | null;
+    status: string;
+    internalNotes: string | null;
+    createdByUserId: string | null;
+    updatedByUserId: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }) {
+    return {
+      id: rule.id,
+      activityKey: rule.activityKey,
+      activityName: rule.activityName,
+      eligibleUserTypes: rule.eligibleUserTypes,
+      alureiValue: rule.alureiValue,
+      weeklyLimit: rule.weeklyLimit,
+      status: rule.status,
+      internalNotes: rule.internalNotes,
+      createdByUserId: rule.createdByUserId,
+      updatedByUserId: rule.updatedByUserId,
+      createdAt: rule.createdAt,
+      updatedAt: rule.updatedAt,
+    };
   }
 
   private formatTimeAgo(date: Date, now: Date): string {

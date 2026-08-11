@@ -427,6 +427,18 @@ enum RewardClaimMethod {
   IN_STORE
 }
 
+enum RewardRuleUserType {
+  PARENT
+  NANNY
+  FAMILY_MEMBER
+  ALL
+}
+
+enum RewardRuleStatus {
+  ACTIVE
+  DISABLED
+}
+
 enum SubscriptionStatus {
   FREE_TRIAL
   ACTIVE

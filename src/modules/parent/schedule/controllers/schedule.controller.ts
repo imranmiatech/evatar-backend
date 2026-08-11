@@ -13,6 +13,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -31,7 +32,7 @@ import { UpdateManualScheduleDto } from '../dto/update-manual-schedule.dto';
 @UseGuards(JwtAuthGuard)
 @Controller('parent/schedules')
 export class ScheduleController {
-  constructor(private readonly scheduleService: ScheduleService) { }
+  constructor(private readonly scheduleService: ScheduleService) {}
 
   @Post('library')
   @ApiOperation({
@@ -63,9 +64,15 @@ export class ScheduleController {
 
   @Get()
   @ApiOperation({
-    summary: "Get today's and other schedules",
+    summary: "Get today's, date-based, and upcoming schedules",
     description:
-      "Returns today's schedules and other (upcoming/past) schedules separately. Optionally filter by childId.",
+      'Returns todaySchedules, dateSchedules, and upcomingSchedules separately. Use view=TODAY, view=DATE, or view=UPCOMING when only one list is needed.',
+  })
+  @ApiQuery({
+    name: 'view',
+    required: false,
+    enum: ['ALL', 'TODAY', 'DATE', 'UPCOMING'],
+    example: 'ALL',
   })
   @ApiResponse({ status: 200, description: 'Schedules returned.' })
   getSchedules(
@@ -88,7 +95,9 @@ export class ScheduleController {
   }
 
   @Patch('library/:scheduleId')
-  @ApiOperation({ summary: 'Update a schedule from library (Activity or Recipe)' })
+  @ApiOperation({
+    summary: 'Update a schedule from library (Activity or Recipe)',
+  })
   @ApiParam({ name: 'scheduleId', description: 'Schedule ID' })
   @ApiResponse({ status: 200, description: 'Library schedule updated.' })
   @ApiResponse({ status: 404, description: 'Schedule not found.' })
@@ -97,7 +106,11 @@ export class ScheduleController {
     @Param('scheduleId') scheduleId: string,
     @Body() dto: UpdateLibraryScheduleDto,
   ) {
-    return this.scheduleService.updateLibrarySchedule(user.userId, scheduleId, dto);
+    return this.scheduleService.updateLibrarySchedule(
+      user.userId,
+      scheduleId,
+      dto,
+    );
   }
 
   @Patch('manual/:scheduleId')
@@ -110,7 +123,11 @@ export class ScheduleController {
     @Param('scheduleId') scheduleId: string,
     @Body() dto: UpdateManualScheduleDto,
   ) {
-    return this.scheduleService.updateManualSchedule(user.userId, scheduleId, dto);
+    return this.scheduleService.updateManualSchedule(
+      user.userId,
+      scheduleId,
+      dto,
+    );
   }
 
   @Delete(':scheduleId')

@@ -13,6 +13,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -33,7 +34,7 @@ import { KitchenItemQueryDto } from '../dto/kitchen-item-query.dto';
 @Roles(UserRole.PARENT, UserRole.ADMIN, UserRole.NANNY)
 @Controller('parent/kitchen/items')
 export class KitchenItemController {
-  constructor(private readonly kitchenItemService: KitchenItemService) { }
+  constructor(private readonly kitchenItemService: KitchenItemService) {}
 
   @Post()
   @ApiOperation({
@@ -62,7 +63,8 @@ export class KitchenItemController {
 
   @Get('stats')
   @ApiOperation({
-    summary: 'Get kitchen inventory stats (Total Items, Categories, Owner Counts)',
+    summary:
+      'Get kitchen inventory stats (Total Items, Categories, Owner Counts)',
     description:
       'Returns total item count, category count, and creator role counts.',
   })
@@ -73,7 +75,8 @@ export class KitchenItemController {
 
   @Get('admin-stats')
   @ApiOperation({
-    summary: 'Get kitchen inventory admin stats (Total Items, Categories, Owner Counts)',
+    summary:
+      'Get kitchen inventory admin stats (Total Items, Categories, Owner Counts)',
     description:
       'Returns summary metrics: totalItems, categories count, and creator role counts.',
   })
@@ -86,7 +89,28 @@ export class KitchenItemController {
   @ApiOperation({
     summary: 'Get all kitchen inventory items',
     description:
-      'Returns paginated kitchen items. Optionally filter by status (MISSING, LOW, IN_STOCK). Supports page & limit query params.',
+      'Returns paginated kitchen items. Supports search, category, tab (ALL/ACTIVE/ARCHIVED), stock status, owner status, page, and limit.',
+  })
+  @ApiQuery({ name: 'search', required: false, example: 'Almond' })
+  @ApiQuery({
+    name: 'category',
+    required: false,
+    enum: [
+      'PRODUCE',
+      'DAIRY',
+      'BAKERY',
+      'PANTRY',
+      'BABY',
+      'FRUIT',
+      'MEAT',
+      'OTHER',
+    ],
+  })
+  @ApiQuery({
+    name: 'tab',
+    required: false,
+    enum: ['ALL', 'ACTIVE', 'ARCHIVED'],
+    example: 'ALL',
   })
   @ApiResponse({ status: 200, description: 'Items returned.' })
   findAll(
@@ -101,10 +125,7 @@ export class KitchenItemController {
   @ApiParam({ name: 'id', description: 'Kitchen Item ID' })
   @ApiResponse({ status: 200, description: 'Item returned.' })
   @ApiResponse({ status: 404, description: 'Item not found.' })
-  findOne(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id') id: string,
-  ) {
+  findOne(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
     return this.kitchenItemService.findOne(user, id);
   }
 
@@ -125,15 +146,28 @@ export class KitchenItemController {
     return this.kitchenItemService.update(user, id, dto);
   }
 
+  @Patch(':id/archive')
+  @ApiOperation({ summary: 'Archive a kitchen item' })
+  @ApiParam({ name: 'id', description: 'Kitchen Item ID' })
+  @ApiResponse({ status: 200, description: 'Item archived.' })
+  archive(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
+    return this.kitchenItemService.archive(user, id);
+  }
+
+  @Patch(':id/restore')
+  @ApiOperation({ summary: 'Restore an archived kitchen item' })
+  @ApiParam({ name: 'id', description: 'Kitchen Item ID' })
+  @ApiResponse({ status: 200, description: 'Item restored.' })
+  restore(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
+    return this.kitchenItemService.restore(user, id);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a kitchen item' })
   @ApiParam({ name: 'id', description: 'Kitchen Item ID' })
   @ApiResponse({ status: 200, description: 'Item deleted.' })
   @ApiResponse({ status: 404, description: 'Item not found.' })
-  remove(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id') id: string,
-  ) {
+  remove(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
     return this.kitchenItemService.remove(user, id);
   }
 }

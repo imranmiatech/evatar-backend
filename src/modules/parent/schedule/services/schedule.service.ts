@@ -9,7 +9,7 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import { ScheduleMode } from '@prisma/client';
 import { CreateLibraryScheduleDto } from '../dto/create-library-schedule.dto';
 import { CreateManualScheduleDto } from '../dto/create-manual-schedule.dto';
-import { ScheduleQueryDto } from '../dto/schedule-query.dto';
+import { ScheduleQueryDto, ScheduleView } from '../dto/schedule-query.dto';
 import { UpdateLibraryScheduleDto } from '../dto/update-library-schedule.dto';
 import { UpdateManualScheduleDto } from '../dto/update-manual-schedule.dto';
 
@@ -69,8 +69,7 @@ export class ScheduleService {
           }),
     ]);
 
-    const libraryItem =
-      dto.libraryItemType === 'activity' ? activity : recipe;
+    const libraryItem = dto.libraryItemType === 'activity' ? activity : recipe;
 
     if (!libraryItem) {
       throw new NotFoundException(
@@ -143,22 +142,26 @@ export class ScheduleService {
     const skip = (page - 1) * limit;
 
     const today = this.resolveDate();
-    const filterDate = query.date ? this.resolveDate(query.date) : undefined;
+    const selectedDate = query.date ? this.resolveDate(query.date) : today;
+    const view = query.view ?? ScheduleView.ALL;
 
     const whereBase = {
-      childId: query.childId
-        ? query.childId
-        : { in: accessibleChildIds },
+      childId: query.childId ? query.childId : { in: accessibleChildIds },
     };
 
     const todayWhere = {
       ...whereBase,
-      date: filterDate ?? today,
+      date: today,
     };
 
-    const otherWhere = {
+    const dateWhere = {
       ...whereBase,
-      ...(filterDate ? { id: 'skip' } : { date: { not: today } }), // if specific date is requested, otherSchedules is empty
+      date: selectedDate,
+    };
+
+    const upcomingWhere = {
+      ...whereBase,
+      date: { gt: today },
     };
 
     const includeRelations = {
@@ -171,50 +174,100 @@ export class ScheduleService {
       },
     };
 
-    const [todaySchedules, otherSchedules, todayCount, otherCount] = await Promise.all([
-      this.prisma.childSchedule.findMany({
-        where: todayWhere,
-        include: includeRelations,
-        orderBy: { startTime: 'asc' },
-        skip,
-        take: limit,
-      }),
+    const shouldFetchToday =
+      view === ScheduleView.ALL || view === ScheduleView.TODAY;
+    const shouldFetchDate =
+      view === ScheduleView.ALL || view === ScheduleView.DATE;
+    const shouldFetchUpcoming =
+      view === ScheduleView.ALL || view === ScheduleView.UPCOMING;
 
-      filterDate 
-        ? Promise.resolve([] as any[]) 
-        : this.prisma.childSchedule.findMany({
-            where: otherWhere,
+    const [
+      todaySchedules,
+      dateSchedules,
+      upcomingSchedules,
+      todayCount,
+      dateCount,
+      upcomingCount,
+    ] = await Promise.all([
+      shouldFetchToday
+        ? this.prisma.childSchedule.findMany({
+            where: todayWhere,
+            include: includeRelations,
+            orderBy: { startTime: 'asc' },
+            skip,
+            take: limit,
+          })
+        : Promise.resolve([]),
+
+      shouldFetchDate
+        ? this.prisma.childSchedule.findMany({
+            where: dateWhere,
+            include: includeRelations,
+            orderBy: { startTime: 'asc' },
+            skip,
+            take: limit,
+          })
+        : Promise.resolve([]),
+
+      shouldFetchUpcoming
+        ? this.prisma.childSchedule.findMany({
+            where: upcomingWhere,
             include: includeRelations,
             orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
             skip,
             take: limit,
-          }),
+          })
+        : Promise.resolve([]),
 
-      this.prisma.childSchedule.count({ where: todayWhere }),
-      
-      filterDate 
-        ? Promise.resolve(0) 
-        : this.prisma.childSchedule.count({ where: otherWhere }),
+      shouldFetchToday
+        ? this.prisma.childSchedule.count({ where: todayWhere })
+        : Promise.resolve(0),
+
+      shouldFetchDate
+        ? this.prisma.childSchedule.count({ where: dateWhere })
+        : Promise.resolve(0),
+
+      shouldFetchUpcoming
+        ? this.prisma.childSchedule.count({ where: upcomingWhere })
+        : Promise.resolve(0),
     ]);
+
+    const formattedUpcomingSchedules = this.formatSchedules(upcomingSchedules);
 
     return {
       message: 'Schedules fetched successfully',
       data: {
         todaySchedules: this.formatSchedules(todaySchedules),
-        otherSchedules: this.formatSchedules(otherSchedules),
+        dateSchedules: this.formatSchedules(dateSchedules),
+        upcomingSchedules: formattedUpcomingSchedules,
+        otherSchedules: formattedUpcomingSchedules,
       },
       meta: {
+        view,
+        selectedDate,
         todaySchedules: {
           total: todayCount,
           page,
           limit,
           totalPages: Math.ceil(todayCount / limit),
         },
-        otherSchedules: {
-          total: otherCount,
+        dateSchedules: {
+          total: dateCount,
           page,
           limit,
-          totalPages: Math.ceil(otherCount / limit),
+          totalPages: Math.ceil(dateCount / limit),
+        },
+        upcomingSchedules: {
+          total: upcomingCount,
+          page,
+          limit,
+          totalPages: Math.ceil(upcomingCount / limit),
+        },
+        otherSchedules: {
+          total: upcomingCount,
+          page,
+          limit,
+          totalPages: Math.ceil(upcomingCount / limit),
         },
       },
     };
@@ -229,7 +282,12 @@ export class ScheduleService {
           select: { id: true, title: true, activityType: true, imageUrl: true },
         },
         recipe: {
-          select: { id: true, title: true, recipeMealType: true, imageUrl: true },
+          select: {
+            id: true,
+            title: true,
+            recipeMealType: true,
+            imageUrl: true,
+          },
         },
       },
     });
@@ -246,7 +304,11 @@ export class ScheduleService {
     };
   }
 
-  async updateLibrarySchedule(userId: string, scheduleId: string, dto: UpdateLibraryScheduleDto) {
+  async updateLibrarySchedule(
+    userId: string,
+    scheduleId: string,
+    dto: UpdateLibraryScheduleDto,
+  ) {
     const schedule = await this.prisma.childSchedule.findUnique({
       where: { id: scheduleId },
     });
@@ -287,7 +349,8 @@ export class ScheduleService {
             }),
       ]);
 
-      const libraryItem = dto.libraryItemType === 'activity' ? activity : recipe;
+      const libraryItem =
+        dto.libraryItemType === 'activity' ? activity : recipe;
 
       if (!libraryItem) {
         throw new NotFoundException(
@@ -301,7 +364,8 @@ export class ScheduleService {
           dto.libraryItemType === 'activity'
             ? this.mapActivityCategory((activity as any).activityType)
             : this.mapRecipeCategory((recipe as any).recipeMealType),
-        activityId: dto.libraryItemType === 'activity' ? dto.libraryItemId : null,
+        activityId:
+          dto.libraryItemType === 'activity' ? dto.libraryItemId : null,
         recipeId: dto.libraryItemType === 'recipe' ? dto.libraryItemId : null,
         mode: ScheduleMode.LIBRARY,
       };
@@ -326,7 +390,11 @@ export class ScheduleService {
     };
   }
 
-  async updateManualSchedule(userId: string, scheduleId: string, dto: UpdateManualScheduleDto) {
+  async updateManualSchedule(
+    userId: string,
+    scheduleId: string,
+    dto: UpdateManualScheduleDto,
+  ) {
     const schedule = await this.prisma.childSchedule.findUnique({
       where: { id: scheduleId },
     });

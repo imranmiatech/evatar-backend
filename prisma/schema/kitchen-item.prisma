@@ -9,6 +9,7 @@ model KitchenItem {
   category            KitchenItemCategory        @default(OTHER)
   status              KitchenInventoryItemStatus @default(IN_STOCK)
   currentStockPercent Int                        @default(100)
+  isArchived          Boolean                    @default(false)
   expiryDate          DateTime?
   lastStockedAt       DateTime?
   notes               String?
@@ -20,5 +21,7 @@ model KitchenItem {
 
   @@index([userId])
   @@index([createdByUserId])
+  @@index([category])
+  @@index([isArchived])
   @@map("kitchen_items")
 }

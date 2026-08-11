@@ -107,15 +107,51 @@ const ACTIVITY_CATEGORY_KEYWORDS = [
 
 const CARE_HOME_TOPICS = [
   { id: 'ALL', label: 'All Topics', value: null },
-  { id: CareModuleCategory.CHILD_SAFETY, label: 'Child Safety', value: CareModuleCategory.CHILD_SAFETY },
-  { id: CareModuleCategory.NUTRITION_FEEDING, label: 'Nutrition & Feeding', value: CareModuleCategory.NUTRITION_FEEDING },
-  { id: CareModuleCategory.SLEEP_ROUTINES, label: 'Sleep & Routines', value: CareModuleCategory.SLEEP_ROUTINES },
-  { id: CareModuleCategory.CHILD_DEVELOPMENT, label: 'Child Development', value: CareModuleCategory.CHILD_DEVELOPMENT },
-  { id: CareModuleCategory.FIRST_AID, label: 'First Aid', value: CareModuleCategory.FIRST_AID },
-  { id: CareModuleCategory.PLAY_LEARNING, label: 'Play & Learning', value: CareModuleCategory.PLAY_LEARNING },
-  { id: CareModuleCategory.COMMUNICATION, label: 'Communication', value: CareModuleCategory.COMMUNICATION },
-  { id: CareModuleCategory.HEALTH_HYGIENE, label: 'Health & Hygiene', value: CareModuleCategory.HEALTH_HYGIENE },
-  { id: CareModuleCategory.OTHER, label: 'Other', value: CareModuleCategory.OTHER },
+  {
+    id: CareModuleCategory.CHILD_SAFETY,
+    label: 'Child Safety',
+    value: CareModuleCategory.CHILD_SAFETY,
+  },
+  {
+    id: CareModuleCategory.NUTRITION_FEEDING,
+    label: 'Nutrition & Feeding',
+    value: CareModuleCategory.NUTRITION_FEEDING,
+  },
+  {
+    id: CareModuleCategory.SLEEP_ROUTINES,
+    label: 'Sleep & Routines',
+    value: CareModuleCategory.SLEEP_ROUTINES,
+  },
+  {
+    id: CareModuleCategory.CHILD_DEVELOPMENT,
+    label: 'Child Development',
+    value: CareModuleCategory.CHILD_DEVELOPMENT,
+  },
+  {
+    id: CareModuleCategory.FIRST_AID,
+    label: 'First Aid',
+    value: CareModuleCategory.FIRST_AID,
+  },
+  {
+    id: CareModuleCategory.PLAY_LEARNING,
+    label: 'Play & Learning',
+    value: CareModuleCategory.PLAY_LEARNING,
+  },
+  {
+    id: CareModuleCategory.COMMUNICATION,
+    label: 'Communication',
+    value: CareModuleCategory.COMMUNICATION,
+  },
+  {
+    id: CareModuleCategory.HEALTH_HYGIENE,
+    label: 'Health & Hygiene',
+    value: CareModuleCategory.HEALTH_HYGIENE,
+  },
+  {
+    id: CareModuleCategory.OTHER,
+    label: 'Other',
+    value: CareModuleCategory.OTHER,
+  },
 ] as const;
 
 type CareModuleSuggestedAgeRange = {
@@ -136,7 +172,10 @@ export class CareService {
   async createModule(
     user: CurrentUserPayload,
     dto: any,
-    files?: { coverImage?: Express.Multer.File[]; video?: Express.Multer.File[] },
+    files?: {
+      coverImage?: Express.Multer.File[];
+      video?: Express.Multer.File[];
+    },
   ) {
     this.ensureAdmin(user);
 
@@ -179,7 +218,10 @@ export class CareService {
     if (Array.isArray(questions)) {
       this.validateQuestions(questions);
     }
-    this.validateSuggestedAgeRange({ suggestedMinAgeYears, suggestedMaxAgeYears });
+    this.validateSuggestedAgeRange({
+      suggestedMinAgeYears,
+      suggestedMaxAgeYears,
+    });
 
     const module = await this.prisma.careModule.create({
       data: {
@@ -196,28 +238,34 @@ export class CareService {
         contentTitle: dto.contentTitle?.trim(),
         contentSections: contentSections ?? {},
         keyTakeaway: dto.keyTakeaway?.trim(),
-        isPublished: isPublished ?? (dto.adminStatus === CareModuleAdminStatus.PUBLISHED),
-        adminStatus: dto.adminStatus ?? (isPublished ? CareModuleAdminStatus.PUBLISHED : CareModuleAdminStatus.DRAFT),
+        isPublished:
+          isPublished ?? dto.adminStatus === CareModuleAdminStatus.PUBLISHED,
+        adminStatus:
+          dto.adminStatus ??
+          (isPublished
+            ? CareModuleAdminStatus.PUBLISHED
+            : CareModuleAdminStatus.DRAFT),
         createdByUserId: this.currentUserId(user),
-        ...(Array.isArray(questions) && questions.length > 0 && {
-          questions: {
-            create: questions.map((question: any, questionIndex: number) => ({
-              question: question.question.trim(),
-              type: question.type ?? CareQuestionType.SINGLE_CHOICE,
-              explanation: question.explanation.trim(),
-              sortOrder: questionIndex + 1,
-              options: {
-                create: question.options.map(
-                  (option: any, optionIndex: number) => ({
-                    label: option.label.trim(),
-                    isCorrect: Boolean(option.isCorrect),
-                    sortOrder: optionIndex + 1,
-                  }),
-                ),
-              },
-            })),
-          },
-        }),
+        ...(Array.isArray(questions) &&
+          questions.length > 0 && {
+            questions: {
+              create: questions.map((question: any, questionIndex: number) => ({
+                question: question.question.trim(),
+                type: question.type ?? CareQuestionType.SINGLE_CHOICE,
+                explanation: question.explanation.trim(),
+                sortOrder: questionIndex + 1,
+                options: {
+                  create: question.options.map(
+                    (option: any, optionIndex: number) => ({
+                      label: option.label.trim(),
+                      isCorrect: Boolean(option.isCorrect),
+                      sortOrder: optionIndex + 1,
+                    }),
+                  ),
+                },
+              })),
+            },
+          }),
       },
       include: moduleDetailInclude,
     });
@@ -233,7 +281,10 @@ export class CareService {
     user: CurrentUserPayload,
     id: string,
     dto: any,
-    files?: { coverImage?: Express.Multer.File[]; video?: Express.Multer.File[] },
+    files?: {
+      coverImage?: Express.Multer.File[];
+      video?: Express.Multer.File[];
+    },
   ) {
     this.ensureAdmin(user);
 
@@ -289,7 +340,9 @@ export class CareService {
 
     if (Array.isArray(questions)) {
       this.validateQuestions(questions);
-      await this.prisma.careQuizQuestion.deleteMany({ where: { moduleId: id } });
+      await this.prisma.careQuizQuestion.deleteMany({
+        where: { moduleId: id },
+      });
     }
 
     const updated = await this.prisma.careModule.update({
@@ -297,7 +350,9 @@ export class CareService {
       data: {
         ...(dto.title !== undefined && { title: dto.title.trim() }),
         ...(dto.subtitle !== undefined && { subtitle: dto.subtitle?.trim() }),
-        ...(dto.description !== undefined && { description: dto.description?.trim() }),
+        ...(dto.description !== undefined && {
+          description: dto.description?.trim(),
+        }),
         ...(coverImageUrl !== undefined && { coverImageUrl }),
         ...(videoUrl !== undefined && { videoUrl }),
         ...(dto.category !== undefined && { category: dto.category }),
@@ -305,12 +360,18 @@ export class CareService {
         ...(coinReward !== undefined && { coinReward }),
         ...(suggestedMinAgeYears !== undefined && { suggestedMinAgeYears }),
         ...(suggestedMaxAgeYears !== undefined && { suggestedMaxAgeYears }),
-        ...(dto.contentTitle !== undefined && { contentTitle: dto.contentTitle?.trim() }),
+        ...(dto.contentTitle !== undefined && {
+          contentTitle: dto.contentTitle?.trim(),
+        }),
         ...(contentSections !== undefined && { contentSections }),
-        ...(dto.keyTakeaway !== undefined && { keyTakeaway: dto.keyTakeaway?.trim() }),
+        ...(dto.keyTakeaway !== undefined && {
+          keyTakeaway: dto.keyTakeaway?.trim(),
+        }),
         ...(isPublished !== undefined && {
           isPublished,
-          adminStatus: isPublished ? CareModuleAdminStatus.PUBLISHED : CareModuleAdminStatus.DRAFT,
+          adminStatus: isPublished
+            ? CareModuleAdminStatus.PUBLISHED
+            : CareModuleAdminStatus.DRAFT,
         }),
         ...(dto.adminStatus !== undefined && {
           adminStatus: dto.adminStatus,
@@ -387,7 +448,9 @@ export class CareService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
-    const ageYears = child.birthDate ? this.childAgeYears(child.birthDate) : null;
+    const ageYears = child.birthDate
+      ? this.childAgeYears(child.birthDate)
+      : null;
     const moduleWhere = {
       ...this.moduleWhere(query, user),
       ...(ageYears !== null && {
@@ -450,7 +513,8 @@ export class CareService {
 
   async getCareHome(user: CurrentUserPayload, query: CareHomeQueryDto) {
     const userId = this.currentUserId(user);
-    const { adminStatus, ageGroup, category, topicId, ...baseHomeQuery } = query;
+    const { adminStatus, ageGroup, category, topicId, ...baseHomeQuery } =
+      query;
     const selectedTopicId = topicId && topicId !== 'ALL' ? topicId : null;
     if (
       selectedTopicId &&
@@ -1030,10 +1094,7 @@ export class CareService {
     );
   }
 
-  async getAdminModules(
-    user: CurrentUserPayload,
-    query: CareModuleQueryDto,
-  ) {
+  async getAdminModules(user: CurrentUserPayload, query: CareModuleQueryDto) {
     this.ensureAdmin(user);
 
     const where = this.moduleWhere(query, user);
@@ -1073,7 +1134,10 @@ export class CareService {
       coverImageUrl: m.coverImageUrl,
       videoUrl: m.videoUrl,
       category: m.category,
-      ageGroup: this.formatAgeRange(m.suggestedMinAgeYears, m.suggestedMaxAgeYears),
+      ageGroup: this.formatAgeRange(
+        m.suggestedMinAgeYears,
+        m.suggestedMaxAgeYears,
+      ),
       suggestedMinAgeYears: m.suggestedMinAgeYears,
       suggestedMaxAgeYears: m.suggestedMaxAgeYears,
       estimatedMinutes: m.estimatedMinutes ?? 15,
@@ -1460,6 +1524,7 @@ export class CareService {
           moduleId: module.id,
           moduleTitle: module.title,
           childId: assignment.childId,
+          completedByRole: user.role,
         },
       );
     }
@@ -1676,7 +1741,10 @@ export class CareService {
             subtitle: { contains: query.search, mode: 'insensitive' as const },
           },
           {
-            description: { contains: query.search, mode: 'insensitive' as const },
+            description: {
+              contains: query.search,
+              mode: 'insensitive' as const,
+            },
           },
           ...(searchCategories.length > 0
             ? [{ category: { in: searchCategories } }]
@@ -2030,7 +2098,9 @@ export class CareService {
     }
 
     if (!access.invitedUserId || !access.invitedUser) {
-      throw new BadRequestException('Nanny invitation is not linked to a user yet');
+      throw new BadRequestException(
+        'Nanny invitation is not linked to a user yet',
+      );
     }
 
     return access.invitedUser;
