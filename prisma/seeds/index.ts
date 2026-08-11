@@ -5,6 +5,7 @@ import { seedRecipes } from './recipeSeed';
 import { seedActivities } from './activitySeed';
 import { seedPartnerRewards } from './partnerSeed';
 import { seedCareModules } from './careSeed';
+import { seedSubscriptionPlans } from './subscriptionSeed';
 import { createPrismaClientOptions } from '../../src/prisma/prisma-client-options';
 
 const prisma = new PrismaClient(createPrismaClientOptions() as any);
@@ -17,6 +18,7 @@ async function main() {
   await seedActivities(prisma);
   await seedPartnerRewards(prisma);
   await seedCareModules(prisma);
+  await seedSubscriptionPlans(prisma);
 
   console.log('Database seeding completed!');
 }

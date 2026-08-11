@@ -250,6 +250,22 @@ export class AdminRewardService {
     };
   }
 
+  async getRewardRuleDetail(id: string) {
+    const rule = await this.prisma.rewardRule.findUnique({
+      where: { id },
+    });
+
+    if (!rule) {
+      throw new NotFoundException('Reward rule not found');
+    }
+
+    return {
+      success: true,
+      message: 'Reward rule fetched successfully',
+      data: this.formatRewardRule(rule),
+    };
+  }
+
   async createRewardRule(user: CurrentUserPayload, dto: CreateRewardRuleDto) {
     const duplicate = await this.prisma.rewardRule.findUnique({
       where: { activityKey: dto.activityKey },

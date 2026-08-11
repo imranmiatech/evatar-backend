@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, OnModuleInit, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  OnModuleInit,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateSubscriptionPlanDto } from './dto/create-plan.dto';
 import { SubscribePlanDto } from './dto/subscribe-plan.dto';
@@ -7,7 +13,11 @@ import { CancelFeedbackDto } from './dto/cancel-feedback.dto';
 import { AddSubscriptionPaymentMethodDto } from './dto/add-payment-method.dto';
 import { SimulatePaymentFailureDto } from './dto/simulate-payment-failure.dto';
 import { CreateStripePaymentIntentDto } from './dto/stripe-payment.dto';
-import { SubscriptionInterval, SubscriptionStatus, TransactionStatus } from '@prisma/client';
+import {
+  SubscriptionInterval,
+  SubscriptionStatus,
+  TransactionStatus,
+} from '@prisma/client';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -23,7 +33,19 @@ export class SubscriptionService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    await this.seedDefaultPlans();
+    if (process.env.AUTO_SEED_SUBSCRIPTION_PLANS !== 'true') {
+      return;
+    }
+
+    try {
+      await this.seedDefaultPlans();
+    } catch (error) {
+      this.logger.warn(
+        `Skipping subscription plan auto-seed during startup: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   /**
@@ -52,10 +74,7 @@ export class SubscriptionService implements OnModuleInit {
             price: 60.0,
             currency: 'AED',
             interval: SubscriptionInterval.MONTHLY,
-            features: [
-              'Manage 2 child maximum at a time',
-              ...defaultFeatures,
-            ],
+            features: ['Manage 2 child maximum at a time', ...defaultFeatures],
           },
           {
             name: '4 child Family Membership',
@@ -63,10 +82,7 @@ export class SubscriptionService implements OnModuleInit {
             price: 120.0,
             currency: 'AED',
             interval: SubscriptionInterval.MONTHLY,
-            features: [
-              'Manage 4 child maximum at a time',
-              ...defaultFeatures,
-            ],
+            features: ['Manage 4 child maximum at a time', ...defaultFeatures],
           },
           {
             name: '10 child Family Membership',
@@ -74,10 +90,7 @@ export class SubscriptionService implements OnModuleInit {
             price: 300.0,
             currency: 'AED',
             interval: SubscriptionInterval.MONTHLY,
-            features: [
-              'Manage 10 child maximum at a time',
-              ...defaultFeatures,
-            ],
+            features: ['Manage 10 child maximum at a time', ...defaultFeatures],
           },
           {
             name: 'Family Plus',
@@ -115,7 +128,9 @@ export class SubscriptionService implements OnModuleInit {
     if (typeof userParam === 'string') return userParam;
     const userId = userParam?.userId ?? userParam?.id ?? userParam?.sub;
     if (!userId) {
-      throw new BadRequestException('User ID could not be identified from authentication token.');
+      throw new BadRequestException(
+        'User ID could not be identified from authentication token.',
+      );
     }
     return userId;
   }
@@ -167,19 +182,25 @@ export class SubscriptionService implements OnModuleInit {
     let trialDaysRemaining = 0;
     if (sub.status === SubscriptionStatus.FREE_TRIAL && sub.trialEndsAt) {
       const diffMs = sub.trialEndsAt.getTime() - new Date().getTime();
-      trialDaysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+      trialDaysRemaining = Math.max(
+        0,
+        Math.ceil(diffMs / (1000 * 60 * 60 * 24)),
+      );
     }
 
     // Check for recent failed transaction
-    const latestFailedInvoice = await this.prisma.subscriptionInvoice.findFirst({
-      where: {
-        userId,
-        status: TransactionStatus.FAILED,
+    const latestFailedInvoice = await this.prisma.subscriptionInvoice.findFirst(
+      {
+        where: {
+          userId,
+          status: TransactionStatus.FAILED,
+        },
+        orderBy: { invoiceDate: 'desc' },
       },
-      orderBy: { invoiceDate: 'desc' },
-    });
+    );
 
-    const isPaymentFailed = !!latestFailedInvoice && sub.status === SubscriptionStatus.PAUSED;
+    const isPaymentFailed =
+      !!latestFailedInvoice && sub.status === SubscriptionStatus.PAUSED;
 
     return {
       id: sub.id,
@@ -268,14 +289,20 @@ export class SubscriptionService implements OnModuleInit {
 
           stripePaymentIntentId = paymentIntent.id;
         } else {
-          const retrieved = await this.stripe.paymentIntents.retrieve(stripePaymentIntentId);
+          const retrieved = await this.stripe.paymentIntents.retrieve(
+            stripePaymentIntentId,
+          );
           if (retrieved.status !== 'succeeded') {
-            throw new Error(`Stripe payment intent status is ${retrieved.status}`);
+            throw new Error(
+              `Stripe payment intent status is ${retrieved.status}`,
+            );
           }
         }
       } catch (stripeErr: any) {
-        this.logger.error(`Stripe payment processing failed: ${stripeErr.message}`);
-        
+        this.logger.error(
+          `Stripe payment processing failed: ${stripeErr.message}`,
+        );
+
         // Log failed invoice
         await this.prisma.subscriptionInvoice.create({
           data: {
@@ -295,7 +322,9 @@ export class SubscriptionService implements OnModuleInit {
           data: { isPaymentFailed: true },
         });
 
-        throw new BadRequestException(`Stripe Payment Failed: ${stripeErr.message}`);
+        throw new BadRequestException(
+          `Stripe Payment Failed: ${stripeErr.message}`,
+        );
       }
     }
 
@@ -357,7 +386,11 @@ export class SubscriptionService implements OnModuleInit {
       subscription: sub,
       invoice,
       chargedPaymentMethod: paymentMethod
-        ? { id: paymentMethod.id, brand: paymentMethod.brand, last4: paymentMethod.last4 }
+        ? {
+            id: paymentMethod.id,
+            brand: paymentMethod.brand,
+            last4: paymentMethod.last4,
+          }
         : { brand: dto.cardBrand || 'Visa', last4: dto.cardLast4 || '4242' },
     };
   }
@@ -370,7 +403,9 @@ export class SubscriptionService implements OnModuleInit {
 
     let targetPlan: any = null;
     if (planId) {
-      targetPlan = await this.prisma.subscriptionPlan.findUnique({ where: { id: planId } });
+      targetPlan = await this.prisma.subscriptionPlan.findUnique({
+        where: { id: planId },
+      });
     }
 
     if (!targetPlan) {
@@ -418,7 +453,8 @@ export class SubscriptionService implements OnModuleInit {
     });
 
     return {
-      message: 'Successfully claimed your 7-Day Complimentary Family Membership Trial!',
+      message:
+        'Successfully claimed your 7-Day Complimentary Family Membership Trial!',
       trialDaysRemaining: 7,
       subscription: sub,
     };
@@ -450,7 +486,9 @@ export class SubscriptionService implements OnModuleInit {
 
     // Shift next billing date forward
     const nextBilling = sub.nextBillingDate
-      ? new Date(sub.nextBillingDate.getTime() + (resumeAt.getTime() - now.getTime()))
+      ? new Date(
+          sub.nextBillingDate.getTime() + (resumeAt.getTime() - now.getTime()),
+        )
       : resumeAt;
 
     const updated = await this.prisma.userSubscription.update({
@@ -545,7 +583,9 @@ export class SubscriptionService implements OnModuleInit {
 
     const now = new Date();
     // Access continues until end of current billing period
-    const accessEndsAt = sub.currentPeriodEnd || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const accessEndsAt =
+      sub.currentPeriodEnd ||
+      new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     const updated = await this.prisma.userSubscription.update({
       where: { userId },
@@ -576,7 +616,9 @@ export class SubscriptionService implements OnModuleInit {
     });
 
     if (!sub) {
-      throw new NotFoundException('No subscription record found to reactivate.');
+      throw new NotFoundException(
+        'No subscription record found to reactivate.',
+      );
     }
 
     const updated = await this.prisma.userSubscription.update({
@@ -617,7 +659,9 @@ export class SubscriptionService implements OnModuleInit {
   async addPaymentMethod(userParam: any, dto: AddSubscriptionPaymentMethodDto) {
     const userId = this.extractUserId(userParam);
 
-    const existingCount = await this.prisma.paymentMethod.count({ where: { userId } });
+    const existingCount = await this.prisma.paymentMethod.count({
+      where: { userId },
+    });
     const shouldBeDefault = dto.isDefault || existingCount === 0;
 
     if (shouldBeDefault) {
@@ -724,7 +768,9 @@ export class SubscriptionService implements OnModuleInit {
         amount: dto.amount || 99.0,
         currency: 'AED',
         status: TransactionStatus.FAILED,
-        failureReason: dto.reason || 'We couldn’t process your 99 AED payment for the current billing cycle.',
+        failureReason:
+          dto.reason ||
+          'We couldn’t process your 99 AED payment for the current billing cycle.',
       },
     });
 
@@ -764,7 +810,10 @@ export class SubscriptionService implements OnModuleInit {
   /**
    * Stripe Integration: Create PaymentIntent for Mobile App / Frontend PaymentSheet
    */
-  async createStripePaymentIntent(userParam: any, dto: CreateStripePaymentIntentDto) {
+  async createStripePaymentIntent(
+    userParam: any,
+    dto: CreateStripePaymentIntentDto,
+  ) {
     const userId = this.extractUserId(userParam);
     const plan = await this.prisma.subscriptionPlan.findUnique({
       where: { id: dto.planId },
@@ -857,12 +906,18 @@ export class SubscriptionService implements OnModuleInit {
 
     try {
       if (webhookSecret && signature) {
-        event = this.stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+        event = this.stripe.webhooks.constructEvent(
+          rawBody,
+          signature,
+          webhookSecret,
+        );
       } else {
         event = JSON.parse(rawBody.toString()) as Stripe.Event;
       }
     } catch (err: any) {
-      throw new BadRequestException(`Webhook signature verification failed: ${err.message}`);
+      throw new BadRequestException(
+        `Webhook signature verification failed: ${err.message}`,
+      );
     }
 
     switch (event.type) {
@@ -886,7 +941,9 @@ export class SubscriptionService implements OnModuleInit {
         if (userId) {
           await this.simulatePaymentFailure(userId, {
             amount: paymentIntent.amount / 100,
-            reason: paymentIntent.last_payment_error?.message || 'Stripe payment attempt failed.',
+            reason:
+              paymentIntent.last_payment_error?.message ||
+              'Stripe payment attempt failed.',
           });
         }
         break;
@@ -896,4 +953,3 @@ export class SubscriptionService implements OnModuleInit {
     return { received: true };
   }
 }
-

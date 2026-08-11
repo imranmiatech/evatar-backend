@@ -6,25 +6,43 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-    constructor(
-        private readonly configService: ConfigService,
-        private readonly prisma: PrismaService,
-    ) {
-        super({
-            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-            ignoreExpiration: false,
-            secretOrKey: configService.get<string>('JWT_SECRET') as string,
-        });
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: configService.get<string>('JWT_SECRET') as string,
+    });
+  }
+
+  async validate(payload: any) {
+    if (!payload?.sub || !payload?.role) {
+      throw new UnauthorizedException();
     }
 
-    async validate(payload: any) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: payload.sub },
-            select: { id: true, role: true, status: true },
-        });
-        if (!user) {
-            throw new UnauthorizedException();
-        }
-        return { id: user.id, userId: user.id, role: user.role, status: user.status };
+    if (this.configService.get<string>('VALIDATE_JWT_USER_IN_DB') !== 'true') {
+      return {
+        id: payload.sub,
+        userId: payload.sub,
+        role: payload.role,
+        status: payload.status ?? null,
+      };
     }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true, role: true, status: true },
+    });
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    return {
+      id: user.id,
+      userId: user.id,
+      role: user.role,
+      status: user.status,
+    };
+  }
 }

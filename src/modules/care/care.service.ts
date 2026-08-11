@@ -26,7 +26,6 @@ import { AssignCareModuleDto } from './dto/assign-care-module.dto';
 import { CareChildInsightsQueryDto } from './dto/care-child-insights-query.dto';
 import {
   CareHomeQueryDto,
-  CareHomeTabsQueryDto,
   CareModuleQueryDto,
   CareModuleTab,
 } from './dto/care-module-query.dto';
@@ -571,9 +570,8 @@ export class CareService {
     };
   }
 
-  async getCareHomeTabs(user: CurrentUserPayload, query: CareHomeTabsQueryDto) {
-    const homeQuery = { ...query };
-    const activeTab = homeQuery.tab ?? CareModuleTab.ALL;
+  async getCareHomeTabs(user: CurrentUserPayload) {
+    const homeQuery = {};
     const tabCounts = await this.careHomeTabCounts(user, homeQuery);
 
     return {
@@ -585,28 +583,28 @@ export class CareService {
           key: CareModuleTab.ALL,
           label: 'All Modules',
           count: tabCounts.all,
-          isActive: activeTab === CareModuleTab.ALL,
+          isActive: true,
         },
         {
           id: CareModuleTab.IN_PROGRESS,
           key: CareModuleTab.IN_PROGRESS,
           label: 'In progress',
           count: tabCounts.inProgress,
-          isActive: activeTab === CareModuleTab.IN_PROGRESS,
+          isActive: false,
         },
         {
           id: CareModuleTab.COMPLETED,
           key: CareModuleTab.COMPLETED,
           label: 'Completed',
           count: tabCounts.completed,
-          isActive: activeTab === CareModuleTab.COMPLETED,
+          isActive: false,
         },
         {
           id: CareModuleTab.SAVED,
           key: CareModuleTab.SAVED,
           label: 'Saved',
           count: tabCounts.saved,
-          isActive: activeTab === CareModuleTab.SAVED,
+          isActive: false,
         },
       ],
     };

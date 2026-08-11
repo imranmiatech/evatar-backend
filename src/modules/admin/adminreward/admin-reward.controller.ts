@@ -77,6 +77,13 @@ export class AdminRewardController {
     return this.adminRewardService.getRewardRules({ search, status });
   }
 
+  @Get('rules/:id')
+  @ApiOperation({ summary: 'Get reward rule details by ID' })
+  @ApiParam({ name: 'id', description: 'Reward rule ID' })
+  getRewardRuleDetail(@Param('id') id: string) {
+    return this.adminRewardService.getRewardRuleDetail(id);
+  }
+
   @Post('rules')
   @ApiOperation({ summary: 'Create a reward rule' })
   @ApiBody({ type: CreateRewardRuleDto })

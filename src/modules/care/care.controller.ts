@@ -33,7 +33,6 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { AssignCareModuleDto } from './dto/assign-care-module.dto';
 import {
   CareHomeQueryDto,
-  CareHomeTabsQueryDto,
   CareModuleQueryDto,
 } from './dto/care-module-query.dto';
 import { CreateCareModuleDto } from './dto/create-care-module.dto';
@@ -171,24 +170,52 @@ export class CareController {
       type: 'object',
       properties: {
         title: { type: 'string', example: 'Blueberry Oat Porridge' },
-        description: { type: 'string', example: 'Describe what nannies will learn...' },
-        category: { type: 'string', enum: ['CHILD_SAFETY', 'NUTRITION_FEEDING', 'SLEEP_ROUTINES', 'CHILD_DEVELOPMENT', 'FIRST_AID', 'PLAY_LEARNING', 'COMMUNICATION', 'HEALTH_HYGIENE', 'OTHER'], example: 'NUTRITION_FEEDING' },
+        description: {
+          type: 'string',
+          example: 'Describe what nannies will learn...',
+        },
+        category: {
+          type: 'string',
+          enum: [
+            'CHILD_SAFETY',
+            'NUTRITION_FEEDING',
+            'SLEEP_ROUTINES',
+            'CHILD_DEVELOPMENT',
+            'FIRST_AID',
+            'PLAY_LEARNING',
+            'COMMUNICATION',
+            'HEALTH_HYGIENE',
+            'OTHER',
+          ],
+          example: 'NUTRITION_FEEDING',
+        },
         ageGroup: { type: 'string', example: '1-3 years' },
         estimatedMinutes: { type: 'number', example: 15, default: 15 },
         coinReward: { type: 'number', example: 50 },
         contentTitle: { type: 'string', example: 'Write a tittle' },
-        contentSections: { type: 'string', example: '{"description": "Write a description"}' },
-        keyTakeaway: { type: 'string', example: 'Variability in appetite is normal' },
-        adminStatus: { type: 'string', enum: ['ALL', 'PUBLISHED', 'DRAFT'], example: 'PUBLISHED' },
+        contentSections: {
+          type: 'string',
+          example: '{"description": "Write a description"}',
+        },
+        keyTakeaway: {
+          type: 'string',
+          example: 'Variability in appetite is normal',
+        },
+        adminStatus: {
+          type: 'string',
+          enum: ['ALL', 'PUBLISHED', 'DRAFT'],
+          example: 'PUBLISHED',
+        },
         isPublished: { type: 'boolean', example: true },
         questions: {
           type: 'string',
-          example: '[{"question":"What is the recommended position?","type":"SINGLE_CHOICE","explanation":"On back","options":[{"label":"Back","isCorrect":true},{"label":"Stomach","isCorrect":false}]}]'
+          example:
+            '[{"question":"What is the recommended position?","type":"SINGLE_CHOICE","explanation":"On back","options":[{"label":"Back","isCorrect":true},{"label":"Stomach","isCorrect":false}]}]',
         },
         coverImage: { type: 'string', format: 'binary' },
-        video: { type: 'string', format: 'binary' }
-      }
-    }
+        video: { type: 'string', format: 'binary' },
+      },
+    },
   })
   createModule(
     @CurrentUser() user: CurrentUserPayload,
@@ -222,24 +249,52 @@ export class CareController {
       type: 'object',
       properties: {
         title: { type: 'string', example: 'Blueberry Oat Porridge' },
-        description: { type: 'string', example: 'Describe what nannies will learn...' },
-        category: { type: 'string', enum: ['CHILD_SAFETY', 'NUTRITION_FEEDING', 'SLEEP_ROUTINES', 'CHILD_DEVELOPMENT', 'FIRST_AID', 'PLAY_LEARNING', 'COMMUNICATION', 'HEALTH_HYGIENE', 'OTHER'], example: 'NUTRITION_FEEDING' },
+        description: {
+          type: 'string',
+          example: 'Describe what nannies will learn...',
+        },
+        category: {
+          type: 'string',
+          enum: [
+            'CHILD_SAFETY',
+            'NUTRITION_FEEDING',
+            'SLEEP_ROUTINES',
+            'CHILD_DEVELOPMENT',
+            'FIRST_AID',
+            'PLAY_LEARNING',
+            'COMMUNICATION',
+            'HEALTH_HYGIENE',
+            'OTHER',
+          ],
+          example: 'NUTRITION_FEEDING',
+        },
         ageGroup: { type: 'string', example: '1-3 years' },
         estimatedMinutes: { type: 'number', example: 15, default: 15 },
         coinReward: { type: 'number', example: 50 },
         contentTitle: { type: 'string', example: 'Write a tittle' },
-        contentSections: { type: 'string', example: '{"description": "Write a description"}' },
-        keyTakeaway: { type: 'string', example: 'Variability in appetite is normal' },
-        adminStatus: { type: 'string', enum: ['ALL', 'PUBLISHED', 'DRAFT'], example: 'PUBLISHED' },
+        contentSections: {
+          type: 'string',
+          example: '{"description": "Write a description"}',
+        },
+        keyTakeaway: {
+          type: 'string',
+          example: 'Variability in appetite is normal',
+        },
+        adminStatus: {
+          type: 'string',
+          enum: ['ALL', 'PUBLISHED', 'DRAFT'],
+          example: 'PUBLISHED',
+        },
         isPublished: { type: 'boolean', example: true },
         questions: {
           type: 'string',
-          example: '[{"question":"What is the recommended position?","type":"SINGLE_CHOICE","explanation":"On back","options":[{"label":"Back","isCorrect":true},{"label":"Stomach","isCorrect":false}]}]'
+          example:
+            '[{"question":"What is the recommended position?","type":"SINGLE_CHOICE","explanation":"On back","options":[{"label":"Back","isCorrect":true},{"label":"Stomach","isCorrect":false}]}]',
         },
         coverImage: { type: 'string', format: 'binary' },
-        video: { type: 'string', format: 'binary' }
-      }
-    }
+        video: { type: 'string', format: 'binary' },
+      },
+    },
   })
   updateModule(
     @CurrentUser() user: CurrentUserPayload,
@@ -285,8 +340,7 @@ export class CareController {
   @ApiTags('CareHub')
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
   @ApiOperation({
-    summary:
-      'Home screen: logged-in user, child list, and filtered modules',
+    summary: 'Home screen: logged-in user, child list, and filtered modules',
   })
   @ApiResponse({
     status: 200,
@@ -309,11 +363,8 @@ export class CareController {
   @ApiOperation({
     summary: 'Get Care Hub module tabs with counts',
   })
-  getCareHomeTabs(
-    @CurrentUser() user: CurrentUserPayload,
-    @Query() query: CareHomeTabsQueryDto,
-  ) {
-    return this.careService.getCareHomeTabs(user, query);
+  getCareHomeTabs(@CurrentUser() user: CurrentUserPayload) {
+    return this.careService.getCareHomeTabs(user);
   }
 
   @Get('home/topics')
@@ -330,8 +381,7 @@ export class CareController {
   @ApiTags('CareHub')
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
   @ApiOperation({
-    summary:
-      'Get suggested modules for a child',
+    summary: 'Get suggested modules for a child',
     description:
       'If the child has birthDate, modules are filtered by suggested year range. If birthDate is missing, modules are returned without age filtering and meta.warning explains the fallback.',
   })
@@ -440,7 +490,8 @@ export class CareController {
   @ApiQuery({
     name: 'childId',
     required: false,
-    description: 'Optional. Pass selected child ID to get child-scoped saved state.',
+    description:
+      'Optional. Pass selected child ID to get child-scoped saved state.',
   })
   getModuleDetail(
     @CurrentUser() user: CurrentUserPayload,
@@ -448,7 +499,12 @@ export class CareController {
     @Query('assignmentId') assignmentId?: string,
     @Query('childId') childId?: string,
   ) {
-    return this.careService.getModuleDetail(user, moduleId, assignmentId, childId);
+    return this.careService.getModuleDetail(
+      user,
+      moduleId,
+      assignmentId,
+      childId,
+    );
   }
 
   @Post('assignments')
@@ -491,7 +547,10 @@ export class CareController {
     description:
       'Requires childId in the body. Only removes the saved module for that selected child; other children keep their saved state.',
   })
-  @ApiParam({ name: 'moduleId', description: 'Care module ID to remove from saved' })
+  @ApiParam({
+    name: 'moduleId',
+    description: 'Care module ID to remove from saved',
+  })
   @ApiBody({ type: SaveCareModuleDto })
   removeSavedModule(
     @CurrentUser() user: CurrentUserPayload,
