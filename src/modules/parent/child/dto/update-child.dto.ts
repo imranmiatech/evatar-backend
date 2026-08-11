@@ -12,7 +12,11 @@ import {
 import { Type } from 'class-transformer';
 
 export class SchoolScheduleDto {
-  @ApiProperty({ enum: DayOfWeek, isArray: true, example: [DayOfWeek.MON, DayOfWeek.TUE] })
+  @ApiProperty({
+    enum: DayOfWeek,
+    isArray: true,
+    example: [DayOfWeek.MON, DayOfWeek.TUE],
+  })
   @IsArray()
   @IsEnum(DayOfWeek, { each: true })
   days: DayOfWeek[];
@@ -31,7 +35,11 @@ export class RecurringActivityDto {
   @IsString()
   name: string;
 
-  @ApiProperty({ enum: DayOfWeek, isArray: true, example: [DayOfWeek.MON, DayOfWeek.WED] })
+  @ApiProperty({
+    enum: DayOfWeek,
+    isArray: true,
+    example: [DayOfWeek.MON, DayOfWeek.WED],
+  })
   @IsArray()
   @IsEnum(DayOfWeek, { each: true })
   days: DayOfWeek[];
@@ -56,7 +64,10 @@ export class NapWindowDto {
 }
 
 export class UpdateChildDto {
-  @ApiPropertyOptional({ example: 'Eve Ahmed', description: "Child's given name" })
+  @ApiPropertyOptional({
+    example: 'Eve Ahmed',
+    description: "Child's given name",
+  })
   @IsString()
   @IsOptional()
   name?: string;
@@ -136,6 +147,26 @@ export class UpdateChildDto {
   @IsString()
   @IsOptional()
   additionalNotes?: string;
+
+  @ApiPropertyOptional({ example: 'Pasta, banana, yogurt' })
+  @IsString()
+  @IsOptional()
+  favfood?: string;
+
+  @ApiPropertyOptional({ example: 'Drawing, outdoor play, story time' })
+  @IsString()
+  @IsOptional()
+  favActivites?: string;
+
+  @ApiPropertyOptional({ example: 'Bedtime routine and picky eating' })
+  @IsString()
+  @IsOptional()
+  currentChallenges?: string;
+
+  @ApiPropertyOptional({ example: 'Needs gentle reminders during transitions' })
+  @IsString()
+  @IsOptional()
+  extraNote?: string;
 
   @ApiPropertyOptional({ type: SchoolScheduleDto })
   @ValidateNested()

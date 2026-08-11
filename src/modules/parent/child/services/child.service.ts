@@ -38,8 +38,13 @@ export class ChildService {
   }
 
   async addChild(parentUserId: string, dto: AddChildDto) {
-    const healthConditions = dto.healthConditions ? [...dto.healthConditions] : [];
-    if (dto.hasAllergy && !healthConditions.includes(HealthCondition.FOOD_ALLERGIES)) {
+    const healthConditions = dto.healthConditions
+      ? [...dto.healthConditions]
+      : [];
+    if (
+      dto.hasAllergy &&
+      !healthConditions.includes(HealthCondition.FOOD_ALLERGIES)
+    ) {
       healthConditions.push(HealthCondition.FOOD_ALLERGIES);
     }
 
@@ -50,7 +55,12 @@ export class ChildService {
         gender: dto.gender,
         weight: dto.weight,
         birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
-        healthConditions: healthConditions.length > 0 ? healthConditions : undefined,
+        healthConditions:
+          healthConditions.length > 0 ? healthConditions : undefined,
+        favfood: dto.favfood,
+        favActivites: dto.favActivites,
+        currentChallenges: dto.currentChallenges,
+        extraNote: dto.extraNote,
       },
     });
 
@@ -398,6 +408,14 @@ export class ChildService {
         ...(dto.additionalNotes !== undefined && {
           additionalNotes: dto.additionalNotes,
         }),
+        ...(dto.favfood !== undefined && { favfood: dto.favfood }),
+        ...(dto.favActivites !== undefined && {
+          favActivites: dto.favActivites,
+        }),
+        ...(dto.currentChallenges !== undefined && {
+          currentChallenges: dto.currentChallenges,
+        }),
+        ...(dto.extraNote !== undefined && { extraNote: dto.extraNote }),
 
         ...(dto.schoolSchedule && {
           schoolSchedule: {

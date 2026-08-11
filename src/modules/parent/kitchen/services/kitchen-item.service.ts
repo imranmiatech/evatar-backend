@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { KitchenInventoryItemStatus, UserRole } from '@prisma/client';
@@ -44,6 +45,7 @@ export class KitchenItemService {
     } = item;
 
     return {
+      id: item.id,
       ...rest,
       itemStatus: rest.isArchived ? 'ARCHIVED' : 'ACTIVE',
       ownerStatus: createdByUser?.role ?? null,
@@ -309,6 +311,12 @@ export class KitchenItemService {
         },
       },
     });
+
+    if (updated.id !== id) {
+      throw new InternalServerErrorException(
+        'Kitchen item ID changed during update',
+      );
+    }
 
     return {
       message: 'Kitchen item updated successfully',

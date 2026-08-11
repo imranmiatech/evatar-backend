@@ -58,4 +58,24 @@ export class AddChildDto {
   @IsEnum(HealthCondition, { each: true })
   @IsOptional()
   healthConditions?: HealthCondition[];
+
+  @ApiPropertyOptional({ example: 'Pasta, banana, yogurt' })
+  @IsString()
+  @IsOptional()
+  favfood?: string;
+
+  @ApiPropertyOptional({ example: 'Drawing, outdoor play, story time' })
+  @IsString()
+  @IsOptional()
+  favActivites?: string;
+
+  @ApiPropertyOptional({ example: 'Bedtime routine and picky eating' })
+  @IsString()
+  @IsOptional()
+  currentChallenges?: string;
+
+  @ApiPropertyOptional({ example: 'Needs gentle reminders during transitions' })
+  @IsString()
+  @IsOptional()
+  extraNote?: string;
 }

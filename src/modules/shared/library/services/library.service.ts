@@ -65,6 +65,7 @@ export class LibraryService {
       energyLevel: true,
       location: true,
       connectionMoment: true,
+      whyThisActivity: true,
     };
 
     const recipeSelect = {
@@ -130,7 +131,9 @@ export class LibraryService {
           : null,
       energyLevel: a.energyLevel,
       location: a.location,
+      description: a.whyThisActivity,
       connectionMoment: a.connectionMoment,
+      whyThisActivity: a.whyThisActivity,
     }));
 
     const mappedRecipes = recipes.map((r) => ({
@@ -513,6 +516,7 @@ export class LibraryService {
       energyLevel: true,
       location: true,
       connectionMoment: true,
+      whyThisActivity: true,
     };
   }
 
@@ -551,6 +555,7 @@ export class LibraryService {
     energyLevel: unknown;
     location: unknown;
     connectionMoment: string | null;
+    whyThisActivity: string | null;
   }) {
     return {
       id: activity.id,
@@ -568,26 +573,34 @@ export class LibraryService {
           : null,
       energyLevel: activity.energyLevel,
       location: activity.location,
+      description: activity.whyThisActivity,
       connectionMoment: activity.connectionMoment,
+      whyThisActivity: activity.whyThisActivity,
     };
   }
 
-  private formatRecipeCard(recipe: {
-    id: string;
-    title: string;
-    imageUrl: string | null;
-    recipeMealType: unknown;
-    shortDescription: string | null;
-    minAgeMonths: number | null;
-    maxAgeMonths: number | null;
-    prepTimeMin: number | null;
-    cookTimeMin: number | null;
-    difficulty: unknown;
-    servings: string | null;
-    nutritionalFocus: string[];
-    ingredients: { name: string; isOptional: boolean }[];
-  }, kitchenItems: KitchenReadinessItem[] = []) {
-    const readiness = this.getIngredientReadiness(recipe.ingredients, kitchenItems);
+  private formatRecipeCard(
+    recipe: {
+      id: string;
+      title: string;
+      imageUrl: string | null;
+      recipeMealType: unknown;
+      shortDescription: string | null;
+      minAgeMonths: number | null;
+      maxAgeMonths: number | null;
+      prepTimeMin: number | null;
+      cookTimeMin: number | null;
+      difficulty: unknown;
+      servings: string | null;
+      nutritionalFocus: string[];
+      ingredients: { name: string; isOptional: boolean }[];
+    },
+    kitchenItems: KitchenReadinessItem[] = [],
+  ) {
+    const readiness = this.getIngredientReadiness(
+      recipe.ingredients,
+      kitchenItems,
+    );
 
     return {
       id: recipe.id,
@@ -636,7 +649,9 @@ export class LibraryService {
     const missingIngredients = ingredients
       .filter((ingredient) => !ingredient.isOptional)
       .filter((ingredient) => {
-        const kitchenItem = kitchenByName.get(this.normalizeName(ingredient.name));
+        const kitchenItem = kitchenByName.get(
+          this.normalizeName(ingredient.name),
+        );
 
         return (
           !kitchenItem ||

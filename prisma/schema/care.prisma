@@ -124,7 +124,7 @@ model CareModuleSave {
   userId    String
   childId   String?
   createdAt DateTime   @default(now())
-  child     Child?      @relation(fields: [childId], references: [id], onDelete: Cascade)
+  child     Child?     @relation(fields: [childId], references: [id], onDelete: Cascade)
   module    CareModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   user      User       @relation("CareModuleSaves", fields: [userId], references: [id], onDelete: Cascade)
 

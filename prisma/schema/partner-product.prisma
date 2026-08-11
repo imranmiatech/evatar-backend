@@ -1,17 +1,17 @@
 model PartnerProduct {
-  id           String                     @id @default(uuid())
+  id            String                     @id @default(uuid())
   partnerUserId String
-  productName  String
-  category     PartnerProductCategory
-  sku          String?
-  tags         String[]
-  price        Decimal                    @db.Decimal(10, 2)
-  unit         PartnerProductUnit
-  availability PartnerProductAvailability @default(IN_STOCK)
-  status       PartnerProductStatus       @default(DRAFT)
-  createdAt    DateTime                   @default(now())
-  updatedAt    DateTime                   @updatedAt
-  partnerUser  User                       @relation(fields: [partnerUserId], references: [id], onDelete: Cascade)
+  productName   String
+  category      PartnerProductCategory
+  sku           String?
+  tags          String[]
+  price         Decimal                    @db.Decimal(10, 2)
+  unit          PartnerProductUnit
+  availability  PartnerProductAvailability @default(IN_STOCK)
+  status        PartnerProductStatus       @default(DRAFT)
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+  partnerUser   User                       @relation(fields: [partnerUserId], references: [id], onDelete: Cascade)
 
   @@unique([partnerUserId, sku])
   @@index([partnerUserId, status, createdAt])
