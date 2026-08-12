@@ -15,6 +15,11 @@ export class CaregiverPermissionsDto {
   @ApiPropertyOptional({ example: true })
   @IsBoolean()
   @IsOptional()
+  viewGroceryLists?: boolean;
+
+  @ApiPropertyOptional({ example: true })
+  @IsBoolean()
+  @IsOptional()
   manageGroceryLists?: boolean;
 
   @ApiPropertyOptional({ example: false })

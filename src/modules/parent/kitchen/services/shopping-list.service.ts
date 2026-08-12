@@ -37,6 +37,19 @@ export class ShoppingListService {
       dto.isCustomOrder ? 'groceryOrdering' : 'manageGroceryLists',
     );
 
+    if (
+      dto.addToKitchen &&
+      !(await this.kitchenAccess.canAccessParentUser(
+        user,
+        targetUserId,
+        'manageGroceryLists',
+      ))
+    ) {
+      throw new ForbiddenException(
+        'Parent permission is required to add this item to kitchen inventory',
+      );
+    }
+
     const item = await this.prisma.$transaction(async (tx) => {
       const shoppingItem = await tx.shoppingListItem.create({
         data: {
@@ -95,11 +108,14 @@ export class ShoppingListService {
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const readableParentIds = await this.kitchenAccess.resolveReadableParentUserIds(
-      user,
-      'manageGroceryLists',
-    );
-    const where = readableParentIds ? { userId: { in: readableParentIds } } : {};
+    const readableParentIds =
+      await this.kitchenAccess.resolveReadableParentUserIds(
+        user,
+        'viewGroceryLists',
+      );
+    const where = readableParentIds
+      ? { userId: { in: readableParentIds } }
+      : {};
 
     const [items, total] = await Promise.all([
       this.prisma.shoppingListItem.findMany({
@@ -146,7 +162,13 @@ export class ShoppingListService {
     });
 
     if (!item) throw new NotFoundException('Shopping item not found');
-    if (!(await this.kitchenAccess.canAccessParentUser(user, item.userId)))
+    if (
+      !(await this.kitchenAccess.canAccessParentUser(
+        user,
+        item.userId,
+        'viewGroceryLists',
+      ))
+    )
       throw new ForbiddenException('You do not have access to this item');
 
     return {
@@ -155,11 +177,23 @@ export class ShoppingListService {
     };
   }
 
-  async update(user: CurrentUserPayload, id: string, dto: UpdateShoppingItemDto) {
-    const item = await this.prisma.shoppingListItem.findUnique({ where: { id } });
+  async update(
+    user: CurrentUserPayload,
+    id: string,
+    dto: UpdateShoppingItemDto,
+  ) {
+    const item = await this.prisma.shoppingListItem.findUnique({
+      where: { id },
+    });
 
     if (!item) throw new NotFoundException('Shopping item not found');
-    if (!(await this.kitchenAccess.canAccessParentUser(user, item.userId)))
+    if (
+      !(await this.kitchenAccess.canAccessParentUser(
+        user,
+        item.userId,
+        'manageGroceryLists',
+      ))
+    )
       throw new ForbiddenException('You do not have access to this item');
 
     const updated = await this.prisma.shoppingListItem.update({
@@ -185,10 +219,18 @@ export class ShoppingListService {
   }
 
   async remove(user: CurrentUserPayload, id: string) {
-    const item = await this.prisma.shoppingListItem.findUnique({ where: { id } });
+    const item = await this.prisma.shoppingListItem.findUnique({
+      where: { id },
+    });
 
     if (!item) throw new NotFoundException('Shopping item not found');
-    if (!(await this.kitchenAccess.canAccessParentUser(user, item.userId)))
+    if (
+      !(await this.kitchenAccess.canAccessParentUser(
+        user,
+        item.userId,
+        'manageGroceryLists',
+      ))
+    )
       throw new ForbiddenException('You do not have access to this item');
 
     await this.prisma.shoppingListItem.delete({ where: { id } });

@@ -11,14 +11,14 @@ import {
 } from 'class-validator';
 
 export class UpdateKitchenItemDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description:
-      'Logged-in user ID. Must match the user who created this item.',
+      'Optional target user ID. Updates are authorized from the logged-in user and caregiver permissions.',
     example: 'user-uuid-1234',
   })
   @IsString()
-  @IsNotEmpty()
-  userId: string;
+  @IsOptional()
+  userId?: string;
 
   @ApiPropertyOptional({
     description: 'Item name',

@@ -93,6 +93,7 @@ model CaregiverAccess {
   inviteChannel          CaregiverInviteChannel @default(LINK)
   dailyActivitiesRecipes Boolean                @default(false)
   manageDailyPlans       Boolean                @default(false)
+  viewGroceryLists       Boolean                @default(false)
   manageGroceryLists     Boolean                @default(false)
   editChildProfile       Boolean                @default(false)
   accessChildInsights    Boolean                @default(false)

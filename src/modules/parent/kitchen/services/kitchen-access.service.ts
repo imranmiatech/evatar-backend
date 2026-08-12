@@ -3,7 +3,11 @@ import { CaregiverAccessStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type { CurrentUserPayload } from '../../../../common/decorators/current-user.decorator';
 
-type GroceryPermission = 'manageGroceryLists' | 'groceryOrdering' | 'manageGroceryOrders';
+type GroceryPermission =
+  | 'viewGroceryLists'
+  | 'manageGroceryLists'
+  | 'groceryOrdering'
+  | 'manageGroceryOrders';
 
 @Injectable()
 export class KitchenAccessService {
@@ -23,18 +27,27 @@ export class KitchenAccessService {
     }
 
     if (user.role !== UserRole.NANNY) {
-      throw new ForbiddenException('You do not have access to kitchen features');
+      throw new ForbiddenException(
+        'You do not have access to kitchen features',
+      );
     }
 
-    const parentIds = await this.getAccessibleParentUserIds(user.userId, permission);
+    const parentIds = await this.getAccessibleParentUserIds(
+      user.userId,
+      permission,
+    );
 
     if (!parentIds.length) {
-      throw new ForbiddenException('Parent permission is required for this kitchen action');
+      throw new ForbiddenException(
+        'Parent permission is required for this kitchen action',
+      );
     }
 
     if (targetUserId) {
       if (!parentIds.includes(targetUserId)) {
-        throw new ForbiddenException('You do not have access to this parent kitchen');
+        throw new ForbiddenException(
+          'You do not have access to this parent kitchen',
+        );
       }
 
       return targetUserId;
@@ -56,13 +69,20 @@ export class KitchenAccessService {
     }
 
     if (user.role !== UserRole.NANNY) {
-      throw new ForbiddenException('You do not have access to kitchen features');
+      throw new ForbiddenException(
+        'You do not have access to kitchen features',
+      );
     }
 
-    const parentIds = await this.getAccessibleParentUserIds(user.userId, permission);
+    const parentIds = await this.getAccessibleParentUserIds(
+      user.userId,
+      permission,
+    );
 
     if (!parentIds.length) {
-      throw new ForbiddenException('Parent permission is required for this kitchen action');
+      throw new ForbiddenException(
+        'Parent permission is required for this kitchen action',
+      );
     }
 
     return parentIds;
@@ -81,7 +101,10 @@ export class KitchenAccessService {
       return false;
     }
 
-    const parentIds = await this.getAccessibleParentUserIds(user.userId, permission);
+    const parentIds = await this.getAccessibleParentUserIds(
+      user.userId,
+      permission,
+    );
     return parentIds.includes(parentUserId);
   }
 
@@ -106,9 +129,7 @@ export class KitchenAccessService {
 
     return [
       ...new Set(
-        accesses
-          .map((access) => access.child.parentUserId)
-          .filter(Boolean),
+        accesses.map((access) => access.child.parentUserId).filter(Boolean),
       ),
     ];
   }

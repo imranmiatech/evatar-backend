@@ -26,6 +26,7 @@ import { UpdateCaregiverPermissionsDto } from './dto/update-caregiver-permission
 const PERMISSION_KEYS = [
   'dailyActivitiesRecipes',
   'manageDailyPlans',
+  'viewGroceryLists',
   'manageGroceryLists',
   'editChildProfile',
   'accessChildInsights',
@@ -45,6 +46,7 @@ type PermissionMap = Record<PermissionKey, boolean>;
 const ROLE_PERMISSION_KEYS = {
   [CaregiverAccessRole.NANNY]: [
     'manageDailyPlans',
+    'viewGroceryLists',
     'manageGroceryLists',
     'editChildProfile',
     'accessChildInsights',
@@ -60,6 +62,7 @@ const ROLE_PERMISSION_KEYS = {
     'dailyActivitiesRecipes',
     'manageDailyPlans',
     'manageCareTeam',
+    'viewGroceryLists',
     'manageGroceryLists',
     'groceryOrdering',
     'careLearningAccess',
@@ -70,7 +73,7 @@ const ROLE_PERMISSION_KEYS = {
 } satisfies Record<CaregiverAccessRole, readonly PermissionKey[]>;
 
 const DEFAULT_TRUE_BY_ROLE = {
-  [CaregiverAccessRole.NANNY]: ['manageGroceryLists'],
+  [CaregiverAccessRole.NANNY]: ['viewGroceryLists', 'manageGroceryLists'],
   [CaregiverAccessRole.PARENT]: ['manageDailyPlans', 'manageCareTeam'],
   [CaregiverAccessRole.FAMILY_MEMBER]: [
     'dailyActivitiesRecipes',
@@ -83,6 +86,7 @@ const DEFAULT_TRUE_BY_ROLE = {
 const PERMISSION_LABELS = {
   dailyActivitiesRecipes: 'Daily Activities & Recipes',
   manageDailyPlans: 'Manage Daily Plans',
+  viewGroceryLists: 'View Grocery Lists',
   manageGroceryLists: 'Manage Grocery Lists',
   editChildProfile: 'Edit Child Profile',
   accessChildInsights: 'Child Insights & Progress',
@@ -101,6 +105,8 @@ const PERMISSION_DESCRIPTIONS = {
     "Allow access to view your child's daily activities, recipes, and completed tasks.",
   manageDailyPlans:
     'Allow this caregiver to create, edit, and organize activities and recipes for your child.',
+  viewGroceryLists:
+    'Allow this caregiver to view kitchen inventory and shopping lists without editing them.',
   manageGroceryLists:
     'Allow this caregiver to manage grocery lists, create requests, and update grocery items.',
   editChildProfile:
@@ -492,10 +498,10 @@ export class CaregiverService {
 
     const updated = await this.prisma.caregiverAccess.update({
       where: { id: accessId },
-      data: {
+      data: this.applyPermissionHierarchy({
         ...this.nonRolePermissionResets(access.role),
         ...this.permissionUpdates(dto, access.role),
-      },
+      }),
       include: accessInclude,
     });
 
@@ -998,8 +1004,11 @@ export class CaregiverService {
     dto: UpdateCaregiverPermissionsDto,
   ): PermissionMap {
     return {
-      ...this.defaultPermissionsForRole(role),
-      ...this.permissionUpdates(dto, role),
+      ...this.emptyPermissions(),
+      ...this.applyPermissionHierarchy({
+        ...this.defaultPermissionsForRole(role),
+        ...this.permissionUpdates(dto, role),
+      }),
     };
   }
 
@@ -1035,6 +1044,28 @@ export class CaregiverService {
         false,
       ]),
     ) as Partial<PermissionMap>;
+  }
+
+  private applyPermissionHierarchy(
+    permissions: Partial<PermissionMap>,
+  ): Partial<PermissionMap> {
+    const next = { ...permissions };
+
+    if (
+      next.manageGroceryLists ||
+      next.groceryOrdering ||
+      next.manageGroceryOrders
+    ) {
+      next.viewGroceryLists = true;
+    }
+
+    if (next.viewGroceryLists === false) {
+      next.manageGroceryLists = false;
+      next.groceryOrdering = false;
+      next.manageGroceryOrders = false;
+    }
+
+    return next;
   }
 
   private fullPermissions(): PermissionMap {
@@ -1298,7 +1329,9 @@ export class CaregiverService {
     }
 
     if (years > 0) {
-      return months > 0 ? `${years} years ${months} months old` : `${years} years old`;
+      return months > 0
+        ? `${years} years ${months} months old`
+        : `${years} years old`;
     }
 
     return `${months} months old`;

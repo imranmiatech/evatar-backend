@@ -114,7 +114,7 @@ export class KitchenItemService {
     const readableParentIds =
       await this.kitchenAccess.resolveReadableParentUserIds(
         userPayload,
-        'manageGroceryLists',
+        'viewGroceryLists',
       );
     const where: any = {
       ...(query.search?.trim() && {
@@ -167,7 +167,7 @@ export class KitchenItemService {
     const readableParentIds =
       await this.kitchenAccess.resolveReadableParentUserIds(
         userPayload,
-        'manageGroceryLists',
+        'viewGroceryLists',
       );
     const where: any = {};
 
@@ -214,7 +214,7 @@ export class KitchenItemService {
     const readableParentIds =
       await this.kitchenAccess.resolveReadableParentUserIds(
         userPayload,
-        'manageGroceryLists',
+        'viewGroceryLists',
       );
     const userWhere = readableParentIds
       ? { userId: { in: readableParentIds } }
@@ -259,7 +259,11 @@ export class KitchenItemService {
 
     if (!item) throw new NotFoundException('Kitchen item not found');
     if (
-      !(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId))
+      !(await this.kitchenAccess.canAccessParentUser(
+        userPayload,
+        item.userId,
+        'viewGroceryLists',
+      ))
     )
       throw new ForbiddenException('You do not have access to this item');
 
@@ -277,14 +281,16 @@ export class KitchenItemService {
     const item = await this.prisma.kitchenItem.findUnique({ where: { id } });
 
     if (!item) throw new NotFoundException('Kitchen item not found');
-    if (dto.userId !== userPayload.userId) {
-      throw new ForbiddenException('Request userId must match logged-in user');
-    }
-    if (item.createdByUserId !== dto.userId) {
+    if (
+      !(await this.kitchenAccess.canAccessParentUser(
+        userPayload,
+        item.userId,
+        'manageGroceryLists',
+      ))
+    )
       throw new ForbiddenException(
-        'Only the user who created this item can update it',
+        'You do not have access to update this item',
       );
-    }
 
     const stockPercent =
       dto.currentStockPercent !== undefined
@@ -333,7 +339,11 @@ export class KitchenItemService {
 
     if (!item) throw new NotFoundException('Kitchen item not found');
     if (
-      !(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId))
+      !(await this.kitchenAccess.canAccessParentUser(
+        userPayload,
+        item.userId,
+        'manageGroceryLists',
+      ))
     )
       throw new ForbiddenException('You do not have access to this item');
 
@@ -361,7 +371,11 @@ export class KitchenItemService {
 
     if (!item) throw new NotFoundException('Kitchen item not found');
     if (
-      !(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId))
+      !(await this.kitchenAccess.canAccessParentUser(
+        userPayload,
+        item.userId,
+        'manageGroceryLists',
+      ))
     )
       throw new ForbiddenException('You do not have access to this item');
 
@@ -389,7 +403,11 @@ export class KitchenItemService {
 
     if (!item) throw new NotFoundException('Kitchen item not found');
     if (
-      !(await this.kitchenAccess.canAccessParentUser(userPayload, item.userId))
+      !(await this.kitchenAccess.canAccessParentUser(
+        userPayload,
+        item.userId,
+        'manageGroceryLists',
+      ))
     )
       throw new ForbiddenException('You do not have access to this item');
 

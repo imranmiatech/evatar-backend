@@ -24,7 +24,7 @@ export class KitchenSuggestionService {
     const parentUserId = await this.kitchenAccess.resolveWritableParentUserId(
       user,
       undefined,
-      'manageGroceryLists',
+      'viewGroceryLists',
     );
 
     // 1. Fetch all kitchen item names for this user (lowercased for comparison)
@@ -74,9 +74,7 @@ export class KitchenSuggestionService {
         name: recipe.title,
         source: 'RECIPE',
       })),
-    ].filter(
-      (item) => !kitchenNames.has(item.name.toLowerCase().trim()),
-    );
+    ].filter((item) => !kitchenNames.has(item.name.toLowerCase().trim()));
 
     const uniqueSuggestions = Array.from(
       new Map(
