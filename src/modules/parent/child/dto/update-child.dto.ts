@@ -30,28 +30,6 @@ export class SchoolScheduleDto {
   endTime: string;
 }
 
-export class RecurringActivityDto {
-  @ApiProperty({ example: 'Home education schedule' })
-  @IsString()
-  name: string;
-
-  @ApiProperty({
-    enum: DayOfWeek,
-    isArray: true,
-    example: [DayOfWeek.MON, DayOfWeek.WED],
-  })
-  @IsArray()
-  @IsEnum(DayOfWeek, { each: true })
-  days: DayOfWeek[];
-
-  @ApiProperty({ example: '09:00' })
-  @IsString()
-  startTime: string;
-
-  @ApiProperty({ example: '10:00' })
-  @IsString()
-  endTime: string;
-}
 
 export class NapWindowDto {
   @ApiProperty({ example: '13:00' })
@@ -174,12 +152,7 @@ export class UpdateChildDto {
   @IsOptional()
   schoolSchedule?: SchoolScheduleDto;
 
-  @ApiPropertyOptional({ type: [RecurringActivityDto] })
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => RecurringActivityDto)
-  @IsOptional()
-  recurringActivities?: RecurringActivityDto[];
+
 
   @ApiPropertyOptional({ type: [NapWindowDto] })
   @IsArray()
