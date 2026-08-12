@@ -25,10 +25,10 @@ function createPoolConfig(): PoolConfig {
         process.env.DATABASE_CONNECTION_TIMEOUT_MS ?? 30000,
       ),
       idleTimeoutMillis: Number(process.env.DATABASE_IDLE_TIMEOUT_MS ?? 10000),
-      ssl: {
+      ssl: process.env.NODE_ENV === 'production' ? {
         rejectUnauthorized: false,
         servername: parsed.hostname,
-      },
+      } : false,
     };
   }
 
@@ -39,7 +39,7 @@ function createPoolConfig(): PoolConfig {
       process.env.DATABASE_CONNECTION_TIMEOUT_MS ?? 30000,
     ),
     idleTimeoutMillis: Number(process.env.DATABASE_IDLE_TIMEOUT_MS ?? 10000),
-    ssl: { rejectUnauthorized: false },
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   };
 }
 
