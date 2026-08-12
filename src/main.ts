@@ -29,7 +29,9 @@ async function bootstrap() {
   // Global interceptors
   const reflector = app.get(Reflector);
   const languageService = app.get(LanguageService);
-  app.useGlobalInterceptors(new ResponseInterceptor(reflector, languageService));
+  app.useGlobalInterceptors(
+    new ResponseInterceptor(reflector, languageService),
+  );
 
   // Global pipes
   app.useGlobalPipes(
@@ -51,7 +53,6 @@ async function bootstrap() {
     }),
   );
 
-
   const config = new DocumentBuilder()
     .setTitle('EvaTurner API')
     .setDescription('The backend API for EvaTurner application')
@@ -62,12 +63,12 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document, {
     swaggerOptions: {
-      persistAuthorization: true
-    }
+      persistAuthorization: true,
+    },
   });
 
   const expressApp = app.getHttpAdapter().getInstance();
-  
+
   expressApp.get('/admin-dashboard', (req: any, res: any) => {
     const fs = require('fs');
     const path = require('path');
@@ -76,21 +77,26 @@ async function bootstrap() {
       path.resolve(__dirname, '../public/admin-users.html'),
       path.resolve(__dirname, '../../public/admin-users.html'),
     ];
-    const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+    const targetPath =
+      possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
     res.sendFile(targetPath);
   });
 
-  expressApp.get(['/admin-partner-approval', '/admin-partners-ui'], (req: any, res: any) => {
-    const fs = require('fs');
-    const path = require('path');
-    const possiblePaths = [
-      path.resolve(process.cwd(), 'public/admin-partner-approval.html'),
-      path.resolve(__dirname, '../public/admin-partner-approval.html'),
-      path.resolve(__dirname, '../../public/admin-partner-approval.html'),
-    ];
-    const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
-    res.sendFile(targetPath);
-  });
+  expressApp.get(
+    ['/admin-partner-approval', '/admin-partners-ui'],
+    (req: any, res: any) => {
+      const fs = require('fs');
+      const path = require('path');
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'public/admin-partner-approval.html'),
+        path.resolve(__dirname, '../public/admin-partner-approval.html'),
+        path.resolve(__dirname, '../../public/admin-partner-approval.html'),
+      ];
+      const targetPath =
+        possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+      res.sendFile(targetPath);
+    },
+  );
 
   expressApp.get('/notifications-ui', (req: any, res: any) => {
     const fs = require('fs');
@@ -100,7 +106,8 @@ async function bootstrap() {
       path.resolve(__dirname, '../public/mobile-notifications.html'),
       path.resolve(__dirname, '../../public/mobile-notifications.html'),
     ];
-    const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+    const targetPath =
+      possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
     res.sendFile(targetPath);
   });
 
@@ -112,34 +119,75 @@ async function bootstrap() {
       path.resolve(__dirname, '../public/mobile-messages.html'),
       path.resolve(__dirname, '../../public/mobile-messages.html'),
     ];
-    const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+    const targetPath =
+      possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
     res.sendFile(targetPath);
   });
 
-  expressApp.get(['/login', '/login-ui', '/login-token'], (req: any, res: any) => {
-    const fs = require('fs');
-    const path = require('path');
-    const possiblePaths = [
-      path.resolve(process.cwd(), 'public/login.html'),
-      path.resolve(process.cwd(), 'public/login-token.html'),
-      path.resolve(__dirname, '../public/login.html'),
-      path.resolve(__dirname, '../public/login-token.html'),
-    ];
-    const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
-    res.sendFile(targetPath);
-  });
+  expressApp.get(
+    ['/login', '/login-ui', '/login-token'],
+    (req: any, res: any) => {
+      const fs = require('fs');
+      const path = require('path');
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'public/login.html'),
+        path.resolve(process.cwd(), 'public/login-token.html'),
+        path.resolve(__dirname, '../public/login.html'),
+        path.resolve(__dirname, '../public/login-token.html'),
+      ];
+      const targetPath =
+        possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+      res.sendFile(targetPath);
+    },
+  );
 
-  expressApp.get(['/partner-auth', '/partner-auth-ui'], (req: any, res: any) => {
-    const fs = require('fs');
-    const path = require('path');
-    const possiblePaths = [
-      path.resolve(process.cwd(), 'public/partner-auth.html'),
-      path.resolve(__dirname, '../public/partner-auth.html'),
-      path.resolve(__dirname, '../../public/partner-auth.html'),
-    ];
-    const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
-    res.sendFile(targetPath);
-  });
+  expressApp.get(
+    ['/partner-auth', '/partner-auth-ui'],
+    (req: any, res: any) => {
+      const fs = require('fs');
+      const path = require('path');
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'public/partner-auth.html'),
+        path.resolve(__dirname, '../public/partner-auth.html'),
+        path.resolve(__dirname, '../../public/partner-auth.html'),
+      ];
+      const targetPath =
+        possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+      res.sendFile(targetPath);
+    },
+  );
+
+  expressApp.get(
+    ['/partner-offers', '/partner-offers-ui'],
+    (req: any, res: any) => {
+      const fs = require('fs');
+      const path = require('path');
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'public/partner-offers.html'),
+        path.resolve(__dirname, '../public/partner-offers.html'),
+        path.resolve(__dirname, '../../public/partner-offers.html'),
+      ];
+      const targetPath =
+        possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+      res.sendFile(targetPath);
+    },
+  );
+
+  expressApp.get(
+    ['/partner-dashboard-ui', '/partner-dashboard-home'],
+    (req: any, res: any) => {
+      const fs = require('fs');
+      const path = require('path');
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'public/partner-dashboard.html'),
+        path.resolve(__dirname, '../public/partner-dashboard.html'),
+        path.resolve(__dirname, '../../public/partner-dashboard.html'),
+      ];
+      const targetPath =
+        possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+      res.sendFile(targetPath);
+    },
+  );
 
   expressApp.get('/caregiver-ui', (req: any, res: any) => {
     const fs = require('fs');
@@ -149,7 +197,8 @@ async function bootstrap() {
       path.resolve(__dirname, '../public/caregiver-mobile.html'),
       path.resolve(__dirname, '../../public/caregiver-mobile.html'),
     ];
-    const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+    const targetPath =
+      possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
     res.sendFile(targetPath);
   });
 
@@ -161,7 +210,8 @@ async function bootstrap() {
       path.resolve(__dirname, '../public/mobile-care.html'),
       path.resolve(__dirname, '../../public/mobile-care.html'),
     ];
-    const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+    const targetPath =
+      possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
     res.sendFile(targetPath);
   });
 
@@ -173,15 +223,14 @@ async function bootstrap() {
       path.resolve(__dirname, '../public/mobile-meal.html'),
       path.resolve(__dirname, '../../public/mobile-meal.html'),
     ];
-    const targetPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+    const targetPath =
+      possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
     res.sendFile(targetPath);
   });
 
   expressApp.get('/', (req: any, res: any) => {
     res.redirect('/admin-dashboard');
   });
-
- 
 
   await app.listen(process.env.PORT ?? 5000);
 }

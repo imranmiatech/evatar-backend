@@ -1,4 +1,14 @@
-import { Body, Controller, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -17,6 +27,7 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import {
   CreatePartnerProductDto,
+  PartnerProductQueryDto,
   UpdatePartnerProductDto,
 } from './dto/create-partner-product.dto';
 import { PartnerProductService } from './partner-product.service';
@@ -28,6 +39,34 @@ import { PartnerProductService } from './partner-product.service';
 @Controller('partner/products')
 export class PartnerProductController {
   constructor(private readonly partnerProductService: PartnerProductService) {}
+
+  @Get()
+  @ApiOperation({
+    summary: 'Get partner products',
+    description:
+      'Lists products owned by the logged-in partner. Use search for product-name suggestions while creating offers.',
+  })
+  getProducts(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query() query: PartnerProductQueryDto,
+  ) {
+    return this.partnerProductService.getProducts(user, query);
+  }
+
+  @Get(':productId')
+  @ApiOperation({ summary: 'Get one partner product by ID' })
+  @ApiParam({ name: 'productId', description: 'Partner product ID' })
+  @ApiResponse({ status: 200, description: 'Partner product fetched.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Product not found or does not belong to this partner.',
+  })
+  getProduct(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('productId') productId: string,
+  ) {
+    return this.partnerProductService.getProduct(user, productId);
+  }
 
   @Post()
   @ApiOperation({
@@ -114,5 +153,20 @@ export class PartnerProductController {
     @Body() dto: UpdatePartnerProductDto,
   ) {
     return this.partnerProductService.updateProduct(user, productId, dto);
+  }
+
+  @Delete(':productId')
+  @ApiOperation({ summary: 'Delete partner product' })
+  @ApiParam({ name: 'productId', description: 'Partner product ID' })
+  @ApiResponse({ status: 200, description: 'Partner product deleted.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Product not found or does not belong to this partner.',
+  })
+  deleteProduct(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('productId') productId: string,
+  ) {
+    return this.partnerProductService.deleteProduct(user, productId);
   }
 }

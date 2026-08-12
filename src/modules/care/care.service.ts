@@ -26,6 +26,7 @@ import { AssignCareModuleDto } from './dto/assign-care-module.dto';
 import { CareChildInsightsQueryDto } from './dto/care-child-insights-query.dto';
 import {
   CareHomeQueryDto,
+  CareHomeTabsQueryDto,
   CareModuleQueryDto,
   CareModuleTab,
 } from './dto/care-module-query.dto';
@@ -570,13 +571,32 @@ export class CareService {
     };
   }
 
-  async getCareHomeTabs(user: CurrentUserPayload) {
-    const homeQuery = {};
+  async getCareHomeTabs(user: CurrentUserPayload, query: CareHomeTabsQueryDto) {
+    const userId = this.currentUserId(user);
+    if (query.childId) {
+      if (this.isNanny(user)) {
+        await this.assertNannyCanViewChildCare(userId, query.childId);
+      } else {
+        await this.assertCanViewCare(userId, query.childId);
+      }
+    }
+
+    const homeQuery = {
+      ...query,
+      page: 1,
+      limit: 1,
+    };
     const tabCounts = await this.careHomeTabCounts(user, homeQuery);
 
     return {
       success: true,
       message: 'Care home tabs fetched successfully',
+      meta: {
+        childId: query.childId ?? null,
+        nannyUserId: query.nannyUserId ?? null,
+        search: query.search ?? null,
+        category: query.category ?? null,
+      },
       data: [
         {
           id: CareModuleTab.ALL,

@@ -36,6 +36,10 @@ model User {
   nannyProfile                  NannyProfile?
   otpCodes                      OtpCode[]
   partnerProfile                PartnerProfile?
+  partnerOffers                 PartnerOffer[]
+  partnerOfferViews             PartnerOfferView[]
+  partnerOfferSaves             PartnerOfferSave[]
+  partnerOfferRedemptions       PartnerOfferRedemption[]
   parentProfile                 ParentProfile?
   partnerProducts               PartnerProduct[]
   supportTickets                SupportTicket[]

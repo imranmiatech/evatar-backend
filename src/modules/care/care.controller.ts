@@ -33,6 +33,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { AssignCareModuleDto } from './dto/assign-care-module.dto';
 import {
   CareHomeQueryDto,
+  CareHomeTabsQueryDto,
   CareModuleQueryDto,
 } from './dto/care-module-query.dto';
 import { CreateCareModuleDto } from './dto/create-care-module.dto';
@@ -363,8 +364,11 @@ export class CareController {
   @ApiOperation({
     summary: 'Get Care Hub module tabs with counts',
   })
-  getCareHomeTabs(@CurrentUser() user: CurrentUserPayload) {
-    return this.careService.getCareHomeTabs(user);
+  getCareHomeTabs(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query() query: CareHomeTabsQueryDto,
+  ) {
+    return this.careService.getCareHomeTabs(user, query);
   }
 
   @Get('home/topics')

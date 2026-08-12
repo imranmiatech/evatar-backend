@@ -122,6 +122,25 @@ enum PartnerProductStatus {
   PUBLISHED
 }
 
+enum PartnerOfferStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ACTIVE
+  INACTIVE
+  EXPIRED
+  REJECTED
+}
+
+enum PartnerOfferType {
+  FIXED_DISCOUNT
+  PRODUCT_BASED
+}
+
+enum PartnerOfferRedemptionFlow {
+  IN_STORE
+  IN_ALUREI
+}
+
 enum ChildGender {
   BOY
   GIRL

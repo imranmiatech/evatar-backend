@@ -8,7 +8,10 @@ import {
 import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
+  IsIn,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -28,9 +31,7 @@ const normalizeEnum = ({ value }: { value: unknown }) => {
 
 const normalizeTags = ({ value }: { value: unknown }) => {
   if (Array.isArray(value)) {
-    return value
-      .map((item) => String(item).trim())
-      .filter(Boolean);
+    return value.map((item) => String(item).trim()).filter(Boolean);
   }
 
   if (typeof value === 'string') {
@@ -127,8 +128,7 @@ export class CreatePartnerProductDto {
   @ApiPropertyOptional({
     enum: PartnerProductStatus,
     example: PartnerProductStatus.PUBLISHED,
-    description:
-      'Use DRAFT for Save draft and PUBLISHED for Publish Product.',
+    description: 'Use DRAFT for Save draft and PUBLISHED for Publish Product.',
   })
   @Transform(normalizeEnum)
   @IsEnum(PartnerProductStatus)
@@ -136,4 +136,80 @@ export class CreatePartnerProductDto {
   status?: PartnerProductStatus;
 }
 
-export class UpdatePartnerProductDto extends PartialType(CreatePartnerProductDto) {}
+export class UpdatePartnerProductDto extends PartialType(
+  CreatePartnerProductDto,
+) {}
+
+export class PartnerProductQueryDto {
+  @ApiPropertyOptional({
+    example: 'Baby Organic Yogurt',
+    description: 'Search by product name, SKU, or tag.',
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({
+    enum: ['ALL', ...Object.values(PartnerProductCategory)],
+    example: 'PRODUCE',
+  })
+  @IsOptional()
+  @Transform(normalizeEnum)
+  @IsIn(['ALL', ...Object.values(PartnerProductCategory)])
+  category?: 'ALL' | PartnerProductCategory;
+
+  @ApiPropertyOptional({
+    enum: ['ALL', ...Object.values(PartnerProductAvailability)],
+    example: 'IN_STOCK',
+  })
+  @IsOptional()
+  @Transform(normalizeEnum)
+  @IsIn(['ALL', ...Object.values(PartnerProductAvailability)])
+  availability?: 'ALL' | PartnerProductAvailability;
+
+  @ApiPropertyOptional({
+    enum: ['ALL', ...Object.values(PartnerProductStatus)],
+    example: 'PUBLISHED',
+  })
+  @IsOptional()
+  @Transform(normalizeEnum)
+  @IsIn(['ALL', ...Object.values(PartnerProductStatus)])
+  status?: 'ALL' | PartnerProductStatus;
+
+  @ApiPropertyOptional({
+    description: 'Filter products that have at least one linked offer.',
+    example: true,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true' || value === '1')
+  @IsBoolean()
+  hasOffer?: boolean;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  minPrice?: number;
+
+  @ApiPropertyOptional({ example: 100 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  maxPrice?: number;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @ApiPropertyOptional({ example: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number = 20;
+}

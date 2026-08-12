@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Partner Dashboard</title>
+    <style>
+      :root {
+        --bg: #f4f4f4;
+        --panel: #ffffff;
+        --text: #172236;
+        --muted: #677486;
+        --line: #e6e9ee;
+        --brand: #075f69;
+        --brand-2: #079f9b;
+        --blue: #455eff;
+        --violet: #7b61ff;
+        --green: #08b98f;
+        --danger: #f04438;
+        --warning: #f2b84b;
+        --chip: #eff7f8;
+        --shadow: 0 18px 44px rgba(20, 35, 50, 0.07);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        min-height: 100vh;
+        letter-spacing: 0;
+      }
+
+      button,
+      input {
+        font: inherit;
+        letter-spacing: 0;
+      }
+      button {
+        cursor: pointer;
+      }
+
+      .page {
+        max-width: 1260px;
+        margin: 0 auto;
+        padding: 26px 26px 42px;
+      }
+
+      .hero {
+        min-height: 158px;
+        background: #075f69;
+        border-radius: 14px;
+        color: #fff;
+        padding: 32px 36px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: start;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .hero::after {
+        content: '';
+        position: absolute;
+        width: 225px;
+        height: 225px;
+        border-radius: 50%;
+        right: -45px;
+        top: -56px;
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: -82px 58px 0 rgba(255, 255, 255, 0.07);
+      }
+
+      .hero h1 {
+        margin: 4px 0 12px;
+        font-size: 26px;
+        line-height: 1.15;
+        font-weight: 850;
+      }
+
+      .eyebrow {
+        color: #c7e0e5;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .hero p {
+        margin: 0;
+        color: #c7e0e5;
+        font-size: 13px;
+      }
+
+      .hero-actions {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        border: 0;
+        border-radius: 14px;
+        min-height: 46px;
+        padding: 0 18px;
+        font-size: 13px;
+        font-weight: 800;
+        background: #fff;
+        color: #075f69;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .btn.dark {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+      }
+
+      .btn.teal {
+        color: #fff;
+        background: var(--brand);
+        border-radius: 10px;
+        width: 100%;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 36px;
+        margin: 28px 0 36px;
+      }
+
+      .metric-card {
+        background: var(--panel);
+        border-radius: 14px;
+        min-height: 148px;
+        padding: 24px 26px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: start;
+        box-shadow: var(--shadow);
+      }
+
+      .metric-card h3 {
+        margin: 0 0 10px;
+        color: #24324a;
+        font-size: 14px;
+        font-weight: 750;
+      }
+
+      .metric-value {
+        font-size: 32px;
+        font-weight: 900;
+        line-height: 1;
+        margin-bottom: 12px;
+      }
+
+      .metric-change {
+        color: #0a8175;
+        font-size: 12px;
+        font-weight: 750;
+      }
+
+      .metric-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 11px;
+        background: #eef0ff;
+        display: grid;
+        place-items: center;
+        color: #273056;
+        font-weight: 900;
+      }
+
+      .panel {
+        background: var(--panel);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+      }
+
+      .chart-panel {
+        padding: 24px 28px 18px;
+        margin-bottom: 38px;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .panel-head h2 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 850;
+      }
+
+      .range-tabs {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .range-btn {
+        border: 0;
+        background: transparent;
+        color: #25314a;
+        border-radius: 7px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .range-btn.active {
+        background: #e4f4f5;
+        color: #0596a0;
+      }
+
+      .chart-wrap {
+        height: 230px;
+        position: relative;
+      }
+
+      canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .legend {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 14px;
+        color: #6a7280;
+        font-size: 11px;
+        margin-top: 8px;
+      }
+
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+        vertical-align: 1px;
+      }
+
+      .bottom-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 370px;
+        gap: 24px;
+        align-items: start;
+      }
+
+      .activity-panel {
+        padding: 28px;
+        min-height: 420px;
+      }
+
+      .activity-list {
+        display: grid;
+        gap: 0;
+      }
+
+      .activity-item {
+        min-height: 72px;
+        border-bottom: 1px solid var(--line);
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .activity-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .activity-icon.offer {
+        background: #d8fae8;
+        color: #00a66f;
+      }
+      .activity-icon.product {
+        background: #edf0ff;
+        color: #5367ff;
+      }
+      .activity-icon.redemption {
+        background: #f1e8ff;
+        color: #7b61ff;
+      }
+      .activity-title {
+        font-size: 13px;
+        font-weight: 760;
+        color: #26324a;
+        margin-bottom: 5px;
+      }
+      .activity-time {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .top-offer {
+        padding: 28px;
+      }
+
+      .top-card {
+        background: linear-gradient(135deg, #0c9ca3, #07958b);
+        color: #fff;
+        border-radius: 12px;
+        padding: 24px;
+        min-height: 150px;
+        margin: 18px 0 24px;
+      }
+
+      .top-card h3 {
+        margin: 0 0 6px;
+        font-size: 34px;
+        line-height: 1;
+        font-weight: 900;
+      }
+
+      .top-card p {
+        margin: 0 0 8px;
+        font-size: 13px;
+        color: #e6ffff;
+      }
+
+      .valid {
+        display: inline-block;
+        background: rgba(0, 74, 78, 0.28);
+        border-radius: 3px;
+        padding: 4px 8px;
+        color: #bff7f4;
+        font-size: 12px;
+      }
+
+      .stats {
+        display: grid;
+        gap: 18px;
+        margin-bottom: 22px;
+      }
+
+      .stat-line {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        font-size: 14px;
+        color: #3c4658;
+      }
+
+      .stat-line strong {
+        color: #1d2940;
+        font-size: 17px;
+      }
+
+      .muted-title {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 750;
+      }
+
+      .empty {
+        color: var(--muted);
+        font-size: 13px;
+        padding: 18px 0;
+      }
+
+      .login-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(18, 24, 30, 0.55);
+        display: grid;
+        place-items: center;
+        z-index: 50;
+        padding: 18px;
+      }
+
+      .login-modal {
+        width: min(100%, 430px);
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+        padding: 28px;
+      }
+
+      .login-modal h2 {
+        margin: 0 0 6px;
+        font-size: 22px;
+      }
+
+      .login-modal p {
+        margin: 0 0 20px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .field {
+        margin-bottom: 14px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        font-weight: 800;
+        color: #344256;
+        margin-bottom: 7px;
+      }
+
+      input {
+        width: 100%;
+        height: 44px;
+        border: 1px solid #d8e2e6;
+        border-radius: 10px;
+        padding: 0 13px;
+        outline: none;
+      }
+
+      input:focus {
+        border-color: #7bc6cf;
+        box-shadow: 0 0 0 3px rgba(7, 95, 105, 0.12);
+      }
+
+      .login-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 900px) {
+        .cards,
+        .bottom-grid {
+          grid-template-columns: 1fr;
+          gap: 18px;
+        }
+        .hero {
+          grid-template-columns: 1fr;
+          gap: 18px;
+          padding: 26px;
+        }
+        .hero-actions {
+          justify-content: flex-start;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .page {
+          padding: 14px;
+        }
+        .cards {
+          margin: 18px 0;
+        }
+        .metric-card {
+          min-height: 120px;
+        }
+        .chart-wrap {
+          height: 200px;
+        }
+        .login-actions,
+        .hero-actions {
+          flex-direction: column;
+        }
+        .btn {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div>
+          <div class="eyebrow" id="greeting">Good afternoon,</div>
+          <h1><span id="displayName">Partner</span> <span>👋</span></h1>
+          <p>Here's how your partnership with Alurei is performing.</p>
+        </div>
+        <div class="hero-actions">
+          <button
+            class="btn"
+            type="button"
+            onclick="location.href = '/partner-offers-ui'"
+          >
+            + Create Offer
+          </button>
+          <button class="btn dark" type="button">+ Add Product</button>
+        </div>
+      </section>
+
+      <section class="cards">
+        <article class="metric-card">
+          <div>
+            <h3>Products</h3>
+            <div class="metric-value" id="productsValue">0</div>
+            <div class="metric-change" id="productsChange">
+              +0 vs last month
+            </div>
+          </div>
+          <div class="metric-icon">▦</div>
+        </article>
+        <article class="metric-card">
+          <div>
+            <h3>Active Offers</h3>
+            <div class="metric-value" id="activeOffersValue">0</div>
+            <div class="metric-change" id="activeOffersChange">
+              +0 vs last month
+            </div>
+          </div>
+          <div class="metric-icon">◇</div>
+        </article>
+        <article class="metric-card">
+          <div>
+            <h3>Redemptions</h3>
+            <div class="metric-value" id="redemptionsValue">0</div>
+            <div class="metric-change" id="redemptionsChange">
+              +0 vs last month
+            </div>
+          </div>
+          <div class="metric-icon">⊙</div>
+        </article>
+      </section>
+
+      <section class="panel chart-panel">
+        <div class="panel-head">
+          <h2>Offer Performance</h2>
+          <div class="range-tabs">
+            <button class="range-btn active" type="button" data-range="7D">
+              7D
+            </button>
+            <button class="range-btn" type="button" data-range="30D">
+              30D
+            </button>
+            <button class="range-btn" type="button" data-range="3M">3M</button>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="performanceChart"></canvas>
+        </div>
+        <div class="legend">
+          <span
+            ><i class="dot" style="background: var(--green)"></i
+            >Redemptions</span
+          >
+          <span
+            ><i class="dot" style="background: var(--violet)"></i>Saves</span
+          >
+          <span><i class="dot" style="background: var(--blue)"></i>Views</span>
+        </div>
+      </section>
+
+      <section class="bottom-grid">
+        <article class="panel activity-panel">
+          <h2 style="margin: 0 0 20px; font-size: 16px">Recent Activity</h2>
+          <div class="activity-list" id="activityList"></div>
+        </article>
+
+        <aside class="panel top-offer">
+          <div class="muted-title">Top Performing Offer</div>
+          <div id="topOfferContent"></div>
+        </aside>
+      </section>
+    </main>
+
+    <div class="login-overlay hidden" id="loginOverlay">
+      <div class="login-modal">
+        <h2>Partner Login</h2>
+        <p>Sign in once and the token will be saved for dashboard testing.</p>
+        <div class="field">
+          <label for="apiBase">API Base</label>
+          <input id="apiBase" value="http://localhost:5000" />
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" value="hello@business.com" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" value="Password123!" />
+        </div>
+        <div class="login-actions">
+          <button class="btn teal" id="loginBtn" type="button">Login</button>
+          <button class="btn" id="useTokenBtn" type="button">
+            Use Saved Token
+          </button>
+        </div>
+        <div class="empty" id="loginMessage"></div>
+      </div>
+    </div>
+
+    <script>
+      const TOKEN_KEY = 'partnerDashboard.token';
+      const BASE_KEY = 'partnerDashboard.apiBase';
+      const EMAIL_KEY = 'partnerDashboard.email';
+      let currentRange = '7D';
+
+      const $ = (id) => document.getElementById(id);
+
+      function apiBase() {
+        return (
+          $('apiBase')?.value ||
+          localStorage.getItem(BASE_KEY) ||
+          'http://localhost:5000'
+        )
+          .trim()
+          .replace(/\/$/, '');
+      }
+
+      function token() {
+        return (
+          localStorage.getItem(TOKEN_KEY) ||
+          localStorage.getItem('partnerAuth.accessToken') ||
+          localStorage.getItem('partnerOffer.token') ||
+          ''
+        );
+      }
+
+      function saveToken(value) {
+        localStorage.setItem(TOKEN_KEY, value);
+        localStorage.setItem('partnerAuth.accessToken', value);
+      }
+
+      async function request(path, options = {}) {
+        const res = await fetch(`${apiBase()}${path}`, {
+          ...options,
+          headers: {
+            ...(options.headers || {}),
+            Authorization: `Bearer ${token()}`,
+          },
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const error = new Error(json.message || 'Request failed');
+          error.response = json;
+          throw error;
+        }
+        return json;
+      }
+
+      async function login() {
+        $('loginMessage').textContent = 'Signing in...';
+        try {
+          localStorage.setItem(BASE_KEY, apiBase());
+          localStorage.setItem(EMAIL_KEY, $('email').value.trim());
+          const res = await fetch(`${apiBase()}/api/v1/auth/signin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: $('email').value.trim(),
+              password: $('password').value,
+            }),
+          });
+          const json = await res.json();
+          const accessToken = json?.data?.accessToken || json?.accessToken;
+          if (!res.ok || !accessToken)
+            throw new Error(json.message || 'Login failed');
+          saveToken(accessToken);
+          $('loginOverlay').classList.add('hidden');
+          await loadDashboard();
+        } catch (error) {
+          $('loginMessage').textContent = error.message || 'Login failed';
+        }
+      }
+
+      async function loadDashboard() {
+        if (!token()) {
+          $('loginOverlay').classList.remove('hidden');
+          return;
+        }
+        try {
+          const json = await request(
+            `/api/v1/partner/dashboard?range=${encodeURIComponent(currentRange)}`,
+          );
+          renderDashboard(json.data || {});
+        } catch (error) {
+          if (
+            error.response?.statusCode === 401 ||
+            error.response?.statusCode === 403
+          ) {
+            $('loginOverlay').classList.remove('hidden');
+          }
+          console.error(error.response || error);
+        }
+      }
+
+      function renderDashboard(data) {
+        $('greeting').textContent = `${data.greeting || clientGreeting()},`;
+        $('displayName').textContent = data.displayName || 'Partner';
+        renderMetric('products', data.cards?.products);
+        renderMetric('activeOffers', data.cards?.activeOffers);
+        renderMetric('redemptions', data.cards?.redemptions);
+        renderChart(data.offerPerformance || { labels: [], series: {} });
+        renderActivity(data.recentActivity || []);
+        renderTopOffer(data.topPerformingOffer);
+      }
+
+      function renderMetric(key, metric = {}) {
+        $(`${key}Value`).textContent = Number(
+          metric.value || 0,
+        ).toLocaleString();
+        $(`${key}Change`).textContent =
+          metric.changeLabel || '+0 vs last month';
+      }
+
+      function renderActivity(items) {
+        if (!items.length) {
+          $('activityList').innerHTML =
+            '<div class="empty">No recent activity yet.</div>';
+          return;
+        }
+        $('activityList').innerHTML = items
+          .map((item) => {
+            const klass = (item.type || '').toLowerCase();
+            const icon =
+              item.type === 'OFFER'
+                ? '✓'
+                : item.type === 'REDEMPTION'
+                  ? '↻'
+                  : '+';
+            return `
+          <div class="activity-item">
+            <div class="activity-icon ${klass}">${icon}</div>
+            <div>
+              <div class="activity-title">${escapeHtml(item.title || '')}</div>
+              <div class="activity-time">${escapeHtml(item.subtitle || '')}</div>
+            </div>
+          </div>
+        `;
+          })
+          .join('');
+      }
+
+      function renderTopOffer(offer) {
+        if (!offer) {
+          $('topOfferContent').innerHTML =
+            '<div class="empty">No offer performance yet.</div>';
+          return;
+        }
+        $('topOfferContent').innerHTML = `
+        <div class="top-card">
+          <h3>${escapeHtml(offer.title || 'Offer')}</h3>
+          <p>${escapeHtml(offer.subtitle || '')}</p>
+          <span class="valid">${escapeHtml(offer.validUntilLabel || '')}</span>
+        </div>
+        <div class="stats">
+          <div class="stat-line"><span>👁 Views</span><strong>${Number(offer.views || 0).toLocaleString()}</strong></div>
+          <div class="stat-line"><span>♡ Saves</span><strong>${Number(offer.saves || 0).toLocaleString()}</strong></div>
+          <div class="stat-line"><span>✓ Redemptions</span><strong>${Number(offer.redemptions || 0).toLocaleString()}</strong></div>
+        </div>
+        <button class="btn" type="button" onclick="currentRange='7D'; setRangeButton(); loadDashboard();">View Performance</button>
+      `;
+      }
+
+      function renderChart(performance) {
+        const canvas = $('performanceChart');
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, rect.width, rect.height);
+
+        const labels = performance.labels || [];
+        const series = performance.series || {};
+        const datasets = [
+          { key: 'views', color: '#455eff', values: series.views || [] },
+          { key: 'saves', color: '#7b61ff', values: series.saves || [] },
+          {
+            key: 'redemptions',
+            color: '#08b98f',
+            values: series.redemptions || [],
+          },
+        ];
+        const max = Math.max(1, ...datasets.flatMap((d) => d.values));
+        const pad = { left: 42, right: 20, top: 12, bottom: 34 };
+        const w = rect.width - pad.left - pad.right;
+        const h = rect.height - pad.top - pad.bottom;
+
+        ctx.strokeStyle = '#e8edf2';
+        ctx.lineWidth = 1;
+        ctx.fillStyle = '#8a94a6';
+        ctx.font = '11px Inter, sans-serif';
+        [0, 0.25, 0.5, 0.75, 1].forEach((ratio) => {
+          const y = pad.top + h - h * ratio;
+          ctx.beginPath();
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(pad.left + w, y);
+          ctx.stroke();
+          ctx.fillText(String(Math.round(max * ratio)), 8, y + 4);
+        });
+
+        labels.forEach((label, i) => {
+          if (labels.length > 12 && i % Math.ceil(labels.length / 8) !== 0)
+            return;
+          const x =
+            pad.left + (labels.length <= 1 ? 0 : (w * i) / (labels.length - 1));
+          ctx.fillText(label, x - 12, pad.top + h + 24);
+        });
+
+        datasets.forEach((dataset) => {
+          const points = dataset.values.map((value, i) => ({
+            x:
+              pad.left +
+              (dataset.values.length <= 1
+                ? 0
+                : (w * i) / (dataset.values.length - 1)),
+            y: pad.top + h - (h * Number(value || 0)) / max,
+          }));
+          ctx.beginPath();
+          points.forEach((point, index) => {
+            if (index === 0) ctx.moveTo(point.x, point.y);
+            else ctx.lineTo(point.x, point.y);
+          });
+          ctx.strokeStyle = dataset.color;
+          ctx.lineWidth = dataset.key === 'views' ? 2.4 : 2;
+          ctx.stroke();
+        });
+      }
+
+      function clientGreeting() {
+        const hour = new Date().getHours();
+        if (hour >= 5 && hour < 12) return 'Good morning';
+        if (hour >= 12 && hour < 17) return 'Good afternoon';
+        return 'Good evening';
+      }
+
+      function setRangeButton() {
+        document.querySelectorAll('.range-btn').forEach((btn) => {
+          btn.classList.toggle('active', btn.dataset.range === currentRange);
+        });
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(
+          /[&<>"']/g,
+          (ch) =>
+            ({
+              '&': '&amp;',
+              '<': '&lt;',
+              '>': '&gt;',
+              '"': '&quot;',
+              "'": '&#39;',
+            })[ch],
+        );
+      }
+
+      document.querySelectorAll('.range-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          currentRange = btn.dataset.range;
+          setRangeButton();
+          loadDashboard();
+        });
+      });
+
+      $('loginBtn').addEventListener('click', login);
+      $('useTokenBtn').addEventListener('click', () => {
+        if (token()) {
+          $('loginOverlay').classList.add('hidden');
+          loadDashboard();
+        } else {
+          $('loginMessage').textContent = 'No saved token found.';
+        }
+      });
+
+      function init() {
+        $('apiBase').value =
+          localStorage.getItem(BASE_KEY) || 'http://localhost:5000';
+        $('email').value =
+          localStorage.getItem(EMAIL_KEY) || 'hello@business.com';
+        if (!token()) $('loginOverlay').classList.remove('hidden');
+        loadDashboard();
+      }
+
+      window.addEventListener('resize', () => loadDashboard());
+      init();
+    </script>
+  </body>
+</html>

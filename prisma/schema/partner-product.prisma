@@ -11,10 +11,115 @@ model PartnerProduct {
   status        PartnerProductStatus       @default(DRAFT)
   createdAt     DateTime                   @default(now())
   updatedAt     DateTime                   @updatedAt
+  offers        PartnerOffer[]
   partnerUser   User                       @relation(fields: [partnerUserId], references: [id], onDelete: Cascade)
 
   @@unique([partnerUserId, sku])
   @@index([partnerUserId, status, createdAt])
   @@index([partnerUserId, category])
   @@map("partner_products")
+}
+
+model PartnerOffer {
+  id                  String                     @id @default(uuid())
+  partnerUserId       String
+  redemptionFlow      PartnerOfferRedemptionFlow
+  offerType           PartnerOfferType
+  title               String
+  description         String?
+  heroImageUrl        String?
+  useDefaultHeroImage Boolean                    @default(false)
+  productId           String?
+  productName         String?
+  category            PartnerProductCategory?
+  minimumSpend        Decimal?                   @db.Decimal(10, 2)
+  deductionPercentage Decimal?                   @db.Decimal(5, 2)
+  requiredAlurei      Int
+  eligiblePlans       String[]
+  benefitTitle        String?
+  benefitDescription  String?
+  terms               String?
+  availableAllOutlets Boolean                    @default(false)
+  recommendExternal   Boolean                    @default(false)
+  startDate           DateTime?
+  endDate             DateTime?
+  status              PartnerOfferStatus         @default(DRAFT)
+  rejectionReason     String?
+  reviewedByUserId    String?
+  reviewedAt          DateTime?
+  publishedAt         DateTime?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  locations           PartnerOfferLocation[]
+  views               PartnerOfferView[]
+  saves               PartnerOfferSave[]
+  redemptions         PartnerOfferRedemption[]
+  partnerProduct      PartnerProduct?            @relation(fields: [productId], references: [id])
+  partnerUser         User                       @relation(fields: [partnerUserId], references: [id], onDelete: Cascade)
+
+  @@index([partnerUserId, status, createdAt])
+  @@index([partnerUserId, offerType])
+  @@index([redemptionFlow, status])
+  @@index([category, status])
+  @@index([startDate, endDate])
+  @@map("partner_offers")
+}
+
+model PartnerOfferLocation {
+  id             String       @id @default(uuid())
+  partnerOfferId String
+  storeId        String?
+  name           String
+  address        String?
+  city           String?
+  mapUrl         String?
+  latitude       Float?
+  longitude      Float?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  offer          PartnerOffer @relation(fields: [partnerOfferId], references: [id], onDelete: Cascade)
+
+  @@index([partnerOfferId])
+  @@index([storeId])
+  @@map("partner_offer_locations")
+}
+
+model PartnerOfferView {
+  id        String       @id @default(uuid())
+  offerId   String
+  userId    String?
+  createdAt DateTime     @default(now())
+  offer     PartnerOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  user      User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([offerId, createdAt])
+  @@index([userId, createdAt])
+  @@map("partner_offer_views")
+}
+
+model PartnerOfferSave {
+  id        String       @id @default(uuid())
+  offerId   String
+  userId    String
+  createdAt DateTime     @default(now())
+  offer     PartnerOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([offerId, userId])
+  @@index([offerId, createdAt])
+  @@index([userId, createdAt])
+  @@map("partner_offer_saves")
+}
+
+model PartnerOfferRedemption {
+  id        String       @id @default(uuid())
+  offerId   String
+  userId    String?
+  createdAt DateTime     @default(now())
+  offer     PartnerOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  user      User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([offerId, createdAt])
+  @@index([userId, createdAt])
+  @@map("partner_offer_redemptions")
 }

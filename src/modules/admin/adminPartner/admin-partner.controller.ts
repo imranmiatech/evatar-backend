@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -38,7 +46,10 @@ export class AdminPartnerController {
     enum: ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'ACTIVE', 'INACTIVE'],
     example: 'PENDING',
   })
-  @ApiResponse({ status: 200, description: 'Return admin partner request list.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Return admin partner request list.',
+  })
   async getPartners(@Query('status') status?: string) {
     return this.adminPartnerService.getPartners(status);
   }
