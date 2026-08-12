@@ -163,6 +163,8 @@ export class ChildTimelineService {
           id: child.id,
           name: child.name,
           avatar: child.avatar ?? null,
+          hasAllergy: (child.healthConditions && child.healthConditions.includes('FOOD_ALLERGIES' as any)) || (child.additionalNotes && /allerg/i.test(child.additionalNotes)) ? true : false,
+          healthConditions: child.healthConditions || [],
         },
         timeline,
       },

@@ -136,5 +136,64 @@ export class RecurringActivityService {
         );
       }
     }
+
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      include: {
+        naps: true,
+        schoolSchedule: true,
+      },
+    });
+
+    if (child) {
+      if (child.schoolSchedule) {
+        const hasCommonDay = days.some((day) => child.schoolSchedule!.days.includes(day as any));
+        if (hasCommonDay) {
+          const schStart = this.timeToMinutes(child.schoolSchedule.startTime);
+          const schEnd = this.timeToMinutes(child.schoolSchedule.endTime);
+          if (startMinutes < schEnd && endMinutes > schStart) {
+            throw new BadRequestException(
+              `Recurring activity time overlaps with school schedule (${child.schoolSchedule.startTime} - ${child.schoolSchedule.endTime})`
+            );
+          }
+        }
+      }
+
+      for (const nap of child.naps) {
+        const napStart = this.timeToMinutes(nap.startTime);
+        const napEnd = this.timeToMinutes(nap.endTime);
+        if (startMinutes < napEnd && endMinutes > napStart) {
+          throw new BadRequestException(
+            `Recurring activity time overlaps with nap time (${nap.startTime} - ${nap.endTime})`
+          );
+        }
+      }
+    }
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    const futureSchedules = await this.prisma.childSchedule.findMany({
+      where: { childId, date: { gte: today } },
+      select: { date: true, startTime: true, endTime: true, title: true },
+    });
+
+    const dayOfWeekMap: Record<number, string> = {
+      0: 'SUN', 1: 'MON', 2: 'TUE', 3: 'WED', 4: 'THU', 5: 'FRI', 6: 'SAT'
+    };
+
+    for (const sched of futureSchedules) {
+      if (!sched.startTime || !sched.endTime) continue;
+      const schedDay = dayOfWeekMap[sched.date.getUTCDay()];
+      if (days.includes(schedDay)) {
+        const sStart = this.timeToMinutes(sched.startTime);
+        const sEnd = this.timeToMinutes(sched.endTime);
+        if (startMinutes < sEnd && endMinutes > sStart) {
+          throw new BadRequestException(
+            `Recurring activity time overlaps with existing schedule on ${sched.date.toISOString().split('T')[0]}: '${sched.title}' (${sched.startTime} - ${sched.endTime})`
+          );
+        }
+      }
+    }
   }
 }

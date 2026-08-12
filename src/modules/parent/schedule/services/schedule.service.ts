@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { CaregiverService } from '../../../caregiver/caregiver.service';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { ScheduleMode } from '@prisma/client';
+import { ScheduleMode, DayOfWeek } from '@prisma/client';
 import { CreateLibraryScheduleDto } from '../dto/create-library-schedule.dto';
 import { CreateManualScheduleDto } from '../dto/create-manual-schedule.dto';
 import { ScheduleQueryDto, ScheduleView } from '../dto/schedule-query.dto';
@@ -71,6 +71,70 @@ export class ScheduleService {
         throw new BadRequestException(
           `Schedule time overlaps with an existing schedule: '${schedule.title}' (${schedule.startTime} - ${schedule.endTime})`
         );
+      }
+    }
+
+    const dayOfWeekMap: Record<number, DayOfWeek> = {
+      0: DayOfWeek.SUN,
+      1: DayOfWeek.MON,
+      2: DayOfWeek.TUE,
+      3: DayOfWeek.WED,
+      4: DayOfWeek.THU,
+      5: DayOfWeek.FRI,
+      6: DayOfWeek.SAT,
+    };
+    const dayOfWeek = dayOfWeekMap[date.getUTCDay()];
+
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      include: {
+        schoolSchedule: true,
+        naps: true,
+        recurringActivities: {
+          where: { days: { has: dayOfWeek } },
+        },
+      },
+    });
+
+    if (child) {
+      if (child.wakeUpTime && child.bedTime) {
+        const wakeUp = this.timeToMinutes(child.wakeUpTime);
+        const bed = this.timeToMinutes(child.bedTime);
+        if (startMinutes < wakeUp || endMinutes > bed) {
+          throw new BadRequestException(
+            `Schedule must be within child's wake up (${child.wakeUpTime}) and bed (${child.bedTime}) times`
+          );
+        }
+      }
+
+      if (child.schoolSchedule && child.schoolSchedule.days.includes(dayOfWeek)) {
+        const schStart = this.timeToMinutes(child.schoolSchedule.startTime);
+        const schEnd = this.timeToMinutes(child.schoolSchedule.endTime);
+        if (startMinutes < schEnd && endMinutes > schStart) {
+          throw new BadRequestException(
+            `Schedule time overlaps with school schedule (${child.schoolSchedule.startTime} - ${child.schoolSchedule.endTime})`
+          );
+        }
+      }
+
+      for (const nap of child.naps) {
+        const napStart = this.timeToMinutes(nap.startTime);
+        const napEnd = this.timeToMinutes(nap.endTime);
+        if (startMinutes < napEnd && endMinutes > napStart) {
+          throw new BadRequestException(
+            `Schedule time overlaps with a nap time (${nap.startTime} - ${nap.endTime})`
+          );
+        }
+      }
+
+      for (const activity of child.recurringActivities) {
+        const actStart = this.timeToMinutes(activity.startTime);
+        const actEnd = this.timeToMinutes(activity.endTime);
+        if (startMinutes < actEnd && endMinutes > actStart) {
+          throw new BadRequestException(
+            `Schedule time overlaps with recurring activity: '${activity.name}' (${activity.startTime} - ${activity.endTime})`
+          );
+        }
       }
     }
   }
