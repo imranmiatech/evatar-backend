@@ -1,4 +1,8 @@
-import { ApiHideProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  ApiHideProperty,
+  ApiProperty,
+  ApiPropertyOptional,
+} from '@nestjs/swagger';
 import { CareModuleAdminStatus, CareModuleCategory } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
@@ -21,7 +25,9 @@ export class CareModuleQueryDto {
   @IsOptional()
   category?: CareModuleCategory;
 
-  @ApiPropertyOptional({ description: 'Filter by age group (e.g. 6-12 months, 1-3 years)' })
+  @ApiPropertyOptional({
+    description: 'Filter by age group (e.g. 6-12 months, 1-3 years)',
+  })
   @IsString()
   @IsOptional()
   ageGroup?: string;
@@ -67,13 +73,16 @@ export class CareHomeQueryDto {
   @IsOptional()
   tab?: CareModuleTab = CareModuleTab.ALL;
 
-  @ApiPropertyOptional({ description: 'Search by title, subtitle, description, or topic keyword' })
+  @ApiPropertyOptional({
+    description: 'Search by title, subtitle, description, or topic keyword',
+  })
   @IsString()
   @IsOptional()
   search?: string;
 
   @ApiPropertyOptional({
-    description: 'Filter modules by topic id from /care/home/topics. Use ALL for all topics.',
+    description:
+      'Filter modules by topic id from /care/home/topics. Use ALL for all topics.',
     enum: ['ALL', ...Object.values(CareModuleCategory)],
   })
   @IsString()
@@ -128,14 +137,15 @@ export class CareHomeTabsQueryDto {
   @IsOptional()
   category?: CareModuleCategory;
 
-  @ApiPropertyOptional({ description: 'Search by title, subtitle, description, or topic keyword' })
+  @ApiPropertyOptional({
+    description: 'Search by title, subtitle, description, or topic keyword',
+  })
   @IsString()
   @IsOptional()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Filter counts by child id' })
+  @ApiProperty({ description: 'Filter counts by child id' })
   @IsString()
-  @IsOptional()
   childId?: string;
 
   @ApiPropertyOptional({ description: 'Filter counts by nanny user id' })

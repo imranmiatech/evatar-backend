@@ -343,7 +343,6 @@ enum HealthCondition {
   NONE
   FOOD_ALLERGIES
   MOBILITY_CONSIDERATIONS
-  PHYSICAL_CHALLENGES
 }
 
 enum Gender {

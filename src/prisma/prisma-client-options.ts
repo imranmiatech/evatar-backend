@@ -3,6 +3,30 @@ import { Pool, PoolConfig } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import type { PrismaClientOptions } from '@prisma/client/runtime/client';
 
+function shouldUseSsl(parsed: URL) {
+  const sslMode = parsed.searchParams.get('sslmode')?.toLowerCase();
+
+  return (
+    process.env.DATABASE_SSL === 'true' ||
+    process.env.NODE_ENV === 'production' ||
+    sslMode === 'require' ||
+    sslMode === 'verify-ca' ||
+    sslMode === 'verify-full' ||
+    parsed.hostname.includes('neon.tech')
+  );
+}
+
+function createSslConfig(parsed: URL) {
+  if (!shouldUseSsl(parsed)) {
+    return false;
+  }
+
+  return {
+    rejectUnauthorized: false,
+    servername: parsed.hostname,
+  };
+}
+
 function createPoolConfig(): PoolConfig {
   const databaseUrl = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
 
@@ -25,10 +49,7 @@ function createPoolConfig(): PoolConfig {
         process.env.DATABASE_CONNECTION_TIMEOUT_MS ?? 30000,
       ),
       idleTimeoutMillis: Number(process.env.DATABASE_IDLE_TIMEOUT_MS ?? 10000),
-      ssl: process.env.NODE_ENV === 'production' ? {
-        rejectUnauthorized: false,
-        servername: parsed.hostname,
-      } : false,
+      ssl: createSslConfig(parsed),
     };
   }
 
@@ -39,7 +60,7 @@ function createPoolConfig(): PoolConfig {
       process.env.DATABASE_CONNECTION_TIMEOUT_MS ?? 30000,
     ),
     idleTimeoutMillis: Number(process.env.DATABASE_IDLE_TIMEOUT_MS ?? 10000),
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: createSslConfig(parsed),
   };
 }
 

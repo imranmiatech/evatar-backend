@@ -30,7 +30,6 @@ export class SchoolScheduleDto {
   endTime: string;
 }
 
-
 export class NapWindowDto {
   @ApiProperty({ example: '13:00' })
   @IsString()
@@ -42,6 +41,15 @@ export class NapWindowDto {
 }
 
 export class UpdateChildDto {
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+    description:
+      'Optional child avatar image file. Use this field with multipart/form-data.',
+  })
+  @IsOptional()
+  profilePicture?: Express.Multer.File;
+
   @ApiPropertyOptional({
     example: 'Eve Ahmed',
     description: "Child's given name",
@@ -151,8 +159,6 @@ export class UpdateChildDto {
   @Type(() => SchoolScheduleDto)
   @IsOptional()
   schoolSchedule?: SchoolScheduleDto;
-
-
 
   @ApiPropertyOptional({ type: [NapWindowDto] })
   @IsArray()

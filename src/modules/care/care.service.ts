@@ -572,13 +572,15 @@ export class CareService {
   }
 
   async getCareHomeTabs(user: CurrentUserPayload, query: CareHomeTabsQueryDto) {
+    if (!query.childId) {
+      throw new BadRequestException('childId query parameter is required');
+    }
+
     const userId = this.currentUserId(user);
-    if (query.childId) {
-      if (this.isNanny(user)) {
-        await this.assertNannyCanViewChildCare(userId, query.childId);
-      } else {
-        await this.assertCanViewCare(userId, query.childId);
-      }
+    if (this.isNanny(user)) {
+      await this.assertNannyCanViewChildCare(userId, query.childId);
+    } else {
+      await this.assertCanViewCare(userId, query.childId);
     }
 
     const homeQuery = {
@@ -1027,6 +1029,7 @@ export class CareService {
     }
 
     if (
+      (query.childId && tab === CareModuleTab.ALL) ||
       tab === CareModuleTab.IN_PROGRESS ||
       tab === CareModuleTab.COMPLETED ||
       this.isNanny(user)

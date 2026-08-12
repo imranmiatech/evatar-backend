@@ -6,14 +6,20 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  ApiBody,
   ApiBearerAuth,
+  ApiConsumes,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { StorageService } from '../../../../common/storage/storage.service';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../../../common/decorators/current-user.decorator';
@@ -29,7 +35,10 @@ import { UserRole } from '@prisma/client';
 @UseGuards(JwtAuthGuard)
 @Controller('parent/children')
 export class ChildController {
-  constructor(private readonly childService: ChildService) {}
+  constructor(
+    private readonly childService: ChildService,
+    private readonly storageService: StorageService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Add a new child for the logged-in parent' })
@@ -93,13 +102,23 @@ export class ChildController {
 
   @Patch(':childId')
   @ApiOperation({ summary: 'Update a specific child by ID' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: UpdateChildDto })
+  @UseInterceptors(FileInterceptor('profilePicture'))
   @ApiResponse({ status: 200, description: 'Child updated successfully.' })
   @ApiResponse({ status: 404, description: 'Child not found.' })
-  updateChild(
+  async updateChild(
     @CurrentUser() user: CurrentUserPayload,
     @Param('childId') childId: string,
     @Body() dto: UpdateChildDto,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
+    this.normalizeMultipartDto(dto);
+
+    if (file) {
+      dto.avatar = await this.storageService.uploadFile(file, 'children');
+    }
+
     return this.childService.updateChild(user.userId, childId, dto);
   }
 
@@ -112,5 +131,31 @@ export class ChildController {
     @Param('childId') childId: string,
   ) {
     return this.childService.deleteChild(user.userId, childId);
+  }
+
+  private normalizeMultipartDto(dto: UpdateChildDto) {
+    if (typeof dto.hasAllergy === 'string') {
+      dto.hasAllergy = dto.hasAllergy === 'true';
+    }
+
+    if (typeof dto.healthConditions === 'string') {
+      dto.healthConditions = this.parseJsonField(dto.healthConditions);
+    }
+
+    if (typeof dto.schoolSchedule === 'string') {
+      dto.schoolSchedule = this.parseJsonField(dto.schoolSchedule);
+    }
+
+    if (typeof dto.naps === 'string') {
+      dto.naps = this.parseJsonField(dto.naps);
+    }
+  }
+
+  private parseJsonField(value: string) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
   }
 }
