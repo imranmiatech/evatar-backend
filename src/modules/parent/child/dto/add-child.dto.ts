@@ -42,6 +42,22 @@ export class AddChildDto {
   birthDate?: string;
 
   @ApiPropertyOptional({
+    example: '07:00',
+    description: "Child's typical wake up time (HH:mm)",
+  })
+  @IsString()
+  @IsOptional()
+  wakeUpTime?: string;
+
+  @ApiPropertyOptional({
+    example: '20:00',
+    description: "Child's typical bed time (HH:mm)",
+  })
+  @IsString()
+  @IsOptional()
+  bedTime?: string;
+
+  @ApiPropertyOptional({
     example: true,
     description: 'Flag indicating if the child has any food allergies',
   })

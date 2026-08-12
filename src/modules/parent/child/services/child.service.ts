@@ -54,6 +54,8 @@ export class ChildService {
         name: dto.name,
         gender: dto.gender,
         weight: dto.weight,
+        wakeUpTime: dto.wakeUpTime,
+        bedTime: dto.bedTime,
         birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
         healthConditions:
           healthConditions.length > 0 ? healthConditions : undefined,
@@ -426,12 +428,6 @@ export class ChildService {
           },
         }),
 
-        ...(dto.recurringActivities && {
-          recurringActivities: {
-            deleteMany: {},
-            create: dto.recurringActivities,
-          },
-        }),
 
         ...(dto.naps && {
           naps: {
@@ -452,7 +448,6 @@ export class ChildService {
       data: updated,
     };
   }
-
   async deleteChildMemory(
     parentUserId: string,
     childId: string,
