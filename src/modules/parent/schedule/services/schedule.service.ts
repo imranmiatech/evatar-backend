@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { CaregiverService } from '../../../caregiver/caregiver.service';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { ScheduleMode } from '@prisma/client';
+import { ScheduleMode, DayOfWeek } from '@prisma/client';
 import { CreateLibraryScheduleDto } from '../dto/create-library-schedule.dto';
 import { CreateManualScheduleDto } from '../dto/create-manual-schedule.dto';
 import { ScheduleQueryDto, ScheduleView } from '../dto/schedule-query.dto';
@@ -31,6 +31,114 @@ export class ScheduleService {
     return d;
   }
 
+  private timeToMinutes(time: string): number {
+    const [hours, minutes] = time.split(':').map(Number);
+    return (hours || 0) * 60 + (minutes || 0);
+  }
+
+  private async checkScheduleOverlap(
+    childId: string,
+    date: Date,
+    startTimeStr: string,
+    endTimeStr?: string,
+    excludeScheduleId?: string,
+  ): Promise<void> {
+    if (!startTimeStr || !endTimeStr) return;
+
+    const startMinutes = this.timeToMinutes(startTimeStr);
+    const endMinutes = this.timeToMinutes(endTimeStr);
+
+    if (startMinutes >= endMinutes) {
+      throw new BadRequestException('Start time must be before end time');
+    }
+
+    const existingSchedules = await this.prisma.childSchedule.findMany({
+      where: {
+        childId,
+        date,
+        id: excludeScheduleId ? { not: excludeScheduleId } : undefined,
+      },
+      select: { startTime: true, endTime: true, title: true },
+    });
+
+    for (const schedule of existingSchedules) {
+      if (!schedule.startTime || !schedule.endTime) continue;
+
+      const existingStart = this.timeToMinutes(schedule.startTime);
+      const existingEnd = this.timeToMinutes(schedule.endTime);
+
+      if (startMinutes < existingEnd && endMinutes > existingStart) {
+        throw new BadRequestException(
+          `Schedule time overlaps with an existing schedule: '${schedule.title}' (${schedule.startTime} - ${schedule.endTime})`
+        );
+      }
+    }
+
+    const dayOfWeekMap: Record<number, DayOfWeek> = {
+      0: DayOfWeek.SUN,
+      1: DayOfWeek.MON,
+      2: DayOfWeek.TUE,
+      3: DayOfWeek.WED,
+      4: DayOfWeek.THU,
+      5: DayOfWeek.FRI,
+      6: DayOfWeek.SAT,
+    };
+    const dayOfWeek = dayOfWeekMap[date.getUTCDay()];
+
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      include: {
+        schoolSchedule: true,
+        naps: true,
+        recurringActivities: {
+          where: { days: { has: dayOfWeek } },
+        },
+      },
+    });
+
+    if (child) {
+      if (child.wakeUpTime && child.bedTime) {
+        const wakeUp = this.timeToMinutes(child.wakeUpTime);
+        const bed = this.timeToMinutes(child.bedTime);
+        if (startMinutes < wakeUp || endMinutes > bed) {
+          throw new BadRequestException(
+            `Schedule must be within child's wake up (${child.wakeUpTime}) and bed (${child.bedTime}) times`
+          );
+        }
+      }
+
+      if (child.schoolSchedule && child.schoolSchedule.days.includes(dayOfWeek)) {
+        const schStart = this.timeToMinutes(child.schoolSchedule.startTime);
+        const schEnd = this.timeToMinutes(child.schoolSchedule.endTime);
+        if (startMinutes < schEnd && endMinutes > schStart) {
+          throw new BadRequestException(
+            `Schedule time overlaps with school schedule (${child.schoolSchedule.startTime} - ${child.schoolSchedule.endTime})`
+          );
+        }
+      }
+
+      for (const nap of child.naps) {
+        const napStart = this.timeToMinutes(nap.startTime);
+        const napEnd = this.timeToMinutes(nap.endTime);
+        if (startMinutes < napEnd && endMinutes > napStart) {
+          throw new BadRequestException(
+            `Schedule time overlaps with a nap time (${nap.startTime} - ${nap.endTime})`
+          );
+        }
+      }
+
+      for (const activity of child.recurringActivities) {
+        const actStart = this.timeToMinutes(activity.startTime);
+        const actEnd = this.timeToMinutes(activity.endTime);
+        if (startMinutes < actEnd && endMinutes > actStart) {
+          throw new BadRequestException(
+            `Schedule time overlaps with recurring activity: '${activity.name}' (${activity.startTime} - ${activity.endTime})`
+          );
+        }
+      }
+    }
+  }
+
   private async assertChildOwnership(
     childId: string,
     userId: string,
@@ -46,6 +154,7 @@ export class ScheduleService {
     await this.assertChildOwnership(dto.childId, userId);
 
     const scheduleDate = this.resolveDate(dto.date);
+    await this.checkScheduleOverlap(dto.childId, scheduleDate, dto.startTime, dto.endTime);
 
     const [activity, recipe] = await this.prisma.$transaction([
       dto.libraryItemType === 'activity'
@@ -108,6 +217,7 @@ export class ScheduleService {
     await this.assertChildOwnership(dto.childId, userId);
 
     const scheduleDate = this.resolveDate(dto.date);
+    await this.checkScheduleOverlap(dto.childId, scheduleDate, dto.startTime, dto.endTime);
 
     const schedule = await this.prisma.childSchedule.create({
       data: {
@@ -371,7 +481,17 @@ export class ScheduleService {
       };
     }
 
-    const scheduleDate = dto.date ? this.resolveDate(dto.date) : undefined;
+    const scheduleDate = dto.date ? this.resolveDate(dto.date) : schedule.date;
+    const finalStartTime = dto.startTime ?? schedule.startTime;
+    const finalEndTime = dto.endTime !== undefined ? dto.endTime : schedule.endTime;
+
+    await this.checkScheduleOverlap(
+      schedule.childId,
+      scheduleDate,
+      finalStartTime,
+      finalEndTime ?? undefined,
+      scheduleId
+    );
 
     const updated = await this.prisma.childSchedule.update({
       where: { id: scheduleId },
@@ -407,7 +527,17 @@ export class ScheduleService {
       throw new BadRequestException('This schedule is not a manual schedule');
     }
 
-    const scheduleDate = dto.date ? this.resolveDate(dto.date) : undefined;
+    const scheduleDate = dto.date ? this.resolveDate(dto.date) : schedule.date;
+    const finalStartTime = dto.startTime ?? schedule.startTime;
+    const finalEndTime = dto.endTime !== undefined ? dto.endTime : schedule.endTime;
+
+    await this.checkScheduleOverlap(
+      schedule.childId,
+      scheduleDate,
+      finalStartTime,
+      finalEndTime ?? undefined,
+      scheduleId
+    );
 
     const updated = await this.prisma.childSchedule.update({
       where: { id: scheduleId },
