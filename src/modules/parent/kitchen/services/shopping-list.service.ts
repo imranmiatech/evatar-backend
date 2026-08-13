@@ -10,7 +10,7 @@ import {
 } from '@prisma/client';
 import { CreateShoppingItemDto } from '../dto/create-shopping-item.dto';
 import { UpdateShoppingItemDto } from '../dto/update-shopping-item.dto';
-import { PaginationQueryDto } from '../dto/pagination-query.dto';
+import { ShoppingListQueryDto } from '../dto/shopping-list-query.dto';
 import type { CurrentUserPayload } from '../../../../common/decorators/current-user.decorator';
 import { KitchenAccessService } from './kitchen-access.service';
 
@@ -103,7 +103,7 @@ export class ShoppingListService {
     };
   }
 
-  async findAll(user: CurrentUserPayload, query: PaginationQueryDto) {
+  async findAll(user: CurrentUserPayload, query: ShoppingListQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
@@ -113,9 +113,15 @@ export class ShoppingListService {
         user,
         'viewGroceryLists',
       );
-    const where = readableParentIds
-      ? { userId: { in: readableParentIds } }
-      : {};
+    const where: any = {
+      ...(query.ownerStatus && {
+        createdByUser: { role: query.ownerStatus },
+      }),
+    };
+
+    if (readableParentIds) {
+      where.userId = { in: readableParentIds };
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.shoppingListItem.findMany({

@@ -25,7 +25,7 @@ import { UserRole } from '@prisma/client';
 import { ShoppingListService } from '../services/shopping-list.service';
 import { CreateShoppingItemDto } from '../dto/create-shopping-item.dto';
 import { UpdateShoppingItemDto } from '../dto/update-shopping-item.dto';
-import { PaginationQueryDto } from '../dto/pagination-query.dto';
+import { ShoppingListQueryDto } from '../dto/shopping-list-query.dto';
 
 @ApiTags('(Parent) > Kitchen > Shopping List Manage')
 @ApiBearerAuth()
@@ -56,7 +56,7 @@ export class ShoppingListController {
   @ApiResponse({ status: 200, description: 'Shopping list returned.' })
   findAll(
     @CurrentUser() user: CurrentUserPayload,
-    @Query() query: PaginationQueryDto,
+    @Query() query: ShoppingListQueryDto,
   ) {
     return this.shoppingListService.findAll(user, query);
   }

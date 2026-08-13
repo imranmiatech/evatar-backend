@@ -10,12 +10,14 @@ import {
   UserRole,
   UserStatus,
 } from '@prisma/client';
-import type { CurrentUserPayload } from '../../../../common/decorators/current-user.decorator';
-import { StorageService } from '../../../../common/storage/storage.service';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
+import { StorageService } from '../../../common/storage/storage.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import {
+  AdminOfferLocationDto,
   AdminOfferPartnerQueryDto,
   CreateAdminPartnerOfferDto,
+  UpdateAdminPartnerOfferDto,
 } from './dto/admin-offer.dto';
 
 @Injectable()
@@ -35,8 +37,18 @@ export class AdminOfferService {
         status: { not: UserStatus.DELETED },
         ...(search && {
           OR: [
-            { fullName: { contains: search, mode: Prisma.QueryMode.insensitive } },
-            { email: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            {
+              fullName: {
+                contains: search,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            {
+              email: {
+                contains: search,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
             {
               partnerProfile: {
                 businessName: {
@@ -130,7 +142,7 @@ export class AdminOfferService {
   ) {
     await this.assertPartner(dto.partnerUserId);
     await this.validateOfferPayload(dto);
-    await this.validateLocations(dto);
+    await this.validateLocations(dto.partnerUserId, dto.locations);
 
     const status = dto.status ?? PartnerOfferStatus.ACTIVE;
     const now = new Date();
@@ -140,7 +152,7 @@ export class AdminOfferService {
         : null;
     const offer = await this.prisma.partnerOffer.create({
       data: {
-        ...this.offerData(dto, uploadedHeroImageUrl),
+        ...this.createOfferData(dto, uploadedHeroImageUrl),
         partnerUserId: dto.partnerUserId,
         redemptionFlow: dto.redemptionFlow,
         offerType: dto.offerType,
@@ -153,7 +165,7 @@ export class AdminOfferService {
           publishedAt: now,
         }),
         locations: {
-          create: this.locationData(dto),
+          create: this.locationData(dto.locations),
         },
       },
       include: this.offerInclude(),
@@ -165,6 +177,79 @@ export class AdminOfferService {
         status === PartnerOfferStatus.DRAFT
           ? 'Admin partner offer draft saved successfully.'
           : 'Admin partner offer created successfully.',
+      data: this.formatOffer(offer),
+    };
+  }
+
+  async updateOffer(
+    admin: CurrentUserPayload,
+    offerId: string,
+    dto: UpdateAdminPartnerOfferDto,
+    image?: Express.Multer.File,
+  ) {
+    const existing = await this.prisma.partnerOffer.findUnique({
+      where: { id: offerId },
+      include: { locations: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Admin partner offer not found.');
+    }
+
+    const partnerUserId = dto.partnerUserId ?? existing.partnerUserId;
+    await this.assertPartner(partnerUserId);
+
+    const merged = this.mergedOfferPayload(existing, dto, partnerUserId);
+    await this.validateOfferPayload(merged);
+
+    if (dto.locations !== undefined || dto.partnerUserId !== undefined) {
+      await this.validateLocations(partnerUserId, merged.locations);
+    }
+
+    const status = dto.status;
+    const now = new Date();
+    const uploadedHeroImageUrl =
+      image && !dto.useDefaultHeroImage
+        ? await this.storageService.uploadFile(image, 'partner-offers')
+        : undefined;
+
+    const offer = await this.prisma.partnerOffer.update({
+      where: { id: offerId },
+      data: {
+        ...this.updateOfferData(dto, uploadedHeroImageUrl),
+        ...(dto.partnerUserId !== undefined && { partnerUserId }),
+        ...(dto.redemptionFlow !== undefined && {
+          redemptionFlow: dto.redemptionFlow,
+        }),
+        ...(dto.offerType !== undefined && { offerType: dto.offerType }),
+        ...(dto.title !== undefined && { title: dto.title.trim() }),
+        ...(dto.requiredAlurei !== undefined && {
+          requiredAlurei: dto.requiredAlurei,
+        }),
+        ...(status !== undefined && {
+          status,
+          ...(status === PartnerOfferStatus.ACTIVE
+            ? {
+                reviewedByUserId: this.currentUserId(admin),
+                reviewedAt: now,
+                publishedAt: existing.publishedAt ?? now,
+                rejectionReason: null,
+              }
+            : {}),
+        }),
+        ...(dto.locations !== undefined && {
+          locations: {
+            deleteMany: {},
+            create: this.locationData(dto.locations),
+          },
+        }),
+      },
+      include: this.offerInclude(),
+    });
+
+    return {
+      success: true,
+      message: 'Admin partner offer updated successfully.',
       data: this.formatOffer(offer),
     };
   }
@@ -216,15 +301,18 @@ export class AdminOfferService {
     }
   }
 
-  private async validateLocations(dto: CreateAdminPartnerOfferDto) {
+  private async validateLocations(
+    partnerUserId: string,
+    locations?: AdminOfferLocationDto[],
+  ) {
     const storeIds = [
-      ...new Set((dto.locations ?? []).map((item) => item.storeId).filter(Boolean)),
+      ...new Set((locations ?? []).map((item) => item.storeId).filter(Boolean)),
     ] as string[];
 
     if (storeIds.length === 0) return;
 
     const stores = await this.prisma.store.findMany({
-      where: { id: { in: storeIds }, userId: dto.partnerUserId },
+      where: { id: { in: storeIds }, userId: partnerUserId },
       select: { id: true },
     });
 
@@ -235,7 +323,7 @@ export class AdminOfferService {
     }
   }
 
-  private offerData(
+  private createOfferData(
     dto: CreateAdminPartnerOfferDto,
     uploadedHeroImageUrl?: string | null,
   ) {
@@ -267,8 +355,62 @@ export class AdminOfferService {
     } satisfies Partial<Prisma.PartnerOfferUncheckedCreateInput>;
   }
 
-  private locationData(dto: CreateAdminPartnerOfferDto) {
-    return (dto.locations ?? []).map((location) => ({
+  private updateOfferData(
+    dto: UpdateAdminPartnerOfferDto,
+    uploadedHeroImageUrl?: string,
+  ) {
+    return {
+      ...(dto.description !== undefined && {
+        description: dto.description?.trim() || null,
+      }),
+      ...(dto.useDefaultHeroImage !== undefined && {
+        useDefaultHeroImage: dto.useDefaultHeroImage,
+      }),
+      ...(dto.useDefaultHeroImage === true && { heroImageUrl: null }),
+      ...(uploadedHeroImageUrl !== undefined && {
+        heroImageUrl: uploadedHeroImageUrl,
+        useDefaultHeroImage: false,
+      }),
+      ...(dto.productId !== undefined && {
+        productId: dto.productId?.trim() || null,
+      }),
+      ...(dto.productName !== undefined && {
+        productName: dto.productName?.trim() || null,
+      }),
+      ...(dto.category !== undefined && { category: dto.category }),
+      ...(dto.minimumSpend !== undefined && {
+        minimumSpend: new Prisma.Decimal(dto.minimumSpend),
+      }),
+      ...(dto.deductionPercentage !== undefined && {
+        deductionPercentage: new Prisma.Decimal(dto.deductionPercentage),
+      }),
+      ...(dto.eligiblePlans !== undefined && {
+        eligiblePlans: dto.eligiblePlans,
+      }),
+      ...(dto.benefitTitle !== undefined && {
+        benefitTitle: dto.benefitTitle?.trim() || null,
+      }),
+      ...(dto.benefitDescription !== undefined && {
+        benefitDescription: dto.benefitDescription?.trim() || null,
+      }),
+      ...(dto.terms !== undefined && { terms: dto.terms?.trim() || null }),
+      ...(dto.availableAllOutlets !== undefined && {
+        availableAllOutlets: dto.availableAllOutlets,
+      }),
+      ...(dto.recommendExternal !== undefined && {
+        recommendExternal: dto.recommendExternal,
+      }),
+      ...(dto.startDate !== undefined && {
+        startDate: dto.startDate ? new Date(dto.startDate) : null,
+      }),
+      ...(dto.endDate !== undefined && {
+        endDate: dto.endDate ? new Date(dto.endDate) : null,
+      }),
+    } satisfies Prisma.PartnerOfferUpdateInput;
+  }
+
+  private locationData(locations?: AdminOfferLocationDto[]) {
+    return (locations ?? []).map((location) => ({
       storeId: location.storeId?.trim() || null,
       name: location.name.trim(),
       address: location.address?.trim() || null,
@@ -277,6 +419,60 @@ export class AdminOfferService {
       latitude: location.latitude,
       longitude: location.longitude,
     }));
+  }
+
+  private mergedOfferPayload(
+    existing: Prisma.PartnerOfferGetPayload<{ include: { locations: true } }>,
+    dto: UpdateAdminPartnerOfferDto,
+    partnerUserId: string,
+  ): CreateAdminPartnerOfferDto {
+    return {
+      partnerUserId,
+      status: dto.status ?? existing.status,
+      redemptionFlow: dto.redemptionFlow ?? existing.redemptionFlow,
+      offerType: dto.offerType ?? existing.offerType,
+      title: dto.title ?? existing.title,
+      description: dto.description ?? existing.description ?? undefined,
+      useDefaultHeroImage:
+        dto.useDefaultHeroImage ?? existing.useDefaultHeroImage,
+      productId: dto.productId ?? existing.productId ?? undefined,
+      productName: dto.productName ?? existing.productName ?? undefined,
+      category: dto.category ?? existing.category ?? undefined,
+      minimumSpend:
+        dto.minimumSpend ??
+        (existing.minimumSpend === null ? undefined : Number(existing.minimumSpend)),
+      deductionPercentage:
+        dto.deductionPercentage ??
+        (existing.deductionPercentage === null
+          ? undefined
+          : Number(existing.deductionPercentage)),
+      requiredAlurei: dto.requiredAlurei ?? existing.requiredAlurei,
+      eligiblePlans: dto.eligiblePlans ?? existing.eligiblePlans,
+      benefitTitle: dto.benefitTitle ?? existing.benefitTitle ?? undefined,
+      benefitDescription:
+        dto.benefitDescription ?? existing.benefitDescription ?? undefined,
+      terms: dto.terms ?? existing.terms ?? undefined,
+      availableAllOutlets:
+        dto.availableAllOutlets ?? existing.availableAllOutlets,
+      recommendExternal: dto.recommendExternal ?? existing.recommendExternal,
+      startDate:
+        dto.startDate ??
+        (existing.startDate ? existing.startDate.toISOString() : undefined),
+      endDate:
+        dto.endDate ??
+        (existing.endDate ? existing.endDate.toISOString() : undefined),
+      locations:
+        dto.locations ??
+        existing.locations.map((location) => ({
+          storeId: location.storeId ?? undefined,
+          name: location.name,
+          address: location.address ?? undefined,
+          city: location.city ?? undefined,
+          mapUrl: location.mapUrl ?? undefined,
+          latitude: location.latitude ?? undefined,
+          longitude: location.longitude ?? undefined,
+        })),
+    };
   }
 
   private offerInclude() {

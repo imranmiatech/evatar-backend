@@ -243,6 +243,58 @@ export class CaregiverService {
     };
   }
 
+  async getMyChildren(userId: string) {
+    const accessibleChildIds = await this.getAccessibleChildIds(userId);
+
+    const children =
+      accessibleChildIds.length === 0
+        ? []
+        : await this.prisma.child.findMany({
+            where: { id: { in: accessibleChildIds } },
+            select: {
+              id: true,
+              name: true,
+              avatar: true,
+              birthDate: true,
+              parentUserId: true,
+              parentUser: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                  profilePictureUrl: true,
+                },
+              },
+            },
+            orderBy: [{ createdAt: 'desc' }, { name: 'asc' }],
+          });
+
+    return {
+      success: true,
+      message: 'Children fetched successfully',
+      data: children.map((child) => {
+        const age = this.formatChildPickerAge(child.birthDate);
+
+        return {
+          id: child.id,
+          name: child.name,
+          image: child.avatar,
+          avatar: child.avatar,
+          birthDate: child.birthDate,
+          age,
+          ageLabel: age?.label ?? null,
+          isAccountOwner: child.parentUserId === userId,
+          accountOwner: {
+            id: child.parentUser.id,
+            name: child.parentUser.fullName,
+            email: child.parentUser.email,
+            image: child.parentUser.profilePictureUrl,
+          },
+        };
+      }),
+    };
+  }
+
   async createInvitation(
     inviterUserId: string,
     childId: string,
@@ -1351,6 +1403,43 @@ export class CaregiverService {
     }
 
     return `${months} months old`;
+  }
+
+  private formatChildPickerAge(birthDate?: Date | null) {
+    if (!birthDate) return null;
+
+    const today = new Date();
+    let years = today.getUTCFullYear() - birthDate.getUTCFullYear();
+    let months = today.getUTCMonth() - birthDate.getUTCMonth();
+    let days = today.getUTCDate() - birthDate.getUTCDate();
+
+    if (days < 0) {
+      const previousMonth = new Date(
+        Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 0),
+      );
+      days += previousMonth.getUTCDate();
+      months -= 1;
+    }
+
+    if (months < 0) {
+      months += 12;
+      years -= 1;
+    }
+
+    const label = [
+      years > 0 ? `${years} year${years === 1 ? '' : 's'}` : null,
+      months > 0 ? `${months} month${months === 1 ? '' : 's'}` : null,
+      days > 0 ? `${days} day${days === 1 ? '' : 's'}` : null,
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    return {
+      years,
+      months,
+      days,
+      label: label || '0 days',
+    };
   }
 
   private formatAccessPermissions(

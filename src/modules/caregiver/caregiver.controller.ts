@@ -61,6 +61,18 @@ export class CaregiverController {
     return this.caregiverService.getManageCaregivers(user.userId);
   }
 
+  @Get('children')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get child list for the logged-in caregiver or account owner',
+    description:
+      'Returns lightweight child picker data: image, name, and age for owned or accepted caregiver-access children.',
+  })
+  getMyChildren(@CurrentUser() user: CurrentUserPayload) {
+    return this.caregiverService.getMyChildren(user.userId);
+  }
+
   @Get('children/:childId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

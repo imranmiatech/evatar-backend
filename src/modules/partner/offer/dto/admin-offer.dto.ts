@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import {
   PartnerOfferRedemptionFlow,
   PartnerOfferStatus,
@@ -286,3 +286,7 @@ export class CreateAdminPartnerOfferDto {
   @IsOptional()
   image?: unknown;
 }
+
+export class UpdateAdminPartnerOfferDto extends PartialType(
+  CreateAdminPartnerOfferDto,
+) {}
