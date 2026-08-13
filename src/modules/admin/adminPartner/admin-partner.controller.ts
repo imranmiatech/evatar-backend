@@ -54,6 +54,62 @@ export class AdminPartnerController {
     return this.adminPartnerService.getPartners(status);
   }
 
+  @Get('overview')
+  @ApiOperation({
+    summary: 'Get admin partner dashboard cards',
+    description:
+      'Returns only Total Partners and Active Offers with monthly plus/minus growth and sparkline data.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Return admin partner dashboard cards.',
+  })
+  async getOverview() {
+    return this.adminPartnerService.getOverview();
+  }
+
+  @Get('overview/cards')
+  @ApiOperation({
+    summary: 'Get admin partner dashboard cards',
+    description:
+      'Returns Total Partners and Active Offers with monthly plus/minus growth fields.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Return admin partner dashboard cards.',
+  })
+  async getOverviewCards() {
+    return this.adminPartnerService.getOverviewCards();
+  }
+
+  @Get('overview/categories')
+  @ApiOperation({
+    summary: 'Get admin partners by category',
+    description:
+      'Returns partner category counts and percentages for the category chart.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Return partner category distribution.',
+  })
+  async getPartnersByCategory() {
+    return this.adminPartnerService.getPartnersByCategory();
+  }
+
+  @Get('overview/attention')
+  @ApiOperation({
+    summary: 'Get admin partner attention required items',
+    description:
+      'Returns pending partner requests, pending offer approvals, and active offers expiring within 7 days.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Return partner attention required items.',
+  })
+  async getAttentionRequired() {
+    return this.adminPartnerService.getAttentionRequired();
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Get one partner registration request',

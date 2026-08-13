@@ -698,7 +698,7 @@ export class CaregiverService {
     };
   }
 
-  private async getManageCaregivers(userId: string, childId?: string) {
+  async getManageCaregivers(userId: string, childId?: string) {
     const children = await this.prisma.child.findMany({
       where: {
         parentUserId: userId,

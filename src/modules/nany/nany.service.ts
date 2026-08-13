@@ -7,6 +7,7 @@ import {
   ActivityStatus,
   CaregiverAccessRole,
   CaregiverAccessStatus,
+  CaregiverInviteChannel,
   UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -100,11 +101,24 @@ export class NanyService {
       },
       include: this.invitationInclude(),
     });
+    const access = await this.ensureNannyCaregiverAccess(
+      child.id,
+      parentUserId,
+      nanny,
+    );
 
     return {
       success: true,
       message: 'Nanny invitation created successfully',
-      data: this.formatInvitation(invitation),
+      data: {
+        ...this.formatInvitation(invitation),
+        accessId: access.id,
+        access: {
+          id: access.id,
+          role: access.role,
+          status: access.status,
+        },
+      },
     };
   }
 
@@ -553,6 +567,47 @@ export class NanyService {
         },
       },
     };
+  }
+
+  private ensureNannyCaregiverAccess(
+    childId: string,
+    parentUserId: string,
+    nanny: { id: string; email: string },
+  ) {
+    return this.prisma.caregiverAccess.upsert({
+      where: {
+        childId_invitedUserId_role: {
+          childId,
+          invitedUserId: nanny.id,
+          role: CaregiverAccessRole.NANNY,
+        },
+      },
+      update: {
+        invitedByUserId: parentUserId,
+        invitedEmail: nanny.email.toLowerCase(),
+        status: CaregiverAccessStatus.ACCEPTED,
+        inviteChannel: CaregiverInviteChannel.IN_APP,
+        inviteTokenHash: null,
+        acceptedAt: new Date(),
+        revokedAt: null,
+        expiresAt: null,
+      },
+      create: {
+        childId,
+        invitedUserId: nanny.id,
+        invitedByUserId: parentUserId,
+        invitedEmail: nanny.email.toLowerCase(),
+        role: CaregiverAccessRole.NANNY,
+        status: CaregiverAccessStatus.ACCEPTED,
+        inviteChannel: CaregiverInviteChannel.IN_APP,
+        acceptedAt: new Date(),
+      },
+      select: {
+        id: true,
+        role: true,
+        status: true,
+      },
+    });
   }
 
   private formatInvitation(link: any) {

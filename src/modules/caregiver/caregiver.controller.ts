@@ -51,6 +51,16 @@ export class CaregiverController {
     return this.caregiverService.listNannies(query);
   }
 
+  @Get('manage')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get account owner and caregivers for all owned children',
+  })
+  getManageCaregivers(@CurrentUser() user: CurrentUserPayload) {
+    return this.caregiverService.getManageCaregivers(user.userId);
+  }
+
   @Get('children/:childId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
