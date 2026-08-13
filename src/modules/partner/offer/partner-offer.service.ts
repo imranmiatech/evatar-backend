@@ -13,6 +13,7 @@ import {
 } from '@prisma/client';
 import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
+import sharp from 'sharp';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
 import { NotificationService } from '../../notification/notification.service';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -342,10 +343,18 @@ export class PartnerOfferService {
     };
   }
 
-  async getQrCodeFile(user: CurrentUserPayload, offerId: string) {
+  async getQrCodeFile(
+    user: CurrentUserPayload,
+    offerId: string,
+    format: 'png' | 'jpg' | 'jpeg' = 'png',
+  ) {
+    if (!['png', 'jpg', 'jpeg'].includes(format)) {
+      throw new BadRequestException('QR code format must be png, jpg, or jpeg');
+    }
+
     const offer = await this.getDownloadableOffer(user, offerId);
     const qrPayload = this.qrPayload(offer.id);
-    const buffer = await QRCode.toBuffer(qrPayload, {
+    const pngBuffer = await QRCode.toBuffer(qrPayload, {
       type: 'png',
       errorCorrectionLevel: 'H',
       margin: 2,
@@ -355,11 +364,44 @@ export class PartnerOfferService {
         light: '#ffffff',
       },
     });
+    const normalizedFormat = format === 'jpeg' ? 'jpeg' : format;
+    const buffer =
+      normalizedFormat === 'png'
+        ? pngBuffer
+        : await sharp(pngBuffer).jpeg({ quality: 95 }).toBuffer();
 
     return {
-      filename: `${this.slug(offer.title)}-qr-code.png`,
-      contentType: 'image/png',
+      filename: `${this.slug(offer.title)}-qr-code.${format}`,
+      contentType: normalizedFormat === 'png' ? 'image/png' : 'image/jpeg',
       buffer,
+    };
+  }
+
+  async acceptScannedOffer(user: CurrentUserPayload, offerId: string) {
+    const offer = await this.prisma.partnerOffer.findFirst({
+      where: {
+        id: offerId,
+        ...this.publicOfferWhere(),
+      },
+      include: this.offerInclude(),
+    });
+
+    if (!offer) {
+      throw new NotFoundException('Partner offer not found');
+    }
+
+    const userId = this.currentUserId(user);
+    const redemption = await this.prisma.partnerOfferRedemption.create({
+      data: { offerId: offer.id, userId },
+    });
+
+    return {
+      success: true,
+      message: 'Partner offer accepted successfully',
+      data: {
+        redemptionId: redemption.id,
+        offer: this.formatOffer(offer),
+      },
     };
   }
 
@@ -929,11 +971,14 @@ export class PartnerOfferService {
       qrShortCode: this.isPublishedNow(offer)
         ? this.qrShortCode(offer.id)
         : null,
+      qrDownloads: this.isPublishedNow(offer)
+        ? this.qrDownloadUrls(offer.id)
+        : null,
       qrCodeDownloadUrl: this.isPublishedNow(offer)
-        ? `/api/v1/partner/offers/${offer.id}/qr-code`
+        ? this.qrDownloadUrls(offer.id).png
         : null,
       pdfKitDownloadUrl: this.isPublishedNow(offer)
-        ? `/api/v1/partner/offers/${offer.id}/pdf-kit`
+        ? this.qrDownloadUrls(offer.id).pdf
         : null,
       locations: offer.locations,
       product: offer.partnerProduct
@@ -996,8 +1041,9 @@ export class PartnerOfferService {
         title: offer.title,
         redemptionFlow: offer.redemptionFlow,
         qrPayload: this.qrPayload(offer.id),
-        qrCodeDownloadUrl: `/api/v1/partner/offers/${offer.id}/qr-code`,
-        pdfKitDownloadUrl: `/api/v1/partner/offers/${offer.id}/pdf-kit`,
+        qrDownloads: this.qrDownloadUrls(offer.id),
+        qrCodeDownloadUrl: this.qrDownloadUrls(offer.id).png,
+        pdfKitDownloadUrl: this.qrDownloadUrls(offer.id).pdf,
       },
     });
   }
@@ -1046,6 +1092,15 @@ export class PartnerOfferService {
       type: 'ALUREI_PARTNER_OFFER',
       offerId,
     });
+  }
+
+  private qrDownloadUrls(offerId: string) {
+    return {
+      png: `/api/v1/partner/offers/${offerId}/qr-code`,
+      jpg: `/api/v1/partner/offers/${offerId}/qr-code/jpg`,
+      jpeg: `/api/v1/partner/offers/${offerId}/qr-code/jpeg`,
+      pdf: `/api/v1/partner/offers/${offerId}/pdf-kit`,
+    };
   }
 
   private qrShortCode(offerId: string) {

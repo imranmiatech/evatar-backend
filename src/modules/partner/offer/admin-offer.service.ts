@@ -6,11 +6,16 @@ import {
 import {
   PartnerOfferStatus,
   PartnerOfferType,
+  PartnerOfferRedemptionFlow,
   Prisma,
+  NotificationType,
   UserRole,
   UserStatus,
 } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
+import { MailService } from '../../../common/mail/mail.service';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
+import { NotificationService } from '../../notification/notification.service';
 import { StorageService } from '../../../common/storage/storage.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
@@ -25,6 +30,9 @@ export class AdminOfferService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storageService: StorageService,
+    private readonly notificationService: NotificationService,
+    private readonly mailService: MailService,
+    private readonly configService: ConfigService,
   ) {}
 
   async getPartnerOptions(query: AdminOfferPartnerQueryDto) {
@@ -171,6 +179,8 @@ export class AdminOfferService {
       include: this.offerInclude(),
     });
 
+    await this.notifyPublishedInStoreOffer(offer);
+
     return {
       success: true,
       message:
@@ -208,6 +218,7 @@ export class AdminOfferService {
 
     const status = dto.status;
     const now = new Date();
+    const wasPublishedInStore = this.isPublishedInStore(existing);
     const uploadedHeroImageUrl =
       image && !dto.useDefaultHeroImage
         ? await this.storageService.uploadFile(image, 'partner-offers')
@@ -246,6 +257,10 @@ export class AdminOfferService {
       },
       include: this.offerInclude(),
     });
+
+    if (!wasPublishedInStore) {
+      await this.notifyPublishedInStoreOffer(offer);
+    }
 
     return {
       success: true,
@@ -331,7 +346,7 @@ export class AdminOfferService {
       description: dto.description?.trim() || null,
       heroImageUrl: dto.useDefaultHeroImage
         ? null
-        : uploadedHeroImageUrl ?? null,
+        : (uploadedHeroImageUrl ?? null),
       useDefaultHeroImage: dto.useDefaultHeroImage ?? false,
       productId: dto.productId?.trim() || null,
       productName: dto.productName?.trim() || null,
@@ -440,7 +455,9 @@ export class AdminOfferService {
       category: dto.category ?? existing.category ?? undefined,
       minimumSpend:
         dto.minimumSpend ??
-        (existing.minimumSpend === null ? undefined : Number(existing.minimumSpend)),
+        (existing.minimumSpend === null
+          ? undefined
+          : Number(existing.minimumSpend)),
       deductionPercentage:
         dto.deductionPercentage ??
         (existing.deductionPercentage === null
@@ -541,6 +558,18 @@ export class AdminOfferService {
       reviewedByUserId: offer.reviewedByUserId,
       reviewedAt: offer.reviewedAt,
       publishedAt: offer.publishedAt,
+      qrPayload: this.isPublishedInStore(offer)
+        ? this.qrPayload(offer.id)
+        : null,
+      qrDownloads: this.isPublishedInStore(offer)
+        ? this.qrDownloadUrls(offer.id)
+        : null,
+      qrCodeDownloadUrl: this.isPublishedInStore(offer)
+        ? this.qrDownloadUrls(offer.id).png
+        : null,
+      pdfKitDownloadUrl: this.isPublishedInStore(offer)
+        ? this.qrDownloadUrls(offer.id).pdf
+        : null,
       locations: offer.locations.map((location) => ({
         id: location.id,
         storeId: location.storeId,
@@ -554,6 +583,124 @@ export class AdminOfferService {
       createdAt: offer.createdAt,
       updatedAt: offer.updatedAt,
     };
+  }
+
+  private async notifyPublishedInStoreOffer(
+    offer: Prisma.PartnerOfferGetPayload<{
+      include: ReturnType<AdminOfferService['offerInclude']>;
+    }>,
+  ) {
+    if (!this.isPublishedInStore(offer)) {
+      return;
+    }
+
+    const downloads = this.qrDownloadUrls(offer.id);
+    const absoluteDownloads = this.absoluteQrDownloadUrls(offer.id);
+    const partnerName =
+      offer.partnerUser.partnerProfile?.businessName ??
+      offer.partnerUser.fullName;
+
+    await this.notificationService.createNotification({
+      userId: offer.partnerUserId,
+      type: NotificationType.PARTNER_OFFER,
+      title: 'Offer Published!',
+      message:
+        'Your in-store offer is live. Download the QR code and display it at your store counter.',
+      iconType: 'GIFT',
+      avatarUrl:
+        offer.heroImageUrl ?? offer.partnerUser.profilePictureUrl ?? undefined,
+      actionText: 'Download QR Code',
+      actionUrl: downloads.png,
+      metadata: {
+        event: 'ADMIN_IN_STORE_OFFER_PUBLISHED',
+        offerId: offer.id,
+        title: offer.title,
+        partnerName,
+        status: offer.status,
+        redemptionFlow: offer.redemptionFlow,
+        qrPayload: this.qrPayload(offer.id),
+        qrShortCode: this.qrShortCode(offer.id),
+        qrDownloads: downloads,
+        qrCodeDownloadUrl: downloads.png,
+        pdfKitDownloadUrl: downloads.pdf,
+      },
+    });
+
+    if (offer.partnerUser.email) {
+      await this.mailService.sendDummyEmail(
+        offer.partnerUser.email,
+        `QR code ready for ${offer.title}`,
+        [
+          `Hi ${partnerName},`,
+          '',
+          `Your in-store offer "${offer.title}" has been published by the Alurei admin team.`,
+          'Download and display the QR code at your store counter so families can scan and accept the offer.',
+          '',
+          `PNG: ${absoluteDownloads.png}`,
+          `JPG: ${absoluteDownloads.jpg}`,
+          `JPEG: ${absoluteDownloads.jpeg}`,
+          `PDF: ${absoluteDownloads.pdf}`,
+          '',
+          `QR code: ${this.qrShortCode(offer.id)}`,
+          'Thank you.',
+        ].join('\n'),
+      );
+    }
+  }
+
+  private isPublishedInStore(offer: {
+    status: PartnerOfferStatus;
+    redemptionFlow: PartnerOfferRedemptionFlow;
+    startDate: Date | null;
+    endDate: Date | null;
+  }) {
+    const now = new Date();
+    return (
+      offer.redemptionFlow === PartnerOfferRedemptionFlow.IN_STORE &&
+      offer.status === PartnerOfferStatus.ACTIVE &&
+      (!offer.startDate || offer.startDate <= now) &&
+      (!offer.endDate || offer.endDate >= now)
+    );
+  }
+
+  private qrPayload(offerId: string) {
+    return JSON.stringify({
+      type: 'ALUREI_PARTNER_OFFER',
+      offerId,
+    });
+  }
+
+  private qrShortCode(offerId: string) {
+    return `ALUREI-QR-${offerId.slice(0, 6).toUpperCase()}`;
+  }
+
+  private qrDownloadUrls(offerId: string) {
+    return {
+      png: `/api/v1/partner/offers/${offerId}/qr-code`,
+      jpg: `/api/v1/partner/offers/${offerId}/qr-code/jpg`,
+      jpeg: `/api/v1/partner/offers/${offerId}/qr-code/jpeg`,
+      pdf: `/api/v1/partner/offers/${offerId}/pdf-kit`,
+    };
+  }
+
+  private absoluteQrDownloadUrls(offerId: string) {
+    const baseUrl = this.apiBaseUrl();
+    const downloads = this.qrDownloadUrls(offerId);
+
+    return {
+      png: `${baseUrl}${downloads.png}`,
+      jpg: `${baseUrl}${downloads.jpg}`,
+      jpeg: `${baseUrl}${downloads.jpeg}`,
+      pdf: `${baseUrl}${downloads.pdf}`,
+    };
+  }
+
+  private apiBaseUrl() {
+    return (
+      this.configService.get<string>('API_BASE_URL') ??
+      this.configService.get<string>('BACKEND_URL') ??
+      'https://evatar-backend.onrender.com'
+    ).replace(/\/$/, '');
   }
 
   private currentUserId(user: CurrentUserPayload) {

@@ -112,6 +112,32 @@ export class PartnerOfferController {
     res.send(file.buffer);
   }
 
+  @Get(':offerId/qr-code/:format')
+  @Roles(UserRole.PARTNER, UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Download approved offer QR code as PNG, JPG, or JPEG',
+  })
+  @ApiParam({ name: 'offerId' })
+  @ApiParam({ name: 'format', enum: ['png', 'jpg', 'jpeg'] })
+  async downloadQrCodeByFormat(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('offerId') offerId: string,
+    @Param('format') format: 'png' | 'jpg' | 'jpeg',
+    @Res() res: Response,
+  ) {
+    const file = await this.partnerOfferService.getQrCodeFile(
+      user,
+      offerId,
+      format,
+    );
+    res.setHeader('Content-Type', file.contentType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${file.filename}"`,
+    );
+    res.send(file.buffer);
+  }
+
   @Get(':offerId/pdf-kit')
   @Roles(UserRole.PARTNER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Download approved offer printable PDF kit' })
@@ -128,6 +154,19 @@ export class PartnerOfferController {
       `attachment; filename="${file.filename}"`,
     );
     res.send(file.buffer);
+  }
+
+  @Post(':offerId/scan')
+  @Roles(UserRole.PARENT, UserRole.NANNY, UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Accept/redeem an offer after scanning its QR code',
+  })
+  @ApiParam({ name: 'offerId' })
+  acceptScannedOffer(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('offerId') offerId: string,
+  ) {
+    return this.partnerOfferService.acceptScannedOffer(user, offerId);
   }
 
   @Patch(':offerId')
