@@ -751,9 +751,13 @@ export class CaregiverService {
   }
 
   async getManageCaregivers(userId: string, childId?: string) {
+    const accessibleChildIds = await this.getAccessibleChildIds(
+      userId,
+      'manageCareTeam',
+    );
     const children = await this.prisma.child.findMany({
       where: {
-        parentUserId: userId,
+        id: { in: accessibleChildIds },
         ...(childId && { id: childId }),
       },
       select: {
@@ -779,13 +783,11 @@ export class CaregiverService {
     const accesses = await this.prisma.caregiverAccess.findMany({
       where: {
         status: { not: CaregiverAccessStatus.REVOKED },
-        child: {
-          parentUserId: userId,
-          ...(childId && { id: childId }),
-        },
+        childId: { in: children.map((child) => child.id) },
+        ...(childId && { childId }),
       },
       include: accessInclude,
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
     });
 
     const ownerUser = children[0]?.parentUser;
@@ -806,6 +808,7 @@ export class CaregiverService {
       success: true,
       data: {
         accountOwner,
+        caregivers,
         sections: this.caregiverSections(accountOwner, caregivers),
       },
     };
@@ -1368,6 +1371,9 @@ export class CaregiverService {
   ) {
     return {
       accessId: access.id,
+      childId: access.child.id,
+      childName: access.child.name,
+      childImage: access.child.avatar,
       role: access.role,
       relationship: access.relationship,
       name:
@@ -1375,8 +1381,23 @@ export class CaregiverService {
         access.invitedName ??
         access.invitedEmail ??
         access.invitedPhone,
+      displayName:
+        access.invitedUser?.fullName ??
+        access.invitedName ??
+        access.invitedEmail ??
+        access.invitedPhone,
       image: access.invitedUser?.profilePictureUrl ?? null,
+      email: access.invitedUser?.email ?? access.invitedEmail,
+      phoneNumber: access.invitedUser?.phoneNumber ?? access.invitedPhone,
+      invitedUserId: access.invitedUser?.id ?? null,
+      invitedEmail: access.invitedEmail,
+      invitedPhone: access.invitedPhone,
+      inviteChannel: access.inviteChannel,
       status: access.status,
+      acceptedAt: access.acceptedAt,
+      expiresAt: access.expiresAt,
+      createdAt: access.createdAt,
+      updatedAt: access.updatedAt,
     };
   }
 
