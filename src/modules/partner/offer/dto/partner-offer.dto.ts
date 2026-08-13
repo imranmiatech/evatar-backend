@@ -32,6 +32,16 @@ const normalizeEnum = ({ value }: { value: unknown }) => {
     .toUpperCase();
 };
 
+const normalizeOfferType = ({ value }: { value: unknown }) => {
+  const normalized = normalizeEnum({ value });
+  if (normalized === 'FIXED') return PartnerOfferType.FIXED_DISCOUNT;
+  if (normalized === 'PRODUCT' || normalized === 'PRODUCT_DISCOUNT') {
+    return PartnerOfferType.PRODUCT_BASED;
+  }
+  if (normalized === 'FREE_DELIVERY') return PartnerOfferType.FREE_DELIVERY;
+  return normalized;
+};
+
 const normalizeStringArray = ({ value }: { value: unknown }) => {
   if (Array.isArray(value)) {
     return value.map((item) => String(item).trim()).filter(Boolean);
@@ -117,7 +127,7 @@ export class CreatePartnerOfferDto {
   redemptionFlow!: PartnerOfferRedemptionFlow;
 
   @ApiProperty({ enum: PartnerOfferType, example: 'FIXED_DISCOUNT' })
-  @Transform(normalizeEnum)
+  @Transform(normalizeOfferType)
   @IsEnum(PartnerOfferType)
   offerType!: PartnerOfferType;
 
@@ -275,7 +285,7 @@ export class PartnerOfferQueryDto {
 
   @ApiPropertyOptional({ enum: PartnerOfferType })
   @IsOptional()
-  @Transform(normalizeEnum)
+  @Transform(normalizeOfferType)
   @IsEnum(PartnerOfferType)
   offerType?: PartnerOfferType;
 

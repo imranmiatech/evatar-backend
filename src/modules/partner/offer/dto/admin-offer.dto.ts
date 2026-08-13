@@ -35,7 +35,10 @@ const normalizeEnum = ({ value }: { value: unknown }) => {
 const normalizeOfferType = ({ value }: { value: unknown }) => {
   const normalized = normalizeEnum({ value });
   if (normalized === 'FIXED') return PartnerOfferType.FIXED_DISCOUNT;
-  if (normalized === 'PRODUCT') return PartnerOfferType.PRODUCT_BASED;
+  if (normalized === 'PRODUCT' || normalized === 'PRODUCT_DISCOUNT') {
+    return PartnerOfferType.PRODUCT_BASED;
+  }
+  if (normalized === 'FREE_DELIVERY') return PartnerOfferType.FREE_DELIVERY;
   return normalized;
 };
 
@@ -70,7 +73,12 @@ const normalizeStringArray = ({ value }: { value: unknown }) => {
 };
 
 const normalizeLocations = ({ value }: { value: unknown }) => {
-  if (Array.isArray(value)) return value;
+  const toLocationDto = (location: unknown) =>
+    location && typeof location === 'object'
+      ? Object.assign(new AdminOfferLocationDto(), location)
+      : location;
+
+  if (Array.isArray(value)) return value.map(toLocationDto);
   if (typeof value !== 'string') return value;
 
   const trimmed = value.trim();
@@ -78,7 +86,7 @@ const normalizeLocations = ({ value }: { value: unknown }) => {
 
   try {
     const parsed = JSON.parse(trimmed);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.map(toLocationDto) : [];
   } catch {
     return [];
   }
@@ -89,6 +97,27 @@ export class AdminOfferPartnerQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({ example: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  limit?: number = 20;
+}
+
+export class AdminOfferPartnerProductQueryDto {
+  @ApiPropertyOptional({ example: 'Organic Yogurt' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({ enum: PartnerProductCategory })
+  @IsOptional()
+  @Transform(normalizeEnum)
+  @IsEnum(PartnerProductCategory)
+  category?: PartnerProductCategory;
 
   @ApiPropertyOptional({ example: 20 })
   @IsOptional()
@@ -167,7 +196,8 @@ export class CreateAdminPartnerOfferDto {
   @ApiProperty({
     enum: PartnerOfferType,
     example: 'FIXED_DISCOUNT',
-    description: 'Accepts FIXED_DISCOUNT/FIXED or PRODUCT_BASED/PRODUCT.',
+    description:
+      'Accepts FIXED_DISCOUNT/FIXED, PRODUCT_BASED/PRODUCT/PRODUCT_DISCOUNT, or FREE_DELIVERY.',
   })
   @Transform(normalizeOfferType)
   @IsEnum(PartnerOfferType)
@@ -188,7 +218,9 @@ export class CreateAdminPartnerOfferDto {
   @IsBoolean()
   useDefaultHeroImage?: boolean;
 
-  @ApiPropertyOptional({ description: 'Existing product ID for product offers.' })
+  @ApiPropertyOptional({
+    description: 'Existing product ID for product offers.',
+  })
   @IsOptional()
   @IsUUID()
   productId?: string;

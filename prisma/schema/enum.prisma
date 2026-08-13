@@ -134,6 +134,7 @@ enum PartnerOfferStatus {
 enum PartnerOfferType {
   FIXED_DISCOUNT
   PRODUCT_BASED
+  FREE_DELIVERY
 }
 
 enum PartnerOfferRedemptionFlow {

@@ -1,736 +1,1885 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Partner Approval Console</title>
-  <style>
-    :root {
-      --bg: #f4f7f8;
-      --panel: #ffffff;
-      --soft: #edf4f5;
-      --line: #d8e4e6;
-      --text: #1f2a37;
-      --muted: #667085;
-      --brand: #075d68;
-      --brand-dark: #044852;
-      --danger: #b42318;
-      --warning: #946200;
-      --success: #087443;
-      --shadow: 0 16px 40px rgba(16, 24, 40, 0.08);
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Partner Offer Builder</title>
+    <style>
+      :root {
+        --bg: #f5f7f8;
+        --panel: #ffffff;
+        --soft: #f7fafb;
+        --soft-blue: #eef9ff;
+        --soft-green: #eef8f4;
+        --line: #d8e5e8;
+        --line-strong: #b9d2d8;
+        --text: #172436;
+        --muted: #647487;
+        --brand: #075f69;
+        --brand-dark: #034d55;
+        --accent: #08a7dc;
+        --danger: #ef4444;
+        --warning: #b36b00;
+        --warning-bg: #fff8e8;
+        --shadow: 0 20px 60px rgba(20, 35, 50, 0.12);
+      }
 
-    * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        letter-spacing: 0;
+      }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: var(--bg);
-      color: var(--text);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+        letter-spacing: 0;
+      }
+      button {
+        cursor: pointer;
+      }
 
-    header {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background: rgba(255, 255, 255, 0.94);
-      border-bottom: 1px solid var(--line);
-      backdrop-filter: blur(14px);
-    }
+      .app-shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: minmax(300px, 400px) minmax(640px, 1fr);
+        align-items: start;
+      }
 
-    .topbar {
-      max-width: 1220px;
-      margin: 0 auto;
-      padding: 18px 22px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-    }
+      .auth-panel {
+        min-height: 100vh;
+        padding: 24px;
+        border-right: 1px solid var(--line);
+        background: #fbfcfd;
+        position: sticky;
+        top: 0;
+      }
 
-    h1, h2, h3, p { margin-top: 0; }
+      .auth-title h1 {
+        margin: 0;
+        font-size: 20px;
+        line-height: 1.2;
+      }
 
-    h1 {
-      margin-bottom: 4px;
-      font-size: 21px;
-    }
+      .auth-title p {
+        margin: 5px 0 18px;
+        color: var(--muted);
+        font-size: 13px;
+      }
 
-    .subtitle {
-      margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-    }
+      .field {
+        margin-bottom: 14px;
+        position: relative;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        color: #344256;
+        margin-bottom: 7px;
+      }
 
-    .base-url {
-      display: grid;
-      grid-template-columns: 70px minmax(260px, 1fr);
-      align-items: center;
-      gap: 8px;
-    }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcfd;
+        padding: 12px 14px;
+        color: var(--text);
+        font-size: 14px;
+        outline: none;
+      }
 
-    main {
-      max-width: 1220px;
-      margin: 0 auto;
-      padding: 24px 22px 46px;
-      display: grid;
-      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.45fr);
-      gap: 18px;
-      align-items: start;
-    }
+      textarea {
+        min-height: 74px;
+        resize: vertical;
+      }
+      input:focus,
+      select:focus,
+      textarea:focus {
+        border-color: #7bc6cf;
+        box-shadow: 0 0 0 3px rgba(7, 95, 105, 0.12);
+        background: #fff;
+      }
 
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
+      .btn {
+        border: 0;
+        border-radius: 8px;
+        min-height: 44px;
+        padding: 0 18px;
+        background: var(--brand);
+        color: #fff;
+        font-weight: 800;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
 
-    .panel-head {
-      padding: 16px 18px;
-      border-bottom: 1px solid var(--line);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
+      .btn:hover {
+        background: var(--brand-dark);
+      }
+      .btn.secondary {
+        background: #fff;
+        color: var(--text);
+        border: 1px solid var(--line);
+      }
+      .btn.secondary:hover {
+        background: #f2f6f7;
+      }
+      .btn.small {
+        min-height: 34px;
+        padding: 0 12px;
+        font-size: 12px;
+      }
+      .btn.ghost {
+        background: transparent;
+        color: var(--brand);
+        border: 0;
+        min-height: 30px;
+        padding: 0 4px;
+      }
 
-    .panel-head h2 {
-      margin-bottom: 4px;
-      font-size: 16px;
-    }
+      .token-box {
+        min-height: 94px;
+        font-size: 12px;
+        word-break: break-all;
+      }
 
-    .panel-body { padding: 18px; }
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 750;
+        color: var(--muted);
+        background: #fff;
+        max-width: 100%;
+      }
 
-    label {
-      display: block;
-      margin-bottom: 7px;
-      color: var(--text);
-      font-size: 12px;
-      font-weight: 700;
-    }
+      .status-pill.ok {
+        color: #086045;
+        background: #eaf8f1;
+        border-color: #bfe6d3;
+      }
 
-    input,
-    select,
-    textarea {
-      width: 100%;
-      border: 1px solid var(--line);
-      background: #f9fbfc;
-      color: var(--text);
-      border-radius: 8px;
-      padding: 11px 12px;
-      font: inherit;
-      font-size: 13px;
-      outline: none;
-    }
+      .main {
+        min-height: 100vh;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 28px 20px 40px;
+      }
 
-    textarea {
-      min-height: 78px;
-      resize: vertical;
-    }
+      .modal {
+        width: min(100%, 740px);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
 
-    input:focus,
-    select:focus,
-    textarea:focus {
-      border-color: #86c8cf;
-      box-shadow: 0 0 0 3px rgba(7, 93, 104, 0.12);
-    }
+      .modal-head {
+        min-height: 74px;
+        padding: 18px 28px;
+        border-bottom: 1px solid #e6edef;
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        align-items: center;
+        gap: 16px;
+      }
 
-    button {
-      border: 0;
-      background: var(--brand);
-      color: #fff;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-weight: 750;
-      font-size: 13px;
-      cursor: pointer;
-    }
+      .modal-head h2 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.2;
+      }
 
-    button:hover { background: var(--brand-dark); }
-    button.secondary { background: #edf2f4; color: var(--text); }
-    button.secondary:hover { background: #dde8eb; }
-    button.danger { background: var(--danger); }
-    button.danger:hover { background: #8f1d14; }
+      .modal-head p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
 
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 13px;
-    }
+      .flow-label {
+        font-weight: 800;
+        color: var(--text);
+        font-size: 13px;
+      }
 
-    .span-2 { grid-column: 1 / -1; }
+      .icon-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        font-size: 22px;
+        line-height: 1;
+      }
 
-    .actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 14px;
-    }
+      .modal-body {
+        padding: 24px 28px 26px;
+      }
+      .choose-copy {
+        margin: 0 0 14px;
+        color: #526376;
+        font-size: 15px;
+      }
 
-    .notice {
-      padding: 11px 12px;
-      border-radius: 8px;
-      background: #fffaeb;
-      color: #5f4300;
-      font-size: 13px;
-      margin-bottom: 14px;
-    }
+      .choice-grid {
+        display: grid;
+        gap: 18px;
+        margin-bottom: 22px;
+      }
 
-    .token-box {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 12px;
-    }
+      .choice {
+        border: 2px solid #dce7eb;
+        border-radius: 18px;
+        padding: 22px;
+        background: #fbfcfd;
+        display: grid;
+        grid-template-columns: 58px 1fr;
+        gap: 16px;
+        align-items: start;
+      }
 
-    .tabs {
-      display: flex;
-      gap: 6px;
-      padding: 8px;
-      background: var(--soft);
-      border-radius: 8px;
-      margin-bottom: 16px;
-    }
+      .choice.selected {
+        border-color: var(--brand);
+        background: var(--soft-green);
+      }
 
-    .tab {
-      background: transparent;
-      color: var(--muted);
-    }
+      .choice-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 18px;
+        display: grid;
+        place-items: center;
+        background: #ecf3f5;
+        color: var(--brand);
+        font-size: 25px;
+      }
 
-    .tab.active {
-      background: var(--brand);
-      color: #fff;
-    }
+      .choice h3 {
+        margin: 0;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
 
-    .hidden { display: none; }
+      .selected-badge {
+        border-radius: 999px;
+        background: var(--brand);
+        color: #fff;
+        font-size: 12px;
+        padding: 4px 10px;
+        font-weight: 800;
+      }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
+      .choice p {
+        margin: 8px 0 12px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+      }
 
-    th,
-    td {
-      text-align: left;
-      padding: 11px 10px;
-      border-bottom: 1px solid var(--line);
-      vertical-align: top;
-    }
+      .chips {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
 
-    th {
-      color: var(--muted);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      background: #f8fbfc;
-    }
+      .chip {
+        border: 1px solid #d9e9ed;
+        color: #42536a;
+        background: #fff;
+        border-radius: 999px;
+        padding: 7px 12px;
+        font-size: 12px;
+        font-weight: 650;
+        white-space: nowrap;
+      }
 
-    .badge {
-      display: inline-flex;
-      padding: 4px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 800;
-      background: #fffaeb;
-      color: var(--warning);
-    }
+      .flow-cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 26px;
+        margin-top: 24px;
+      }
 
-    .badge.APPROVED,
-    .badge.ACTIVE {
-      background: #ecfdf3;
-      color: var(--success);
-    }
+      .mini-flow {
+        border: 1px solid #e4ecef;
+        border-radius: 18px;
+        background: #fcfdfd;
+        padding: 18px;
+      }
 
-    .badge.REJECTED,
-    .badge.INACTIVE {
-      background: #fff0ee;
-      color: var(--danger);
-    }
+      .mini-flow.active {
+        background: var(--soft-blue);
+        border-color: #d3edf7;
+      }
 
-    .row-actions {
-      display: flex;
-      gap: 7px;
-      flex-wrap: wrap;
-    }
+      .mini-flow h4 {
+        margin: 0 0 10px;
+        font-size: 13px;
+        color: var(--muted);
+      }
 
-    pre {
-      margin: 0;
-      white-space: pre-wrap;
-      overflow: auto;
-      max-height: 360px;
-      min-height: 220px;
-      background: #101828;
-      color: #e6edf3;
-      border-radius: 8px;
-      padding: 13px;
-      font-size: 12px;
-      line-height: 1.55;
-    }
+      .mini-flow.active h4 {
+        color: #0081c8;
+      }
+      .flow-step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 24px;
+        color: var(--muted);
+        font-size: 13px;
+      }
 
-    .split {
-      display: grid;
-      gap: 18px;
-    }
+      .mini-flow.active .flow-step {
+        color: #008fe0;
+      }
+      .num {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #e8edf0;
+        color: #637184;
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        font-size: 12px;
+        flex: 0 0 auto;
+      }
 
-    @media (max-width: 980px) {
-      main,
+      .mini-flow.active .num {
+        background: #bdeaff;
+        color: #0080c8;
+      }
+
+      .builder {
+        display: grid;
+        gap: 18px;
+      }
+
+      .upload {
+        min-height: 144px;
+        border: 2px dashed #c8d9df;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        color: var(--muted);
+        background: #fbfcfd;
+      }
+
+      .upload strong {
+        display: block;
+        color: #526274;
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+
+      .toggle-row {
+        min-height: 50px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 0 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .switch {
+        width: 40px;
+        height: 22px;
+        border-radius: 999px;
+        border: 1px solid #d6dde2;
+        background: #e5e7eb;
+        position: relative;
+        flex: 0 0 auto;
+      }
+
+      .switch input {
+        display: none;
+      }
+      .knob {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #fff;
+        position: absolute;
+        top: 1px;
+        left: 1px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+        transition: left 0.16s ease;
+      }
+
+      .switch input:checked + .knob {
+        left: 19px;
+      }
+      .switch:has(input:checked) {
+        background: #b8ecef;
+        border-color: #88d5dd;
+      }
+
       .form-grid {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
       }
 
-      .topbar {
-        flex-direction: column;
-        align-items: stretch;
+      .span-2 {
+        grid-column: 1 / -1;
+      }
+      .hint {
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 11px;
+        text-align: right;
       }
 
-      .base-url {
-        grid-template-columns: 1fr;
+      .segmented {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
       }
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <div class="topbar">
-      <div>
-        <h1>Admin Partner Approval Console</h1>
-        <p class="subtitle">Login as admin, fetch users, review partner requests, approve or reject.</p>
-      </div>
-      <div class="base-url">
-        <label for="baseUrl">API Base</label>
-        <input id="baseUrl" value="http://localhost:5000/api/v1" />
-      </div>
-    </div>
-  </header>
 
-  <main>
-    <section class="split">
-      <div class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>Admin Login</h2>
-            <p class="subtitle">Uses POST /auth/login</p>
-          </div>
+      .plan-pill {
+        border: 1px solid #cfe5e9;
+        border-radius: 999px;
+        background: #fff;
+        color: #557086;
+        min-height: 34px;
+        padding: 0 14px;
+        font-weight: 700;
+        font-size: 12px;
+      }
+
+      .plan-pill.active {
+        background: #c8f2f0;
+        border-color: #a6dedc;
+        color: #067179;
+      }
+
+      .suggestions {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: calc(100% + 6px);
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        box-shadow: 0 16px 38px rgba(20, 35, 50, 0.14);
+        overflow: hidden;
+        z-index: 20;
+        display: none;
+      }
+
+      .suggestions.show {
+        display: block;
+      }
+      .suggestion {
+        width: 100%;
+        border: 0;
+        background: #fff;
+        color: var(--text);
+        padding: 11px 12px;
+        text-align: left;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        min-height: 48px;
+      }
+
+      .suggestion:hover {
+        background: #eff8fa;
+      }
+      .suggestion strong {
+        font-size: 13px;
+      }
+      .suggestion span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .locations-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .location-card {
+        border-radius: 12px;
+        background: #f4f4f4;
+        padding: 14px;
+        display: grid;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .location-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .warning-row {
+        border: 1px solid #ffe2a8;
+        background: var(--warning-bg);
+        color: var(--warning);
+        border-radius: 12px;
+        min-height: 48px;
+        padding: 0 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .modal-footer {
+        border-top: 1px solid #e6edef;
+        padding: 20px 28px;
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 14px;
+        align-items: center;
+      }
+
+      .response {
+        margin-top: 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        padding: 12px;
+        font-size: 12px;
+        white-space: pre-wrap;
+        max-height: 280px;
+        overflow: auto;
+        color: #344256;
+      }
+
+      .admin-block {
+        margin-top: 20px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+      }
+
+      .offer-row {
+        border: 1px solid var(--line);
+        background: #fff;
+        border-radius: 8px;
+        padding: 10px;
+        display: grid;
+        gap: 9px;
+        margin-top: 10px;
+      }
+
+      .offer-row strong {
+        font-size: 13px;
+        line-height: 1.3;
+      }
+
+      .offer-row span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .published-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(18, 24, 30, 0.68);
+        display: grid;
+        place-items: center;
+        z-index: 50;
+        padding: 18px;
+      }
+
+      .published-modal {
+        width: min(100%, 390px);
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
+      }
+
+      .published-head {
+        background: #062f33;
+        color: #fff;
+        text-align: center;
+        padding: 26px 18px 22px;
+      }
+
+      .published-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #e9fbff;
+        color: #075f69;
+        display: grid;
+        place-items: center;
+        margin: 0 auto 10px;
+        font-weight: 900;
+      }
+
+      .published-head h3 {
+        margin: 0 0 5px;
+        font-size: 14px;
+      }
+
+      .published-head p {
+        margin: 0;
+        font-size: 11px;
+        color: #cde1e5;
+      }
+
+      .published-body {
+        padding: 16px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .published-offer-row {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 12px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .published-offer-row strong {
+        font-size: 12px;
+      }
+
+      .published-offer-row span {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+        margin-top: 2px;
+      }
+
+      .qr-panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        text-align: center;
+        padding: 18px 14px;
+      }
+
+      .qr-panel img {
+        width: 210px;
+        height: 210px;
+        object-fit: contain;
+      }
+
+      .qr-code-label {
+        font-size: 10px;
+        font-weight: 900;
+        color: #062f33;
+        margin-top: 8px;
+      }
+
+      .download-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .download-card {
+        min-height: 86px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #f6f6f6;
+        color: #344256;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        padding: 10px;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .download-card.primary {
+        border-color: var(--brand);
+        background: #f2fbfb;
+        color: var(--brand);
+      }
+
+      .download-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 9px;
+        margin-top: 3px;
+        font-weight: 650;
+      }
+
+      @media (max-width: 980px) {
+        .app-shell {
+          grid-template-columns: 1fr;
+        }
+        .auth-panel {
+          min-height: auto;
+          position: static;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .main {
+          padding: 18px 12px 28px;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .modal-head {
+          grid-template-columns: 1fr auto;
+          padding: 16px;
+        }
+        .flow-label {
+          display: none;
+        }
+        .modal-body {
+          padding: 18px 16px;
+        }
+        .choice {
+          grid-template-columns: 1fr;
+        }
+        .flow-cards,
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+        .span-2 {
+          grid-column: auto;
+        }
+        .modal-footer {
+          grid-template-columns: 1fr;
+          padding: 16px;
+        }
+        .btn {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="auth-panel">
+        <div class="auth-title">
+          <h1>Admin Partner</h1>
+          <p>Login as admin, select partner, then create and publish offers.</p>
         </div>
-        <div class="panel-body">
-          <form id="loginForm">
-            <div class="form-grid">
-              <div class="span-2">
-                <label>Email</label>
-                <input name="email" type="email" value="a@e.com" required />
+
+        <div class="field">
+          <label for="apiBase">API Base</label>
+          <input id="apiBase" value="http://localhost:5000" />
+        </div>
+        <div class="field">
+          <label for="email">Admin Email</label>
+          <input id="email" type="email" value="a@e.com" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" value="Password123!" />
+        </div>
+        <div
+          style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px"
+        >
+          <button class="btn" id="loginBtn" type="button">Login</button>
+          <button class="btn secondary" id="saveTokenBtn" type="button">
+            Save Token
+          </button>
+        </div>
+        <div class="field">
+          <label for="token">Saved Token</label>
+          <textarea
+            class="token-box"
+            id="token"
+            placeholder="Bearer token"
+          ></textarea>
+        </div>
+        <span class="status-pill" id="authStatus">No saved token</span>
+
+        <div class="admin-block">
+          <div class="auth-title">
+            <h1 style="font-size: 16px">Partner Review</h1>
+            <p>Approve or reject submitted partner offers.</p>
+          </div>
+          <div class="field">
+            <label for="adminToken">Review Token</label>
+            <textarea
+              class="token-box"
+              id="adminToken"
+              placeholder="Admin bearer token"
+            ></textarea>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap">
+            <button class="btn secondary" id="saveAdminTokenBtn" type="button">
+              Save Review Token
+            </button>
+            <button class="btn" id="loadPendingBtn" type="button">
+              Load Pending
+            </button>
+          </div>
+          <div id="adminOffers"></div>
+        </div>
+        <div class="response" id="responseBox">Ready.</div>
+      </aside>
+
+      <main class="main">
+        <section class="modal">
+          <header class="modal-head">
+            <div>
+              <h2>Create Offer</h2>
+              <p>Configure this redemption offer</p>
+            </div>
+            <div class="flow-label" id="headFlow">In-store</div>
+            <button class="icon-btn" type="button" title="Close">×</button>
+          </header>
+
+          <div class="modal-body" id="stepChoose">
+            <p class="choose-copy">
+              Choose how this offer will be redeemed by Alurei families.
+            </p>
+            <div class="choice-grid">
+              <button
+                class="choice selected"
+                type="button"
+                data-flow="IN_STORE"
+              >
+                <span class="choice-icon">▣</span>
+                <span>
+                  <h3>In-store <b class="selected-badge">Selected</b></h3>
+                  <p>
+                    The customer visits a physical store and scans a QR code at
+                    point-of-sale to redeem the offer. After publishing, you'll
+                    receive a printable QR code and PDF kit to display in your
+                    stores.
+                  </p>
+                  <span class="chips">
+                    <span class="chip">QR code generated</span>
+                    <span class="chip">Printable PDF kit</span>
+                    <span class="chip">No app checkout needed</span>
+                  </span>
+                </span>
+              </button>
+              <button class="choice" type="button" data-flow="IN_ALUREI">
+                <span class="choice-icon">↯</span>
+                <span>
+                  <h3>In-Alurei</h3>
+                  <p>
+                    The discount is applied automatically when a family orders
+                    the partner's product directly inside the Alurei app. No QR
+                    code required.
+                  </p>
+                  <span class="chips">
+                    <span class="chip">Auto-applied discount</span>
+                    <span class="chip">In-app checkout</span>
+                    <span class="chip">Seamless redemption</span>
+                  </span>
+                </span>
+              </button>
+            </div>
+            <div class="flow-cards">
+              <div class="mini-flow active" id="storeFlow">
+                <h4>▣ In-store Flow</h4>
+                <div class="flow-step">
+                  <span class="num">1</span>Admin creates offer
+                </div>
+                <div class="flow-step">
+                  <span class="num">2</span>QR code generated
+                </div>
+                <div class="flow-step">
+                  <span class="num">3</span>Print & display in store
+                </div>
+                <div class="flow-step">
+                  <span class="num">4</span>Customer scans to redeem
+                </div>
               </div>
-              <div class="span-2">
-                <label>Password</label>
-                <input name="password" type="password" value="123456" required />
+              <div class="mini-flow" id="appFlow">
+                <h4>↯ In-Alurei flow</h4>
+                <div class="flow-step">
+                  <span class="num">1</span>Admin creates offer
+                </div>
+                <div class="flow-step">
+                  <span class="num">2</span>Offer goes live in app
+                </div>
+                <div class="flow-step">
+                  <span class="num">3</span>Family browses products
+                </div>
+                <div class="flow-step">
+                  <span class="num">4</span>Discount auto-applied
+                </div>
               </div>
             </div>
-            <div class="actions">
-              <button type="submit">Login Admin</button>
-              <button type="button" class="secondary" id="meBtn">Check /auth/me</button>
+          </div>
+
+          <form class="modal-body builder hidden" id="offerForm">
+            <div class="upload">
+              <div>
+                <div style="font-size: 28px; margin-bottom: 8px">↥</div>
+                <strong>Upload banner</strong>
+                <span>PNG or JPG, recommended</span>
+                <input
+                  id="bannerFile"
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  style="max-width: 250px; margin-top: 12px"
+                />
+                <input id="heroImageUrl" class="hidden" />
+              </div>
+            </div>
+
+            <div class="toggle-row">
+              <strong style="font-size: 13px">Use Default Hero Image</strong>
+              <label class="switch"
+                ><input id="useDefaultHeroImage" type="checkbox" /><span
+                  class="knob"
+                ></span
+              ></label>
+            </div>
+
+            <div class="form-grid">
+              <div class="field span-2">
+                <label for="title">Offer Title</label>
+                <input
+                  id="title"
+                  maxlength="80"
+                  value="Free Yoga for Parents"
+                />
+              </div>
+              <div class="field span-2">
+                <label for="description">Description</label>
+                <textarea
+                  id="description"
+                  maxlength="360"
+                  placeholder="e.g: grab 25% discount with 300 ALR"
+                ></textarea>
+                <div class="hint">Max 60 words</div>
+              </div>
+
+              <div class="field span-2">
+                <label for="offerType">Select offer type</label>
+                <select id="offerType">
+                  <option value="FIXED_DISCOUNT">Fixed Discount</option>
+                  <option value="PRODUCT_BASED">Product Discount</option>
+                  <option value="FREE_DELIVERY">Free Delivery</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="partnerSearch">Partner</label>
+                <input
+                  id="partnerSearch"
+                  placeholder="Search partner"
+                  autocomplete="off"
+                />
+                <input id="partnerUserId" type="hidden" />
+                <div class="suggestions" id="partnerSuggestions"></div>
+              </div>
+              <div class="field">
+                <label for="category">Category</label>
+                <select id="category">
+                  <option value="">Select category</option>
+                  <option value="PRODUCE">Produce</option>
+                  <option value="DAIRY">Dairy</option>
+                  <option value="BAKERY">Bakery</option>
+                  <option value="PANTRY">Pantry</option>
+                  <option value="BABY">Baby</option>
+                  <option value="FRUIT">Fruit</option>
+                  <option value="MEAT">Meat</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="minimumSpend">Minimum Spend (optional)</label>
+                <input
+                  id="minimumSpend"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value="0"
+                />
+              </div>
+              <div class="field">
+                <label for="deductionPercentage">Deduction percentage</label>
+                <input
+                  id="deductionPercentage"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value="5"
+                />
+              </div>
+
+              <div class="field span-2">
+                <label for="productSearch">Select Product</label>
+                <input
+                  id="productSearch"
+                  placeholder="Product name"
+                  autocomplete="off"
+                />
+                <input id="productId" type="hidden" />
+                <div class="suggestions" id="productSuggestions"></div>
+              </div>
+              <div class="field span-2">
+                <label for="requiredAlurei">Required Alurei</label>
+                <input id="requiredAlurei" type="number" min="1" value="300" />
+              </div>
+
+              <div class="field span-2">
+                <label>Eligible Plans</label>
+                <div class="segmented" id="planGroup">
+                  <button class="plan-pill" type="button" data-plan="Free">
+                    Free
+                  </button>
+                  <button class="plan-pill" type="button" data-plan="Starter">
+                    Starter
+                  </button>
+                  <button
+                    class="plan-pill active"
+                    type="button"
+                    data-plan="Family"
+                  >
+                    Family
+                  </button>
+                  <button
+                    class="plan-pill active"
+                    type="button"
+                    data-plan="Premium"
+                  >
+                    Premium
+                  </button>
+                  <button class="plan-pill" type="button" data-plan="All Plans">
+                    All Plans
+                  </button>
+                </div>
+              </div>
+
+              <div class="field span-2">
+                <label for="benefitTitle">Benefit Title</label>
+                <input
+                  id="benefitTitle"
+                  placeholder="e.g. Grab 25% discount with 300 Alurei"
+                />
+              </div>
+              <div class="field span-2">
+                <label for="benefitDescription">Benefit Description</label>
+                <textarea
+                  id="benefitDescription"
+                  placeholder="e.g. Explain what the user actually receives"
+                ></textarea>
+              </div>
+              <div class="field span-2">
+                <label for="terms">Terms & Conditions</label>
+                <textarea
+                  id="terms"
+                  placeholder="e.g. Valid for one shop only. Cannot be combined with other offers..."
+                ></textarea>
+              </div>
+            </div>
+
+            <div>
+              <div class="locations-head">
+                <label style="margin: 0">Available Locations</label>
+                <button
+                  class="btn ghost small"
+                  id="addLocationBtn"
+                  type="button"
+                >
+                  + Add Location
+                </button>
+              </div>
+              <div class="field">
+                <input id="locationSearch" placeholder="Search Location" />
+                <div class="suggestions" id="locationSuggestions"></div>
+              </div>
+              <div class="toggle-row">
+                <strong style="font-size: 13px; color: #087179"
+                  >Available for all outlets</strong
+                >
+                <label class="switch"
+                  ><input id="availableAllOutlets" type="checkbox" /><span
+                    class="knob"
+                  ></span
+                ></label>
+              </div>
+              <div id="locationsList"></div>
+            </div>
+
+            <div class="form-grid">
+              <div class="field">
+                <label for="startDate">Start Date</label>
+                <input id="startDate" type="date" value="2026-08-01" />
+              </div>
+              <div class="field">
+                <label for="endDate">End Date</label>
+                <input id="endDate" type="date" value="2026-10-31" />
+              </div>
+            </div>
+
+            <div class="warning-row">
+              <span>☆ Recommend for external activities</span>
+              <label class="switch"
+                ><input id="recommendExternal" type="checkbox" /><span
+                  class="knob"
+                ></span
+              ></label>
             </div>
           </form>
+
+          <footer class="modal-footer">
+            <button class="btn secondary" id="cancelBtn" type="button">
+              Cancel
+            </button>
+            <button class="btn secondary hidden" id="draftBtn" type="button">
+              Save Draft
+            </button>
+            <button class="btn" id="nextBtn" type="button">Next</button>
+          </footer>
+        </section>
+      </main>
+    </div>
+
+    <div class="published-overlay hidden" id="publishedOverlay">
+      <div class="published-modal">
+        <div class="published-head">
+          <div class="published-icon">✓</div>
+          <h3>Offer Published!</h3>
+          <p>
+            Your in-store offer is live. Display the QR code at your store
+            counter.
+          </p>
+        </div>
+        <div class="published-body">
+          <div class="published-offer-row">
+            <div>
+              <strong id="publishedTitle">Offer</strong>
+              <span id="publishedSub">Partner offer</span>
+            </div>
+            <span class="status-pill ok">Active</span>
+          </div>
+          <div class="qr-panel">
+            <img id="publishedQr" alt="Offer QR code" />
+            <div class="qr-code-label" id="publishedQrLabel">ALUREI-QR</div>
+            <p
+              style="
+                margin: 7px auto 0;
+                max-width: 250px;
+                color: var(--muted);
+                font-size: 10px;
+              "
+            >
+              Families scan this code at your store to instantly unlock the
+              offer in the Alurei app.
+            </p>
+          </div>
+          <div class="download-grid">
+            <button
+              class="download-card primary"
+              id="downloadQrBtn"
+              type="button"
+            >
+              ↗<br />Download QR Code<span>PNG · High resolution</span>
+            </button>
+            <button class="download-card" id="downloadPdfBtn" type="button">
+              ▣<br />Download PDF Kit<span>Printable · A4</span>
+            </button>
+          </div>
+          <button class="btn" id="closePublishedBtn" type="button">
+            Done — View Offer
+          </button>
         </div>
       </div>
+    </div>
 
-      <div class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>Token</h2>
-            <p class="subtitle">Auto-filled after admin login. You can paste manually too.</p>
-          </div>
-        </div>
-        <div class="panel-body">
-          <label>Admin Bearer Token</label>
-          <textarea id="adminToken" class="token-box" placeholder="eyJ..."></textarea>
-          <div class="actions">
-            <button type="button" class="secondary" id="saveTokenBtn">Save Token</button>
-            <button type="button" class="secondary" id="clearTokenBtn">Clear Token</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>Response</h2>
-            <p class="subtitle">Raw API output.</p>
-          </div>
-          <button type="button" class="secondary" id="clearOutputBtn">Clear</button>
-        </div>
-        <div class="panel-body">
-          <pre id="output">Ready.</pre>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-head">
-        <div>
-          <h2>Admin Data</h2>
-          <p class="subtitle">Get users and approve/reject partner requests.</p>
-        </div>
-      </div>
-      <div class="panel-body">
-        <div class="tabs">
-          <button class="tab active" data-tab="partners">Partners</button>
-          <button class="tab" data-tab="users">Users</button>
-        </div>
-
-        <div id="partners" class="tab-panel">
-          <div class="notice">
-            Use List Partners first. Approve sets partner ACTIVE and sends email. Reject keeps login blocked.
-          </div>
-          <div class="form-grid">
-            <div>
-              <label>Status</label>
-              <select id="partnerStatus">
-                <option>PENDING</option>
-                <option>APPROVED</option>
-                <option>REJECTED</option>
-                <option>ALL</option>
-                <option>ACTIVE</option>
-                <option>INACTIVE</option>
-              </select>
-            </div>
-            <div>
-              <label>Selected Partner ID</label>
-              <input id="partnerId" placeholder="Click a row or paste user ID" />
-            </div>
-            <div class="span-2">
-              <label>Reject Reason</label>
-              <input id="rejectReason" value="Business documents could not be verified." />
-            </div>
-          </div>
-          <div class="actions">
-            <button type="button" class="secondary" id="listPartnersBtn">List Partners</button>
-            <button type="button" id="approveSelectedBtn">Approve Selected</button>
-            <button type="button" class="danger" id="rejectSelectedBtn">Reject Selected</button>
-          </div>
-
-          <div style="overflow:auto; margin-top: 16px;">
-            <table>
-              <thead>
-                <tr>
-                  <th>Status</th>
-                  <th>Business</th>
-                  <th>Contact</th>
-                  <th>Location</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="partnersBody">
-                <tr><td colspan="5">No partner data loaded.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div id="users" class="tab-panel hidden">
-          <div class="form-grid">
-            <div>
-              <label>Search</label>
-              <input id="userSearch" placeholder="name, email, phone" />
-            </div>
-            <div>
-              <label>Role</label>
-              <select id="userRole">
-                <option>ALL</option>
-                <option>PARENT</option>
-                <option>NANNY</option>
-                <option>PARTNER</option>
-                <option>ADMIN</option>
-              </select>
-            </div>
-            <div>
-              <label>Status</label>
-              <select id="userStatus">
-                <option>ALL</option>
-                <option>ACTIVE</option>
-                <option>TRIAL</option>
-                <option>SUSPENDED</option>
-                <option>INACTIVE</option>
-              </select>
-            </div>
-            <div>
-              <label>Limit</label>
-              <input id="userLimit" type="number" value="10" min="1" />
-            </div>
-          </div>
-          <div class="actions">
-            <button type="button" class="secondary" id="getUsersBtn">Get Users</button>
-          </div>
-
-          <div style="overflow:auto; margin-top: 16px;">
-            <table>
-              <thead>
-                <tr>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Joined</th>
-                </tr>
-              </thead>
-              <tbody id="usersBody">
-                <tr><td colspan="5">No user data loaded.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <script>
-    const output = document.getElementById('output');
-    const tokenInput = document.getElementById('adminToken');
-    const storedToken = localStorage.getItem('adminPartnerApproval.token');
-    if (storedToken) tokenInput.value = storedToken;
-
-    function apiBase() {
-      return document.getElementById('baseUrl').value.replace(/\/$/, '');
-    }
-
-    function setOutput(label, data) {
-      output.textContent = `${label}\n\n${JSON.stringify(data, null, 2)}`;
-    }
-
-    function adminToken() {
-      const token = tokenInput.value.trim();
-      if (token) localStorage.setItem('adminPartnerApproval.token', token);
-      return token;
-    }
-
-    async function request(path, options = {}) {
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(options.headers || {}),
+    <script>
+      const TOKEN_KEY = 'adminPartnerOffer.token';
+      const ADMIN_TOKEN_KEY = 'adminPartnerOffer.reviewToken';
+      const BASE_KEY = 'adminPartnerOffer.apiBase';
+      const EMAIL_KEY = 'adminPartnerOffer.email';
+      const state = {
+        flow: 'IN_STORE',
+        step: 'choose',
+        locations: [
+          {
+            name: 'Dubai Mall',
+            address: 'Downtown Dubai, Level LG',
+            city: 'Dubai',
+            mapUrl: '',
+          },
+        ],
       };
 
-      const response = await fetch(`${apiBase()}${path}`, {
-        ...options,
-        headers,
-      });
+      const $ = (id) => document.getElementById(id);
+      const responseBox = $('responseBox');
 
-      const text = await response.text();
-      let data;
-      try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-
-      if (!response.ok) {
-        const error = new Error(data?.message || data?.error || response.statusText);
-        error.status = response.status;
-        error.response = data;
-        throw error;
+      function apiBase() {
+        return ($('apiBase').value.trim() || 'http://localhost:5000').replace(
+          /\/$/,
+          '',
+        );
       }
 
-      return data;
-    }
-
-    function authHeaders() {
-      const token = adminToken();
-      if (!token) throw new Error('Admin token is required. Login first or paste token.');
-      return { Authorization: `Bearer ${token}` };
-    }
-
-    function partnerRows(items) {
-      if (!items?.length) {
-        return '<tr><td colspan="5">No partners found.</td></tr>';
+      function token() {
+        return $('token').value.trim();
       }
 
-      return items.map((item) => `
-        <tr>
-          <td><span class="badge ${item.status || item.rawStatus}">${item.status || item.rawStatus}</span></td>
-          <td>
-            <strong>${escapeHtml(item.businessName || 'N/A')}</strong><br>
-            <span class="subtitle">${escapeHtml(item.businessCategory || 'N/A')}</span><br>
-            <span class="subtitle">${escapeHtml(item.id)}</span>
-          </td>
-          <td>
-            ${escapeHtml(item.contactPerson || 'N/A')}<br>
-            <span class="subtitle">${escapeHtml(item.email || item.contactEmail || 'N/A')}</span>
-          </td>
-          <td>${escapeHtml([item.city, item.country].filter(Boolean).join(', ') || 'N/A')}</td>
-          <td>
-            <div class="row-actions">
-              <button type="button" class="secondary" onclick="selectPartner('${item.id}')">Select</button>
-              <button type="button" onclick="approvePartner('${item.id}')">Approve</button>
-              <button type="button" class="danger" onclick="rejectPartner('${item.id}')">Reject</button>
-            </div>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    function userRows(items) {
-      if (!items?.length) {
-        return '<tr><td colspan="5">No users found.</td></tr>';
+      function headers(json = true) {
+        return {
+          ...(json ? { 'Content-Type': 'application/json' } : {}),
+          Authorization: `Bearer ${token()}`,
+        };
       }
 
-      return items.map((item) => `
-        <tr>
-          <td>${escapeHtml(item.rawRole || item.role || 'N/A')}</td>
-          <td><span class="badge ${item.rawStatus || item.status}">${escapeHtml(item.rawStatus || item.status || 'N/A')}</span></td>
-          <td>${escapeHtml(item.fullName || 'N/A')}</td>
-          <td>${escapeHtml(item.email || 'N/A')}</td>
-          <td>${escapeHtml(item.joined || '')}</td>
-        </tr>
-      `).join('');
-    }
+      function adminHeaders(json = true) {
+        const reviewToken = $('adminToken').value.trim() || token();
+        return {
+          ...(json ? { 'Content-Type': 'application/json' } : {}),
+          Authorization: `Bearer ${reviewToken}`,
+        };
+      }
 
-    function escapeHtml(value) {
-      return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-    }
+      function showResponse(label, data) {
+        responseBox.textContent = `${label}\n${JSON.stringify(data, null, 2)}`;
+      }
 
-    window.selectPartner = function(id) {
-      document.getElementById('partnerId').value = id;
-    };
-
-    window.approvePartner = async function(id) {
-      try {
-        const data = await request(`/admin/partners/${id}/approve`, {
-          method: 'PATCH',
-          headers: authHeaders(),
-          body: JSON.stringify({}),
+      async function downloadAuthed(path, filename) {
+        const res = await fetch(`${apiBase()}${path}`, {
+          headers: adminHeaders(false),
         });
-        setOutput('PATCH /admin/partners/:id/approve', data);
-        await loadPartners();
-      } catch (error) {
-        setOutput(`Approve failed (${error.status || 'error'})`, error.response || { message: error.message });
-      }
-    };
-
-    window.rejectPartner = async function(id) {
-      const reason = document.getElementById('rejectReason').value.trim();
-      if (!reason) {
-        setOutput('Reject skipped', { message: 'Reject reason is required.' });
-        return;
-      }
-
-      try {
-        const data = await request(`/admin/partners/${id}/reject`, {
-          method: 'PATCH',
-          headers: authHeaders(),
-          body: JSON.stringify({ reason }),
-        });
-        setOutput('PATCH /admin/partners/:id/reject', data);
-        await loadPartners();
-      } catch (error) {
-        setOutput(`Reject failed (${error.status || 'error'})`, error.response || { message: error.message });
-      }
-    };
-
-    async function loadPartners() {
-      const status = document.getElementById('partnerStatus').value;
-      const data = await request(`/admin/partners?status=${encodeURIComponent(status)}`, {
-        headers: authHeaders(),
-      });
-      const items = data?.data || [];
-      document.getElementById('partnersBody').innerHTML = partnerRows(items);
-      setOutput('GET /admin/partners', data);
-      if (items[0]?.id) selectPartner(items[0].id);
-    }
-
-    document.querySelectorAll('.tab').forEach((button) => {
-      button.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active'));
-        document.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.add('hidden'));
-        button.classList.add('active');
-        document.getElementById(button.dataset.tab).classList.remove('hidden');
-      });
-    });
-
-    document.getElementById('loginForm').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const payload = Object.fromEntries(new FormData(event.currentTarget).entries());
-      try {
-        const data = await request('/auth/login', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
-        const token = data?.data?.accessToken || data?.accessToken;
-        if (token) {
-          tokenInput.value = token;
-          localStorage.setItem('adminPartnerApproval.token', token);
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          throw new Error(json.message || 'Download failed');
         }
-        setOutput('POST /auth/login', data);
-      } catch (error) {
-        setOutput(`Login failed (${error.status || 'error'})`, error.response || { message: error.message });
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
       }
-    });
 
-    document.getElementById('meBtn').addEventListener('click', async () => {
-      try {
-        const data = await request('/auth/me', { headers: authHeaders() });
-        setOutput('GET /auth/me', data);
-      } catch (error) {
-        setOutput(`GET /auth/me failed (${error.status || 'error'})`, error.response || { message: error.message });
+      async function showPublishedOffer(offerId) {
+        if (!offerId || !token()) return;
+        try {
+          const data = await request(`/api/v1/partner/offers/${offerId}`, {
+            headers: adminHeaders(false),
+          });
+          const offer = data?.data;
+          if (!offer?.qrCodeDownloadUrl) return;
+          const qrRes = await fetch(`${apiBase()}${offer.qrCodeDownloadUrl}`, {
+            headers: adminHeaders(false),
+          });
+          const qrBlob = await qrRes.blob();
+          const qrUrl = URL.createObjectURL(qrBlob);
+          $('publishedTitle').textContent = offer.title || 'Offer';
+          $('publishedSub').textContent =
+            offer.productName || offer.category || 'Partner offer';
+          $('publishedQr').src = qrUrl;
+          $('publishedQrLabel').textContent = offer.qrShortCode || 'ALUREI-QR';
+          $('downloadQrBtn').onclick = () =>
+            downloadAuthed(
+              offer.qrCodeDownloadUrl,
+              `${offer.title || 'offer'}-qr-code.png`,
+            );
+          $('downloadPdfBtn').onclick = () =>
+            downloadAuthed(
+              offer.pdfKitDownloadUrl,
+              `${offer.title || 'offer'}-pdf-kit.pdf`,
+            );
+          $('publishedOverlay').classList.remove('hidden');
+        } catch (error) {
+          showResponse(
+            'Published offer open failed',
+            error.response || error.message,
+          );
+        }
       }
-    });
 
-    document.getElementById('saveTokenBtn').addEventListener('click', () => {
-      localStorage.setItem('adminPartnerApproval.token', tokenInput.value.trim());
-      setOutput('Token saved', { saved: Boolean(tokenInput.value.trim()) });
-    });
-
-    document.getElementById('clearTokenBtn').addEventListener('click', () => {
-      tokenInput.value = '';
-      localStorage.removeItem('adminPartnerApproval.token');
-      setOutput('Token cleared', {});
-    });
-
-    document.getElementById('listPartnersBtn').addEventListener('click', async () => {
-      try {
-        await loadPartners();
-      } catch (error) {
-        setOutput(`GET /admin/partners failed (${error.status || 'error'})`, error.response || { message: error.message });
+      function saveBasics() {
+        localStorage.setItem(BASE_KEY, apiBase());
+        localStorage.setItem(EMAIL_KEY, $('email').value.trim());
+        if (token()) {
+          localStorage.setItem(TOKEN_KEY, token());
+          localStorage.setItem('adminPartnerApproval.token', token());
+          $('authStatus').textContent = 'Token saved';
+          $('authStatus').classList.add('ok');
+        }
       }
-    });
 
-    document.getElementById('approveSelectedBtn').addEventListener('click', async () => {
-      const id = document.getElementById('partnerId').value.trim();
-      if (!id) return setOutput('Approve skipped', { message: 'Partner ID is required.' });
-      await window.approvePartner(id);
-    });
+      function saveAdminToken() {
+        const value = $('adminToken').value.trim();
+        if (value) localStorage.setItem(ADMIN_TOKEN_KEY, value);
+        showResponse('Admin token saved', { saved: Boolean(value) });
+      }
 
-    document.getElementById('rejectSelectedBtn').addEventListener('click', async () => {
-      const id = document.getElementById('partnerId').value.trim();
-      if (!id) return setOutput('Reject skipped', { message: 'Partner ID is required.' });
-      await window.rejectPartner(id);
-    });
+      async function request(path, options = {}) {
+        const res = await fetch(`${apiBase()}${path}`, options);
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const err = new Error(json.message || 'Request failed');
+          err.response = json;
+          throw err;
+        }
+        return json;
+      }
 
-    document.getElementById('getUsersBtn').addEventListener('click', async () => {
-      const params = new URLSearchParams({
-        page: '1',
-        limit: document.getElementById('userLimit').value || '10',
-      });
-      const search = document.getElementById('userSearch').value.trim();
-      const role = document.getElementById('userRole').value;
-      const status = document.getElementById('userStatus').value;
-      if (search) params.set('search', search);
-      if (role !== 'ALL') params.set('role', role);
-      if (status !== 'ALL') params.set('status', status);
+      async function login() {
+        try {
+          const data = await request('/api/v1/auth/signin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: $('email').value.trim(),
+              password: $('password').value,
+            }),
+          });
+          const accessToken = data?.data?.accessToken || data?.accessToken;
+          if (accessToken) {
+            $('token').value = accessToken;
+            saveBasics();
+          }
+          showResponse('Login success', data);
+        } catch (error) {
+          showResponse('Login failed', error.response || error.message);
+        }
+      }
 
-      try {
-        const data = await request(`/admin/users?${params.toString()}`, {
-          headers: authHeaders(),
+      function setFlow(flow) {
+        state.flow = flow;
+        $('headFlow').textContent =
+          flow === 'IN_STORE' ? 'In-store' : 'In-Alurei';
+        document.querySelectorAll('.choice').forEach((el) => {
+          const selected = el.dataset.flow === flow;
+          el.classList.toggle('selected', selected);
+          const h3 = el.querySelector('h3');
+          const old = h3.querySelector('.selected-badge');
+          if (old) old.remove();
+          if (selected)
+            h3.insertAdjacentHTML(
+              'beforeend',
+              ' <b class="selected-badge">Selected</b>',
+            );
         });
-        document.getElementById('usersBody').innerHTML = userRows(data?.items || data?.data?.items || []);
-        setOutput('GET /admin/users', data);
-      } catch (error) {
-        setOutput(`GET /admin/users failed (${error.status || 'error'})`, error.response || { message: error.message });
+        $('storeFlow').classList.toggle('active', flow === 'IN_STORE');
+        $('appFlow').classList.toggle('active', flow === 'IN_ALUREI');
       }
-    });
 
-    document.getElementById('clearOutputBtn').addEventListener('click', () => {
-      output.textContent = 'Ready.';
-    });
-  </script>
-</body>
+      function goBuilder() {
+        state.step = 'builder';
+        $('stepChoose').classList.add('hidden');
+        $('offerForm').classList.remove('hidden');
+        $('draftBtn').classList.remove('hidden');
+        $('nextBtn').textContent = 'Create offer';
+      }
+
+      function resetForm() {
+        state.step = 'choose';
+        $('stepChoose').classList.remove('hidden');
+        $('offerForm').classList.add('hidden');
+        $('draftBtn').classList.add('hidden');
+        $('nextBtn').textContent = 'Next';
+      }
+
+      function selectedPlans() {
+        return [...document.querySelectorAll('.plan-pill.active')].map(
+          (btn) => btn.dataset.plan,
+        );
+      }
+
+      function renderLocations() {
+        $('locationsList').innerHTML = state.locations
+          .map(
+            (loc, index) => `
+        <div class="location-card">
+          <div class="location-title">
+            <span>⌖ Location ${index + 1}</span>
+            <button class="btn ghost small" type="button" onclick="removeLocation(${index})" title="Remove">Delete</button>
+          </div>
+          <input value="${escapeHtml(loc.name || '')}" placeholder="SuperValu Ranelagh" oninput="state.locations[${index}].name=this.value" />
+          <input value="${escapeHtml(loc.address || '')}" placeholder="Ranelagh Village, Dublin 6" oninput="state.locations[${index}].address=this.value" />
+          <input value="${escapeHtml(loc.mapUrl || '')}" placeholder="Google Maps Link" oninput="state.locations[${index}].mapUrl=this.value" />
+        </div>
+      `,
+          )
+          .join('');
+      }
+
+      function removeLocation(index) {
+        state.locations.splice(index, 1);
+        renderLocations();
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(
+          /[&<>"']/g,
+          (ch) =>
+            ({
+              '&': '&amp;',
+              '<': '&lt;',
+              '>': '&gt;',
+              '"': '&quot;',
+              "'": '&#39;',
+            })[ch],
+        );
+      }
+
+      function payload(status) {
+        const productId = $('productId').value.trim();
+        return {
+          status,
+          partnerUserId: $('partnerUserId').value.trim(),
+          redemptionFlow: state.flow,
+          offerType: $('offerType').value,
+          title: $('title').value.trim(),
+          description: $('description').value.trim(),
+          heroImageUrl: $('heroImageUrl').value.trim() || undefined,
+          useDefaultHeroImage: $('useDefaultHeroImage').checked,
+          productId: productId || undefined,
+          productName: $('productSearch').value.trim() || undefined,
+          category: $('category').value || undefined,
+          minimumSpend: Number($('minimumSpend').value || 0),
+          deductionPercentage: Number($('deductionPercentage').value || 0),
+          requiredAlurei: Number($('requiredAlurei').value || 1),
+          eligiblePlans: selectedPlans(),
+          benefitTitle: $('benefitTitle').value.trim() || undefined,
+          benefitDescription: $('benefitDescription').value.trim() || undefined,
+          terms: $('terms').value.trim() || undefined,
+          availableAllOutlets: $('availableAllOutlets').checked,
+          recommendExternal: $('recommendExternal').checked,
+          startDate: $('startDate').value
+            ? `${$('startDate').value}T00:00:00.000Z`
+            : undefined,
+          endDate: $('endDate').value
+            ? `${$('endDate').value}T23:59:59.000Z`
+            : undefined,
+          locations: $('availableAllOutlets').checked
+            ? []
+            : state.locations.filter((loc) => loc.name?.trim()),
+        };
+      }
+
+      function offerFormData(status) {
+        const data = payload(status);
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+          if (value === undefined || value === null || value === '') return;
+          if (Array.isArray(value) || typeof value === 'object') {
+            formData.append(key, JSON.stringify(value));
+          } else {
+            formData.append(key, String(value));
+          }
+        });
+        const file = $('bannerFile').files?.[0];
+        if (file) formData.append('image', file);
+        return formData;
+      }
+
+      async function submitOffer(status) {
+        saveBasics();
+        if (!token()) {
+          showResponse('Missing token', {
+            message: 'Login or paste token first.',
+          });
+          return;
+        }
+        if (!$('partnerUserId').value.trim()) {
+          showResponse('Missing partner', {
+            message: 'Select a partner before creating the offer.',
+          });
+          return;
+        }
+        try {
+          const data = await request('/api/v1/admin/partners/admin-offers', {
+            method: 'POST',
+            headers: adminHeaders(false),
+            body: offerFormData(status),
+          });
+          showResponse(
+            status === 'DRAFT' ? 'Draft saved' : 'Offer created',
+            data,
+          );
+          if (data?.data?.qrCodeDownloadUrl) {
+            await showPublishedOffer(data.data.id);
+          }
+        } catch (error) {
+          showResponse('Offer request failed', error.response || error.message);
+        }
+      }
+
+      let partnerTimer = null;
+      let productTimer = null;
+      let locationTimer = null;
+
+      async function searchPartners() {
+        const term = $('partnerSearch').value.trim();
+        $('partnerUserId').value = '';
+        $('productId').value = '';
+        $('productSearch').value = '';
+        if (term.length < 1 || !token()) {
+          $('partnerSuggestions').classList.remove('show');
+          return;
+        }
+        try {
+          const data = await request(
+            `/api/v1/admin/partners/admin-offers/partners?search=${encodeURIComponent(term)}&limit=8`,
+            { headers: adminHeaders(false) },
+          );
+          const partners = data?.data || [];
+          $('partnerSuggestions').innerHTML = partners.length
+            ? partners
+                .map(
+                  (p) => `
+            <button class="suggestion" type="button" data-id="${p.id}" data-name="${escapeHtml(p.name || '')}" data-category="${escapeHtml(p.category || '')}">
+              <strong>${escapeHtml(p.name || 'Unnamed partner')}</strong>
+              <span>${escapeHtml([p.email, p.city].filter(Boolean).join(' · '))}</span>
+            </button>
+          `,
+                )
+                .join('')
+            : '<div class="suggestion"><strong>No partners found</strong><span></span></div>';
+          $('partnerSuggestions').classList.add('show');
+        } catch (error) {
+          $('partnerSuggestions').innerHTML =
+            '<div class="suggestion"><strong>Partner search failed</strong><span></span></div>';
+          $('partnerSuggestions').classList.add('show');
+        }
+      }
+
+      async function searchProducts() {
+        const term = $('productSearch').value.trim();
+        $('productId').value = '';
+        const partnerId = $('partnerUserId').value.trim();
+        if (term.length < 1 || !token() || !partnerId) {
+          $('productSuggestions').classList.remove('show');
+          return;
+        }
+        try {
+          const data = await request(
+            `/api/v1/admin/partners/admin-offers/partners/${partnerId}/products?search=${encodeURIComponent(term)}&limit=8`,
+            {
+              headers: adminHeaders(false),
+            },
+          );
+          const products = data?.data || [];
+          if (!products.length) {
+            $('productSuggestions').innerHTML =
+              '<div class="suggestion"><strong>No products found</strong><span></span></div>';
+          } else {
+            $('productSuggestions').innerHTML = products
+              .map(
+                (p) => `
+            <button class="suggestion" type="button" data-id="${p.id}" data-name="${escapeHtml(p.productName)}" data-category="${p.category}">
+              <strong>${escapeHtml(p.productName)}</strong>
+              <span>${p.category || ''}</span>
+            </button>
+          `,
+              )
+              .join('');
+          }
+          $('productSuggestions').classList.add('show');
+        } catch (error) {
+          $('productSuggestions').innerHTML =
+            '<div class="suggestion"><strong>Product search failed</strong><span></span></div>';
+          $('productSuggestions').classList.add('show');
+        }
+      }
+
+      async function searchLocations() {
+        const term = $('locationSearch').value.trim();
+        const partnerId = $('partnerUserId').value.trim();
+        if (term.length < 1 || !token() || !partnerId) {
+          $('locationSuggestions').classList.remove('show');
+          return;
+        }
+        try {
+          const data = await request(
+            `/api/v1/admin/partners/admin-offers/partners/${partnerId}/locations?search=${encodeURIComponent(term)}&limit=8`,
+            {
+              headers: adminHeaders(false),
+            },
+          );
+          const outlets = data?.data || [];
+          if (!outlets.length) {
+            $('locationSuggestions').innerHTML =
+              '<div class="suggestion"><strong>No outlets found</strong><span></span></div>';
+          } else {
+            $('locationSuggestions').innerHTML = outlets
+              .map(
+                (outlet) => `
+            <button class="suggestion" type="button"
+              data-id="${outlet.storeId}"
+              data-name="${escapeHtml(outlet.name || '')}"
+              data-address="${escapeHtml(outlet.address || '')}"
+              data-city="${escapeHtml(outlet.city || '')}"
+              data-map-url="${escapeHtml(outlet.mapUrl || '')}"
+              data-latitude="${outlet.latitude ?? ''}"
+              data-longitude="${outlet.longitude ?? ''}">
+              <strong>${escapeHtml(outlet.name || '')}</strong>
+              <span>${escapeHtml([outlet.address, outlet.city].filter(Boolean).join(', '))}</span>
+            </button>
+          `,
+              )
+              .join('');
+          }
+          $('locationSuggestions').classList.add('show');
+        } catch (error) {
+          $('locationSuggestions').innerHTML =
+            '<div class="suggestion"><strong>Outlet search failed</strong><span></span></div>';
+          $('locationSuggestions').classList.add('show');
+        }
+      }
+
+      function addOutletFromSuggestion(btn) {
+        const location = {
+          storeId: btn.dataset.id,
+          name: btn.dataset.name,
+          address: btn.dataset.address,
+          city: btn.dataset.city,
+          mapUrl: btn.dataset.mapUrl,
+          latitude: btn.dataset.latitude
+            ? Number(btn.dataset.latitude)
+            : undefined,
+          longitude: btn.dataset.longitude
+            ? Number(btn.dataset.longitude)
+            : undefined,
+        };
+        const emptyIndex = state.locations.findIndex(
+          (item) => !item.name?.trim(),
+        );
+        if (emptyIndex >= 0) state.locations[emptyIndex] = location;
+        else state.locations.push(location);
+        $('locationSearch').value = location.name;
+        $('locationSuggestions').classList.remove('show');
+        renderLocations();
+      }
+
+      async function loadPendingOffers() {
+        const tokenValue = $('adminToken').value.trim() || token();
+        if (!tokenValue) {
+          showResponse('Missing review token', {
+            message: 'Login first or paste review token.',
+          });
+          return;
+        }
+        try {
+          const data = await request(
+            '/api/v1/admin/partners/offers?status=PENDING_APPROVAL&limit=20',
+            {
+              headers: adminHeaders(false),
+            },
+          );
+          renderAdminOffers(data?.data || []);
+          showResponse('Pending offers loaded', data);
+        } catch (error) {
+          showResponse('Load pending failed', error.response || error.message);
+        }
+      }
+
+      function renderAdminOffers(offers) {
+        $('adminOffers').innerHTML = offers.length
+          ? offers
+              .map(
+                (offer) => `
+        <div class="offer-row">
+          <strong>${escapeHtml(offer.title || 'Untitled offer')}</strong>
+          <span>${escapeHtml(offer.partner?.fullName || offer.partnerUserId || '')} · ${escapeHtml(offer.displayStatus || offer.status || '')}</span>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn small" type="button" onclick="approveOffer('${offer.id}')">Approve</button>
+            <button class="btn secondary small" type="button" onclick="rejectOffer('${offer.id}')">Reject</button>
+          </div>
+        </div>
+      `,
+              )
+              .join('')
+          : '<div class="offer-row"><strong>No pending offers</strong><span></span></div>';
+      }
+
+      async function approveOffer(offerId) {
+        try {
+          const data = await request(
+            `/api/v1/admin/partners/offers/${offerId}/approve`,
+            {
+              method: 'PATCH',
+              headers: adminHeaders(false),
+            },
+          );
+          showResponse('Offer approved', data);
+          loadPendingOffers();
+        } catch (error) {
+          showResponse('Approve failed', error.response || error.message);
+        }
+      }
+
+      async function rejectOffer(offerId) {
+        const reason = window.prompt(
+          'Reject reason',
+          'Please update this offer and resubmit.',
+        );
+        if (reason === null) return;
+        try {
+          const data = await request(
+            `/api/v1/admin/partners/offers/${offerId}/reject`,
+            {
+              method: 'PATCH',
+              headers: adminHeaders(),
+              body: JSON.stringify({ reason }),
+            },
+          );
+          showResponse('Offer rejected', data);
+          loadPendingOffers();
+        } catch (error) {
+          showResponse('Reject failed', error.response || error.message);
+        }
+      }
+
+      document.addEventListener('click', (event) => {
+        if (!event.target.closest('.field')) {
+          $('partnerSuggestions').classList.remove('show');
+          $('productSuggestions').classList.remove('show');
+          $('locationSuggestions').classList.remove('show');
+        }
+      });
+
+      document.querySelectorAll('.choice').forEach((el) => {
+        el.addEventListener('click', () => setFlow(el.dataset.flow));
+      });
+
+      $('nextBtn').addEventListener('click', () => {
+        if (state.step === 'choose') goBuilder();
+        else submitOffer('ACTIVE');
+      });
+      $('draftBtn').addEventListener('click', () => submitOffer('DRAFT'));
+      $('cancelBtn').addEventListener('click', resetForm);
+      $('loginBtn').addEventListener('click', login);
+      $('saveTokenBtn').addEventListener('click', saveBasics);
+      $('saveAdminTokenBtn').addEventListener('click', saveAdminToken);
+      $('loadPendingBtn').addEventListener('click', loadPendingOffers);
+      $('addLocationBtn').addEventListener('click', () => {
+        state.locations.push({
+          name: $('locationSearch').value.trim() || '',
+          address: '',
+          city: '',
+          mapUrl: '',
+        });
+        $('locationSearch').value = '';
+        renderLocations();
+      });
+      document.querySelectorAll('.plan-pill').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (btn.dataset.plan === 'All Plans') {
+            const active = !btn.classList.contains('active');
+            document
+              .querySelectorAll('.plan-pill')
+              .forEach((item) => item.classList.toggle('active', active));
+          } else {
+            btn.classList.toggle('active');
+          }
+        });
+      });
+      $('partnerSearch').addEventListener('input', () => {
+        clearTimeout(partnerTimer);
+        partnerTimer = setTimeout(searchPartners, 220);
+      });
+      $('productSearch').addEventListener('input', () => {
+        clearTimeout(productTimer);
+        productTimer = setTimeout(searchProducts, 220);
+      });
+      $('locationSearch').addEventListener('input', () => {
+        clearTimeout(locationTimer);
+        locationTimer = setTimeout(searchLocations, 220);
+      });
+      $('partnerSuggestions').addEventListener('click', (event) => {
+        const btn = event.target.closest('.suggestion');
+        if (!btn || !btn.dataset.id) return;
+        $('partnerUserId').value = btn.dataset.id;
+        $('partnerSearch').value = btn.dataset.name;
+        if (btn.dataset.category) $('category').value = btn.dataset.category;
+        $('productId').value = '';
+        $('productSearch').value = '';
+        $('locationSearch').value = '';
+        state.locations = [];
+        renderLocations();
+        $('partnerSuggestions').classList.remove('show');
+      });
+      $('productSuggestions').addEventListener('click', (event) => {
+        const btn = event.target.closest('.suggestion');
+        if (!btn || !btn.dataset.id) return;
+        $('productId').value = btn.dataset.id;
+        $('productSearch').value = btn.dataset.name;
+        $('category').value = btn.dataset.category || '';
+        $('productSuggestions').classList.remove('show');
+      });
+      $('locationSuggestions').addEventListener('click', (event) => {
+        const btn = event.target.closest('.suggestion');
+        if (!btn || !btn.dataset.id) return;
+        addOutletFromSuggestion(btn);
+      });
+      $('closePublishedBtn').addEventListener('click', () => {
+        $('publishedOverlay').classList.add('hidden');
+      });
+
+      function init() {
+        $('apiBase').value =
+          localStorage.getItem(BASE_KEY) || 'http://localhost:5000';
+        $('email').value = localStorage.getItem(EMAIL_KEY) || 'a@e.com';
+        $('token').value =
+          localStorage.getItem(TOKEN_KEY) ||
+          localStorage.getItem('adminPartnerApproval.token') ||
+          '';
+        $('adminToken').value =
+          localStorage.getItem(ADMIN_TOKEN_KEY) ||
+          localStorage.getItem('adminPartnerApproval.token') ||
+          '';
+        if (token()) {
+          $('authStatus').textContent = 'Token saved';
+          $('authStatus').classList.add('ok');
+        }
+        renderLocations();
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('published') === '1' && params.get('offerId')) {
+          showPublishedOffer(params.get('offerId'));
+        }
+      }
+
+      init();
+    </script>
+  </body>
 </html>

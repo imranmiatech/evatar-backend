@@ -21,6 +21,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import {
   AdminOfferLocationDto,
   AdminOfferPartnerQueryDto,
+  AdminOfferPartnerProductQueryDto,
   CreateAdminPartnerOfferDto,
   UpdateAdminPartnerOfferDto,
 } from './dto/admin-offer.dto';
@@ -42,7 +43,7 @@ export class AdminOfferService {
     const partners = await this.prisma.user.findMany({
       where: {
         role: UserRole.PARTNER,
-        status: { not: UserStatus.DELETED },
+        status: UserStatus.ACTIVE,
         ...(search && {
           OR: [
             {
@@ -139,6 +140,60 @@ export class AdminOfferService {
         mapUrl: location.mapUrl,
         latitude: location.latitude,
         longitude: location.longitude,
+      })),
+    };
+  }
+
+  async getPartnerProducts(
+    partnerUserId: string,
+    query: AdminOfferPartnerProductQueryDto,
+  ) {
+    await this.assertPartner(partnerUserId);
+
+    const search = query.search?.trim();
+    const take = Math.min(Math.max(query.limit ?? 20, 1), 50);
+    const products = await this.prisma.partnerProduct.findMany({
+      where: {
+        partnerUserId,
+        status: 'PUBLISHED',
+        ...(query.category && { category: query.category }),
+        ...(search && {
+          OR: [
+            {
+              productName: {
+                contains: search,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            {
+              sku: {
+                contains: search,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            { tags: { has: search } },
+          ],
+        }),
+      },
+      orderBy: [{ productName: 'asc' }, { updatedAt: 'desc' }],
+      take,
+    });
+
+    return {
+      success: true,
+      message: 'Partner products fetched successfully.',
+      data: products.map((product) => ({
+        id: product.id,
+        productId: product.id,
+        name: product.productName,
+        productName: product.productName,
+        category: product.category,
+        sku: product.sku,
+        tags: product.tags,
+        price: Number(product.price),
+        unit: product.unit,
+        availability: product.availability,
+        status: product.status,
       })),
     };
   }
@@ -274,13 +329,13 @@ export class AdminOfferService {
       where: {
         id: partnerUserId,
         role: UserRole.PARTNER,
-        status: { not: UserStatus.DELETED },
+        status: UserStatus.ACTIVE,
       },
       select: { id: true },
     });
 
     if (!partner) {
-      throw new NotFoundException('Partner not found.');
+      throw new NotFoundException('Active partner not found.');
     }
   }
 
@@ -301,6 +356,16 @@ export class AdminOfferService {
     ) {
       throw new BadRequestException(
         'productId, productName, or category is required for product based offers.',
+      );
+    }
+
+    if (
+      dto.redemptionFlow === PartnerOfferRedemptionFlow.IN_STORE &&
+      !dto.availableAllOutlets &&
+      (!dto.locations || dto.locations.length === 0)
+    ) {
+      throw new BadRequestException(
+        'At least one location is required for in-store offers unless availableAllOutlets is true.',
       );
     }
 

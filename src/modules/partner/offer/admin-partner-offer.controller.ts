@@ -32,6 +32,7 @@ import {
 } from './dto/partner-offer.dto';
 import {
   AdminOfferPartnerQueryDto,
+  AdminOfferPartnerProductQueryDto,
   CreateAdminPartnerOfferDto,
   UpdateAdminPartnerOfferDto,
 } from './dto/admin-offer.dto';
@@ -109,10 +110,21 @@ export class AdminPartnerOfferController {
     summary: 'Get selected partner locations for admin offer create form',
   })
   @ApiParam({ name: 'partnerUserId', description: 'Partner user ID' })
-  getAdminOfferPartnerLocations(
-    @Param('partnerUserId') partnerUserId: string,
-  ) {
+  getAdminOfferPartnerLocations(@Param('partnerUserId') partnerUserId: string) {
     return this.adminOfferService.getPartnerLocations(partnerUserId);
+  }
+
+  @Get('admin-offers/partners/:partnerUserId/products')
+  @ApiTags('Admin Partner Offer')
+  @ApiOperation({
+    summary: 'Get selected partner products for admin offer create form',
+  })
+  @ApiParam({ name: 'partnerUserId', description: 'Partner user ID' })
+  getAdminOfferPartnerProducts(
+    @Param('partnerUserId') partnerUserId: string,
+    @Query() query: AdminOfferPartnerProductQueryDto,
+  ) {
+    return this.adminOfferService.getPartnerProducts(partnerUserId, query);
   }
 
   @Post('admin-offers')
