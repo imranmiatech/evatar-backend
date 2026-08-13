@@ -1,4 +1,8 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  ApiHideProperty,
+  ApiProperty,
+  ApiPropertyOptional,
+} from '@nestjs/swagger';
 import { Gender, HealthCondition, DayOfWeek } from '@prisma/client';
 import {
   IsArray,
@@ -9,7 +13,54 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+
+function parseJsonString(value: unknown) {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return value;
+  }
+}
+
+function parseMultipartArray(value: unknown) {
+  const parsed = parseJsonString(value);
+
+  if (parsed === undefined || Array.isArray(parsed)) {
+    return parsed;
+  }
+
+  if (typeof parsed === 'string') {
+    return [parsed];
+  }
+
+  return parsed;
+}
+
+function parseMultipartBoolean(value: unknown) {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  if (value === 'true') {
+    return true;
+  }
+
+  if (value === 'false') {
+    return false;
+  }
+
+  return value;
+}
 
 export class SchoolScheduleDto {
   @ApiProperty({
@@ -40,12 +91,41 @@ export class NapWindowDto {
   endTime: string;
 }
 
+function parseSchoolSchedule(value: unknown) {
+  const parsed = parseJsonString(value);
+
+  if (
+    parsed === undefined ||
+    parsed === null ||
+    typeof parsed !== 'object' ||
+    Array.isArray(parsed)
+  ) {
+    return parsed;
+  }
+
+  return Object.assign(new SchoolScheduleDto(), parsed);
+}
+
+function parseNapWindows(value: unknown) {
+  const parsed = parseMultipartArray(value);
+
+  if (!Array.isArray(parsed)) {
+    return parsed;
+  }
+
+  return parsed.map((nap) =>
+    nap && typeof nap === 'object'
+      ? Object.assign(new NapWindowDto(), nap)
+      : nap,
+  );
+}
+
 export class UpdateChildDto {
   @ApiPropertyOptional({
     type: 'string',
     format: 'binary',
     description:
-      'Optional child avatar image file. Use this field with multipart/form-data.',
+      'Optional child profile image file. Use this field with multipart/form-data.',
   })
   @IsOptional()
   profilePicture?: Express.Multer.File;
@@ -83,10 +163,7 @@ export class UpdateChildDto {
   @IsOptional()
   birthDate?: string;
 
-  @ApiPropertyOptional({
-    example: 'https://example.com/avatar.png',
-    description: "Child's avatar URL",
-  })
+  @ApiHideProperty()
   @IsString()
   @IsOptional()
   avatar?: string;
@@ -115,6 +192,7 @@ export class UpdateChildDto {
   })
   @IsArray()
   @IsEnum(HealthCondition, { each: true })
+  @Transform(({ value }) => parseMultipartArray(value))
   @IsOptional()
   healthConditions?: HealthCondition[];
 
@@ -123,6 +201,9 @@ export class UpdateChildDto {
     description: 'Flag indicating if the child has any food allergies',
   })
   @IsOptional()
+  @Transform(({ obj, key, value }) =>
+    parseMultipartBoolean(obj?.[key] ?? value),
+  )
   @IsBoolean()
   hasAllergy?: boolean;
 
@@ -156,6 +237,7 @@ export class UpdateChildDto {
 
   @ApiPropertyOptional({ type: SchoolScheduleDto })
   @ValidateNested()
+  @Transform(({ value }) => parseSchoolSchedule(value))
   @Type(() => SchoolScheduleDto)
   @IsOptional()
   schoolSchedule?: SchoolScheduleDto;
@@ -163,6 +245,7 @@ export class UpdateChildDto {
   @ApiPropertyOptional({ type: [NapWindowDto] })
   @IsArray()
   @ValidateNested({ each: true })
+  @Transform(({ value }) => parseNapWindows(value))
   @Type(() => NapWindowDto)
   @IsOptional()
   naps?: NapWindowDto[];

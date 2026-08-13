@@ -4,12 +4,17 @@ import {
   Get,
   Param,
   Patch,
+  Post,
+  UploadedFile,
+  UseInterceptors,
   UseGuards,
   Query,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -23,6 +28,11 @@ import {
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
+import { AdminOfferService } from './admin-offer/admin-offer.service';
+import {
+  AdminOfferPartnerQueryDto,
+  CreateAdminPartnerOfferDto,
+} from './admin-offer/dto/admin-offer.dto';
 import { AdminPartnerService } from './admin-partner.service';
 import { RejectPartnerDto } from './dto/reject-partner.dto';
 
@@ -32,7 +42,10 @@ import { RejectPartnerDto } from './dto/reject-partner.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 export class AdminPartnerController {
-  constructor(private readonly adminPartnerService: AdminPartnerService) {}
+  constructor(
+    private readonly adminPartnerService: AdminPartnerService,
+    private readonly adminOfferService: AdminOfferService,
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -112,6 +125,47 @@ export class AdminPartnerController {
   })
   async getAttentionRequired() {
     return this.adminPartnerService.getAttentionRequired();
+  }
+
+  @Get('admin-offers/partners')
+  @ApiTags('Admin Partner Offer')
+  @ApiOperation({
+    summary: 'Browse partners for admin offer create form',
+    description:
+      'Use this for the Partner select option. Admin can type/search and select one partnerUserId.',
+  })
+  getAdminOfferPartnerOptions(@Query() query: AdminOfferPartnerQueryDto) {
+    return this.adminOfferService.getPartnerOptions(query);
+  }
+
+  @Get('admin-offers/partners/:partnerUserId/locations')
+  @ApiTags('Admin Partner Offer')
+  @ApiOperation({
+    summary: 'Get selected partner locations for admin offer create form',
+  })
+  @ApiParam({ name: 'partnerUserId', description: 'Partner user ID' })
+  getAdminOfferPartnerLocations(
+    @Param('partnerUserId') partnerUserId: string,
+  ) {
+    return this.adminOfferService.getPartnerLocations(partnerUserId);
+  }
+
+  @Post('admin-offers')
+  @ApiTags('Admin Partner Offer')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiOperation({
+    summary: 'Admin creates an offer for a selected partner',
+    description:
+      'Creates a PartnerOffer for partnerUserId. ACTIVE offers are published immediately by admin.',
+  })
+  @ApiBody({ type: CreateAdminPartnerOfferDto })
+  createAdminOffer(
+    @CurrentUser() admin: CurrentUserPayload,
+    @Body() dto: CreateAdminPartnerOfferDto,
+    @UploadedFile() image?: Express.Multer.File,
+  ) {
+    return this.adminOfferService.createOffer(admin, dto, image);
   }
 
   @Get(':id')
