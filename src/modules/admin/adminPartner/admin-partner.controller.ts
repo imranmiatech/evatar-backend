@@ -55,6 +55,7 @@ export class AdminPartnerController {
   }
 
   @Get('overview')
+  @ApiTags('Admin Partner Overview')
   @ApiOperation({
     summary: 'Get admin partner dashboard cards',
     description:
@@ -69,6 +70,7 @@ export class AdminPartnerController {
   }
 
   @Get('overview/cards')
+  @ApiTags('Admin Partner Overview')
   @ApiOperation({
     summary: 'Get admin partner dashboard cards',
     description:
@@ -83,6 +85,7 @@ export class AdminPartnerController {
   }
 
   @Get('overview/categories')
+  @ApiTags('Admin Partner Overview')
   @ApiOperation({
     summary: 'Get admin partners by category',
     description:
@@ -97,6 +100,7 @@ export class AdminPartnerController {
   }
 
   @Get('overview/attention')
+  @ApiTags('Admin Partner Overview')
   @ApiOperation({
     summary: 'Get admin partner attention required items',
     description:

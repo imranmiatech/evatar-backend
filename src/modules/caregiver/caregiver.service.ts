@@ -740,21 +740,20 @@ export class CaregiverService {
     const accountOwner = ownerUser
       ? {
           id: ownerUser.id,
-          fullName: ownerUser.fullName,
-          email: ownerUser.email,
+          name: ownerUser.fullName,
           image: ownerUser.profilePictureUrl,
           childIds: children.map((child) => child.id),
           childNames: children.map((child) => child.name),
-          isOwner: true,
         }
       : null;
-    const caregivers = accesses.map((access) => this.formatAccess(access));
+    const caregivers = accesses.map((access) =>
+      this.formatManageCaregiver(access),
+    );
 
     return {
       success: true,
       data: {
         accountOwner,
-        caregivers,
         sections: this.caregiverSections(accountOwner, caregivers),
       },
     };
@@ -1309,6 +1308,23 @@ export class CaregiverService {
       expiresAt: access.expiresAt,
       createdAt: access.createdAt,
       updatedAt: access.updatedAt,
+    };
+  }
+
+  private formatManageCaregiver(
+    access: Prisma.CaregiverAccessGetPayload<{ include: typeof accessInclude }>,
+  ) {
+    return {
+      accessId: access.id,
+      role: access.role,
+      relationship: access.relationship,
+      name:
+        access.invitedUser?.fullName ??
+        access.invitedName ??
+        access.invitedEmail ??
+        access.invitedPhone,
+      image: access.invitedUser?.profilePictureUrl ?? null,
+      status: access.status,
     };
   }
 
