@@ -1,6 +1,13 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ActivityLocation, ActivityType, RecipeMealType } from '@prisma/client';
-import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class LibraryQueryDto {
@@ -14,7 +21,8 @@ export class LibraryQueryDto {
 
   @ApiPropertyOptional({
     enum: RecipeMealType,
-    description: 'Filter recipes by meal type (Breakfast, Lunch, Dinner, Snack, Family)',
+    description:
+      'Filter recipes by meal type (Breakfast, Lunch, Dinner, Snack, Family)',
     example: RecipeMealType.BREAKFAST,
   })
   @IsEnum(RecipeMealType)
@@ -75,10 +83,23 @@ export class LibraryQueryDto {
   @IsOptional()
   page?: number = 1;
 
-  @ApiPropertyOptional({ description: 'Items per page (default: 20)', example: 20 })
+  @ApiPropertyOptional({
+    description: 'Items per page (default: 20)',
+    example: 20,
+  })
   @IsInt()
   @Min(1)
   @Type(() => Number)
   @IsOptional()
   limit?: number = 20;
+}
+
+export class ActivitySuggestionQueryDto {
+  @ApiProperty({
+    description: 'Child ID used to suggest age-appropriate activities',
+    example: 'clxxx...',
+  })
+  @IsString()
+  @IsNotEmpty()
+  childId: string;
 }

@@ -15,7 +15,10 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { LibraryService } from '../services/library.service';
-import { LibraryQueryDto } from '../dto/library-query.dto';
+import {
+  ActivitySuggestionQueryDto,
+  LibraryQueryDto,
+} from '../dto/library-query.dto';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
@@ -56,6 +59,23 @@ export class LibraryController {
   })
   async getActivities(@Query() query: LibraryQueryDto) {
     return this.libraryService.getActivities(query);
+  }
+
+  @Get('activities/suggest')
+  @ApiOperation({
+    summary: 'Get age-based suggested activity names',
+    description:
+      'Returns activity suggestions for a child based on the child birthDate/age group. Requires childId query param.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Activity suggestions returned successfully.',
+  })
+  async getActivitySuggestions(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query() query: ActivitySuggestionQueryDto,
+  ) {
+    return this.libraryService.getActivitySuggestions(user, query);
   }
 
   @Get('recipes')

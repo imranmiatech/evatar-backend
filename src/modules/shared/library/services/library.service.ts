@@ -1,7 +1,19 @@
-import { Injectable } from '@nestjs/common';
-import { KitchenInventoryItemStatus } from '@prisma/client';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  CaregiverAccessStatus,
+  KitchenInventoryItemStatus,
+  UserRole,
+} from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { LibraryQueryDto } from '../dto/library-query.dto';
+import {
+  ActivitySuggestionQueryDto,
+  LibraryQueryDto,
+} from '../dto/library-query.dto';
 import { resolveAgeGroupRange } from '../../../../common/helpers/age-group.helper';
 import type { CurrentUserPayload } from '../../../../common/decorators/current-user.decorator';
 import { KitchenAccessService } from '../../../parent/kitchen/services/kitchen-access.service';
@@ -216,6 +228,66 @@ export class LibraryService {
           limit,
           totalPages: Math.ceil(activityCount / limit),
         },
+      },
+    };
+  }
+
+  async getActivitySuggestions(
+    user: CurrentUserPayload,
+    query: ActivitySuggestionQueryDto,
+  ) {
+    if (!query.childId?.trim()) {
+      throw new BadRequestException('childId query parameter is required');
+    }
+
+    const child = await this.getAccessibleChildForLibrary(user, query.childId);
+    const limit = 20;
+    const ageMonths = child.birthDate
+      ? this.childAgeMonths(child.birthDate)
+      : null;
+    const ageGroup =
+      ageMonths !== null ? this.ageGroupForMonths(ageMonths) : null;
+
+    const activityWhere = {
+      isActive: true,
+      ...(ageMonths !== null && {
+        minAgeMonths: { lte: ageMonths },
+        maxAgeMonths: { gte: ageMonths },
+      }),
+    };
+
+    const [activities, total] = await Promise.all([
+      this.prisma.activity.findMany({
+        where: activityWhere,
+        select: this.activityCardSelect(),
+        orderBy: { title: 'asc' },
+        take: limit,
+      }),
+      this.prisma.activity.count({ where: activityWhere }),
+    ]);
+
+    return {
+      message: 'Activity suggestions fetched successfully',
+      data: {
+        child: {
+          id: child.id,
+          name: child.name,
+          birthDate: child.birthDate,
+          ageMonths,
+          ageGroup,
+        },
+        activities: activities.map((activity) =>
+          this.formatActivityCard(activity),
+        ),
+      },
+      meta: {
+        total,
+        limit,
+        ageMatched: ageMonths !== null,
+        warning:
+          ageMonths === null
+            ? 'Child birthDate is missing, so suggestions are not filtered by age.'
+            : undefined,
       },
     };
   }
@@ -464,6 +536,79 @@ export class LibraryService {
     const years = months / 12;
     const rounded = Math.round(years * 2) / 2;
     return `${rounded} year${rounded !== 1 ? 's' : ''}`;
+  }
+
+  private childAgeMonths(birthDate: Date) {
+    const today = new Date();
+    let ageMonths =
+      (today.getUTCFullYear() - birthDate.getUTCFullYear()) * 12 +
+      (today.getUTCMonth() - birthDate.getUTCMonth());
+
+    if (today.getUTCDate() < birthDate.getUTCDate()) {
+      ageMonths -= 1;
+    }
+
+    return Math.max(ageMonths, 0);
+  }
+
+  private ageGroupForMonths(ageMonths: number) {
+    if (ageMonths <= 12) {
+      return { key: 'BABIES', label: 'Babies', range: '0-12m' };
+    }
+
+    if (ageMonths <= 24) {
+      return { key: 'TODDLERS', label: 'Toddlers', range: '13-24m' };
+    }
+
+    if (ageMonths <= 60) {
+      return { key: 'PRESCHOOLERS', label: 'Preschoolers', range: '2-5y' };
+    }
+
+    return { key: 'CHILDREN', label: 'Children', range: '5y+' };
+  }
+
+  private async getAccessibleChildForLibrary(
+    user: CurrentUserPayload,
+    childId: string,
+  ) {
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      select: { id: true, name: true, birthDate: true, parentUserId: true },
+    });
+
+    if (!child) {
+      throw new NotFoundException('Child not found');
+    }
+
+    if (user.role === UserRole.ADMIN || child.parentUserId === user.userId) {
+      return child;
+    }
+
+    if (user.role !== UserRole.NANNY) {
+      throw new ForbiddenException('You do not have access to this child');
+    }
+
+    const [caregiverAccess, nannyLink] = await Promise.all([
+      this.prisma.caregiverAccess.findFirst({
+        where: {
+          childId,
+          invitedUserId: user.userId,
+          status: CaregiverAccessStatus.ACCEPTED,
+          dailyActivitiesRecipes: true,
+        },
+        select: { id: true },
+      }),
+      this.prisma.nannyChildLink.findFirst({
+        where: { childId, nannyUserId: user.userId },
+        select: { id: true },
+      }),
+    ]);
+
+    if (!caregiverAccess && !nannyLink) {
+      throw new ForbiddenException('You do not have access to this child');
+    }
+
+    return child;
   }
 
   private activityAgeWhere(query: LibraryQueryDto) {
