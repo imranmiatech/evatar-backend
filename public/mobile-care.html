@@ -187,6 +187,77 @@
     .modal-box h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
     .modal-box p { font-size: 13px; color: var(--m); margin-bottom: 18px; }
     .err-msg { font-size: 12px; color: var(--r); margin-bottom: 8px; display: none; }
+
+    /* SCREENSHOT-MATCHED CARE HUB PREVIEW */
+    body { background: #4A4A4A; padding: 12px; gap: 12px; }
+    .topbar { max-width: 1020px; border-radius: 12px; padding: 10px 14px; }
+    .layout { max-width: 1020px; gap: 18px; justify-content: center; }
+    .phone { width: 292px; height: 640px; border: 0; border-radius: 22px; background: #F7F8F8; box-shadow: 0 18px 42px rgba(0,0,0,.28); }
+    .ph-statusbar { padding: 10px 18px 2px; font-size: 10px; background: #F7F8F8; }
+    .ph-header { background: #F7F8F8; padding: 7px 13px 9px; border-bottom: 0; }
+    .ph-user-bar { margin-bottom: 10px; }
+    .ph-avatar { width: 28px; height: 28px; border: 1px solid #DCE7E7; }
+    .ph-greeting { font-size: 7px; color: #667878; line-height: 1; }
+    .ph-username { font-size: 9px; color: #1C3033; line-height: 1.2; }
+    .ph-header-actions { gap: 7px; }
+    .ph-icon-btn { width: 26px; height: 26px; border-radius: 7px; background: #E6F2F2; color: var(--p); font-size: 12px; border: 1px solid #C7E1E2; }
+    .ph-icon-btn .dot { top: -4px; right: -4px; width: 14px; height: 14px; background: #E7F8F8; color: var(--p); border: 1px solid #82BFC3; font-size: 7px; display: grid; place-items: center; }
+    .ph-icon-btn .dot::after { content: attr(data-count); }
+    .child-selector { gap: 10px; margin-bottom: 11px; }
+    .child-pill { flex-direction: column; gap: 4px; padding: 0; background: transparent; border: 0; border-radius: 0; }
+    .child-pill img { width: 32px; height: 32px; border: 2px solid #B4D8D8; box-shadow: 0 2px 6px rgba(0,0,0,.12); }
+    .child-pill.active img { border-color: var(--p); }
+    .child-pill span { font-size: 9px; color: #204044; }
+    .seg-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 0; background: #DCE6E7; border-radius: 13px; padding: 0; overflow: hidden; }
+    .seg-tab { text-align: center; font-size: 9px; padding: 8px 4px; border-radius: 0; color: #1F3A3E; }
+    .seg-tab.active { border-radius: 13px; background: var(--p); color: #fff; }
+    .ph-body { background: #F7F8F8; padding-bottom: 58px; }
+    .screen { background: #F7F8F8; padding-bottom: 58px; }
+    .care-intro { background: #F7F8F8; padding: 13px 13px 5px; }
+    .care-intro-title { font-size: 13px; color: #14383D; margin-bottom: 3px; }
+    .care-intro-sub { max-width: 220px; font-size: 8px; line-height: 1.35; color: #657C80; }
+    .module-tabs { gap: 13px; padding: 9px 13px 5px; background: #F7F8F8; }
+    .module-tab { font-size: 8px; color: #42585C; padding-bottom: 4px; border-bottom-width: 1px; }
+    .module-tab.active { color: var(--p); border-bottom-color: transparent; }
+    .search-row { padding: 7px 13px 0; background: #F7F8F8; }
+    .search-row input { height: 28px; border-radius: 8px; background: #fff; font-size: 8px; padding: 0 10px; }
+    .filter-btn { width: 28px; height: 28px; border-radius: 8px; font-size: 14px; }
+    .cat-scroll { background: #F7F8F8; border-bottom: 0; padding: 8px 13px 6px; gap: 6px; flex-wrap: wrap; overflow: visible; }
+    .cat-pill { font-size: 7px; padding: 5px 9px; border-radius: 7px; background: #fff; color: var(--p); border: 1px solid #D7E7E8; }
+    .cat-pill.active { background: var(--p); color: #fff; border-color: var(--p); }
+    .module-list-container { padding: 8px 13px 10px; gap: 8px; }
+    #module-section-title { display: none; }
+    .section-header { font-size: 11px; font-weight: 800; color: #134047; margin: 4px 0 1px; }
+    .mod-card { border-radius: 9px; padding: 7px; gap: 8px; align-items: stretch; border: 1px solid #D6E4E6; box-shadow: none; }
+    .mod-img { width: 54px; height: 54px; border-radius: 7px; }
+    .mod-content { display: flex; flex-direction: column; }
+    .mod-title { font-size: 9px; line-height: 1.2; margin-bottom: 2px; color: #18383D; }
+    .mod-meta { font-size: 7px; gap: 3px; margin-bottom: 5px; color: #51696D; }
+    .mod-badge { width: fit-content; border-radius: 7px; padding: 4px 7px; font-size: 7px; background: #DBF8F1; color: var(--p); }
+    .mod-badge.pending { background: #FFF2D2; color: #D28803; }
+    .mod-actions { margin-top: auto; gap: 6px; align-items: center; }
+    .btn-xs { min-height: 20px; padding: 4px 8px; border-radius: 9px; font-size: 6.5px; white-space: nowrap; }
+    .btn-xs-p { background: var(--p); }
+    .btn-xs-o { background: #fff; color: var(--p); border-color: var(--p); }
+    .save-mini { margin-left: auto; width: 18px; height: 18px; display: grid; place-items: center; color: var(--p); border: 1px solid #BFDADB; border-radius: 5px; font-size: 10px; background: #fff; }
+    .mobile-bottom-nav { position: absolute; left: 0; right: 0; bottom: 0; height: 54px; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; background: #fff; border-top: 1px solid #E1EAEB; z-index: 70; }
+    .nav-item { display: grid; place-items: center; gap: 2px; font-size: 7px; color: #40595E; font-weight: 700; }
+    .nav-item .nav-ico { font-size: 14px; line-height: 1; }
+    .nav-item.active { color: var(--p); }
+    .nav-item.active .nav-ico { width: 30px; height: 30px; border-radius: 11px; display: grid; place-items: center; background: #E1F3F3; }
+    .care-preview-phone .care-intro { display: none; }
+    .care-preview-phone .search-row,
+    .care-preview-phone .cat-scroll { display: none; }
+    .care-preview-phone .module-list-container { padding-top: 9px; }
+    .care-preview-phone .mod-card { min-height: 82px; padding: 8px; }
+    .care-preview-phone .mod-img { width: 64px; height: 64px; }
+    .care-preview-phone .mod-title { font-size: 10px; }
+    .care-preview-phone .mod-meta { font-size: 8px; }
+    .rp { max-width: 360px; }
+    @media (max-width: 980px) {
+      .layout { align-items: center; }
+      .rp { max-width: 620px; }
+    }
   </style>
 </head>
 <body>
@@ -370,6 +441,104 @@
         </div>
 
       </div>
+      <div class="mobile-bottom-nav">
+        <div class="nav-item"><div class="nav-ico">◴</div><div>Today</div></div>
+        <div class="nav-item"><div class="nav-ico">✖</div><div>Kitchen</div></div>
+        <div class="nav-item"><div class="nav-ico">≋</div><div>Activities</div></div>
+        <div class="nav-item active"><div class="nav-ico">♡</div><div>Care</div></div>
+        <div class="nav-item"><div class="nav-ico">⌂</div><div>Home</div></div>
+      </div>
+    </div>
+
+    <!-- SECOND PAGE PREVIEW: IN PROGRESS STATE -->
+    <div class="phone care-preview-phone" aria-label="Caregiving Hub in progress preview">
+      <div class="ph-statusbar">
+        <span>9:41</span>
+        <span>◔ ▰</span>
+      </div>
+      <div class="ph-header">
+        <div class="ph-user-bar">
+          <div class="ph-user-info">
+            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200" class="ph-avatar" alt="Monica"/>
+            <div>
+              <div class="ph-greeting">Good Morning</div>
+              <div class="ph-username">Monica Steve</div>
+            </div>
+          </div>
+          <div class="ph-header-actions">
+            <button class="ph-icon-btn">▣</button>
+            <button class="ph-icon-btn">♧<span class="dot" data-count="11"></span></button>
+            <button class="ph-icon-btn">○<span class="dot" data-count="10"></span></button>
+          </div>
+        </div>
+        <div class="child-selector">
+          <div class="child-pill active">
+            <img src="https://images.unsplash.com/photo-1519689680058-324335c77eba?q=80&w=200" alt="Eve"/>
+            <span>Eve</span>
+          </div>
+          <div class="child-pill">
+            <img src="https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?q=80&w=200" alt="Rose"/>
+            <span>Rose</span>
+          </div>
+        </div>
+        <div class="seg-tabs">
+          <div class="seg-tab active">Caregiving Hub</div>
+          <div class="seg-tab">Insights</div>
+          <div class="seg-tab">For you</div>
+        </div>
+      </div>
+      <div class="ph-body">
+        <div class="screen">
+          <div class="module-tabs">
+            <div class="module-tab">All Modules (14)</div>
+            <div class="module-tab active">In progress (14)</div>
+            <div class="module-tab">Completed (14)</div>
+          </div>
+          <div class="module-list-container">
+            <div style="display:flex;flex-direction:column;gap:9px;">
+              <div class="mod-card">
+                <img class="mod-img" src="https://images.unsplash.com/photo-1604881991720-f91add269bed?q=80&w=500" alt="module"/>
+                <div class="mod-content">
+                  <div class="mod-title">Handling child's behavior</div>
+                  <div class="mod-meta">2h 10 • 15 Coins</div>
+                  <span class="mod-badge">3 of 5 answers were correct.</span>
+                </div>
+              </div>
+              <div class="mod-card">
+                <img class="mod-img" src="https://images.unsplash.com/photo-1546015720-b8b30df5aa27?q=80&w=500" alt="module"/>
+                <div class="mod-content">
+                  <div class="mod-title">How to feed a baby</div>
+                  <div class="mod-meta">1h 53 mins</div>
+                  <span class="mod-badge">3 of 5 answers were correct.</span>
+                </div>
+              </div>
+              <div class="mod-card">
+                <img class="mod-img" src="https://images.unsplash.com/photo-1604881991720-f91add269bed?q=80&w=500" alt="module"/>
+                <div class="mod-content">
+                  <div class="mod-title">Handling child's behavior</div>
+                  <div class="mod-meta">2h 10 • 15 Coins</div>
+                  <span class="mod-badge pending">Pending</span>
+                </div>
+              </div>
+              <div class="mod-card">
+                <img class="mod-img" src="https://images.unsplash.com/photo-1516627145497-ae6968895b74?q=80&w=500" alt="module"/>
+                <div class="mod-content">
+                  <div class="mod-title">Handling child's behavior</div>
+                  <div class="mod-meta">2h 10 • 15 Coins</div>
+                  <span class="mod-badge pending">Pending</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mobile-bottom-nav">
+        <div class="nav-item"><div class="nav-ico">◴</div><div>Today</div></div>
+        <div class="nav-item"><div class="nav-ico">✖</div><div>Kitchen</div></div>
+        <div class="nav-item"><div class="nav-ico">≋</div><div>Activities</div></div>
+        <div class="nav-item active"><div class="nav-ico">♡</div><div>Care</div></div>
+        <div class="nav-item"><div class="nav-ico">⌂</div><div>Home</div></div>
+      </div>
     </div>
 
     <!-- RIGHT DEVELOPER / API TESTER PANEL -->
@@ -507,8 +676,8 @@
 
         if (res.ok && json.data) {
           const home = json.data;
-          currentModules = home.caregivingHub?.modules || [];
-          selectedChildId = home.caregivingHub?.selectedChildId || selectedChildId;
+          currentModules = home.caregivingHub?.modules || home.modules || [];
+          selectedChildId = home.caregivingHub?.selectedChildId || home.selectedChildId || selectedChildId;
           selectedNannyUserId = currentModules.find(mod => mod.assignment?.nannyUserId)?.assignment?.nannyUserId || selectedNannyUserId;
           renderCareHome(home);
           log(`Loaded ${currentModules.length} modules from database`);
@@ -538,7 +707,7 @@
     function renderCareHome(home) {
       renderUser(home.user);
       renderChildren(home.children || []);
-      renderHub(home.caregivingHub || {});
+      renderHub(home.caregivingHub || home || {});
       renderModuleCards(currentModules);
     }
 
@@ -558,7 +727,8 @@
 
       children.forEach(child => {
         const pill = document.createElement('div');
-        pill.className = `child-pill ${child.isActive ? 'active' : ''}`;
+        const isActive = child.isActive || child.id === selectedChildId;
+        pill.className = `child-pill ${isActive ? 'active' : ''}`;
         pill.onclick = () => {
           selectedChildId = child.id;
           loadModules();
@@ -619,36 +789,81 @@
       container.innerHTML = '';
 
       if (!modules || modules.length === 0) {
-        container.innerHTML = `<div style="padding:20px;text-align:center;font-size:12px;color:#94A3B8;">No modules found. Please seed the database.</div>`;
+        container.innerHTML = `<div style="padding:20px;text-align:center;font-size:10px;color:#6B8084;">No modules found. Please seed the database.</div>`;
+        return;
+      }
+
+      const shouldGroup = activeTab === 'ALL';
+      if (shouldGroup) {
+        const childName = document.querySelector('.child-pill.active span')?.innerText || 'Eve';
+        container.appendChild(sectionTitle(`Suggested for ${childName}`));
+        modules.slice(0, 4).forEach((mod, idx) => {
+          container.appendChild(createModuleCard(mod, idx, true));
+        });
+        container.appendChild(sectionTitle('All Modules'));
+        modules.slice(4).forEach((mod, idx) => {
+          container.appendChild(createModuleCard(mod, idx + 4, false));
+        });
+        if (modules.length <= 4) {
+          modules.forEach((mod, idx) => {
+            container.appendChild(createModuleCard(mod, idx, false));
+          });
+        }
         return;
       }
 
       modules.forEach((mod, idx) => {
+        container.appendChild(createModuleCard(mod, idx, false));
+      });
+    }
+
+    function sectionTitle(text) {
+      const title = document.createElement('div');
+      title.className = 'section-header';
+      title.innerText = text;
+      return title;
+    }
+
+    function createModuleCard(mod, idx, withAssign) {
         const card = document.createElement('div');
         card.className = 'mod-card';
         card.onclick = () => openModuleDetail(mod);
 
-        const imgUrl = mod.coverImageUrl || 'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?q=80&w=1200';
-        const mins = mod.estimatedMinutes ? `${Math.floor(mod.estimatedMinutes / 60)}h ${mod.estimatedMinutes % 60}m` : '1h 53m';
+        const imgUrl = mod.coverImageUrl || (idx % 2
+          ? 'https://images.unsplash.com/photo-1546015720-b8b30df5aa27?q=80&w=500'
+          : 'https://images.unsplash.com/photo-1604881991720-f91add269bed?q=80&w=500');
+        const mins = formatMinutes(mod.estimatedMinutes);
         const coins = mod.coinReward || 15;
         const progressTag = moduleProgressText(mod, idx);
         const saveLabel = mod.isSaved ? 'Saved' : 'Save';
+        const badgeClass = progressTag === 'Pending' ? 'mod-badge pending' : 'mod-badge';
 
         card.innerHTML = `
           <img src="${imgUrl}" class="mod-img" alt="module"/>
           <div class="mod-content">
-            <div class="mod-title">${mod.title}</div>
-            <div class="mod-meta">⏱ ${mins} • 🪙 ${coins} Coins</div>
-            <span class="mod-badge">${progressTag}</span>
+            <div style="display:flex;gap:6px;align-items:flex-start;">
+              <div style="min-width:0;flex:1;">
+                <div class="mod-title">${escapeHtml(mod.title)}</div>
+                <div class="mod-meta">${mins}${coins ? ` • ${coins} Coins` : ''}</div>
+              </div>
+              <button class="save-mini" onclick="event.stopPropagation(); toggleSaveModule('${mod.id}', ${Boolean(mod.isSaved)})" title="${saveLabel}">${mod.isSaved ? '♥' : '♡'}</button>
+            </div>
+            <span class="${badgeClass}">${escapeHtml(progressTag)}</span>
             <div class="mod-actions">
-              <button class="btn-xs btn-xs-p" onclick="event.stopPropagation(); openModuleDetailById('${mod.id}')">Visit module</button>
-              <button class="btn-xs btn-xs-o" onclick="event.stopPropagation(); toggleSaveModule('${mod.id}', ${Boolean(mod.isSaved)})">${saveLabel}</button>
-              <button class="btn-xs btn-xs-o" onclick="event.stopPropagation(); assignModule('${mod.id}')">Assign Module</button>
+              ${withAssign ? `<button class="btn-xs btn-xs-p" onclick="event.stopPropagation(); assignModule('${mod.id}')">Assign Module</button>` : `<button class="btn-xs btn-xs-p" onclick="event.stopPropagation(); openModuleDetailById('${mod.id}')">+ Add to Week</button>`}
+              <button class="btn-xs btn-xs-o" onclick="event.stopPropagation(); openModuleDetailById('${mod.id}')">Visit module</button>
             </div>
           </div>
         `;
-        container.appendChild(card);
-      });
+        return card;
+    }
+
+    function formatMinutes(value) {
+      if (!value) return '1h 53 mins';
+      if (value < 60) return `${value} mins`;
+      const hours = Math.floor(value / 60);
+      const mins = value % 60;
+      return `${hours}h ${mins ? `${mins} mins` : ''}`.trim();
     }
 
     function moduleProgressText(mod, idx) {
@@ -656,7 +871,8 @@
         return `${mod.assignment.correctAnswers} of ${mod.assignment.totalQuestions} answers were correct.`;
       }
       if (mod.assignment?.status === 'COMPLETED') return 'Completed';
-      return 'In progress';
+      if (mod.assignment?.status === 'ASSIGNED' || mod.assignment?.status === 'IN_PROGRESS') return 'Pending';
+      return idx % 3 === 0 ? 'Pending' : '3 of 5 answers were correct.';
     }
 
     async function toggleSaveModule(moduleId, isSaved) {
@@ -669,7 +885,11 @@
       try {
         const res = await fetch(getApiUrl(`/api/v1/care/modules/${moduleId}/save`), {
           method: isSaved ? 'DELETE' : 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ childId: selectedChildId })
         });
         const json = await res.json();
         log(`Save response: ${JSON.stringify(json.message || json)}`);

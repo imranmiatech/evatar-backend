@@ -525,14 +525,14 @@ export class CareService {
       throw new BadRequestException('Invalid topicId');
     }
 
-    const homeQuery = {
+    const baseQuery = {
       ...baseHomeQuery,
       ...(selectedTopicId && {
         category: selectedTopicId as CareModuleCategory,
       }),
     };
 
-    const [account, moduleResponse] = await Promise.all([
+    const [account, careChildren] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -543,12 +543,50 @@ export class CareService {
           role: true,
         },
       }),
-      this.getModules(user, homeQuery),
+      this.getMyCareChildren(user),
     ]);
 
     if (!account) {
       throw new NotFoundException('User not found');
     }
+
+    const children = careChildren.data;
+    const selectedChildId = baseQuery.childId ?? children[0]?.id ?? null;
+    const homeQuery = {
+      ...baseQuery,
+      ...(selectedChildId && { childId: selectedChildId }),
+    };
+    const [moduleResponse, tabCounts] = await Promise.all([
+      this.getModules(user, homeQuery),
+      this.careHomeTabCounts(user, homeQuery),
+    ]);
+    const tabs = [
+      {
+        id: CareModuleTab.ALL,
+        key: CareModuleTab.ALL,
+        label: 'All Modules',
+        count: tabCounts.all,
+      },
+      {
+        id: CareModuleTab.IN_PROGRESS,
+        key: CareModuleTab.IN_PROGRESS,
+        label: 'In progress',
+        count: tabCounts.inProgress,
+      },
+      {
+        id: CareModuleTab.COMPLETED,
+        key: CareModuleTab.COMPLETED,
+        label: 'Completed',
+        count: tabCounts.completed,
+      },
+    ].map((tab) => ({
+      ...tab,
+      isActive: tab.key === (homeQuery.tab ?? CareModuleTab.ALL),
+    }));
+    const topics = CARE_HOME_TOPICS.map((topic) => ({
+      ...topic,
+      isActive: topic.id === (topicId ?? 'ALL'),
+    }));
 
     return {
       success: true,
@@ -562,10 +600,28 @@ export class CareService {
           role: account.role,
           greeting: this.timeGreeting(),
         },
-        selectedChildId: homeQuery.childId ?? null,
+        children: children.map((child) => ({
+          ...child,
+          image: child.avatar,
+          isActive: child.id === selectedChildId,
+        })),
+        selectedChildId,
         activeTab: homeQuery.tab ?? CareModuleTab.ALL,
         activeTopicId: topicId ?? 'ALL',
         modules: moduleResponse.data,
+        tabs,
+        topics,
+        caregivingHub: {
+          title: 'Explore Baby handling lesson',
+          subtitle:
+            "Assign care modules to your nanny based on your child's needs.",
+          selectedChildId,
+          activeTab: homeQuery.tab ?? CareModuleTab.ALL,
+          activeTopicId: topicId ?? 'ALL',
+          modules: moduleResponse.data,
+          tabs,
+          topics,
+        },
         meta: moduleResponse.meta,
       },
     };
@@ -645,7 +701,21 @@ export class CareService {
     const childIds = await this.accessibleChildIds(userId);
 
     const children = await this.prisma.child.findMany({
-      where: { id: { in: childIds } },
+      where: {
+        id: { in: childIds },
+        OR: [
+          { nannies: { some: {} } },
+          {
+            caregiverAccesses: {
+              some: {
+                role: CaregiverAccessRole.NANNY,
+                status: CaregiverAccessStatus.ACCEPTED,
+              },
+            },
+          },
+          { careAssignments: { some: {} } },
+        ],
+      },
       select: {
         id: true,
         name: true,

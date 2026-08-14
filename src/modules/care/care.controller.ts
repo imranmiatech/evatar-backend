@@ -381,6 +381,18 @@ export class CareController {
     return this.careService.getCareHomeTopics();
   }
 
+  @Get('children')
+  @ApiTags('CareHub')
+  @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
+  @ApiOperation({
+    summary: 'Get child list for Caregiving Hub',
+    description:
+      'Returns children accessible by the logged-in user for the Caregiving Hub child selector.',
+  })
+  getCareChildren(@CurrentUser() user: CurrentUserPayload) {
+    return this.careService.getMyCareChildren(user);
+  }
+
   @Get('children/:childId/suggested-modules')
   @ApiTags('CareHub')
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
