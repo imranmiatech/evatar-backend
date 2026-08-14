@@ -49,12 +49,12 @@ export class LibraryQueryDto {
 
   @ApiPropertyOptional({
     description:
-      'Filter recipes by UI age group. Examples: "6 months", "6-9 months", "9-12 months", "12-24 months", "2+ years", "2-4 years".',
-    example: '6-9 months',
+      'Filter by UI age group. Endpoint-specific dropdowns are shown on activities and recipes APIs.',
+    example: '0-6 month',
   })
   @IsString()
   @IsOptional()
-  ageGroup?: string;
+  declare ageGroup?: string;
 
   @ApiPropertyOptional({
     description: 'Filter activities by minimum age in months',
@@ -92,6 +92,28 @@ export class LibraryQueryDto {
   @Type(() => Number)
   @IsOptional()
   limit?: number = 20;
+}
+
+export class ActivityLibraryQueryDto extends LibraryQueryDto {
+  @ApiPropertyOptional({
+    description: 'Filter activities by UI age group.',
+    enum: ['0-6 month', '6-12 month', '12-24 month', '2-4 year', '4 year +'],
+    example: '0-6 month',
+  })
+  @IsString()
+  @IsOptional()
+  declare ageGroup?: string;
+}
+
+export class RecipeLibraryQueryDto extends LibraryQueryDto {
+  @ApiPropertyOptional({
+    description: 'Filter recipes by UI age group.',
+    enum: ['0-6 month', '6-9 month', '12-24 month', '2 year +'],
+    example: '0-6 month',
+  })
+  @IsString()
+  @IsOptional()
+  declare ageGroup?: string;
 }
 
 export class ActivitySuggestionQueryDto {

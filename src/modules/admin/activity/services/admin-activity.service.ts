@@ -4,6 +4,7 @@ import { CreateActivityDto } from '../dto/create-activity.dto';
 import { UpdateActivityDto } from '../dto/update-activity.dto';
 import { AdminActivityQueryDto } from '../dto/activity-query.dto';
 import { StorageService } from '../../../../common/storage/storage.service';
+import { resolveAgeGroupRange } from '../../../../common/helpers/age-group.helper';
 
 @Injectable()
 export class AdminActivityService {
@@ -14,23 +15,43 @@ export class AdminActivityService {
 
   async createActivity(
     dto: CreateActivityDto,
-    files?: { coverImage?: Express.Multer.File[]; video?: Express.Multer.File[] },
+    files?: {
+      coverImage?: Express.Multer.File[];
+      video?: Express.Multer.File[];
+    },
   ) {
-    const { benefits, steps, progressions, coverImage, video, ...activityData } = dto;
-    
+    const {
+      benefits,
+      steps,
+      progressions,
+      coverImage,
+      video,
+      ageGroup,
+      ...activityData
+    } = dto;
+    const ageRange = resolveAgeGroupRange(ageGroup);
+
     let imageUrl: string | undefined = undefined;
     let videoUrl: string | undefined = undefined;
 
     if (files?.coverImage?.[0]) {
-      imageUrl = await this.storageService.uploadFile(files.coverImage[0], 'activities/covers');
+      imageUrl = await this.storageService.uploadFile(
+        files.coverImage[0],
+        'activities/covers',
+      );
     }
     if (files?.video?.[0]) {
-      videoUrl = await this.storageService.uploadFile(files.video[0], 'activities/videos');
+      videoUrl = await this.storageService.uploadFile(
+        files.video[0],
+        'activities/videos',
+      );
     }
 
     return this.prisma.activity.create({
       data: {
         ...activityData,
+        minAgeMonths: activityData.minAgeMonths ?? ageRange?.minAgeMonths,
+        maxAgeMonths: activityData.maxAgeMonths ?? ageRange?.maxAgeMonths,
         isActive: activityData.status === 'PUBLISHED',
         imageUrl,
         videoUrl,
@@ -45,28 +66,52 @@ export class AdminActivityService {
   async updateActivity(
     id: string,
     dto: UpdateActivityDto,
-    files?: { coverImage?: Express.Multer.File[]; video?: Express.Multer.File[] },
+    files?: {
+      coverImage?: Express.Multer.File[];
+      video?: Express.Multer.File[];
+    },
   ) {
     const activity = await this.prisma.activity.findUnique({ where: { id } });
     if (!activity) throw new NotFoundException('Activity not found');
 
-    const { benefits, steps, progressions, coverImage, video, ...activityData } = dto;
+    const {
+      benefits,
+      steps,
+      progressions,
+      coverImage,
+      video,
+      ageGroup,
+      ...activityData
+    } = dto;
+    const ageRange = resolveAgeGroupRange(ageGroup);
 
     let imageUrl: string | undefined = undefined;
     let videoUrl: string | undefined = undefined;
 
     if (files?.coverImage?.[0]) {
-      imageUrl = await this.storageService.uploadFile(files.coverImage[0], 'activities/covers');
+      imageUrl = await this.storageService.uploadFile(
+        files.coverImage[0],
+        'activities/covers',
+      );
     }
     if (files?.video?.[0]) {
-      videoUrl = await this.storageService.uploadFile(files.video[0], 'activities/videos');
+      videoUrl = await this.storageService.uploadFile(
+        files.video[0],
+        'activities/videos',
+      );
     }
 
     return this.prisma.activity.update({
       where: { id },
       data: {
         ...activityData,
-        ...(activityData.status && { isActive: activityData.status === 'PUBLISHED' }),
+        ...(ageRange && {
+          minAgeMonths: activityData.minAgeMonths ?? ageRange.minAgeMonths,
+          maxAgeMonths: activityData.maxAgeMonths ?? ageRange.maxAgeMonths,
+        }),
+        ...(activityData.status && {
+          isActive: activityData.status === 'PUBLISHED',
+        }),
         ...(imageUrl && { imageUrl }),
         ...(videoUrl && { videoUrl }),
         ...(benefits && {
@@ -98,12 +143,18 @@ export class AdminActivityService {
     const skip = (page - 1) * limit;
 
     const ageWhere = {
-      ...(query.minAge !== undefined && { minAgeMonths: { lte: query.minAge } }),
-      ...(query.maxAge !== undefined && { maxAgeMonths: { gte: query.maxAge } }),
+      ...(query.minAge !== undefined && {
+        minAgeMonths: { lte: query.minAge },
+      }),
+      ...(query.maxAge !== undefined && {
+        maxAgeMonths: { gte: query.maxAge },
+      }),
     };
 
     const where = {
-      ...(query.search && { title: { contains: query.search, mode: 'insensitive' as const } }),
+      ...(query.search && {
+        title: { contains: query.search, mode: 'insensitive' as const },
+      }),
       ...(query.location && { location: { has: query.location } }),
       ...(query.status && { status: query.status }),
       ...ageWhere,

@@ -142,6 +142,13 @@ enum PartnerOfferRedemptionFlow {
   IN_ALUREI
 }
 
+enum PartnerRequestAdminStatus {
+  NEW
+  CONTACTED
+  IN_DISCUSSION
+  DECLINED
+}
+
 enum ChildGender {
   BOY
   GIRL

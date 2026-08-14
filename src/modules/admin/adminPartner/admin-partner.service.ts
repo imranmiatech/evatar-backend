@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   PartnerOfferStatus,
+  PartnerRequestAdminStatus,
   Prisma,
   UserRole,
   UserStatus,
@@ -13,6 +14,7 @@ import {
 import { MailService } from '../../../common/mail/mail.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { RejectPartnerDto } from './dto/reject-partner.dto';
+import { UpdatePartnerRequestStatusDto } from './dto/update-partner-request-status.dto';
 
 const PARTNER_CATEGORY_BUCKETS = [
   { key: 'SUPERMARKET', label: 'Supermarket' },
@@ -34,9 +36,12 @@ export class AdminPartnerService {
   ) {}
 
   async getPartners(status?: string) {
+    const adminStatus = this.adminStatusFilter(status);
+    const userStatus = this.statusFilter(status);
     const where = {
       role: UserRole.PARTNER,
-      ...(this.statusFilter(status) && { status: this.statusFilter(status) }),
+      ...(userStatus && { status: userStatus }),
+      ...(adminStatus && { partnerProfile: { adminStatus } }),
     };
 
     const partners = await this.prisma.user.findMany({
@@ -60,6 +65,45 @@ export class AdminPartnerService {
     return {
       data: this.formatPartner(partner),
       message: 'Partner request fetched successfully.',
+    };
+  }
+
+  async updatePartnerRequestStatus(
+    id: string,
+    adminUserId: string,
+    dto: UpdatePartnerRequestStatusDto,
+  ) {
+    await this.findPartner(id);
+
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: {
+        reviewedBy: adminUserId,
+        reviewedAt: new Date(),
+        ...(dto.status === PartnerRequestAdminStatus.DECLINED && {
+          status: UserStatus.INACTIVE,
+          verificationStatus: VerificationStatus.REJECTED,
+        }),
+        partnerProfile: {
+          update: {
+            adminStatus: dto.status,
+            ...(dto.adminNote !== undefined && {
+              adminNote: dto.adminNote,
+            }),
+            reviewedBy: adminUserId,
+            reviewedAt: new Date(),
+          },
+        },
+      },
+      include: {
+        partnerProfile: true,
+        stores: true,
+      },
+    });
+
+    return {
+      data: this.formatPartner(updated),
+      message: 'Partner request status updated successfully.',
     };
   }
 
@@ -111,7 +155,11 @@ export class AdminPartnerService {
         where: { ...activeOfferWhere, createdAt: previousMonth },
       }),
       this.monthlyDailySeries('partners', currentMonthStart, nextMonthStart),
-      this.monthlyDailySeries('activeOffers', currentMonthStart, nextMonthStart),
+      this.monthlyDailySeries(
+        'activeOffers',
+        currentMonthStart,
+        nextMonthStart,
+      ),
     ]);
 
     const cards = [
@@ -201,22 +249,19 @@ export class AdminPartnerService {
       ],
     } satisfies Prisma.UserWhereInput;
     const activeOfferWhere = this.activeOfferWhere(now);
-    const [
-      pendingPartnerRequests,
-      pendingOfferApprovals,
-      expiringOffers,
-    ] = await Promise.all([
-      this.prisma.user.count({ where: pendingPartnerWhere }),
-      this.prisma.partnerOffer.count({
-        where: { status: PartnerOfferStatus.PENDING_APPROVAL },
-      }),
-      this.prisma.partnerOffer.count({
-        where: {
-          ...activeOfferWhere,
-          endDate: { gte: now, lte: sevenDaysFromNow },
-        },
-      }),
-    ]);
+    const [pendingPartnerRequests, pendingOfferApprovals, expiringOffers] =
+      await Promise.all([
+        this.prisma.user.count({ where: pendingPartnerWhere }),
+        this.prisma.partnerOffer.count({
+          where: { status: PartnerOfferStatus.PENDING_APPROVAL },
+        }),
+        this.prisma.partnerOffer.count({
+          where: {
+            ...activeOfferWhere,
+            endDate: { gte: now, lte: sevenDaysFromNow },
+          },
+        }),
+      ]);
 
     return {
       success: true,
@@ -309,7 +354,9 @@ Alurei Partners Team`,
     const partner = await this.findPartner(id);
 
     if (partner.status === UserStatus.ACTIVE) {
-      throw new BadRequestException('Approved partners cannot be rejected. Suspend the account instead.');
+      throw new BadRequestException(
+        'Approved partners cannot be rejected. Suspend the account instead.',
+      );
     }
 
     const updated = await this.prisma.user.update({
@@ -382,6 +429,26 @@ Alurei Partners Team`,
 
     if (Object.values(UserStatus).includes(normalized as UserStatus)) {
       return normalized as UserStatus;
+    }
+
+    return undefined;
+  }
+
+  private adminStatusFilter(status?: string) {
+    if (!status || status.toUpperCase() === 'ALL') return undefined;
+
+    const normalized = status
+      .trim()
+      .replace(/[^a-zA-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .toUpperCase();
+
+    if (
+      Object.values(PartnerRequestAdminStatus).includes(
+        normalized as PartnerRequestAdminStatus,
+      )
+    ) {
+      return normalized as PartnerRequestAdminStatus;
     }
 
     return undefined;
@@ -495,10 +562,7 @@ Alurei Partners Team`,
       return 'SUPERMARKET';
     }
 
-    if (
-      normalized === 'CHILDRENS_CAFES' ||
-      normalized === 'CHILDREN_S_CAFES'
-    ) {
+    if (normalized === 'CHILDRENS_CAFES' || normalized === 'CHILDREN_S_CAFES') {
       return 'CHILDRENS_CAFES';
     }
 
@@ -508,31 +572,71 @@ Alurei Partners Team`,
   }
 
   private formatPartner(partner: any) {
+    const profile = partner.partnerProfile;
+    const primaryStore = partner.stores?.[0] ?? null;
+
     return {
       id: partner.id,
-      businessName: partner.partnerProfile?.businessName ?? partner.fullName,
-      businessCategory: partner.partnerProfile?.businessCategory ?? null,
-      shortDescription: partner.partnerProfile?.shortDescription ?? null,
-      website: partner.partnerProfile?.website ?? null,
-      country: partner.partnerProfile?.country ?? null,
-      city: partner.partnerProfile?.city ?? null,
-      address: partner.partnerProfile?.address ?? null,
-      openingHours: partner.partnerProfile?.openingHours ?? null,
-      contactPerson: partner.partnerProfile?.contactPerson ?? partner.fullName,
-      contactRole: partner.partnerProfile?.contactRole ?? null,
-      contactEmail: partner.partnerProfile?.contactEmail ?? partner.email,
-      contactPhone: partner.partnerProfile?.contactPhone ?? partner.phoneNumber,
+      businessName: profile?.businessName ?? partner.fullName,
+      businessCategory: profile?.businessCategory ?? null,
+      category: profile?.businessCategory ?? null,
+      shortDescription: profile?.shortDescription ?? null,
+      message: profile?.shortDescription ?? null,
+      website: profile?.website ?? null,
+      country: profile?.country ?? null,
+      city: profile?.city ?? null,
+      location:
+        [profile?.city, profile?.country].filter(Boolean).join(', ') || null,
+      address: profile?.address ?? null,
+      openingHours: profile?.openingHours ?? null,
+      contactPerson: profile?.contactPerson ?? partner.fullName,
+      contactRole: profile?.contactRole ?? null,
+      contactEmail: profile?.contactEmail ?? partner.email,
+      contactPhone: profile?.contactPhone ?? partner.phoneNumber,
       email: partner.email,
       phoneNumber: partner.phoneNumber,
-      status: this.partnerStatusLabel(partner.status, partner.verificationStatus),
+      adminStatus: profile?.adminStatus ?? PartnerRequestAdminStatus.NEW,
+      adminStatusLabel: this.adminStatusLabel(
+        profile?.adminStatus ?? PartnerRequestAdminStatus.NEW,
+      ),
+      adminNote: profile?.adminNote ?? null,
+      status: this.partnerStatusLabel(
+        partner.status,
+        partner.verificationStatus,
+      ),
       rawStatus: partner.status,
       verificationStatus: partner.verificationStatus,
       rejectionReason: partner.rejectionReason,
       reviewedBy: partner.reviewedBy,
       reviewedAt: partner.reviewedAt,
       submittedAt: partner.createdAt,
+      businessInformation: {
+        businessName: profile?.businessName ?? partner.fullName,
+        businessCategory: profile?.businessCategory ?? null,
+        website: profile?.website ?? null,
+        contactPerson: profile?.contactPerson ?? partner.fullName,
+        role: profile?.contactRole ?? null,
+        email: profile?.contactEmail ?? partner.email,
+        phone: profile?.contactPhone ?? partner.phoneNumber,
+        location:
+          [profile?.city, profile?.country].filter(Boolean).join(', ') || null,
+        address: profile?.address ?? null,
+        message: profile?.shortDescription ?? null,
+      },
+      primaryStore,
       stores: partner.stores,
     };
+  }
+
+  private adminStatusLabel(status: PartnerRequestAdminStatus) {
+    const labels: Record<PartnerRequestAdminStatus, string> = {
+      [PartnerRequestAdminStatus.NEW]: 'New',
+      [PartnerRequestAdminStatus.CONTACTED]: 'Contacted',
+      [PartnerRequestAdminStatus.IN_DISCUSSION]: 'In discussion',
+      [PartnerRequestAdminStatus.DECLINED]: 'Declined',
+    };
+
+    return labels[status];
   }
 
   private partnerStatusLabel(

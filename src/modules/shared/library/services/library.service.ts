@@ -612,6 +612,15 @@ export class LibraryService {
   }
 
   private activityAgeWhere(query: LibraryQueryDto) {
+    const ageRange = resolveAgeGroupRange(query.ageGroup);
+
+    if (ageRange) {
+      return {
+        minAgeMonths: { lte: ageRange.maxAgeMonths },
+        maxAgeMonths: { gte: ageRange.minAgeMonths },
+      };
+    }
+
     return {
       ...(query.minAge !== undefined && {
         minAgeMonths: { lte: query.minAge },

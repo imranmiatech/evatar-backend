@@ -25,6 +25,7 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { AdminPartnerService } from './admin-partner.service';
 import { RejectPartnerDto } from './dto/reject-partner.dto';
+import { UpdatePartnerRequestStatusDto } from './dto/update-partner-request-status.dto';
 
 @ApiTags('Admin Partner')
 @ApiBearerAuth()
@@ -38,19 +39,46 @@ export class AdminPartnerController {
   @ApiOperation({
     summary: 'Get admin partner registration requests',
     description:
-      'Use this list for partner approval dashboard. Filter by PENDING, APPROVED, REJECTED, ACTIVE, or INACTIVE.',
+      'Use this list for partner request dashboard. Filter by NEW, CONTACTED, IN_DISCUSSION, DECLINED, PENDING, APPROVED, REJECTED, ACTIVE, or INACTIVE.',
   })
   @ApiQuery({
     name: 'status',
     required: false,
-    enum: ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'ACTIVE', 'INACTIVE'],
-    example: 'PENDING',
+    enum: [
+      'ALL',
+      'NEW',
+      'CONTACTED',
+      'IN_DISCUSSION',
+      'DECLINED',
+      'PENDING',
+      'APPROVED',
+      'REJECTED',
+      'ACTIVE',
+      'INACTIVE',
+    ],
+    example: 'NEW',
   })
   @ApiResponse({
     status: 200,
     description: 'Return admin partner request list.',
   })
   async getPartners(@Query('status') status?: string) {
+    return this.adminPartnerService.getPartners(status);
+  }
+
+  @Get('new-requests')
+  @ApiOperation({
+    summary: 'Get partnership requests for admin dashboard',
+    description:
+      'Returns partner signup requests stored from partner signup. Filter by adminStatus values: NEW, CONTACTED, IN_DISCUSSION, DECLINED.',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['ALL', 'NEW', 'CONTACTED', 'IN_DISCUSSION', 'DECLINED'],
+    example: 'NEW',
+  })
+  async getPartnerNewRequests(@Query('status') status?: string) {
     return this.adminPartnerService.getPartners(status);
   }
 
@@ -123,6 +151,26 @@ export class AdminPartnerController {
   @ApiParam({ name: 'id', description: 'Partner user ID' })
   async getPartner(@Param('id') id: string) {
     return this.adminPartnerService.getPartner(id);
+  }
+
+  @Patch(':id/request-status')
+  @ApiOperation({
+    summary: 'Update partner request dashboard status',
+    description:
+      'Updates adminStatus for partnership request cards: NEW, CONTACTED, IN_DISCUSSION, or DECLINED.',
+  })
+  @ApiParam({ name: 'id', description: 'Partner user ID' })
+  @ApiBody({ type: UpdatePartnerRequestStatusDto })
+  async updatePartnerRequestStatus(
+    @CurrentUser() admin: CurrentUserPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdatePartnerRequestStatusDto,
+  ) {
+    return this.adminPartnerService.updatePartnerRequestStatus(
+      id,
+      admin.userId,
+      dto,
+    );
   }
 
   @Patch(':id/approve')

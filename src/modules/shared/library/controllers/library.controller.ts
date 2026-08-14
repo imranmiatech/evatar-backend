@@ -16,8 +16,10 @@ import {
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { LibraryService } from '../services/library.service';
 import {
+  ActivityLibraryQueryDto,
   ActivitySuggestionQueryDto,
   LibraryQueryDto,
+  RecipeLibraryQueryDto,
 } from '../dto/library-query.dto';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
@@ -57,7 +59,7 @@ export class LibraryController {
     status: 200,
     description: 'Activities returned successfully.',
   })
-  async getActivities(@Query() query: LibraryQueryDto) {
+  async getActivities(@Query() query: ActivityLibraryQueryDto) {
     return this.libraryService.getActivities(query);
   }
 
@@ -90,7 +92,7 @@ export class LibraryController {
   })
   async getRecipes(
     @CurrentUser() user: CurrentUserPayload,
-    @Query() query: LibraryQueryDto,
+    @Query() query: RecipeLibraryQueryDto,
   ) {
     return this.libraryService.getRecipes(user, query);
   }
@@ -107,7 +109,7 @@ export class LibraryController {
   })
   async getRecipeSuggestions(
     @CurrentUser() user: CurrentUserPayload,
-    @Query() query: LibraryQueryDto,
+    @Query() query: RecipeLibraryQueryDto,
   ) {
     return this.libraryService.getRecipeSuggestions(user, query);
   }

@@ -15,10 +15,25 @@ export function resolveAgeGroupRange(ageGroup?: string): AgeRange | undefined {
     .replace(/[–—]/g, '-');
 
   const presets: Record<string, AgeRange> = {
+    '0-6 month': { minAgeMonths: 0, maxAgeMonths: 6 },
+    '0-6 months': { minAgeMonths: 0, maxAgeMonths: 6 },
+    '6-12 month': { minAgeMonths: 6, maxAgeMonths: 12 },
+    '6-12 months': { minAgeMonths: 6, maxAgeMonths: 12 },
     '6 months': { minAgeMonths: 6, maxAgeMonths: 6 },
+    '6-9 month': { minAgeMonths: 6, maxAgeMonths: 9 },
     '6-9 months': { minAgeMonths: 6, maxAgeMonths: 9 },
     '9-12 months': { minAgeMonths: 9, maxAgeMonths: 12 },
+    '12-24 month': { minAgeMonths: 12, maxAgeMonths: 24 },
     '12-24 months': { minAgeMonths: 12, maxAgeMonths: 24 },
+    '2-4 year': { minAgeMonths: 24, maxAgeMonths: 48 },
+    '2-4 years': { minAgeMonths: 24, maxAgeMonths: 48 },
+    '4 year +': { minAgeMonths: 48, maxAgeMonths: 216 },
+    '4 years +': { minAgeMonths: 48, maxAgeMonths: 216 },
+    '4+ year': { minAgeMonths: 48, maxAgeMonths: 216 },
+    '4+ years': { minAgeMonths: 48, maxAgeMonths: 216 },
+    '2 year +': { minAgeMonths: 24, maxAgeMonths: 216 },
+    '2 years +': { minAgeMonths: 24, maxAgeMonths: 216 },
+    '2+ year': { minAgeMonths: 24, maxAgeMonths: 216 },
     '2+ years': { minAgeMonths: 24, maxAgeMonths: 216 },
   };
 
@@ -26,7 +41,9 @@ export function resolveAgeGroupRange(ageGroup?: string): AgeRange | undefined {
     return presets[normalized];
   }
 
-  const yearRange = normalized.match(/^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*years?$/);
+  const yearRange = normalized.match(
+    /^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*years?$/,
+  );
   if (yearRange) {
     return {
       minAgeMonths: Math.round(Number(yearRange[1]) * 12),

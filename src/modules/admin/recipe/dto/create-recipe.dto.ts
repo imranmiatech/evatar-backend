@@ -6,10 +6,23 @@ import {
   IsNumber,
   IsArray,
   IsBoolean,
+  IsIn,
   ValidateNested,
 } from 'class-validator';
 import { plainToInstance, Transform, Type } from 'class-transformer';
-import { RecipeMealType, Difficulty, ContentStatus, ItemUnit } from '@prisma/client';
+import {
+  RecipeMealType,
+  Difficulty,
+  ContentStatus,
+  ItemUnit,
+} from '@prisma/client';
+
+const RECIPE_AGE_GROUP_OPTIONS = [
+  '0-6 month',
+  '6-9 month',
+  '12-24 month',
+  '2 year +',
+] as const;
 
 class RecipeIngredientDto {
   @ApiProperty({ example: 'Blueberries' })
@@ -46,16 +59,27 @@ export class CreateRecipeDto {
   @IsString()
   title: string;
 
-  @ApiPropertyOptional({ example: 'Soft, naturally sweet pancakes made with bananas and oats, suitable for toddlers.' })
+  @ApiPropertyOptional({
+    example:
+      'Soft, naturally sweet pancakes made with bananas and oats, suitable for toddlers.',
+  })
   @IsOptional()
   @IsString()
   shortDescription?: string;
 
-  @ApiPropertyOptional({ type: 'string', format: 'binary', description: 'Cover image file upload' })
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+    description: 'Cover image file upload',
+  })
   @IsOptional()
   coverImage?: any;
 
-  @ApiPropertyOptional({ type: 'string', format: 'binary', description: 'Video file upload' })
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+    description: 'Video file upload',
+  })
   @IsOptional()
   video?: any;
 
@@ -65,11 +89,12 @@ export class CreateRecipeDto {
 
   @ApiPropertyOptional({
     description:
-      'UI age group label. Examples: "6 months", "6-9 months", "9-12 months", "12-24 months", "2+ years", "2-4 years". If minAgeMonths/maxAgeMonths are also sent, they take priority.',
-    example: '6-9 months',
+      'UI age group label. If minAgeMonths/maxAgeMonths are also sent, they take priority.',
+    enum: RECIPE_AGE_GROUP_OPTIONS,
+    example: '0-6 month',
   })
   @IsOptional()
-  @IsString()
+  @IsIn(RECIPE_AGE_GROUP_OPTIONS)
   ageGroup?: string;
 
   @ApiPropertyOptional({ example: 5 })
@@ -98,11 +123,13 @@ export class CreateRecipeDto {
         const parsed = JSON.parse(value);
         if (Array.isArray(parsed)) return parsed;
       } catch {}
-      return value.split(',').map(s => s.trim());
+      return value.split(',').map((s) => s.trim());
     }
     return Array.isArray(value) ? value : [value];
   })
-  @ApiPropertyOptional({ example: ['Growth & Energy', 'Finger Food Friendly', 'Balanced'] })
+  @ApiPropertyOptional({
+    example: ['Growth & Energy', 'Finger Food Friendly', 'Balanced'],
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -114,7 +141,7 @@ export class CreateRecipeDto {
         const parsed = JSON.parse(value);
         if (Array.isArray(parsed)) return parsed;
       } catch {}
-      return value.split(',').map(s => s.trim());
+      return value.split(',').map((s) => s.trim());
     }
     return Array.isArray(value) ? value : [value];
   })
@@ -130,50 +157,69 @@ export class CreateRecipeDto {
         const parsed = JSON.parse(value);
         if (Array.isArray(parsed)) return parsed;
       } catch {}
-      return value.split(',').map(s => s.trim());
+      return value.split(',').map((s) => s.trim());
     }
     return Array.isArray(value) ? value : [value];
   })
-  @ApiPropertyOptional({ example: ['Sweet', 'Soft texture', 'Finger food friendly'] })
+  @ApiPropertyOptional({
+    example: ['Sweet', 'Soft texture', 'Finger food friendly'],
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   childPreferenceTags?: string[];
 
-  @ApiPropertyOptional({ example: 'Flip and cook for 2 more minutes until golden and firm.' })
+  @ApiPropertyOptional({
+    example: 'Flip and cook for 2 more minutes until golden and firm.',
+  })
   @IsOptional()
   @IsString()
   cookingTips?: string;
 
-  @ApiPropertyOptional({ example: 'Serve in soft strips or small toddler-safe pieces.' })
+  @ApiPropertyOptional({
+    example: 'Serve in soft strips or small toddler-safe pieces.',
+  })
   @IsOptional()
   @IsString()
   safetyNotes?: string;
 
-  @ApiPropertyOptional({ enum: ContentStatus, example: ContentStatus.PUBLISHED })
+  @ApiPropertyOptional({
+    enum: ContentStatus,
+    example: ContentStatus.PUBLISHED,
+  })
   @IsOptional()
   @IsEnum(ContentStatus)
   status?: ContentStatus;
-
-
 
   @Transform(({ value }) => {
     if (typeof value === 'string') {
       try {
         const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed.map((item: any) => plainToInstance(RecipeIngredientDto, item)) : parsed;
-      } catch { return value; }
+        return Array.isArray(parsed)
+          ? parsed.map((item: any) =>
+              plainToInstance(RecipeIngredientDto, item),
+            )
+          : parsed;
+      } catch {
+        return value;
+      }
     }
     if (Array.isArray(value)) {
-      return value.map((item: any) => plainToInstance(RecipeIngredientDto, item));
+      return value.map((item: any) =>
+        plainToInstance(RecipeIngredientDto, item),
+      );
     }
     return value;
   })
-  @ApiProperty({ type: 'string', description: 'JSON stringified array of ingredients', example: `[
+  @ApiProperty({
+    type: 'string',
+    description: 'JSON stringified array of ingredients',
+    example: `[
   { "name": "Organic Banana", "amount": "1", "unit": "UNIT", "isOptional": false },
   { "name": "Egg", "amount": "1", "unit": "UNIT", "isOptional": false },
   { "name": "Oats", "amount": "3", "unit": "TBSP", "isOptional": false }
-]` })
+]`,
+  })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => RecipeIngredientDto)
@@ -183,18 +229,26 @@ export class CreateRecipeDto {
     if (typeof value === 'string') {
       try {
         const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed.map((item: any) => plainToInstance(RecipeStepDto, item)) : parsed;
-      } catch { return value; }
+        return Array.isArray(parsed)
+          ? parsed.map((item: any) => plainToInstance(RecipeStepDto, item))
+          : parsed;
+      } catch {
+        return value;
+      }
     }
     if (Array.isArray(value)) {
       return value.map((item: any) => plainToInstance(RecipeStepDto, item));
     }
     return value;
   })
-  @ApiProperty({ type: 'string', description: 'JSON stringified array of steps', example: `[
+  @ApiProperty({
+    type: 'string',
+    description: 'JSON stringified array of steps',
+    example: `[
   { "stepNumber": 1, "description": "Mash banana in a bowl until completely smooth with no lumps." },
   { "stepNumber": 2, "description": "Add egg and oats and mix until a thick batter forms." }
-]` })
+]`,
+  })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => RecipeStepDto)
