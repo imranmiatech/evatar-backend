@@ -68,7 +68,11 @@ export class CareModuleQueryDto {
 }
 
 export class CareHomeQueryDto {
-  @ApiPropertyOptional({ enum: CareModuleTab, default: CareModuleTab.ALL })
+  @ApiPropertyOptional({
+    enum: CareModuleTab,
+    default: CareModuleTab.ALL,
+    description: 'Filter module list by Care Hub tab.',
+  })
   @IsEnum(CareModuleTab)
   @IsOptional()
   tab?: CareModuleTab = CareModuleTab.ALL;
@@ -82,7 +86,7 @@ export class CareHomeQueryDto {
 
   @ApiPropertyOptional({
     description:
-      'Filter modules by topic id from /care/home/topics. Use ALL for all topics.',
+      'Filter module list by topic id from /care/home/topics. Use ALL for all topics.',
     enum: ['ALL', ...Object.values(CareModuleCategory)],
   })
   @IsString()
@@ -127,45 +131,7 @@ export class CareHomeQueryDto {
 }
 
 export class CareHomeTabsQueryDto {
-  @ApiPropertyOptional({ enum: CareModuleTab, default: CareModuleTab.ALL })
-  @IsEnum(CareModuleTab)
-  @IsOptional()
-  tab?: CareModuleTab = CareModuleTab.ALL;
-
-  @ApiPropertyOptional({ enum: CareModuleCategory })
-  @IsEnum(CareModuleCategory)
-  @IsOptional()
-  category?: CareModuleCategory;
-
-  @ApiPropertyOptional({
-    description: 'Search by title, subtitle, description, or topic keyword',
-  })
-  @IsString()
-  @IsOptional()
-  search?: string;
-
   @ApiProperty({ description: 'Filter counts by child id' })
   @IsString()
   childId?: string;
-
-  @ApiPropertyOptional({ description: 'Filter counts by nanny user id' })
-  @IsString()
-  @IsOptional()
-  nannyUserId?: string;
-
-  @ApiHideProperty()
-  @IsOptional()
-  adminStatus?: CareModuleAdminStatus;
-
-  @ApiHideProperty()
-  @IsOptional()
-  ageGroup?: string;
-
-  @ApiHideProperty()
-  @IsOptional()
-  page?: number;
-
-  @ApiHideProperty()
-  @IsOptional()
-  limit?: number;
 }

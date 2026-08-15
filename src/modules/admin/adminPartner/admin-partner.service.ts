@@ -59,6 +59,42 @@ export class AdminPartnerService {
     };
   }
 
+  async getPartnerNewRequests(status?: string) {
+    const adminStatus = this.adminStatusFilter(status);
+    const where = {
+      role: UserRole.PARTNER,
+      status: { not: UserStatus.ACTIVE },
+      verificationStatus: { not: VerificationStatus.APPROVED },
+      partnerProfile: {
+        is: {
+          ...(adminStatus && { adminStatus }),
+        },
+      },
+    } satisfies Prisma.UserWhereInput;
+
+    const partners = await this.prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        createdAt: true,
+        partnerProfile: {
+          select: {
+            businessName: true,
+            businessCategory: true,
+            shortDescription: true,
+            adminStatus: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      data: partners.map((partner) => this.formatPartnerRequestRow(partner)),
+      message: 'Partner new requests fetched successfully.',
+    };
+  }
+
   async getPartner(id: string) {
     const partner = await this.findPartner(id);
 
@@ -625,6 +661,30 @@ Alurei Partners Team`,
       },
       primaryStore,
       stores: partner.stores,
+    };
+  }
+
+  private formatPartnerRequestRow(partner: {
+    id: string;
+    createdAt: Date;
+    partnerProfile: {
+      businessName: string;
+      businessCategory: string;
+      shortDescription: string | null;
+      adminStatus: PartnerRequestAdminStatus;
+    } | null;
+  }) {
+    const adminStatus =
+      partner.partnerProfile?.adminStatus ?? PartnerRequestAdminStatus.NEW;
+
+    return {
+      id: partner.id,
+      business: partner.partnerProfile?.businessName ?? null,
+      description: partner.partnerProfile?.shortDescription ?? null,
+      category: partner.partnerProfile?.businessCategory ?? null,
+      status: adminStatus,
+      statusLabel: this.adminStatusLabel(adminStatus),
+      submitted: partner.createdAt,
     };
   }
 

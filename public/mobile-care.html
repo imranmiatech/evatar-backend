@@ -576,10 +576,14 @@
   <script>
     let token = localStorage.getItem('access_token') || '';
     let currentModules = [];
+    let currentModuleMeta = null;
+    let careTabs = [];
+    let careTopics = [];
+    let careChildren = [];
     let selectedChildId = '';
     let selectedNannyUserId = '';
     let activeTab = 'ALL';
-    let activeCategory = '';
+    let activeTopicId = 'ALL';
     let activeSearch = '';
     let activeModuleDetail = null;
     let quizAnswers = {};
@@ -603,6 +607,26 @@
         return 'http://localhost:5000' + path;
       }
       return path;
+    }
+
+    async function apiGet(path) {
+      if (!token) {
+        openLoginModal();
+        throw new Error('Login required');
+      }
+
+      const res = await fetch(getApiUrl(path), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const json = await res.json();
+
+      if (!res.ok) {
+        const message = Array.isArray(json.message) ? json.message.join(', ') : (json.message || 'Request failed');
+        if (res.status === 401) logout();
+        throw new Error(message);
+      }
+
+      return json;
     }
 
     async function doLogin() {
@@ -633,7 +657,7 @@
             document.getElementById('ph-user-name').innerText = user.fullName || 'User';
           }
           log(`Login successful! User: ${user?.fullName || email}`);
-          loadModules();
+          loadCareHomeData();
         } else {
           errEl.innerText = json.message || 'Login failed';
           errEl.style.display = 'block';
@@ -655,6 +679,16 @@
       openLoginModal();
     }
 
+    async function loadCareHomeData() {
+      try {
+        log('Loading Care Hub children, topics, tabs, and filtered modules...');
+        await Promise.all([loadChildren(), loadTopics()]);
+        await loadModules();
+      } catch (err) {
+        log(`Care Hub load error: ${err.message}`);
+      }
+    }
+
     async function loadModules() {
       try {
         log('Fetching care home from GET /api/v1/care/home...');
@@ -667,30 +701,58 @@
         const params = new URLSearchParams();
         if (selectedChildId) params.set('childId', selectedChildId);
         if (activeTab) params.set('tab', activeTab);
-        if (activeCategory) params.set('category', activeCategory);
+        if (activeTopicId) params.set('topicId', activeTopicId);
         if (activeSearch) params.set('search', activeSearch);
 
-        const headers = { 'Authorization': `Bearer ${token}` };
-        const res = await fetch(getApiUrl(`/api/v1/care/home?${params.toString()}`), { headers });
-        const json = await res.json();
+        const json = await apiGet(`/api/v1/care/home?${params.toString()}`);
 
-        if (res.ok && json.data) {
+        if (json.data) {
           const home = json.data;
           currentModules = home.caregivingHub?.modules || home.modules || [];
+          currentModuleMeta = home.meta || null;
           selectedChildId = home.caregivingHub?.selectedChildId || home.selectedChildId || selectedChildId;
           selectedNannyUserId = currentModules.find(mod => mod.assignment?.nannyUserId)?.assignment?.nannyUserId || selectedNannyUserId;
           renderCareHome(home);
+          await loadTabs();
           log(`Loaded ${currentModules.length} modules from database`);
-        } else {
-          const message = Array.isArray(json.message) ? json.message.join(', ') : (json.message || 'Failed to load care home');
-          log(`Care home error: ${message}`);
-          if (res.status === 401) {
-            logout();
-          }
         }
       } catch (err) {
         log(`Failed to fetch modules: ${err.message}`);
       }
+    }
+
+    async function loadChildren() {
+      const json = await apiGet('/api/v1/care/children');
+      careChildren = json.data || [];
+
+      if (!selectedChildId && careChildren.length > 0) {
+        selectedChildId = careChildren[0].id;
+      }
+
+      renderChildren(careChildren);
+      log(`Loaded ${careChildren.length} care children`);
+    }
+
+    async function loadTabs() {
+      if (!selectedChildId) {
+        careTabs = [];
+        renderTabs(careTabs);
+        return;
+      }
+
+      const params = new URLSearchParams({ childId: selectedChildId });
+      const json = await apiGet(`/api/v1/care/home/tabs?${params.toString()}`);
+      careTabs = json.data || [];
+      renderTabs(careTabs);
+      updateModuleSectionTitle();
+      log(`Loaded ${careTabs.length} tab counters`);
+    }
+
+    async function loadTopics() {
+      const json = await apiGet('/api/v1/care/home/topics');
+      careTopics = json.data || [];
+      renderTopics(careTopics);
+      log(`Loaded ${careTopics.length} topic filters`);
     }
 
     function handleSearchKey(event) {
@@ -706,7 +768,6 @@
 
     function renderCareHome(home) {
       renderUser(home.user);
-      renderChildren(home.children || []);
       renderHub(home.caregivingHub || home || {});
       renderModuleCards(currentModules);
     }
@@ -731,6 +792,10 @@
         pill.className = `child-pill ${isActive ? 'active' : ''}`;
         pill.onclick = () => {
           selectedChildId = child.id;
+          activeTab = 'ALL';
+          activeTopicId = 'ALL';
+          renderChildren(careChildren);
+          renderTopics(careTopics);
           loadModules();
         };
         pill.innerHTML = `
@@ -744,12 +809,27 @@
     function renderHub(hub) {
       document.getElementById('care-title').innerText = hub.title || 'Explore Baby handling lesson';
       document.getElementById('care-subtitle').innerText = hub.subtitle || "Assign care modules to your nanny based on your child's needs.";
+      updateModuleSectionTitle();
+    }
 
-      const activeTabItem = (hub.tabs || []).find(tab => tab.isActive);
-      document.getElementById('module-section-title').innerText = activeTabItem ? `${activeTabItem.label} (${activeTabItem.count})` : 'All Modules';
+    function updateModuleSectionTitle() {
+      const activeTabItem = careTabs.find(tab => (tab.key || tab.id) === activeTab);
+      const label = activeTabItem?.label || tabLabel(activeTab);
+      const hasModuleFilter = activeTopicId !== 'ALL' || Boolean(activeSearch);
+      const count = hasModuleFilter
+        ? (currentModuleMeta?.total ?? currentModules.length)
+        : (activeTabItem?.count ?? currentModuleMeta?.total ?? currentModules.length);
+      document.getElementById('module-section-title').innerText = `${label} (${count})`;
+    }
 
-      renderTabs(hub.tabs || []);
-      renderTopics(hub.topics || []);
+    function tabLabel(tabKey) {
+      const labels = {
+        ALL: 'All Modules',
+        IN_PROGRESS: 'In progress',
+        COMPLETED: 'Completed',
+        SAVED: 'Saved',
+      };
+      return labels[tabKey] || 'All Modules';
     }
 
     function renderTabs(tabs) {
@@ -757,11 +837,13 @@
       container.innerHTML = '';
 
       tabs.forEach(tab => {
+        const tabKey = tab.key || tab.id;
         const el = document.createElement('div');
-        el.className = `module-tab ${tab.isActive ? 'active' : ''}`;
+        el.className = `module-tab ${tabKey === activeTab ? 'active' : ''}`;
         el.innerText = `${tab.label} (${tab.count})`;
         el.onclick = () => {
-          activeTab = tab.key;
+          activeTab = tabKey;
+          renderTabs(careTabs);
           loadModules();
         };
         container.appendChild(el);
@@ -773,11 +855,13 @@
       container.innerHTML = '';
 
       topics.forEach(topic => {
+        const topicId = topic.id || topic.value || 'ALL';
         const el = document.createElement('div');
-        el.className = `cat-pill ${topic.isActive ? 'active' : ''}`;
-        el.innerText = topic.value ? topic.label : 'All Topics';
+        el.className = `cat-pill ${topicId === activeTopicId ? 'active' : ''}`;
+        el.innerText = topic.label || 'All Topics';
         el.onclick = () => {
-          activeCategory = topic.value || '';
+          activeTopicId = topicId;
+          renderTopics(careTopics);
           loadModules();
         };
         container.appendChild(el);
@@ -1213,7 +1297,7 @@
     // Initialize
     if (token) {
       document.getElementById('dev-token').value = token.substring(0, 20) + '...';
-      loadModules();
+      loadCareHomeData();
     } else {
       openLoginModal();
     }

@@ -79,7 +79,7 @@ export class AdminPartnerController {
     example: 'NEW',
   })
   async getPartnerNewRequests(@Query('status') status?: string) {
-    return this.adminPartnerService.getPartners(status);
+    return this.adminPartnerService.getPartnerNewRequests(status);
   }
 
   @Get('overview')

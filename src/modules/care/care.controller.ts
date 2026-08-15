@@ -61,8 +61,6 @@ const careHomeResponseExample = {
       greeting: 'Good Morning',
     },
     selectedChildId: 'child_eve_001',
-    activeTab: 'IN_PROGRESS',
-    activeTopicId: 'CHILD_DEVELOPMENT',
     modules: [
       {
         id: 'care_module_behavior_001',
@@ -111,10 +109,17 @@ const careHomeResponseExample = {
       page: 1,
       limit: 20,
       totalPages: 1,
+      filters: {
+        childId: 'child_eve_001',
+        tab: 'IN_PROGRESS',
+        topicId: 'CHILD_DEVELOPMENT',
+        search: 'behavior',
+        nannyUserId: null,
+      },
     },
   },
   timestamp: '2026-08-08T04:00:00.000Z',
-  path: '/api/v1/care/home?tab=IN_PROGRESS&topicId=CHILD_DEVELOPMENT',
+  path: '/api/v1/care/home?childId=child_eve_001&tab=IN_PROGRESS&topicId=CHILD_DEVELOPMENT&search=behavior',
 };
 
 @ApiBearerAuth()
@@ -341,12 +346,12 @@ export class CareController {
   @ApiTags('CareHub')
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
   @ApiOperation({
-    summary: 'Home screen: logged-in user, child list, and filtered modules',
+    summary: 'Home screen: logged-in user, child list, and modules',
   })
   @ApiResponse({
     status: 200,
     description:
-      'Care home payload with modules filtered by child, tab, topic, and search.',
+      'Care home payload with modules filtered by child, tab, topic, search, and pagination. Tabs/topics metadata are served by their own endpoints.',
     schema: {
       example: careHomeResponseExample,
     },

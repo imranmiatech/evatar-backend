@@ -525,7 +525,7 @@ export class CareService {
       throw new BadRequestException('Invalid topicId');
     }
 
-    const baseQuery = {
+    const moduleQuery = {
       ...baseHomeQuery,
       ...(selectedTopicId && {
         category: selectedTopicId as CareModuleCategory,
@@ -551,42 +551,12 @@ export class CareService {
     }
 
     const children = careChildren.data;
-    const selectedChildId = baseQuery.childId ?? children[0]?.id ?? null;
+    const selectedChildId = moduleQuery.childId ?? children[0]?.id ?? null;
     const homeQuery = {
-      ...baseQuery,
+      ...moduleQuery,
       ...(selectedChildId && { childId: selectedChildId }),
     };
-    const [moduleResponse, tabCounts] = await Promise.all([
-      this.getModules(user, homeQuery),
-      this.careHomeTabCounts(user, homeQuery),
-    ]);
-    const tabs = [
-      {
-        id: CareModuleTab.ALL,
-        key: CareModuleTab.ALL,
-        label: 'All Modules',
-        count: tabCounts.all,
-      },
-      {
-        id: CareModuleTab.IN_PROGRESS,
-        key: CareModuleTab.IN_PROGRESS,
-        label: 'In progress',
-        count: tabCounts.inProgress,
-      },
-      {
-        id: CareModuleTab.COMPLETED,
-        key: CareModuleTab.COMPLETED,
-        label: 'Completed',
-        count: tabCounts.completed,
-      },
-    ].map((tab) => ({
-      ...tab,
-      isActive: tab.key === (homeQuery.tab ?? CareModuleTab.ALL),
-    }));
-    const topics = CARE_HOME_TOPICS.map((topic) => ({
-      ...topic,
-      isActive: topic.id === (topicId ?? 'ALL'),
-    }));
+    const moduleResponse = await this.getModules(user, homeQuery);
 
     return {
       success: true,
@@ -600,29 +570,25 @@ export class CareService {
           role: account.role,
           greeting: this.timeGreeting(),
         },
-        children: children.map((child) => ({
-          ...child,
-          image: child.avatar,
-          isActive: child.id === selectedChildId,
-        })),
         selectedChildId,
-        activeTab: homeQuery.tab ?? CareModuleTab.ALL,
-        activeTopicId: topicId ?? 'ALL',
         modules: moduleResponse.data,
-        tabs,
-        topics,
         caregivingHub: {
           title: 'Explore Baby handling lesson',
           subtitle:
             "Assign care modules to your nanny based on your child's needs.",
           selectedChildId,
-          activeTab: homeQuery.tab ?? CareModuleTab.ALL,
-          activeTopicId: topicId ?? 'ALL',
           modules: moduleResponse.data,
-          tabs,
-          topics,
         },
-        meta: moduleResponse.meta,
+        meta: {
+          ...moduleResponse.meta,
+          filters: {
+            childId: selectedChildId,
+            tab: homeQuery.tab ?? CareModuleTab.ALL,
+            topicId: topicId ?? 'ALL',
+            search: homeQuery.search ?? null,
+            nannyUserId: homeQuery.nannyUserId ?? null,
+          },
+        },
       },
     };
   }
@@ -640,7 +606,7 @@ export class CareService {
     }
 
     const homeQuery = {
-      ...query,
+      childId: query.childId,
       page: 1,
       limit: 1,
     };
@@ -651,9 +617,6 @@ export class CareService {
       message: 'Care home tabs fetched successfully',
       meta: {
         childId: query.childId ?? null,
-        nannyUserId: query.nannyUserId ?? null,
-        search: query.search ?? null,
-        category: query.category ?? null,
       },
       data: [
         {
