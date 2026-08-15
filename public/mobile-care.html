@@ -701,7 +701,7 @@
         const params = new URLSearchParams();
         if (selectedChildId) params.set('childId', selectedChildId);
         if (activeTab) params.set('tab', activeTab);
-        if (activeTopicId) params.set('topicId', activeTopicId);
+        if (activeTab === 'ALL' && activeTopicId) params.set('topicId', activeTopicId);
         if (activeSearch) params.set('search', activeSearch);
 
         const json = await apiGet(`/api/v1/care/home?${params.toString()}`);
@@ -815,7 +815,7 @@
     function updateModuleSectionTitle() {
       const activeTabItem = careTabs.find(tab => (tab.key || tab.id) === activeTab);
       const label = activeTabItem?.label || tabLabel(activeTab);
-      const hasModuleFilter = activeTopicId !== 'ALL' || Boolean(activeSearch);
+      const hasModuleFilter = (activeTab === 'ALL' && activeTopicId !== 'ALL') || Boolean(activeSearch);
       const count = hasModuleFilter
         ? (currentModuleMeta?.total ?? currentModules.length)
         : (activeTabItem?.count ?? currentModuleMeta?.total ?? currentModules.length);
@@ -843,6 +843,10 @@
         el.innerText = `${tab.label} (${tab.count})`;
         el.onclick = () => {
           activeTab = tabKey;
+          if (activeTab !== 'ALL') {
+            activeTopicId = 'ALL';
+            renderTopics(careTopics);
+          }
           renderTabs(careTabs);
           loadModules();
         };
@@ -860,7 +864,9 @@
         el.className = `cat-pill ${topicId === activeTopicId ? 'active' : ''}`;
         el.innerText = topic.label || 'All Topics';
         el.onclick = () => {
+          activeTab = 'ALL';
           activeTopicId = topicId;
+          renderTabs(careTabs);
           renderTopics(careTopics);
           loadModules();
         };

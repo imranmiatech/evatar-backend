@@ -86,7 +86,7 @@ export class CareHomeQueryDto {
 
   @ApiPropertyOptional({
     description:
-      'Filter module list by topic id from /care/home/topics. Use ALL for all topics.',
+      'Filter module list by topic id from /care/home/topics. Applies only when tab=ALL; IN_PROGRESS, COMPLETED, and SAVED always use ALL topics.',
     enum: ['ALL', ...Object.values(CareModuleCategory)],
   })
   @IsString()

@@ -515,11 +515,15 @@ export class CareService {
     const userId = this.currentUserId(user);
     const { adminStatus, ageGroup, category, topicId, ...baseHomeQuery } =
       query;
-    const selectedTopicId = topicId && topicId !== 'ALL' ? topicId : null;
+    const activeTab = baseHomeQuery.tab ?? CareModuleTab.ALL;
+    const canApplyTopic = activeTab === CareModuleTab.ALL;
+    const selectedTopicId =
+      canApplyTopic && topicId && topicId !== 'ALL' ? topicId : null;
     if (
-      selectedTopicId &&
+      topicId &&
+      topicId !== 'ALL' &&
       !Object.values(CareModuleCategory).includes(
-        selectedTopicId as CareModuleCategory,
+        topicId as CareModuleCategory,
       )
     ) {
       throw new BadRequestException('Invalid topicId');
@@ -583,8 +587,8 @@ export class CareService {
           ...moduleResponse.meta,
           filters: {
             childId: selectedChildId,
-            tab: homeQuery.tab ?? CareModuleTab.ALL,
-            topicId: topicId ?? 'ALL',
+            tab: activeTab,
+            topicId: selectedTopicId ?? 'ALL',
             search: homeQuery.search ?? null,
             nannyUserId: homeQuery.nannyUserId ?? null,
           },
