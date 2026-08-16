@@ -464,6 +464,23 @@
         text-align: right;
       }
 
+      .field-help {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
+      .flow-note {
+        border: 1px solid #d9e9ed;
+        border-radius: 12px;
+        background: #f6fbfc;
+        color: #526376;
+        padding: 11px 13px;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
       .segmented {
         display: flex;
         flex-wrap: wrap;
@@ -715,6 +732,18 @@
         margin-top: 8px;
       }
 
+      .direct-accept-panel {
+        border: 1px solid #cfe5e9;
+        border-radius: 8px;
+        background: #f2fbfb;
+        text-align: center;
+        padding: 18px 14px;
+        color: #075f69;
+        font-size: 12px;
+        font-weight: 750;
+        line-height: 1.45;
+      }
+
       .download-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -839,6 +868,29 @@
             <p>Approve or reject submitted partner offers.</p>
           </div>
           <div class="field">
+            <label for="adminEmail">Admin Email</label>
+            <input id="adminEmail" type="email" value="admin@example.com" />
+          </div>
+          <div class="field">
+            <label for="adminPassword">Admin Password</label>
+            <input id="adminPassword" type="password" value="Password123!" />
+          </div>
+          <div
+            style="
+              display: flex;
+              gap: 10px;
+              flex-wrap: wrap;
+              margin-bottom: 14px;
+            "
+          >
+            <button class="btn" id="adminLoginBtn" type="button">
+              Admin Login
+            </button>
+            <button class="btn secondary" id="saveAdminLoginBtn" type="button">
+              Save Admin Login
+            </button>
+          </div>
+          <div class="field">
             <label for="adminToken">Admin Token</label>
             <textarea
               class="token-box"
@@ -852,6 +904,31 @@
             </button>
             <button class="btn" id="loadPendingBtn" type="button">
               Load Pending
+            </button>
+            <button class="btn secondary" id="loadAllOffersBtn" type="button">
+              Load All
+            </button>
+          </div>
+          <div class="field" style="margin-top: 14px">
+            <label for="lastOfferId">Last Created Offer ID</label>
+            <input
+              id="lastOfferId"
+              placeholder="Offer ID appears after submit"
+            />
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap">
+            <button class="btn secondary" id="openOfferBtn" type="button">
+              Open Offer
+            </button>
+            <button class="btn secondary" id="openPublishedBtn" type="button">
+              Open Published State
+            </button>
+            <button
+              class="btn secondary"
+              id="loadNotificationsBtn"
+              type="button"
+            >
+              Partner Notifications
             </button>
           </div>
           <div id="adminOffers"></div>
@@ -990,9 +1067,25 @@
                 <select id="offerType">
                   <option value="FIXED_DISCOUNT">Fixed Discount</option>
                   <option value="PRODUCT_BASED">Each Product</option>
+                  <option value="FREE_DELIVERY">Free Delivery</option>
                 </select>
+                <div class="field-help" id="offerTypeHelp">
+                  Fixed discount can use minimum spend. Each Product does not
+                  need minimum spend.
+                </div>
               </div>
-              <div class="field">
+              <div class="field span-2">
+                <label for="adCategory">Ad Category</label>
+                <select id="adCategory">
+                  <option value="RECIPE">Recipe</option>
+                  <option value="ACTIVITY">Activity</option>
+                </select>
+                <div class="field-help">
+                  This decides whether the approved offer appears in recipe or
+                  activity surfaces.
+                </div>
+              </div>
+              <div class="field" id="minimumSpendField">
                 <label for="minimumSpend">Minimum Spend (optional)</label>
                 <input
                   id="minimumSpend"
@@ -1001,6 +1094,9 @@
                   step="0.01"
                   value="0"
                 />
+                <div class="field-help">
+                  Hidden and ignored for Each Product offers.
+                </div>
               </div>
               <div class="field">
                 <label for="deductionPercentage">Deduction percentage</label>
@@ -1095,7 +1191,7 @@
               </div>
             </div>
 
-            <div>
+            <div id="locationsSection">
               <div class="locations-head">
                 <label style="margin: 0">Available Locations</label>
                 <button
@@ -1105,6 +1201,11 @@
                 >
                   + Add Location
                 </button>
+              </div>
+              <div class="flow-note">
+                Search saved partner store locations, or click Add Location to
+                enter a manual location. In-store offers require all outlets or
+                at least one location.
               </div>
               <div class="field">
                 <input id="locationSearch" placeholder="Search Location" />
@@ -1121,6 +1222,11 @@
                 ></label>
               </div>
               <div id="locationsList"></div>
+            </div>
+
+            <div class="flow-note hidden" id="inAlureiNote">
+              In-Alurei offers do not use QR codes or store locations. After
+              admin approval, families accept the offer directly inside the app.
             </div>
 
             <div class="form-grid">
@@ -1175,7 +1281,7 @@
             </div>
             <span class="status-pill ok">Active</span>
           </div>
-          <div class="qr-panel">
+          <div class="qr-panel" id="qrPanel">
             <img id="publishedQr" alt="Offer QR code" />
             <div class="qr-code-label" id="publishedQrLabel">ALUREI-QR</div>
             <p
@@ -1190,7 +1296,11 @@
               offer in the Alurei app.
             </p>
           </div>
-          <div class="download-grid">
+          <div class="direct-accept-panel hidden" id="directAcceptPanel">
+            This is an In-Alurei offer. No QR code is required; families can
+            accept the offer directly in the app after approval.
+          </div>
+          <div class="download-grid" id="downloadGrid">
             <button
               class="download-card primary"
               id="downloadQrBtn"
@@ -1202,6 +1312,13 @@
               ▣<br />Download PDF Kit<span>Printable · A4</span>
             </button>
           </div>
+          <button
+            class="btn secondary hidden"
+            id="acceptOfferBtn"
+            type="button"
+          >
+            Accept Offer Directly
+          </button>
           <button class="btn" id="closePublishedBtn" type="button">
             Done — View Offer
           </button>
@@ -1212,6 +1329,7 @@
     <script>
       const TOKEN_KEY = 'partnerOffer.token';
       const ADMIN_TOKEN_KEY = 'partnerOffer.adminToken';
+      const ADMIN_EMAIL_KEY = 'partnerOffer.adminEmail';
       const BASE_KEY = 'partnerOffer.apiBase';
       const EMAIL_KEY = 'partnerOffer.email';
       const state = {
@@ -1259,9 +1377,19 @@
         responseBox.textContent = `${label}\n${JSON.stringify(data, null, 2)}`;
       }
 
-      async function downloadAuthed(path, filename) {
+      function offerReadHeaders(json = false) {
+        if (token()) return headers(json);
+        if ($('adminToken').value.trim()) return adminHeaders(json);
+        return null;
+      }
+
+      async function downloadAuthed(
+        path,
+        filename,
+        authHeaders = headers(false),
+      ) {
         const res = await fetch(`${apiBase()}${path}`, {
-          headers: headers(false),
+          headers: authHeaders,
         });
         if (!res.ok) {
           const json = await res.json().catch(() => ({}));
@@ -1278,40 +1406,107 @@
         URL.revokeObjectURL(url);
       }
 
-      async function showPublishedOffer(offerId) {
-        if (!offerId || !token()) return;
+      async function showPublishedOffer(offerId, knownOffer = null) {
+        if (!offerId) return;
+        const authHeaders = offerReadHeaders(false);
+        if (!authHeaders) {
+          showResponse('Token required', {
+            message:
+              'Login as partner or admin first to open the approved offer and QR/PDF.',
+            offerId,
+          });
+          return;
+        }
         try {
-          const data = await request(`/api/v1/partner/offers/${offerId}`, {
-            headers: headers(false),
-          });
+          const data = knownOffer
+            ? { data: knownOffer }
+            : await request(`/api/v1/partner/offers/${offerId}`, {
+                headers: authHeaders,
+              });
           const offer = data?.data;
-          if (!offer?.qrCodeDownloadUrl) return;
-          const qrRes = await fetch(`${apiBase()}${offer.qrCodeDownloadUrl}`, {
-            headers: headers(false),
-          });
-          const qrBlob = await qrRes.blob();
-          const qrUrl = URL.createObjectURL(qrBlob);
+          if (!offer) return;
+          const isInStore = offer.redemptionFlow === 'IN_STORE';
+          const hasQr = isInStore && Boolean(offer.qrCodeDownloadUrl);
+          $('qrPanel').classList.toggle('hidden', !hasQr);
+          $('downloadGrid').classList.toggle('hidden', !hasQr);
+          $('directAcceptPanel').classList.toggle('hidden', hasQr);
+          $('acceptOfferBtn').classList.toggle('hidden', isInStore);
+          document.querySelector('.published-head p').textContent = hasQr
+            ? 'Your in-store offer is live. Display the QR code at your store counter.'
+            : isInStore
+              ? 'This in-store offer does not have QR yet. It must be approved ACTIVE and redemptionFlow must be IN_STORE.'
+              : 'Your In-Alurei offer is live. Families can accept it directly in the app.';
           $('publishedTitle').textContent = offer.title || 'Offer';
           $('publishedSub').textContent =
-            offer.productName || offer.category || 'Partner offer';
+            offer.productName ||
+            offer.adCategory ||
+            offer.category ||
+            'Partner offer';
+
+          $('acceptOfferBtn').onclick = () => acceptOffer(offer.id);
+
+          if (!hasQr) {
+            $('publishedOverlay').classList.remove('hidden');
+            showResponse('Published offer loaded without QR', {
+              offerId: offer.id,
+              redemptionFlow: offer.redemptionFlow,
+              status: offer.status,
+              displayStatus: offer.displayStatus,
+              startDate: offer.startDate,
+              endDate: offer.endDate,
+              reason: isInStore
+                ? 'QR appears for approved ACTIVE in-store offers.'
+                : 'In-Alurei offers do not use QR codes.',
+            });
+            return;
+          }
+          const qrRes = await fetch(`${apiBase()}${offer.qrCodeDownloadUrl}`, {
+            headers: authHeaders,
+          });
+          if (!qrRes.ok) {
+            const json = await qrRes.json().catch(() => ({}));
+            throw new Error(json.message || 'QR image download failed');
+          }
+          const qrBlob = await qrRes.blob();
+          const qrUrl = URL.createObjectURL(qrBlob);
           $('publishedQr').src = qrUrl;
           $('publishedQrLabel').textContent = offer.qrShortCode || 'ALUREI-QR';
           $('downloadQrBtn').onclick = () =>
             downloadAuthed(
               offer.qrCodeDownloadUrl,
               `${offer.title || 'offer'}-qr-code.png`,
+              authHeaders,
             );
           $('downloadPdfBtn').onclick = () =>
             downloadAuthed(
               offer.pdfKitDownloadUrl,
               `${offer.title || 'offer'}-pdf-kit.pdf`,
+              authHeaders,
             );
           $('publishedOverlay').classList.remove('hidden');
+          showResponse('QR ready', {
+            offerId: offer.id,
+            qrCodeDownloadUrl: offer.qrCodeDownloadUrl,
+            pdfKitDownloadUrl: offer.pdfKitDownloadUrl,
+            qrShortCode: offer.qrShortCode,
+          });
         } catch (error) {
           showResponse(
             'Published offer open failed',
             error.response || error.message,
           );
+        }
+      }
+
+      async function acceptOffer(offerId) {
+        try {
+          const data = await request(`/api/v1/partner/offers/${offerId}/scan`, {
+            method: 'POST',
+            headers: headers(false),
+          });
+          showResponse('Offer accepted', data);
+        } catch (error) {
+          showResponse('Accept offer failed', error.response || error.message);
         }
       }
 
@@ -1329,7 +1524,13 @@
       function saveAdminToken() {
         const value = $('adminToken').value.trim();
         if (value) localStorage.setItem(ADMIN_TOKEN_KEY, value);
+        localStorage.setItem(ADMIN_EMAIL_KEY, $('adminEmail').value.trim());
         showResponse('Admin token saved', { saved: Boolean(value) });
+      }
+
+      function saveAdminLogin() {
+        localStorage.setItem(ADMIN_EMAIL_KEY, $('adminEmail').value.trim());
+        saveAdminToken();
       }
 
       async function request(path, options = {}) {
@@ -1364,6 +1565,27 @@
         }
       }
 
+      async function adminLogin() {
+        try {
+          const data = await request('/api/v1/auth/signin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: $('adminEmail').value.trim(),
+              password: $('adminPassword').value,
+            }),
+          });
+          const accessToken = data?.data?.accessToken || data?.accessToken;
+          if (accessToken) {
+            $('adminToken').value = accessToken;
+            saveAdminLogin();
+          }
+          showResponse('Admin login success', data);
+        } catch (error) {
+          showResponse('Admin login failed', error.response || error.message);
+        }
+      }
+
       function setFlow(flow) {
         state.flow = flow;
         $('headFlow').textContent =
@@ -1382,6 +1604,7 @@
         });
         $('storeFlow').classList.toggle('active', flow === 'IN_STORE');
         $('appFlow').classList.toggle('active', flow === 'IN_ALUREI');
+        updateFlowUi();
       }
 
       function goBuilder() {
@@ -1390,6 +1613,7 @@
         $('offerForm').classList.remove('hidden');
         $('draftBtn').classList.remove('hidden');
         $('nextBtn').textContent = 'Submit for review';
+        updateFlowUi();
       }
 
       function resetForm() {
@@ -1406,6 +1630,25 @@
         );
       }
 
+      function updateFlowUi() {
+        const offerType = $('offerType').value;
+        const isProduct = offerType === 'PRODUCT_BASED';
+        const isFreeDelivery = offerType === 'FREE_DELIVERY';
+        const isInStore = state.flow === 'IN_STORE';
+
+        $('minimumSpendField').classList.toggle('hidden', isProduct);
+        if (isProduct) $('minimumSpend').value = '';
+
+        $('offerTypeHelp').textContent = isProduct
+          ? 'Each Product offers do not need minimum spend. Select an existing product, product name, or category.'
+          : isFreeDelivery
+            ? 'Free Delivery offers can use required Alurei and eligibility rules; minimum spend is optional.'
+            : 'Fixed Discount offers can use minimum spend and deduction percentage.';
+
+        $('locationsSection').classList.toggle('hidden', !isInStore);
+        $('inAlureiNote').classList.toggle('hidden', isInStore);
+      }
+
       function renderLocations() {
         $('locationsList').innerHTML = state.locations
           .map(
@@ -1417,6 +1660,7 @@
           </div>
           <input value="${escapeHtml(loc.name || '')}" placeholder="SuperValu Ranelagh" oninput="state.locations[${index}].name=this.value" />
           <input value="${escapeHtml(loc.address || '')}" placeholder="Ranelagh Village, Dublin 6" oninput="state.locations[${index}].address=this.value" />
+          <input value="${escapeHtml(loc.city || '')}" placeholder="City" oninput="state.locations[${index}].city=this.value" />
           <input value="${escapeHtml(loc.mapUrl || '')}" placeholder="Google Maps Link" oninput="state.locations[${index}].mapUrl=this.value" />
         </div>
       `,
@@ -1445,10 +1689,12 @@
 
       function payload(status) {
         const productId = $('productId').value.trim();
-        return {
+        const offerType = $('offerType').value;
+        const data = {
           status,
           redemptionFlow: state.flow,
-          offerType: $('offerType').value,
+          offerType,
+          adCategory: $('adCategory').value,
           title: $('title').value.trim(),
           description: $('description').value.trim(),
           heroImageUrl: $('heroImageUrl').value.trim() || undefined,
@@ -1456,7 +1702,10 @@
           productId: productId || undefined,
           productName: $('productSearch').value.trim() || undefined,
           category: $('category').value || undefined,
-          minimumSpend: Number($('minimumSpend').value || 0),
+          minimumSpend:
+            offerType === 'PRODUCT_BASED'
+              ? undefined
+              : Number($('minimumSpend').value || 0),
           deductionPercentage: Number($('deductionPercentage').value || 0),
           requiredAlurei: Number($('requiredAlurei').value || 1),
           eligiblePlans: selectedPlans(),
@@ -1475,6 +1724,13 @@
             ? []
             : state.locations.filter((loc) => loc.name?.trim()),
         };
+
+        if (state.flow === 'IN_ALUREI') {
+          data.availableAllOutlets = false;
+          data.locations = [];
+        }
+
+        return data;
       }
 
       async function submitOffer(status) {
@@ -1485,15 +1741,30 @@
           });
           return;
         }
+        const payloadData = payload(status);
+        if (
+          payloadData.redemptionFlow === 'IN_STORE' &&
+          !payloadData.availableAllOutlets &&
+          payloadData.locations.length === 0
+        ) {
+          showResponse('Location required', {
+            message:
+              'In-store offers need all outlets enabled or at least one saved/manual location.',
+          });
+          return;
+        }
         try {
-          const data = await request('/api/v1/partner/offers', {
+          const responseData = await request('/api/v1/partner/offers', {
             method: 'POST',
             headers: headers(),
-            body: JSON.stringify(payload(status)),
+            body: JSON.stringify(payloadData),
           });
+          if (responseData?.data?.id) {
+            $('lastOfferId').value = responseData.data.id;
+          }
           showResponse(
             status === 'DRAFT' ? 'Draft saved' : 'Submitted for review',
-            data,
+            responseData,
           );
         } catch (error) {
           showResponse('Offer request failed', error.response || error.message);
@@ -1609,6 +1880,14 @@
       }
 
       async function loadPendingOffers() {
+        return loadAdminOffers('PENDING_APPROVAL');
+      }
+
+      async function loadAllOffers() {
+        return loadAdminOffers('ALL');
+      }
+
+      async function loadAdminOffers(status) {
         const tokenValue = $('adminToken').value.trim();
         if (!tokenValue) {
           showResponse('Missing admin token', {
@@ -1618,15 +1897,21 @@
         }
         try {
           const data = await request(
-            '/api/v1/admin/partners/offers?status=PENDING_APPROVAL&limit=20',
+            `/api/v1/admin/partners/offers?status=${status}&limit=50`,
             {
               headers: adminHeaders(false),
             },
           );
           renderAdminOffers(data?.data || []);
-          showResponse('Pending offers loaded', data);
+          showResponse(
+            status === 'ALL' ? 'All offers loaded' : 'Pending offers loaded',
+            data,
+          );
         } catch (error) {
-          showResponse('Load pending failed', error.response || error.message);
+          showResponse(
+            'Load admin offers failed',
+            error.response || error.message,
+          );
         }
       }
 
@@ -1637,9 +1922,11 @@
                 (offer) => `
         <div class="offer-row">
           <strong>${escapeHtml(offer.title || 'Untitled offer')}</strong>
-          <span>${escapeHtml(offer.partner?.fullName || offer.partnerUserId || '')} · ${escapeHtml(offer.displayStatus || offer.status || '')}</span>
+          <span>${escapeHtml(offer.partner?.fullName || offer.partner?.name || offer.partnerUserId || '')} · ${escapeHtml(offer.displayStatus || offer.status || '')}</span>
+          <span>${escapeHtml(offer.redemptionFlow || '')} · ${escapeHtml(offer.adCategory || '')} · ${offer.qrCodeDownloadUrl ? 'QR READY' : 'NO QR'}</span>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button class="btn small" type="button" onclick="approveOffer('${offer.id}')">Approve</button>
+            <button class="btn secondary small" type="button" onclick="showPublishedOffer('${offer.id}', ${JSON.stringify(offer).replaceAll('"', '&quot;')})">Open Published</button>
             <button class="btn secondary small" type="button" onclick="rejectOffer('${offer.id}')">Reject</button>
           </div>
         </div>
@@ -1658,11 +1945,63 @@
               headers: adminHeaders(false),
             },
           );
+          $('lastOfferId').value = offerId;
           showResponse('Offer approved', data);
-          loadPendingOffers();
+          await showPublishedOffer(offerId, data?.data || null);
+          await loadPartnerNotifications();
+          await loadPendingOffers();
         } catch (error) {
           showResponse('Approve failed', error.response || error.message);
         }
+      }
+
+      async function loadPartnerNotifications() {
+        if (!token()) {
+          showResponse('Missing partner token', {
+            message: 'Login as partner to verify partner notification.',
+          });
+          return;
+        }
+        try {
+          const data = await request('/api/v1/notifications?limit=10', {
+            headers: headers(false),
+          });
+          showResponse('Partner notifications', data);
+        } catch (error) {
+          showResponse(
+            'Load notifications failed',
+            error.response || error.message,
+          );
+        }
+      }
+
+      async function openLastOffer() {
+        const offerId = $('lastOfferId').value.trim();
+        if (!offerId) {
+          showResponse('Missing offer ID', {
+            message: 'Submit or paste an offer ID first.',
+          });
+          return;
+        }
+        try {
+          const data = await request(`/api/v1/partner/offers/${offerId}`, {
+            headers: headers(false),
+          });
+          showResponse('Offer status', data);
+        } catch (error) {
+          showResponse('Open offer failed', error.response || error.message);
+        }
+      }
+
+      function openLastPublishedState() {
+        const offerId = $('lastOfferId').value.trim();
+        if (!offerId) {
+          showResponse('Missing offer ID', {
+            message: 'Submit or paste an offer ID first.',
+          });
+          return;
+        }
+        showPublishedOffer(offerId);
       }
 
       async function rejectOffer(offerId) {
@@ -1706,8 +2045,18 @@
       $('cancelBtn').addEventListener('click', resetForm);
       $('loginBtn').addEventListener('click', login);
       $('saveTokenBtn').addEventListener('click', saveBasics);
+      $('adminLoginBtn').addEventListener('click', adminLogin);
+      $('saveAdminLoginBtn').addEventListener('click', saveAdminLogin);
       $('saveAdminTokenBtn').addEventListener('click', saveAdminToken);
       $('loadPendingBtn').addEventListener('click', loadPendingOffers);
+      $('loadAllOffersBtn').addEventListener('click', loadAllOffers);
+      $('openOfferBtn').addEventListener('click', openLastOffer);
+      $('openPublishedBtn').addEventListener('click', openLastPublishedState);
+      $('loadNotificationsBtn').addEventListener(
+        'click',
+        loadPartnerNotifications,
+      );
+      $('offerType').addEventListener('change', updateFlowUi);
       $('addLocationBtn').addEventListener('click', () => {
         state.locations.push({
           name: $('locationSearch').value.trim() || '',
@@ -1760,6 +2109,8 @@
           localStorage.getItem(BASE_KEY) || 'http://localhost:5000';
         $('email').value =
           localStorage.getItem(EMAIL_KEY) || 'hello@business.com';
+        $('adminEmail').value =
+          localStorage.getItem(ADMIN_EMAIL_KEY) || 'admin@example.com';
         $('token').value =
           localStorage.getItem(TOKEN_KEY) ||
           localStorage.getItem('partnerAuth.accessToken') ||
@@ -1772,7 +2123,9 @@
           $('authStatus').textContent = 'Token saved';
           $('authStatus').classList.add('ok');
         }
+        setFlow(state.flow);
         renderLocations();
+        updateFlowUi();
         const params = new URLSearchParams(window.location.search);
         if (params.get('published') === '1' && params.get('offerId')) {
           showPublishedOffer(params.get('offerId'));

@@ -58,6 +58,8 @@ async function bootstrap() {
     .setDescription('The backend API for EvaTurner application')
     .setVersion('1.0')
     .addBearerAuth()
+    .addTag('Rewards', 'User reward hub, task completion rewards, and redemptions')
+    .addTag('Admin Rewards', 'Admin reward rules configuration and platform overview')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -209,6 +211,19 @@ async function bootstrap() {
       path.resolve(process.cwd(), 'public/mobile-care.html'),
       path.resolve(__dirname, '../public/mobile-care.html'),
       path.resolve(__dirname, '../../public/mobile-care.html'),
+    ];
+    const targetPath =
+      possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+    res.sendFile(targetPath);
+  });
+
+  expressApp.get(['/rewards-ui', '/rewards-mobile'], (req: any, res: any) => {
+    const fs = require('fs');
+    const path = require('path');
+    const possiblePaths = [
+      path.resolve(process.cwd(), 'public/mobile-rewards.html'),
+      path.resolve(__dirname, '../public/mobile-rewards.html'),
+      path.resolve(__dirname, '../../public/mobile-rewards.html'),
     ];
     const targetPath =
       possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];

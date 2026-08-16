@@ -40,10 +40,10 @@
       }
 
       .phone {
-        width: 320px;
-        height: 700px;
+        width: 306px;
+        height: 610px;
         background: var(--bg);
-        border-radius: 0;
+        border-radius: 22px;
         overflow: hidden;
         position: relative;
         box-shadow: 0 22px 60px rgba(0, 0, 0, 0.38);
@@ -81,21 +81,17 @@
       .title {
         text-align: center;
         font-size: 16px;
-        font-weight: 500;
+        font-weight: 600;
       }
 
       .content {
         height: calc(100% - 64px);
         overflow: auto;
-        padding: 12px 6px 22px;
+        padding: 12px 12px 22px;
       }
 
       .child-switch {
-        display: flex;
-        gap: 7px;
-        padding: 0 0 10px;
-        overflow-x: auto;
-        scrollbar-width: none;
+        display: none;
       }
 
       .child-switch::-webkit-scrollbar {
@@ -139,15 +135,16 @@
       }
 
       .card {
-        min-height: 74px;
+        min-height: 68px;
         background: white;
         border-radius: 12px;
-        padding: 14px 12px;
+        padding: 13px 12px;
         display: grid;
         grid-template-columns: 38px 1fr auto;
         gap: 10px;
         align-items: center;
         box-shadow: 0 2px 8px rgba(16, 24, 40, 0.03);
+        margin-bottom: 8px;
       }
 
       .avatar {
@@ -214,11 +211,11 @@
       }
 
       .assign {
-        margin-top: 22px;
+        margin-top: 14px;
         width: 100%;
         min-height: 58px;
         border: 1.5px dashed #9ccbd0;
-        border-radius: 20px;
+        border-radius: 18px;
         background: transparent;
         color: var(--teal);
         font-size: 11px;
@@ -262,8 +259,8 @@
       .dialog {
         width: 270px;
         background: white;
-        border-radius: 10px;
-        margin-bottom: 16px;
+        border-radius: 16px;
+        margin-bottom: 0;
         padding: 18px 14px 12px;
         text-align: center;
       }
@@ -375,6 +372,30 @@
         cursor: pointer;
         text-align: left;
         color: var(--ink);
+      }
+
+      .relationship-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+        margin-top: 8px;
+      }
+
+      .relationship-btn {
+        height: 35px;
+        border: 1px solid #99d0d5;
+        border-radius: 9px;
+        background: white;
+        color: #1b2933;
+        font-size: 10px;
+        font-weight: 750;
+        cursor: pointer;
+      }
+
+      .relationship-btn.active {
+        background: var(--teal);
+        color: white;
+        border-color: var(--teal);
       }
 
       .option-icon {
@@ -559,15 +580,17 @@
       .login-panel {
         position: absolute;
         inset: 0;
-        background: linear-gradient(180deg, #f7fbfb 0%, #eff6f7 100%);
+        background: rgba(0, 0, 0, 0.52);
         display: none;
         z-index: 30;
-        padding: 78px 18px 18px;
+        padding: 16px;
         overflow: auto;
+        align-items: center;
+        justify-content: center;
       }
 
       .login-panel.open {
-        display: block;
+        display: flex;
       }
 
       .login-card {
@@ -575,11 +598,14 @@
         border-radius: 14px;
         padding: 16px;
         box-shadow: 0 14px 40px rgba(0, 52, 59, 0.1);
+        width: 100%;
+        max-height: 94%;
+        overflow: auto;
       }
 
       .login-brand {
         text-align: center;
-        margin-bottom: 16px;
+        margin-bottom: 12px;
       }
 
       .login-logo {
@@ -642,6 +668,109 @@
       .selected-user.open {
         display: grid;
       }
+
+      .response-box {
+        margin-top: 14px;
+        border: 1px solid #d7e6e8;
+        border-radius: 10px;
+        background: white;
+        overflow: hidden;
+      }
+
+      .response-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 10px;
+        color: var(--teal);
+        font-size: 10px;
+        font-weight: 900;
+        border-bottom: 1px solid #edf1f2;
+      }
+
+      .response-box pre {
+        margin: 0;
+        max-height: 105px;
+        overflow: auto;
+        padding: 9px 10px;
+        color: #40535a;
+        font-size: 8px;
+        line-height: 1.45;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .child-screen {
+        position: absolute;
+        inset: 0;
+        background: var(--bg);
+        z-index: 8;
+        transform: translateX(105%);
+        transition: transform 0.2s ease;
+      }
+
+      .child-screen.open {
+        transform: translateX(0);
+      }
+
+      .child-list {
+        height: calc(100% - 64px);
+        overflow: auto;
+        padding: 12px;
+      }
+
+      .child-row {
+        width: 100%;
+        min-height: 78px;
+        border: 0;
+        background: white;
+        border-radius: 13px;
+        margin-bottom: 12px;
+        padding: 12px;
+        display: grid;
+        grid-template-columns: 58px 1fr 18px;
+        align-items: center;
+        gap: 12px;
+        color: var(--ink);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .child-avatar {
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #d6f0f2;
+      }
+
+      .mini-bar {
+        width: 34px;
+        height: 3px;
+        border-radius: 999px;
+        background: #dce8ea;
+        margin: 0 auto 13px;
+      }
+
+      .profile-hero {
+        text-align: center;
+        padding: 2px 0 12px;
+      }
+
+      .profile-hero img {
+        width: 62px;
+        height: 62px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #d6f0f2;
+      }
+
+      .small-action-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin: 8px 0 12px;
+      }
     </style>
   </head>
   <body>
@@ -656,10 +785,20 @@
       <div class="content">
         <div class="child-switch" id="childSwitch"></div>
         <div id="sections"></div>
-        <button class="assign" onclick="openRoleSheet()">
+        <button class="assign" onclick="startInviteFlow()">
           <span>♙+</span>
           Assign a Caregiver/nanny
         </button>
+      </div>
+
+      <div class="child-screen" id="childScreen">
+        <div class="statusbar"><span>9:41</span><span>●●● ▱</span></div>
+        <div class="header">
+          <button class="back" onclick="closeChildScreen()">‹</button>
+          <div class="title">Select Child</div>
+          <span></span>
+        </div>
+        <div class="child-list" id="childList"></div>
       </div>
 
       <div class="overlay" id="removeOverlay">
@@ -683,6 +822,7 @@
 
       <div class="overlay" id="roleOverlay">
         <div class="sheet">
+          <div class="mini-bar"></div>
           <div class="sheet-head">
             <div class="sheet-title">Who are you inviting?</div>
             <button class="x" onclick="closeOverlay('roleOverlay')">×</button>
@@ -704,6 +844,7 @@
 
       <div class="overlay" id="identityOverlay">
         <div class="sheet">
+          <div class="mini-bar"></div>
           <div class="sheet-head">
             <div class="sheet-title" id="identityTitle">Member's Identity?</div>
             <button class="x" onclick="closeOverlay('identityOverlay')">
@@ -714,16 +855,7 @@
           <input id="inviteName" placeholder="e.g. Martha Stewart" />
           <div id="relationshipBlock">
             <label>Relationship To Child</label>
-            <select id="relationship">
-              <option>GRANDMOTHER</option>
-              <option>GUARDIAN</option>
-              <option>GODPARENT</option>
-              <option>GRANDFATHER</option>
-              <option>UNCLE</option>
-              <option>SIBLING</option>
-              <option>AUNT</option>
-              <option>OTHER</option>
-            </select>
+            <div class="relationship-grid" id="relationshipGrid"></div>
           </div>
           <button class="primary" onclick="openPermissionSheet(true)">
             Next
@@ -733,9 +865,13 @@
 
       <div class="overlay" id="inviteOverlay">
         <div class="sheet">
+          <div class="mini-bar"></div>
           <div class="sheet-head">
             <div class="sheet-title" id="inviteTitle">Invite Nanny</div>
             <button class="x" onclick="closeOverlay('inviteOverlay')">×</button>
+          </div>
+          <div class="profile-hero">
+            <img id="inviteChildAvatar" alt="" />
           </div>
           <div class="segment">
             <button
@@ -781,6 +917,7 @@
 
       <div class="overlay" id="permissionOverlay">
         <div class="sheet">
+          <div class="mini-bar"></div>
           <div class="sheet-head">
             <div class="sheet-title" id="permTitle">Access & Permissions</div>
             <button class="x" onclick="closeOverlay('permissionOverlay')">
@@ -814,17 +951,16 @@
       </div>
 
       <div class="login-panel" id="loginPanel">
-        <div class="login-brand">
-          <div class="login-logo">✓</div>
-          <div class="login-name">Caregiver Flow Tester</div>
-          <div class="login-copy">
-            Login once. The token is saved automatically and used for every
-            caregiver API call.
-          </div>
-        </div>
         <div class="login-card">
+          <div class="login-brand">
+            <div class="login-logo">✓</div>
+            <div class="login-name">Caregiver Flow Tester</div>
+            <div class="login-copy">
+              Sign in or test invite acceptance without leaving this phone UI.
+            </div>
+          </div>
           <div class="sheet-head">
-            <div class="sheet-title">Login</div>
+            <div class="sheet-title">Sign in / Sign up test</div>
             <button class="x" id="loginClose" onclick="closeLogin()">×</button>
           </div>
           <label>Base URL</label>
@@ -834,13 +970,32 @@
           <label>Password</label>
           <input id="password" type="password" value="123456" />
           <button class="primary" onclick="login()">Login & Save Token</button>
-          <div class="demo-row">
+          <div class="small-action-row">
             <button class="ghost" onclick="fillLogin('p@e.com')">Parent</button>
             <button class="ghost" onclick="fillLogin('n@e.com')">Nanny</button>
           </div>
           <button class="ghost" onclick="fillLogin('a@e.com')">Admin</button>
           <button class="ghost" onclick="logout()">Clear Saved Token</button>
           <div class="token-pill" id="loginTokenStatus">No saved token</div>
+          <label>Invitation token or invite URL</label>
+          <input
+            id="inviteTokenInput"
+            placeholder="Paste token or /invite/accept?token=..."
+          />
+          <div class="demo-row">
+            <button class="ghost" onclick="previewInvite()">Preview</button>
+            <button class="ghost" onclick="acceptInvite()">Accept</button>
+          </div>
+          <button class="ghost" onclick="loadPendingInvites()">
+            My Pending Invites
+          </button>
+          <div class="response-box">
+            <div class="response-head">
+              <span>API Monitor</span>
+              <button class="link" onclick="clearResponse()">Clear</button>
+            </div>
+            <pre id="responseLog">No API calls yet.</pre>
+          </div>
         </div>
       </div>
 
@@ -856,6 +1011,7 @@
       const allPermissionKeys = [
         'dailyActivitiesRecipes',
         'manageDailyPlans',
+        'viewGroceryLists',
         'manageGroceryLists',
         'editChildProfile',
         'accessChildInsights',
@@ -968,6 +1124,17 @@
         ],
       };
 
+      const relationships = [
+        ['GRANDMOTHER', 'Grandmother'],
+        ['GUARDIAN', 'Guardian'],
+        ['GODPARENT', 'Godparent'],
+        ['GRANDFATHER', 'Grandfather'],
+        ['UNCLE', 'Uncle'],
+        ['SIBLING', 'Sibling'],
+        ['AUNT', 'Aunt'],
+        ['OTHER', 'Other'],
+      ];
+
       const state = {
         user: null,
         children: [],
@@ -976,11 +1143,14 @@
         caregivers: [],
         inviteRole: 'NANNY',
         inviteMode: 'existing',
+        relationship: 'GRANDMOTHER',
         selectedUser: null,
         removeAccessId: null,
         permissionAccessId: null,
         permissionRole: null,
         permissionValues: {},
+        lastInviteUrl: '',
+        didPromptChildSelect: false,
       };
 
       function token() {
@@ -1032,8 +1202,21 @@
         } catch {
           json = { message: text };
         }
+        logResponse(path, res.status, json);
         if (!res.ok) throw new Error(json?.message || JSON.stringify(json));
         return json?.data ?? json;
+      }
+
+      function logResponse(path, status, payload) {
+        const el = document.getElementById('responseLog');
+        if (!el) return;
+        const stamp = new Date().toLocaleTimeString();
+        el.textContent = `[${stamp}] ${status} ${path}\n${JSON.stringify(payload, null, 2)}`;
+      }
+
+      function clearResponse() {
+        document.getElementById('responseLog').textContent =
+          'No API calls yet.';
       }
 
       function toast(message) {
@@ -1069,6 +1252,7 @@
 
       function logout() {
         TOKEN_KEYS.forEach((key) => localStorage.removeItem(key));
+        localStorage.removeItem('caregiver_selected_child_id');
         state.user = null;
         state.children = [];
         state.childId = null;
@@ -1094,6 +1278,7 @@
             }),
           });
           const json = await res.json();
+          logResponse('/api/v1/auth/signin', res.status, json);
           const accessToken = json.accessToken || json.data?.accessToken;
           if (!res.ok || !accessToken) {
             toast(json.message || 'Login failed');
@@ -1119,11 +1304,16 @@
           document.getElementById('sections').innerHTML =
             '<div class="empty">Loading caregiver data...</div>';
           state.user = await api('/api/v1/auth/me');
-          const childrenPayload = await api('/api/v1/parent/children');
+          const childrenPayload = await api('/api/v1/caregivers/children');
           state.children = Array.isArray(childrenPayload)
             ? childrenPayload
             : childrenPayload?.data || [];
-          state.childId = state.childId || state.children[0]?.id || null;
+          if (
+            state.childId &&
+            !state.children.some((child) => child.id === state.childId)
+          ) {
+            state.childId = null;
+          }
           renderChildren();
           await loadCaregivers();
         } catch (error) {
@@ -1139,6 +1329,15 @@
         toast('Refreshed');
       }
 
+      function openChildScreen() {
+        renderChildList();
+        document.getElementById('childScreen').classList.add('open');
+      }
+
+      function closeChildScreen() {
+        document.getElementById('childScreen').classList.remove('open');
+      }
+
       function renderChildren() {
         const box = document.getElementById('childSwitch');
         box.innerHTML = state.children
@@ -1150,23 +1349,48 @@
       `,
           )
           .join('');
+        renderChildList();
+      }
+
+      function renderChildList() {
+        const box = document.getElementById('childList');
+        if (!box) return;
+        box.innerHTML = state.children.length
+          ? state.children
+              .map((child) => {
+                const age =
+                  child.ageLabel ||
+                  child.age?.label ||
+                  (typeof child.age === 'string' ? child.age : '');
+                return `
+        <button class="child-row" onclick="selectChildFromScreen('${child.id}')">
+          <img class="child-avatar" src="${img(child.image || child.avatar)}" alt="">
+          <span>
+            <span class="name">${child.name}</span>
+            <span class="sub">${age}</span>
+          </span>
+          <span>›</span>
+        </button>
+      `;
+              })
+              .join('')
+          : '<div class="empty">No child found.</div>';
       }
 
       async function selectChild(id) {
         state.childId = id;
+        localStorage.setItem('caregiver_selected_child_id', id);
         renderChildren();
-        await loadCaregivers();
+      }
+
+      async function selectChildFromScreen(id) {
+        await selectChild(id);
+        closeChildScreen();
+        openRoleSheet();
       }
 
       async function loadCaregivers() {
-        if (!state.childId) {
-          document.getElementById('sections').innerHTML =
-            '<div class="empty">No child found.</div>';
-          return;
-        }
-        const payload = await api(
-          `/api/v1/caregivers/children/${state.childId}`,
-        );
+        const payload = await api('/api/v1/caregivers/manage');
         state.sections = payload.sections || [];
         state.caregivers = payload.caregivers || [];
         renderSections();
@@ -1215,6 +1439,9 @@
           item.invitedName ||
           'Invited member';
         const photo = item.image || item.invitedUser?.image;
+        const accessId = item.id || item.accessId || '';
+        const invitedUserId = item.invitedUser?.id || item.invitedUserId || '';
+        const childId = item.child?.id || item.childId || '';
         const pending = item.status === 'PENDING';
         const isOwner = sectionKey === 'ACCOUNT_OWNER' || item.isOwner;
         return `
@@ -1226,19 +1453,20 @@
           </div>
           <div class="actions">
             ${pending ? '<span class="pending">Pending</span>' : ''}
-            ${!isOwner && item.status === 'ACCEPTED' && item.role === 'NANNY' ? `<button class="link" onclick="viewProfile('${item.invitedUser?.id || ''}')">View Profile</button>` : ''}
-            ${!isOwner ? `<button class="link" onclick="openExistingPermissions('${item.id}')">Manage Permissions</button>` : ''}
-            ${!isOwner ? `<button class="remove" onclick="openRemove('${item.id}','${item.role}')">♧</button>` : ''}
+            ${!isOwner && item.status === 'ACCEPTED' && item.role === 'NANNY' ? `<button class="link" onclick="viewProfile('${invitedUserId}','${childId}')">View Profile</button>` : ''}
+            ${!isOwner && accessId ? `<button class="link" onclick="openExistingPermissions('${accessId}')">Manage Permissions</button>` : ''}
+            ${!isOwner && accessId ? `<button class="remove" onclick="openRemove('${accessId}','${item.role}')">♧</button>` : ''}
           </div>
         </div>
       `;
       }
 
-      async function viewProfile(nannyUserId) {
+      async function viewProfile(nannyUserId, childId) {
         if (!nannyUserId) return toast('No accepted nanny user yet');
+        if (!childId) return toast('Child is missing for this nanny');
         try {
           const profile = await api(
-            `/api/v1/nanny/${nannyUserId}/profile?childId=${state.childId}`,
+            `/api/v1/nanny/${nannyUserId}/profile?childId=${childId}`,
           );
           toast(
             profile?.nanny?.fullName
@@ -1267,7 +1495,18 @@
         await loadCaregivers();
       }
 
+      function startInviteFlow() {
+        state.childId = null;
+        renderChildren();
+        openChildScreen();
+      }
+
       function openRoleSheet() {
+        if (!state.childId) {
+          openChildScreen();
+          toast('Select child first');
+          return;
+        }
         openOverlay('roleOverlay');
       }
 
@@ -1276,6 +1515,7 @@
         closeOverlay('roleOverlay');
         if (role === 'FAMILY_MEMBER') {
           document.getElementById('relationshipBlock').style.display = 'block';
+          renderRelationships();
           openOverlay('identityOverlay');
         } else {
           document.getElementById('relationshipBlock').style.display = 'none';
@@ -1283,11 +1523,34 @@
         }
       }
 
+      function renderRelationships() {
+        const grid = document.getElementById('relationshipGrid');
+        grid.innerHTML = relationships
+          .map(
+            ([value, label]) => `
+        <button class="relationship-btn ${state.relationship === value ? 'active' : ''}" onclick="setRelationship('${value}')">
+          ${label}
+        </button>
+      `,
+          )
+          .join('');
+      }
+
+      function setRelationship(value) {
+        state.relationship = value;
+        renderRelationships();
+      }
+
       function defaultPermissions(role) {
         const allOff = Object.fromEntries(
           allPermissionKeys.map((key) => [key, false]),
         );
-        if (role === 'NANNY') return { ...allOff, manageGroceryLists: true };
+        if (role === 'NANNY')
+          return {
+            ...allOff,
+            viewGroceryLists: true,
+            manageGroceryLists: true,
+          };
         if (role === 'PARENT')
           return { ...allOff, manageDailyPlans: true, manageCareTeam: true };
         return {
@@ -1399,6 +1662,10 @@
       function openInviteSheet() {
         document.getElementById('inviteTitle').textContent =
           `Invite ${titleCase(state.inviteRole)}`;
+        const child = state.children.find((item) => item.id === state.childId);
+        document.getElementById('inviteChildAvatar').src = img(
+          child?.image || child?.avatar,
+        );
         setInviteMode('existing');
         openOverlay('inviteOverlay');
       }
@@ -1470,7 +1737,7 @@
           body.invitedName =
             document.getElementById('inviteName').value.trim() ||
             'Family Member';
-          body.relationship = document.getElementById('relationship').value;
+          body.relationship = state.relationship;
         }
         if (state.selectedUser && state.inviteMode === 'existing')
           body.invitedUserId = state.selectedUser.id;
@@ -1510,9 +1777,64 @@
       }
 
       function showSuccess(text) {
+        state.lastInviteUrl = text || state.lastInviteUrl;
         document.getElementById('successText').textContent =
           text || 'Invitation sent successfully.';
         openOverlay('successOverlay');
+      }
+
+      function readInviteToken() {
+        const raw = document.getElementById('inviteTokenInput').value.trim();
+        if (!raw) throw new Error('Paste invitation token or invite URL first');
+        try {
+          const url = new URL(raw);
+          return url.searchParams.get('token') || raw;
+        } catch {
+          const match = raw.match(/[?&]token=([^&]+)/);
+          return match ? decodeURIComponent(match[1]) : raw;
+        }
+      }
+
+      async function previewInvite() {
+        try {
+          const inviteToken = readInviteToken();
+          const payload = await api(
+            `/api/v1/caregivers/invitations/${inviteToken}`,
+          );
+          toast(payload?.invitation?.status || 'Invitation preview loaded');
+        } catch (error) {
+          toast(error.message);
+        }
+      }
+
+      async function acceptInvite() {
+        try {
+          const inviteToken = readInviteToken();
+          const payload = await api(
+            `/api/v1/caregivers/invitations/${inviteToken}/accept`,
+            {
+              method: 'POST',
+            },
+          );
+          toast(payload?.status || 'Invitation accepted');
+          await init();
+        } catch (error) {
+          toast(error.message);
+        }
+      }
+
+      async function loadPendingInvites() {
+        try {
+          const payload = await api(
+            '/api/v1/caregivers/my/invitations/pending',
+          );
+          const first = Array.isArray(payload) ? payload[0] : null;
+          toast(
+            first ? 'Pending invitations loaded' : 'No pending invitations',
+          );
+        } catch (error) {
+          toast(error.message);
+        }
       }
 
       async function finishSuccess() {

@@ -25,6 +25,7 @@ model PartnerOffer {
   partnerUserId       String
   redemptionFlow      PartnerOfferRedemptionFlow
   offerType           PartnerOfferType
+  adCategory          PartnerOfferAdCategory?
   title               String
   description         String?
   heroImageUrl        String?
@@ -59,6 +60,7 @@ model PartnerOffer {
 
   @@index([partnerUserId, status, createdAt])
   @@index([partnerUserId, offerType])
+  @@index([adCategory, status])
   @@index([redemptionFlow, status])
   @@index([category, status])
   @@index([startDate, endDate])

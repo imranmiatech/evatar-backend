@@ -137,6 +137,11 @@ enum PartnerOfferType {
   FREE_DELIVERY
 }
 
+enum PartnerOfferAdCategory {
+  RECIPE
+  ACTIVITY
+}
+
 enum PartnerOfferRedemptionFlow {
   IN_STORE
   IN_ALUREI

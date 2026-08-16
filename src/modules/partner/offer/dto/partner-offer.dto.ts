@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import {
+  PartnerOfferAdCategory,
   PartnerOfferRedemptionFlow,
   PartnerOfferStatus,
   PartnerOfferType,
@@ -130,6 +131,12 @@ export class CreatePartnerOfferDto {
   @Transform(normalizeOfferType)
   @IsEnum(PartnerOfferType)
   offerType!: PartnerOfferType;
+
+  @ApiPropertyOptional({ enum: PartnerOfferAdCategory, example: 'RECIPE' })
+  @IsOptional()
+  @Transform(normalizeEnum)
+  @IsEnum(PartnerOfferAdCategory)
+  adCategory?: PartnerOfferAdCategory;
 
   @ApiProperty({ example: 'Free Yoga for Parents' })
   @IsString()
@@ -288,6 +295,12 @@ export class PartnerOfferQueryDto {
   @Transform(normalizeOfferType)
   @IsEnum(PartnerOfferType)
   offerType?: PartnerOfferType;
+
+  @ApiPropertyOptional({ enum: PartnerOfferAdCategory })
+  @IsOptional()
+  @Transform(normalizeEnum)
+  @IsEnum(PartnerOfferAdCategory)
+  adCategory?: PartnerOfferAdCategory;
 
   @ApiPropertyOptional({ enum: PartnerOfferRedemptionFlow })
   @IsOptional()

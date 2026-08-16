@@ -8,6 +8,7 @@ import {
   ActivityStatus,
   Prisma,
   RewardClaimMethod,
+  RewardLedgerEntry,
   RewardLedgerEntryType,
   RewardLedgerSourceType,
   RewardOfferChannel,
@@ -28,11 +29,7 @@ import {
   CreatePartnerStoreDto,
   UpdatePartnerStoreDto,
 } from './dto/partner-store.dto';
-import {
-  RewardLedgerQueryDto,
-  RewardOfferQueryDto,
-} from './dto/reward-query.dto';
-import { RedeemRewardOfferDto } from './dto/redeem-reward-offer.dto';
+import { RewardOfferQueryDto } from './dto/reward-query.dto';
 import { UpdateRewardOfferDto } from './dto/update-reward-offer.dto';
 import { UseRedemptionDto } from './dto/use-redemption.dto';
 
@@ -40,6 +37,8 @@ const POINTS_PER_COMPLETED_TASK = 2;
 const REDEMPTION_EXPIRY_DAYS = 180;
 const DAILY_FLOW_REWARD_RULE_KEY = 'COMPLETE_DAILY_FLOW';
 const CARE_MODULE_REWARD_RULE_KEY = 'COMPLETE_CARE_MODULE';
+const REWARD_HUB_ACTIVITY_LIMIT = 20;
+const REWARD_HUB_RECENT_DAYS = 7;
 
 @Injectable()
 export class RewardsService {
@@ -49,143 +48,121 @@ export class RewardsService {
     private readonly storageService: StorageService,
   ) {}
 
-  async getMySummary(user: CurrentUserPayload) {
+  async getRewardHub(user: CurrentUserPayload) {
+    this.ensureRewardUser(user);
     const userId = this.currentUserId(user);
-    const account = await this.ensureRewardAccount(userId);
+    const now = new Date();
+    const recentStart = this.addDays(now, -REWARD_HUB_RECENT_DAYS);
+
+    const [account, earnedEntries, spentEntries, earnedSummary, spentSummary] =
+      await Promise.all([
+        this.ensureRewardAccount(userId),
+        this.prisma.rewardLedgerEntry.findMany({
+          where: {
+            userId,
+            entryType: RewardLedgerEntryType.EARN,
+            createdAt: { gte: recentStart },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: REWARD_HUB_ACTIVITY_LIMIT,
+        }),
+        this.prisma.rewardLedgerEntry.findMany({
+          where: {
+            userId,
+            entryType: RewardLedgerEntryType.SPEND,
+            createdAt: { gte: recentStart },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: REWARD_HUB_ACTIVITY_LIMIT,
+        }),
+        this.prisma.rewardLedgerEntry.aggregate({
+          where: {
+            userId,
+            entryType: RewardLedgerEntryType.EARN,
+            createdAt: { gte: recentStart },
+          },
+          _count: { _all: true },
+          _sum: { points: true },
+        }),
+        this.prisma.rewardLedgerEntry.aggregate({
+          where: {
+            userId,
+            entryType: RewardLedgerEntryType.SPEND,
+            createdAt: { gte: recentStart },
+          },
+          _count: { _all: true },
+          _sum: { points: true },
+        }),
+      ]);
+
+    const latestEarn = earnedEntries[0] ?? null;
 
     return {
       success: true,
-      message: 'Reward summary fetched successfully',
+      message: 'Reward hub fetched successfully',
       data: {
-        balance: account.balance,
-        lifetimeEarned: account.lifetimeEarned,
-        lifetimeSpent: account.lifetimeSpent,
-        pointsPerCompletedTask: POINTS_PER_COMPLETED_TASK,
-        redemptionExpiresInDays: REDEMPTION_EXPIRY_DAYS,
+        balanceCard: {
+          availableBalance: account.balance,
+          lifetimeEarned: account.lifetimeEarned,
+          lifetimeSpent: account.lifetimeSpent,
+          unit: 'Alurei',
+          primaryAction: {
+            label: 'Use Care Moments',
+            action: 'OPEN_CARE_MOMENTS',
+          },
+        },
+        tabs: [
+          {
+            key: RewardLedgerEntryType.EARN,
+            label: 'Earn',
+            count: earnedSummary._count._all,
+            totalPoints: earnedSummary._sum.points ?? 0,
+          },
+          {
+            key: RewardLedgerEntryType.SPEND,
+            label: 'Spend',
+            count: spentSummary._count._all,
+            totalPoints: Math.abs(spentSummary._sum.points ?? 0),
+          },
+        ],
+        earnedLastWeek: earnedEntries.map((entry) =>
+          this.formatRewardHubActivity(entry, now),
+        ),
+        spentLastWeek: spentEntries.map((entry) =>
+          this.formatRewardHubActivity(entry, now),
+        ),
+        careMomentRecognition: latestEarn
+          ? {
+              available: true,
+              ledgerEntryId: latestEarn.id,
+              title: 'Your Care Has Been Recognized',
+              message:
+                'Thank you for your continued dedication. Every meaningful care moment helps create a better journey for your child while earning Alurei along the way.',
+              pointsEarned: latestEarn.points,
+              sourceType: latestEarn.sourceType,
+              recognizedAt: latestEarn.createdAt,
+            }
+          : {
+              available: false,
+              ledgerEntryId: null,
+              title: null,
+              message: null,
+              pointsEarned: 0,
+              sourceType: null,
+              recognizedAt: null,
+            },
+        period: {
+          label: 'Last 7 days',
+          start: recentStart,
+          end: now,
+        },
       },
     };
   }
 
-  async getMyLedger(user: CurrentUserPayload, query: RewardLedgerQueryDto) {
-    const userId = this.currentUserId(user);
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
-    const where = {
-      userId,
-      ...(query.entryType && { entryType: query.entryType }),
-    } satisfies Prisma.RewardLedgerEntryWhereInput;
 
-    const [items, total] = await Promise.all([
-      this.prisma.rewardLedgerEntry.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.rewardLedgerEntry.count({ where }),
-    ]);
 
-    return {
-      success: true,
-      message: 'Reward ledger fetched successfully',
-      data: items,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
 
-  async getOffers(user: CurrentUserPayload, query: RewardOfferQueryDto) {
-    const userId = this.currentUserId(user);
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
-    const now = new Date();
-    const where = this.offerWhere(
-      query.status ?? RewardOfferStatus.ACTIVE,
-      now,
-    );
-
-    const [offers, total] = await Promise.all([
-      this.prisma.rewardOffer.findMany({
-        where,
-        include: this.offerInclude(userId),
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.rewardOffer.count({ where }),
-    ]);
-
-    return {
-      success: true,
-      message: 'Reward offers fetched successfully',
-      data: offers.map((offer) => this.formatOffer(offer)),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
-
-  async getSavedOffers(user: CurrentUserPayload, query: RewardOfferQueryDto) {
-    const userId = this.currentUserId(user);
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
-    const now = new Date();
-    const where = {
-      ...this.offerWhere(query.status ?? RewardOfferStatus.ACTIVE, now),
-      savedByUsers: { some: { userId } },
-    } satisfies Prisma.RewardOfferWhereInput;
-
-    const [offers, total] = await Promise.all([
-      this.prisma.rewardOffer.findMany({
-        where,
-        include: this.offerInclude(userId),
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.rewardOffer.count({ where }),
-    ]);
-
-    return {
-      success: true,
-      message: 'Saved reward offers fetched successfully',
-      data: offers.map((offer) => this.formatOffer(offer)),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
-
-  async getOfferDetail(user: CurrentUserPayload, offerId: string) {
-    const userId = this.currentUserId(user);
-    const offer = await this.prisma.rewardOffer.findUnique({
-      where: { id: offerId },
-      include: this.offerInclude(userId),
-    });
-
-    if (!offer) {
-      throw new NotFoundException('Reward offer not found');
-    }
-
-    return {
-      success: true,
-      message: 'Reward offer fetched successfully',
-      data: this.formatOffer(offer),
-    };
-  }
 
   async getMyRedemptions(user: CurrentUserPayload) {
     const userId = this.currentUserId(user);
@@ -205,148 +182,7 @@ export class RewardsService {
     };
   }
 
-  async redeemOffer(
-    user: CurrentUserPayload,
-    offerId: string,
-    dto: RedeemRewardOfferDto,
-  ) {
-    this.ensureRewardUser(user);
-    const userId = this.currentUserId(user);
-    const now = new Date();
 
-    const redemption = await this.prisma.$transaction(async (tx) => {
-      await this.ensureRewardAccountForTx(tx, userId);
-
-      const offer = await tx.rewardOffer.findUnique({
-        where: { id: offerId },
-        include: this.offerInclude(userId),
-      });
-
-      if (!offer) {
-        throw new NotFoundException('Reward offer not found');
-      }
-
-      this.assertOfferRedeemable(offer, now);
-      const claimMethod = this.resolveClaimMethod(
-        offer.channel,
-        dto.claimMethod,
-      );
-
-      if (claimMethod === RewardClaimMethod.IN_STORE && dto.storeId) {
-        const allowedStoreIds = new Set([
-          ...(offer.storeId ? [offer.storeId] : []),
-          ...offer.stores.map((item) => item.storeId),
-        ]);
-
-        if (!allowedStoreIds.has(dto.storeId)) {
-          throw new BadRequestException(
-            'Selected store is not available for this offer',
-          );
-        }
-      }
-
-      const updatedAccount = await tx.rewardAccount.updateMany({
-        where: {
-          userId,
-          balance: { gte: offer.pointsCost },
-        },
-        data: {
-          balance: { decrement: offer.pointsCost },
-          lifetimeSpent: { increment: offer.pointsCost },
-        },
-      });
-
-      if (updatedAccount.count === 0) {
-        throw new BadRequestException('Not enough reward points');
-      }
-
-      const account = await tx.rewardAccount.findUniqueOrThrow({
-        where: { userId },
-      });
-
-      const stockUpdate = await tx.rewardOffer.updateMany({
-        where: {
-          id: offer.id,
-          status: RewardOfferStatus.ACTIVE,
-          OR: [{ availableQuantity: null }, { availableQuantity: { gt: 0 } }],
-          AND: [
-            { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
-            { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
-          ],
-        },
-        data: {
-          redeemedCount: { increment: 1 },
-          ...(offer.availableQuantity !== null && {
-            availableQuantity: { decrement: 1 },
-          }),
-        },
-      });
-
-      if (stockUpdate.count === 0) {
-        throw new BadRequestException('Reward offer is no longer available');
-      }
-
-      const code = this.generateRedemptionCode();
-      const qrToken =
-        claimMethod === RewardClaimMethod.IN_STORE
-          ? this.generateQrToken()
-          : null;
-      const couponCode =
-        claimMethod === RewardClaimMethod.ONLINE
-          ? offer.onlineCouponCode?.trim() || code
-          : null;
-      const qrPayload = qrToken
-        ? JSON.stringify({
-            type: 'ALUREI_REWARD_REDEMPTION',
-            qrToken,
-            offerId: offer.id,
-          })
-        : null;
-
-      const created = await tx.rewardRedemption.create({
-        data: {
-          userId,
-          offerId: offer.id,
-          code,
-          claimMethod,
-          couponCode,
-          qrToken,
-          qrPayload,
-          pointsSpent: offer.pointsCost,
-          redeemedAt: now,
-          expiresAt: this.addDays(now, REDEMPTION_EXPIRY_DAYS),
-        },
-        include: { offer: { include: this.offerInclude(userId) } },
-      });
-
-      await tx.rewardLedgerEntry.create({
-        data: {
-          userId,
-          entryType: RewardLedgerEntryType.SPEND,
-          sourceType: RewardLedgerSourceType.REWARD_REDEMPTION,
-          sourceId: created.id,
-          points: -offer.pointsCost,
-          balanceAfter: account.balance,
-          description: `Redeemed ${offer.productName}`,
-          metadata: {
-            offerId: offer.id,
-            code: created.code,
-            claimMethod,
-            couponCode,
-            qrToken,
-          },
-        },
-      });
-
-      return created;
-    });
-
-    return {
-      success: true,
-      message: 'Reward offer redeemed successfully',
-      data: this.formatRedemption(redemption, now),
-    };
-  }
 
   async completeTaskForReward(user: CurrentUserPayload, dayActivityId: string) {
     this.ensureRewardUser(user);
@@ -399,39 +235,7 @@ export class RewardsService {
     };
   }
 
-  async saveOffer(user: CurrentUserPayload, offerId: string) {
-    this.ensureRewardUser(user);
-    const userId = this.currentUserId(user);
-    await this.assertOfferExists(offerId);
 
-    const saved = await this.prisma.rewardSavedOffer.upsert({
-      where: { userId_offerId: { userId, offerId } },
-      update: {},
-      create: { userId, offerId },
-      include: { offer: { include: this.offerInclude(userId) } },
-    });
-
-    return {
-      success: true,
-      message: 'Reward offer saved successfully',
-      data: this.formatOffer(saved.offer),
-    };
-  }
-
-  async unsaveOffer(user: CurrentUserPayload, offerId: string) {
-    this.ensureRewardUser(user);
-    const userId = this.currentUserId(user);
-
-    await this.prisma.rewardSavedOffer.deleteMany({
-      where: { userId, offerId },
-    });
-
-    return {
-      success: true,
-      message: 'Reward offer removed from saved list successfully',
-      data: { offerId },
-    };
-  }
 
   async createPartnerOffer(
     user: CurrentUserPayload,
@@ -724,22 +528,8 @@ export class RewardsService {
   }
 
   async scanRedemption(user: CurrentUserPayload, dto: UseRedemptionDto) {
-    if (user.role === UserRole.PARTNER) {
-      return this.useRedemption(user, dto);
-    }
-
-    if (user.role === UserRole.PARENT || user.role === UserRole.NANNY) {
-      if (!dto.offerId) {
-        throw new BadRequestException('offerId is required for in-store claim');
-      }
-
-      return this.redeemOffer(user, dto.offerId, {
-        claimMethod: RewardClaimMethod.IN_STORE,
-        storeId: dto.storeId,
-      });
-    }
-
-    throw new ForbiddenException('Only parent, nanny, or partner can use scan');
+    this.ensurePartner(user);
+    return this.useRedemption(user, dto);
   }
 
   private async useRedemption(user: CurrentUserPayload, dto: UseRedemptionDto) {
@@ -1386,6 +1176,79 @@ export class RewardsService {
       createdAt: redemption.createdAt,
       updatedAt: redemption.updatedAt,
     };
+  }
+
+  private formatRewardHubActivity(
+    entry: RewardLedgerEntry,
+    now: Date,
+  ) {
+    const metadata = this.objectMetadata(entry.metadata);
+
+    return {
+      id: entry.id,
+      title:
+        entry.description ||
+        this.stringFromUnknown(metadata.title) ||
+        this.defaultRewardActivityTitle(entry),
+      subtitle: this.formatTimeAgo(entry.createdAt, now),
+      points: entry.points,
+      absolutePoints: Math.abs(entry.points),
+      entryType: entry.entryType,
+      sourceType: entry.sourceType,
+      sourceId: entry.sourceId,
+      childId: this.stringFromUnknown(metadata.childId) ?? null,
+      childName: this.stringFromUnknown(metadata.childName) ?? null,
+      metadata: entry.metadata,
+      createdAt: entry.createdAt,
+    };
+  }
+
+  private defaultRewardActivityTitle(entry: RewardLedgerEntry) {
+    if (entry.entryType === RewardLedgerEntryType.SPEND) {
+      return 'Redeemed reward offer';
+    }
+
+    switch (entry.sourceType) {
+      case RewardLedgerSourceType.DAY_ACTIVITY:
+        return 'Completed care activity';
+      case RewardLedgerSourceType.CARE_MODULE_ASSIGNMENT:
+        return 'Completed care module';
+      case RewardLedgerSourceType.REWARD_REDEMPTION:
+        return 'Reward redemption';
+      default:
+        return 'Earned care moment';
+    }
+  }
+
+  private formatTimeAgo(date: Date, now: Date) {
+    const diffMs = Math.max(0, now.getTime() - date.getTime());
+    const minute = 60 * 1000;
+    const hour = 60 * minute;
+    const day = 24 * hour;
+
+    if (diffMs < minute) return 'Just now';
+    if (diffMs < hour) {
+      const minutes = Math.floor(diffMs / minute);
+      return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    }
+    if (diffMs < day) {
+      const hours = Math.floor(diffMs / hour);
+      return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    }
+
+    const days = Math.floor(diffMs / day);
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
+
+    return date.toISOString().slice(0, 10);
+  }
+
+  private objectMetadata(value: Prisma.JsonValue | null) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+
+    return value as Record<string, unknown>;
   }
 
   private addDays(date: Date, days: number) {

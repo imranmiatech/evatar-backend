@@ -159,7 +159,8 @@ export class PartnerOfferController {
   @Post(':offerId/scan')
   @Roles(UserRole.PARENT, UserRole.NANNY, UserRole.ADMIN)
   @ApiOperation({
-    summary: 'Accept/redeem an offer after scanning its QR code',
+    summary:
+      'Accept/redeem an offer. In-store offers are opened from QR scan; in-Alurei offers can be accepted directly.',
   })
   @ApiParam({ name: 'offerId' })
   acceptScannedOffer(

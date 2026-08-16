@@ -317,6 +317,9 @@ export class CaregiverService {
     }
 
     if (invitedUser) {
+      if (invitedUser.status !== UserStatus.ACTIVE) {
+        throw new BadRequestException('Invited user must be active');
+      }
       this.assertUserMatchesCaregiverRole(invitedUser.role, dto.role);
     }
 
@@ -355,6 +358,11 @@ export class CaregiverService {
       dto,
       invitedUser?.id,
     );
+    if (existing?.status === CaregiverAccessStatus.ACCEPTED) {
+      throw new BadRequestException(
+        'This caregiver already has accepted access for this child',
+      );
+    }
     const data = {
       invitedUserId: invitedUser?.id,
       invitedEmail: dto.invitedEmail?.toLowerCase(),
@@ -939,7 +947,7 @@ export class CaregiverService {
           invitedPhone: null,
           status: CaregiverAccessStatus.PENDING,
         },
-        select: { id: true },
+        select: { id: true, status: true },
       });
     }
 
@@ -952,7 +960,7 @@ export class CaregiverService {
         },
         OR: targetWhere,
       },
-      select: { id: true },
+      select: { id: true, status: true },
     });
   }
 

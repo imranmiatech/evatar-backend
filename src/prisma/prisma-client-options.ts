@@ -36,31 +36,36 @@ function createPoolConfig(): PoolConfig {
 
   const parsed = new URL(databaseUrl);
   const host = process.env.DATABASE_HOSTADDR || parsed.hostname;
+  const max = Number(process.env.DATABASE_POOL_MAX ?? 3);
+  const connectionTimeoutMillis = Number(
+    process.env.DATABASE_CONNECTION_TIMEOUT_MS ?? 60000,
+  );
+  const idleTimeoutMillis = Number(
+    process.env.DATABASE_IDLE_TIMEOUT_MS ?? 30000,
+  );
+  const common = {
+    max,
+    connectionTimeoutMillis,
+    idleTimeoutMillis,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000,
+    ssl: createSslConfig(parsed),
+  } satisfies Partial<PoolConfig>;
 
   if (process.env.DATABASE_HOSTADDR) {
     return {
+      ...common,
       host,
       port: Number(parsed.port || 5432),
       user: decodeURIComponent(parsed.username),
       password: decodeURIComponent(parsed.password),
       database: parsed.pathname.replace(/^\//, ''),
-      max: Number(process.env.DATABASE_POOL_MAX ?? 5),
-      connectionTimeoutMillis: Number(
-        process.env.DATABASE_CONNECTION_TIMEOUT_MS ?? 30000,
-      ),
-      idleTimeoutMillis: Number(process.env.DATABASE_IDLE_TIMEOUT_MS ?? 10000),
-      ssl: createSslConfig(parsed),
     };
   }
 
   return {
+    ...common,
     connectionString: databaseUrl,
-    max: Number(process.env.DATABASE_POOL_MAX ?? 5),
-    connectionTimeoutMillis: Number(
-      process.env.DATABASE_CONNECTION_TIMEOUT_MS ?? 30000,
-    ),
-    idleTimeoutMillis: Number(process.env.DATABASE_IDLE_TIMEOUT_MS ?? 10000),
-    ssl: createSslConfig(parsed),
   };
 }
 

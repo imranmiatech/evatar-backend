@@ -57,8 +57,11 @@ export class CaregiverController {
   @ApiOperation({
     summary: 'Get account owner and caregivers for all owned children',
   })
-  getManageCaregivers(@CurrentUser() user: CurrentUserPayload) {
-    return this.caregiverService.getManageCaregivers(user.userId);
+  getManageCaregivers(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query('childId') childId?: string,
+  ) {
+    return this.caregiverService.getManageCaregivers(user.userId, childId);
   }
 
   @Get('children')

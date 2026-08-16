@@ -282,12 +282,16 @@ export class AdminOfferService {
     const offer = await this.prisma.partnerOffer.update({
       where: { id: offerId },
       data: {
-        ...this.updateOfferData(dto, uploadedHeroImageUrl),
+        ...this.updateOfferData(
+          { ...dto, offerType: dto.offerType ?? existing.offerType },
+          uploadedHeroImageUrl,
+        ),
         ...(dto.partnerUserId !== undefined && { partnerUserId }),
         ...(dto.redemptionFlow !== undefined && {
           redemptionFlow: dto.redemptionFlow,
         }),
         ...(dto.offerType !== undefined && { offerType: dto.offerType }),
+        ...(dto.adCategory !== undefined && { adCategory: dto.adCategory }),
         ...(dto.title !== undefined && { title: dto.title.trim() }),
         ...(dto.requiredAlurei !== undefined && {
           requiredAlurei: dto.requiredAlurei,
@@ -415,11 +419,14 @@ export class AdminOfferService {
       useDefaultHeroImage: dto.useDefaultHeroImage ?? false,
       productId: dto.productId?.trim() || null,
       productName: dto.productName?.trim() || null,
+      adCategory: dto.adCategory,
       category: dto.category,
       minimumSpend:
-        dto.minimumSpend === undefined
-          ? undefined
-          : new Prisma.Decimal(dto.minimumSpend),
+        dto.offerType === PartnerOfferType.PRODUCT_BASED
+          ? null
+          : dto.minimumSpend === undefined
+            ? undefined
+            : new Prisma.Decimal(dto.minimumSpend),
       deductionPercentage:
         dto.deductionPercentage === undefined
           ? undefined
@@ -457,10 +464,13 @@ export class AdminOfferService {
       ...(dto.productName !== undefined && {
         productName: dto.productName?.trim() || null,
       }),
+      ...(dto.adCategory !== undefined && { adCategory: dto.adCategory }),
       ...(dto.category !== undefined && { category: dto.category }),
-      ...(dto.minimumSpend !== undefined && {
-        minimumSpend: new Prisma.Decimal(dto.minimumSpend),
-      }),
+      ...(dto.offerType === PartnerOfferType.PRODUCT_BASED
+        ? { minimumSpend: null }
+        : dto.minimumSpend !== undefined && {
+            minimumSpend: new Prisma.Decimal(dto.minimumSpend),
+          }),
       ...(dto.deductionPercentage !== undefined && {
         deductionPercentage: new Prisma.Decimal(dto.deductionPercentage),
       }),
@@ -511,6 +521,7 @@ export class AdminOfferService {
       status: dto.status ?? existing.status,
       redemptionFlow: dto.redemptionFlow ?? existing.redemptionFlow,
       offerType: dto.offerType ?? existing.offerType,
+      adCategory: dto.adCategory ?? existing.adCategory ?? undefined,
       title: dto.title ?? existing.title,
       description: dto.description ?? existing.description ?? undefined,
       useDefaultHeroImage:
@@ -519,10 +530,12 @@ export class AdminOfferService {
       productName: dto.productName ?? existing.productName ?? undefined,
       category: dto.category ?? existing.category ?? undefined,
       minimumSpend:
-        dto.minimumSpend ??
-        (existing.minimumSpend === null
+        (dto.offerType ?? existing.offerType) === PartnerOfferType.PRODUCT_BASED
           ? undefined
-          : Number(existing.minimumSpend)),
+          : (dto.minimumSpend ??
+            (existing.minimumSpend === null
+              ? undefined
+              : Number(existing.minimumSpend))),
       deductionPercentage:
         dto.deductionPercentage ??
         (existing.deductionPercentage === null
@@ -597,6 +610,7 @@ export class AdminOfferService {
       },
       redemptionFlow: offer.redemptionFlow,
       offerType: offer.offerType,
+      adCategory: offer.adCategory,
       title: offer.title,
       description: offer.description,
       heroImageUrl: offer.heroImageUrl,
@@ -719,12 +733,9 @@ export class AdminOfferService {
     startDate: Date | null;
     endDate: Date | null;
   }) {
-    const now = new Date();
     return (
       offer.redemptionFlow === PartnerOfferRedemptionFlow.IN_STORE &&
-      offer.status === PartnerOfferStatus.ACTIVE &&
-      (!offer.startDate || offer.startDate <= now) &&
-      (!offer.endDate || offer.endDate >= now)
+      offer.status === PartnerOfferStatus.ACTIVE
     );
   }
 

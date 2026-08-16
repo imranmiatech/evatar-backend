@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   NotificationType,
+  PartnerOfferRedemptionFlow,
   PartnerOfferStatus,
   PartnerOfferType,
   Prisma,
@@ -229,7 +230,10 @@ export class PartnerOfferService {
     const offer = await this.prisma.partnerOffer.update({
       where: { id: offerId },
       data: {
-        ...this.offerData(dto),
+        ...this.offerData({
+          ...dto,
+          offerType: dto.offerType ?? existing.offerType,
+        }),
         ...(nextStatus !== undefined && {
           status: nextStatus,
           rejectionReason: null,
@@ -608,6 +612,7 @@ export class PartnerOfferService {
           status: query.status ?? 'ALL',
           search: query.search ?? null,
           offerType: query.offerType ?? null,
+          adCategory: query.adCategory ?? null,
           redemptionFlow: query.redemptionFlow ?? null,
           category: query.category ?? null,
           startDateFrom: query.startDateFrom ?? null,
@@ -632,6 +637,7 @@ export class PartnerOfferService {
 
     return {
       ...(query.offerType && { offerType: query.offerType }),
+      ...(query.adCategory && { adCategory: query.adCategory }),
       ...(query.redemptionFlow && { redemptionFlow: query.redemptionFlow }),
       ...(query.category && { category: query.category }),
       ...(search && {
@@ -821,6 +827,16 @@ export class PartnerOfferService {
         }
       }
     }
+
+    if (
+      dto.redemptionFlow === PartnerOfferRedemptionFlow.IN_STORE &&
+      !dto.availableAllOutlets &&
+      (!dto.locations || dto.locations.length === 0)
+    ) {
+      throw new BadRequestException(
+        'At least one location is required for in-store offers unless availableAllOutlets is true',
+      );
+    }
   }
 
   private async validateLocations(
@@ -851,6 +867,7 @@ export class PartnerOfferService {
         redemptionFlow: dto.redemptionFlow,
       }),
       ...(dto.offerType !== undefined && { offerType: dto.offerType }),
+      ...(dto.adCategory !== undefined && { adCategory: dto.adCategory }),
       ...(dto.title !== undefined && { title: dto.title.trim() }),
       ...(dto.description !== undefined && {
         description: dto.description?.trim() || null,
@@ -868,9 +885,11 @@ export class PartnerOfferService {
         productName: dto.productName?.trim() || null,
       }),
       ...(dto.category !== undefined && { category: dto.category }),
-      ...(dto.minimumSpend !== undefined && {
-        minimumSpend: new Prisma.Decimal(dto.minimumSpend),
-      }),
+      ...(dto.offerType === PartnerOfferType.PRODUCT_BASED
+        ? { minimumSpend: null }
+        : dto.minimumSpend !== undefined && {
+            minimumSpend: new Prisma.Decimal(dto.minimumSpend),
+          }),
       ...(dto.deductionPercentage !== undefined && {
         deductionPercentage: new Prisma.Decimal(dto.deductionPercentage),
       }),
@@ -939,6 +958,7 @@ export class PartnerOfferService {
       partnerUserId: offer.partnerUserId,
       redemptionFlow: offer.redemptionFlow,
       offerType: offer.offerType,
+      adCategory: offer.adCategory,
       title: offer.title,
       description: offer.description,
       heroImageUrl: offer.heroImageUrl,
@@ -967,17 +987,19 @@ export class PartnerOfferService {
       reviewedByUserId: offer.reviewedByUserId,
       reviewedAt: offer.reviewedAt,
       publishedAt: offer.publishedAt,
-      qrPayload: this.isPublishedNow(offer) ? this.qrPayload(offer.id) : null,
-      qrShortCode: this.isPublishedNow(offer)
+      qrPayload: this.isPublishedInStore(offer)
+        ? this.qrPayload(offer.id)
+        : null,
+      qrShortCode: this.isPublishedInStore(offer)
         ? this.qrShortCode(offer.id)
         : null,
-      qrDownloads: this.isPublishedNow(offer)
+      qrDownloads: this.isPublishedInStore(offer)
         ? this.qrDownloadUrls(offer.id)
         : null,
-      qrCodeDownloadUrl: this.isPublishedNow(offer)
+      qrCodeDownloadUrl: this.isPublishedInStore(offer)
         ? this.qrDownloadUrls(offer.id).png
         : null,
-      pdfKitDownloadUrl: this.isPublishedNow(offer)
+      pdfKitDownloadUrl: this.isPublishedInStore(offer)
         ? this.qrDownloadUrls(offer.id).pdf
         : null,
       locations: offer.locations,
@@ -1024,14 +1046,26 @@ export class PartnerOfferService {
       include: ReturnType<PartnerOfferService['offerInclude']>;
     }>,
   ) {
+    const isInStore =
+      offer.redemptionFlow === PartnerOfferRedemptionFlow.IN_STORE;
+    const qrMetadata = isInStore
+      ? {
+          qrPayload: this.qrPayload(offer.id),
+          qrDownloads: this.qrDownloadUrls(offer.id),
+          qrCodeDownloadUrl: this.qrDownloadUrls(offer.id).png,
+          pdfKitDownloadUrl: this.qrDownloadUrls(offer.id).pdf,
+        }
+      : {};
+
     await this.notificationService.createNotification({
       userId: offer.partnerUserId,
       type: NotificationType.PARTNER_OFFER,
       title: 'Offer Published!',
-      message:
-        'Your in-store offer is live. Display the QR code at your store counter.',
+      message: isInStore
+        ? 'Your in-store offer is live. Display the QR code at your store counter.'
+        : 'Your in-Alurei offer is live. Families can accept it directly in the app.',
       iconType: 'GIFT',
-      actionText: 'View QR Code',
+      actionText: isInStore ? 'View QR Code' : 'View Offer',
       actionUrl: `/partner-offers-ui?offerId=${offer.id}&published=1`,
       metadata: {
         event: 'PARTNER_OFFER_APPROVED',
@@ -1040,10 +1074,7 @@ export class PartnerOfferService {
         displayStatus: this.displayStatus(offer),
         title: offer.title,
         redemptionFlow: offer.redemptionFlow,
-        qrPayload: this.qrPayload(offer.id),
-        qrDownloads: this.qrDownloadUrls(offer.id),
-        qrCodeDownloadUrl: this.qrDownloadUrls(offer.id).png,
-        pdfKitDownloadUrl: this.qrDownloadUrls(offer.id).pdf,
+        ...qrMetadata,
       },
     });
   }
@@ -1065,9 +1096,9 @@ export class PartnerOfferService {
       throw new NotFoundException('Partner offer not found');
     }
 
-    if (!this.isPublishedNow(offer)) {
+    if (!this.isPublishedInStore(offer)) {
       throw new BadRequestException(
-        'QR code and PDF kit are available only after offer approval',
+        'QR code and PDF kit are available only for approved in-store offers',
       );
     }
 
@@ -1084,6 +1115,18 @@ export class PartnerOfferService {
       offer.status === PartnerOfferStatus.ACTIVE &&
       (!offer.startDate || offer.startDate <= now) &&
       (!offer.endDate || offer.endDate >= now)
+    );
+  }
+
+  private isPublishedInStore(offer: {
+    status: PartnerOfferStatus;
+    redemptionFlow: PartnerOfferRedemptionFlow;
+    startDate: Date | null;
+    endDate: Date | null;
+  }) {
+    return (
+      offer.redemptionFlow === PartnerOfferRedemptionFlow.IN_STORE &&
+      offer.status === PartnerOfferStatus.ACTIVE
     );
   }
 
