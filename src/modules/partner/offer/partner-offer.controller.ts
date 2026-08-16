@@ -7,11 +7,15 @@ import {
   Post,
   Query,
   Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiTags,
@@ -41,6 +45,8 @@ export class PartnerOfferController {
   constructor(private readonly partnerOfferService: PartnerOfferService) {}
 
   @Post()
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('image'))
   @ApiOperation({
     summary: 'Create partner offer draft or submit for admin review',
     description:
@@ -50,8 +56,9 @@ export class PartnerOfferController {
   createOffer(
     @CurrentUser() user: CurrentUserPayload,
     @Body() dto: CreatePartnerOfferDto,
+    @UploadedFile() image?: Express.Multer.File,
   ) {
-    return this.partnerOfferService.createOffer(user, dto);
+    return this.partnerOfferService.createOffer(user, dto, image);
   }
 
   @Get()
@@ -171,6 +178,8 @@ export class PartnerOfferController {
   }
 
   @Patch(':offerId')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('image'))
   @ApiOperation({
     summary: 'Update draft/rejected partner offer or resubmit for review',
   })
@@ -180,7 +189,8 @@ export class PartnerOfferController {
     @CurrentUser() user: CurrentUserPayload,
     @Param('offerId') offerId: string,
     @Body() dto: UpdatePartnerOfferDto,
+    @UploadedFile() image?: Express.Multer.File,
   ) {
-    return this.partnerOfferService.updateMyOffer(user, offerId, dto);
+    return this.partnerOfferService.updateMyOffer(user, offerId, dto, image);
   }
 }

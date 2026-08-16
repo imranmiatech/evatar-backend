@@ -73,6 +73,26 @@ const normalizeStringArray = ({ value }: { value: unknown }) => {
 const normalizeBoolean = ({ value }: { value: unknown }) =>
   value === true || value === 'true' || value === '1';
 
+const normalizeLocations = ({ value }: { value: unknown }) => {
+  const toLocationDto = (location: unknown) =>
+    location && typeof location === 'object'
+      ? Object.assign(new PartnerOfferLocationDto(), location)
+      : location;
+
+  if (Array.isArray(value)) return value.map(toLocationDto);
+  if (typeof value !== 'string') return value;
+
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    return Array.isArray(parsed) ? parsed.map(toLocationDto) : [];
+  } catch {
+    return [];
+  }
+};
+
 export class PartnerOfferLocationDto {
   @ApiPropertyOptional({ description: 'Existing partner store/outlet ID.' })
   @IsOptional()
@@ -151,6 +171,10 @@ export class CreatePartnerOfferDto {
   @IsOptional()
   @IsString()
   heroImageUrl?: string;
+
+  @ApiPropertyOptional({ type: 'string', format: 'binary', description: 'Offer hero image file' })
+  @IsOptional()
+  image?: any;
 
   @ApiPropertyOptional({ example: false })
   @IsOptional()
@@ -248,6 +272,7 @@ export class CreatePartnerOfferDto {
 
   @ApiPropertyOptional({ type: [PartnerOfferLocationDto] })
   @IsOptional()
+  @Transform(normalizeLocations)
   @ValidateNested({ each: true })
   @Type(() => PartnerOfferLocationDto)
   locations?: PartnerOfferLocationDto[];

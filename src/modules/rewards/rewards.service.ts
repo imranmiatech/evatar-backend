@@ -37,6 +37,12 @@ const POINTS_PER_COMPLETED_TASK = 2;
 const REDEMPTION_EXPIRY_DAYS = 180;
 const DAILY_FLOW_REWARD_RULE_KEY = 'COMPLETE_DAILY_FLOW';
 const CARE_MODULE_REWARD_RULE_KEY = 'COMPLETE_CARE_MODULE';
+const BEDTIME_STORY_REWARD_RULE_KEY = 'COMPLETE_BEDTIME_STORY';
+const GROCERY_ORDER_REWARD_RULE_KEY = 'COMPLETE_GROCERY_ORDER';
+const APPRECIATION_REWARD_RULE_KEY = 'SEND_NANNY_APPRECIATION';
+const POINTS_PER_BEDTIME_STORY = 2;
+const POINTS_PER_GROCERY_ORDER = 10;
+const POINTS_PER_APPRECIATION = 5;
 const REWARD_HUB_ACTIVITY_LIMIT = 20;
 const REWARD_HUB_RECENT_DAYS = 7;
 
@@ -583,20 +589,29 @@ export class RewardsService {
     };
   }
 
-  async awardCompletedTask(
-    userId: string,
-    dayActivityId: string,
-    metadata?: Prisma.InputJsonValue,
-  ) {
+  async awardActivityReward(input: {
+    activityKey: string;
+    userId: string;
+    sourceType: RewardLedgerSourceType;
+    sourceId: string;
+    defaultPoints: number;
+    description: string;
+    metadata?: Prisma.InputJsonValue;
+    userRole?: UserRole;
+  }) {
+    const role =
+      input.userRole ??
+      ((input.metadata as Record<string, unknown> | undefined)
+        ?.completedByRole as UserRole | undefined);
+
     const rule = await this.resolveRewardRule(
-      DAILY_FLOW_REWARD_RULE_KEY,
-      (metadata as Record<string, unknown> | undefined)?.completedByRole as
-        UserRole | undefined,
-      POINTS_PER_COMPLETED_TASK,
+      input.activityKey,
+      role,
+      input.defaultPoints,
     );
 
     if (!rule.shouldAward) {
-      const account = await this.ensureRewardAccount(userId);
+      const account = await this.ensureRewardAccount(input.userId);
       return {
         awarded: false,
         account,
@@ -607,14 +622,30 @@ export class RewardsService {
     }
 
     return this.awardOnce({
-      userId,
+      userId: input.userId,
       points: rule.points,
-      sourceType: RewardLedgerSourceType.DAY_ACTIVITY,
-      sourceId: dayActivityId,
-      description: 'Completed task',
-      metadata: this.withRewardRuleMetadata(metadata, rule),
+      sourceType: input.sourceType,
+      sourceId: input.sourceId,
+      description: input.description,
+      metadata: this.withRewardRuleMetadata(input.metadata, rule),
       rewardRuleActivityKey: rule.activityKey,
       weeklyLimit: rule.weeklyLimit,
+    });
+  }
+
+  async awardCompletedTask(
+    userId: string,
+    dayActivityId: string,
+    metadata?: Prisma.InputJsonValue,
+  ) {
+    return this.awardActivityReward({
+      activityKey: DAILY_FLOW_REWARD_RULE_KEY,
+      userId,
+      sourceType: RewardLedgerSourceType.DAY_ACTIVITY,
+      sourceId: dayActivityId,
+      defaultPoints: POINTS_PER_COMPLETED_TASK,
+      description: 'Completed task',
+      metadata,
     });
   }
 
@@ -624,33 +655,69 @@ export class RewardsService {
     points: number,
     metadata?: Prisma.InputJsonValue,
   ) {
-    const rule = await this.resolveRewardRule(
-      CARE_MODULE_REWARD_RULE_KEY,
-      (metadata as Record<string, unknown> | undefined)?.completedByRole as
-        UserRole | undefined,
-      points,
-    );
-
-    if (!rule.shouldAward) {
-      const account = await this.ensureRewardAccount(userId);
-      return {
-        awarded: false,
-        account,
-        ledgerEntry: null,
-        points: 0,
-        reason: rule.reason,
-      };
-    }
-
-    return this.awardOnce({
+    return this.awardActivityReward({
+      activityKey: CARE_MODULE_REWARD_RULE_KEY,
       userId,
-      points: rule.points,
       sourceType: RewardLedgerSourceType.CARE_MODULE_ASSIGNMENT,
       sourceId: assignmentId,
+      defaultPoints: points,
       description: 'Completed care module',
-      metadata: this.withRewardRuleMetadata(metadata, rule),
-      rewardRuleActivityKey: rule.activityKey,
-      weeklyLimit: rule.weeklyLimit,
+      metadata,
+    });
+  }
+
+  async awardBedtimeStory(
+    userId: string,
+    bedtimeStoryId: string,
+    metadata?: Prisma.InputJsonValue,
+  ) {
+    return this.awardActivityReward({
+      activityKey: BEDTIME_STORY_REWARD_RULE_KEY,
+      userId,
+      sourceType: RewardLedgerSourceType.BEDTIME_STORY,
+      sourceId: bedtimeStoryId,
+      defaultPoints: POINTS_PER_BEDTIME_STORY,
+      description: 'Completed bedtime story',
+      metadata,
+    });
+  }
+
+  async awardGroceryOrderCompletion(
+    userId: string,
+    groceryOrderId: string,
+    totalAmount?: number,
+    metadata?: Prisma.InputJsonValue,
+  ) {
+    const fallbackPoints = totalAmount
+      ? Math.max(1, Math.floor(totalAmount * 0.05))
+      : POINTS_PER_GROCERY_ORDER;
+
+    return this.awardActivityReward({
+      activityKey: GROCERY_ORDER_REWARD_RULE_KEY,
+      userId,
+      sourceType: RewardLedgerSourceType.GROCERY_ORDER_COMPLETE,
+      sourceId: groceryOrderId,
+      defaultPoints: fallbackPoints,
+      description: `Completed partner grocery order (#${groceryOrderId})`,
+      metadata,
+    });
+  }
+
+  async awardSentAppreciation(
+    parentUserId: string,
+    nannyUserId: string,
+    appreciationId: string,
+    metadata?: Prisma.InputJsonValue,
+  ) {
+    return this.awardActivityReward({
+      activityKey: APPRECIATION_REWARD_RULE_KEY,
+      userId: parentUserId,
+      sourceType: RewardLedgerSourceType.SEND_NANNY_APPRECIATION,
+      sourceId: appreciationId,
+      defaultPoints: POINTS_PER_APPRECIATION,
+      description: 'Sent appreciation to caregiver',
+      metadata: { ...((metadata as Record<string, unknown>) ?? {}), nannyUserId },
+      userRole: UserRole.PARENT,
     });
   }
 

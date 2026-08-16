@@ -18,6 +18,7 @@ import sharp from 'sharp';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
 import { NotificationService } from '../../notification/notification.service';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { StorageService } from '../../../common/storage/storage.service';
 import {
   CreatePartnerOfferDto,
   PartnerOfferLocationDto,
@@ -31,9 +32,14 @@ export class PartnerOfferService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
+    private readonly storageService: StorageService,
   ) {}
 
-  async createOffer(user: CurrentUserPayload, dto: CreatePartnerOfferDto) {
+  async createOffer(
+    user: CurrentUserPayload,
+    dto: CreatePartnerOfferDto,
+    image?: Express.Multer.File,
+  ) {
     this.ensurePartner(user);
     const partnerUserId = this.currentUserId(user);
     const status = dto.status ?? PartnerOfferStatus.PENDING_APPROVAL;
@@ -41,9 +47,17 @@ export class PartnerOfferService {
     await this.validateOfferPayload(partnerUserId, dto);
     await this.validateLocations(partnerUserId, dto.locations);
 
+    const uploadedHeroImageUrl =
+      image && !dto.useDefaultHeroImage
+        ? await this.storageService.uploadFile(image, 'partner-offers')
+        : null;
+
     const offer = await this.prisma.partnerOffer.create({
       data: {
-        ...this.offerData(dto),
+        ...this.offerData({
+          ...dto,
+          ...(uploadedHeroImageUrl && { heroImageUrl: uploadedHeroImageUrl }),
+        }),
         partnerUserId,
         redemptionFlow: dto.redemptionFlow,
         offerType: dto.offerType,
@@ -194,6 +208,7 @@ export class PartnerOfferService {
     user: CurrentUserPayload,
     offerId: string,
     dto: UpdatePartnerOfferDto,
+    image?: Express.Multer.File,
   ) {
     this.ensurePartner(user);
     const partnerUserId = this.currentUserId(user);
@@ -212,9 +227,15 @@ export class PartnerOfferService {
       );
     }
 
+    const uploadedHeroImageUrl =
+      image && !dto.useDefaultHeroImage
+        ? await this.storageService.uploadFile(image, 'partner-offers')
+        : undefined;
+
     const merged = {
       ...existing,
       ...dto,
+      ...(uploadedHeroImageUrl && { heroImageUrl: uploadedHeroImageUrl }),
     } as CreatePartnerOfferDto;
 
     await this.validateOfferPayload(partnerUserId, merged);
@@ -232,6 +253,7 @@ export class PartnerOfferService {
       data: {
         ...this.offerData({
           ...dto,
+          ...(uploadedHeroImageUrl && { heroImageUrl: uploadedHeroImageUrl }),
           offerType: dto.offerType ?? existing.offerType,
         }),
         ...(nextStatus !== undefined && {

@@ -199,7 +199,12 @@ export class NannyFeedbackService {
       return { feedback, dayActivity };
     });
 
-    const reward =
+    const isBedtimeStory =
+      updated.dayActivity.category?.toUpperCase() === 'BEDTIME' ||
+      updated.dayActivity.title?.toLowerCase().includes('bedtime') ||
+      updated.dayActivity.title?.toLowerCase().includes('story');
+
+    let reward =
       updated.dayActivity.status === ActivityStatus.COMPLETED
         ? await this.rewardsService.awardCompletedTask(
             nannyUserId,
@@ -212,6 +217,14 @@ export class NannyFeedbackService {
             },
           )
         : null;
+
+    if (updated.dayActivity.status === ActivityStatus.COMPLETED && isBedtimeStory) {
+      await this.rewardsService.awardBedtimeStory(nannyUserId, dayActivityId, {
+        title: updated.dayActivity.title,
+        childId: updated.dayActivity.dayPlan.childId,
+        completedByRole: UserRole.NANNY,
+      });
+    }
 
     return {
       success: true,
@@ -304,6 +317,11 @@ export class NannyFeedbackService {
       });
     });
 
+    const isBedtimeStory =
+      updated.category?.toUpperCase() === 'BEDTIME' ||
+      updated.title?.toLowerCase().includes('bedtime') ||
+      updated.title?.toLowerCase().includes('story');
+
     const reward =
       updated.status === ActivityStatus.COMPLETED
         ? await this.rewardsService.awardCompletedTask(
@@ -317,6 +335,14 @@ export class NannyFeedbackService {
             },
           )
         : null;
+
+    if (updated.status === ActivityStatus.COMPLETED && isBedtimeStory) {
+      await this.rewardsService.awardBedtimeStory(nannyUserId, dayActivityId, {
+        title: updated.title,
+        childId: updated.dayPlan.childId,
+        completedByRole: UserRole.NANNY,
+      });
+    }
 
     return {
       success: true,
