@@ -306,8 +306,8 @@ export class AuthService {
       this.prisma.dayActivityProof.count({
         where: { uploadedByUserId: userId },
       }),
-      this.prisma.careModuleAssignment.count({
-        where: { nannyUserId: userId, status: 'COMPLETED' },
+      this.prisma.careModuleProgress.count({
+        where: { userId: userId, status: 'COMPLETED' },
       }),
     ]);
 

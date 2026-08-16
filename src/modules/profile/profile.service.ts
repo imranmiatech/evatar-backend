@@ -509,8 +509,8 @@ export class ProfileService {
     childId: string,
   ) {
     const [assignment, nannyLink, caregiverAccess] = await Promise.all([
-      this.prisma.careModuleAssignment.findFirst({
-        where: { childId, nannyUserId },
+      this.prisma.careModuleProgress.findFirst({
+        where: { userId: nannyUserId },
         select: { id: true },
       }),
       this.prisma.nannyChildLink.findFirst({

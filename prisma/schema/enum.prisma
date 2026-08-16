@@ -325,8 +325,7 @@ enum CareModuleAdminStatus {
   DRAFT
 }
 
-enum CareModuleAssignmentStatus {
-  ASSIGNED
+enum CareModuleProgressStatus {
   IN_PROGRESS
   COMPLETED
 }

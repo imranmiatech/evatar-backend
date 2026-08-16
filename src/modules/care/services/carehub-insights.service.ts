@@ -7,7 +7,7 @@ import {
 import {
   CareModuleCategory,
   CareModuleAdminStatus,
-  CareModuleAssignmentStatus,
+  CareModuleProgressStatus,
   CareQuestionType,
   ChildMood,
   CaregiverAccessRole,
@@ -18,45 +18,39 @@ import {
   TaskEnjoymentLevel,
   UserRole,
 } from '@prisma/client';
-import type { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
-import { PrismaService } from '../../prisma/prisma.service';
-import { RewardsService } from '../rewards/rewards.service';
-import { StorageService } from '../../common/storage/storage.service';
-import { AssignCareModuleDto } from './dto/assign-care-module.dto';
-import { CareChildInsightsQueryDto } from './dto/care-child-insights-query.dto';
+import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { RewardsService } from '../../rewards/rewards.service';
+import { StorageService } from '../../../common/storage/storage.service';
+
+import { CareChildInsightsQueryDto } from '../dto/care-child-insights-query.dto';
 import {
   CareHomeQueryDto,
   CareHomeTabsQueryDto,
   CareModuleQueryDto,
   CareModuleTab,
-} from './dto/care-module-query.dto';
-import { CareMonthlyHighlightsQueryDto } from './dto/care-monthly-highlights-query.dto';
-import { CreateCareChildNoteDto } from './dto/create-care-child-note.dto';
-import { CreateCareModuleDto } from './dto/create-care-module.dto';
-import { UpdateCareModuleDto } from './dto/update-care-module.dto';
-import { SubmitCareQuizDto } from './dto/submit-care-quiz.dto';
-import { ToggleCareModuleStatusDto } from './dto/toggle-care-module-status.dto';
-import { SaveCareModuleDto } from './dto/save-care-module.dto';
+} from '../dto/care-module-query.dto';
+import { CareMonthlyHighlightsQueryDto } from '../dto/care-monthly-highlights-query.dto';
+import { CreateCareChildNoteDto } from '../dto/create-care-child-note.dto';
+
+
+import { SubmitCareQuizDto } from '../dto/submit-care-quiz.dto';
+
+
 
 const moduleListSelect = {
   id: true,
   title: true,
-  subtitle: true,
-  description: true,
+  shortDescription: true,
   coverImageUrl: true,
   videoUrl: true,
   category: true,
-  estimatedMinutes: true,
-  coinReward: true,
-  suggestedMinAgeYears: true,
-  suggestedMaxAgeYears: true,
-  keyTakeaway: true,
+  completionPoints: true,
+  ageGroup: true,
   isPublished: true,
   createdAt: true,
   updatedAt: true,
-  questions: {
-    select: { id: true },
-  },
+  questions: { select: { id: true } },
 } satisfies Prisma.CareModuleSelect;
 
 const moduleDetailInclude = {
@@ -159,10 +153,18 @@ type CareModuleSuggestedAgeRange = {
   suggestedMaxAgeYears?: number;
 };
 
-type CreateCareModuleInput = CreateCareModuleDto & CareModuleSuggestedAgeRange;
+
 
 @Injectable()
-export class CareService {
+export class CarehubInsightsService {
+  private ageGroupForMonths(ageMonths: number) {
+    if (ageMonths <= 6) return '0-6 months';
+    if (ageMonths <= 12) return '6-12 months';
+    if (ageMonths <= 24) return '12-24 months';
+    if (ageMonths <= 48) return '2-4 years';
+    return '4 years +';
+  }
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly rewardsService: RewardsService,
@@ -219,24 +221,24 @@ export class CareService {
       this.validateQuestions(questions);
     }
     this.validateSuggestedAgeRange({
-      suggestedMinAgeYears,
-      suggestedMaxAgeYears,
+      /* suggestedMinAgeYears, */
+      /* suggestedMaxAgeYears, */
     });
 
     const module = await this.prisma.careModule.create({
       data: {
         title: dto.title.trim(),
-        subtitle: dto.subtitle?.trim(),
-        description: dto.description?.trim(),
+        
+        shortDescription: dto.description?.trim(),
         coverImageUrl,
         videoUrl,
         category: dto.category,
-        estimatedMinutes,
-        coinReward,
-        suggestedMinAgeYears,
-        suggestedMaxAgeYears,
-        contentTitle: dto.contentTitle?.trim(),
-        contentSections: contentSections ?? {},
+        /* estimatedMinutes, */
+        /* coinReward, */
+        /* suggestedMinAgeYears, */
+        /* suggestedMaxAgeYears, */
+        
+        
         keyTakeaway: dto.keyTakeaway?.trim(),
         isPublished:
           isPublished ?? dto.adminStatus === CareModuleAdminStatus.PUBLISHED,
@@ -273,7 +275,7 @@ export class CareService {
     return {
       success: true,
       message: 'Care module created successfully',
-      data: this.formatModuleDetail(module),
+      data: this.formatModuleDetail(module as any, undefined as any),
     };
   }
 
@@ -351,7 +353,7 @@ export class CareService {
         ...(dto.title !== undefined && { title: dto.title.trim() }),
         ...(dto.subtitle !== undefined && { subtitle: dto.subtitle?.trim() }),
         ...(dto.description !== undefined && {
-          description: dto.description?.trim(),
+          shortDescription: dto.description?.trim(),
         }),
         ...(coverImageUrl !== undefined && { coverImageUrl }),
         ...(videoUrl !== undefined && { videoUrl }),
@@ -361,7 +363,7 @@ export class CareService {
         ...(suggestedMinAgeYears !== undefined && { suggestedMinAgeYears }),
         ...(suggestedMaxAgeYears !== undefined && { suggestedMaxAgeYears }),
         ...(dto.contentTitle !== undefined && {
-          contentTitle: dto.contentTitle?.trim(),
+          
         }),
         ...(contentSections !== undefined && { contentSections }),
         ...(dto.keyTakeaway !== undefined && {
@@ -407,7 +409,8 @@ export class CareService {
     };
   }
 
-  async deleteModule(user: CurrentUserPayload, id: string) {
+  /* async deleteModule(user: CurrentUserPayload, id: string) {
+
     this.ensureAdmin(user);
 
     const existing = await this.prisma.careModule.findUnique({ where: { id } });
@@ -421,7 +424,7 @@ export class CareService {
       success: true,
       message: 'Care module deleted successfully',
     };
-  }
+  } */
 
   async getSuggestedModules(
     user: CurrentUserPayload,
@@ -448,14 +451,17 @@ export class CareService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
-    const ageYears = child.birthDate
-      ? this.childAgeYears(child.birthDate)
+    const ageMonths = child.birthDate
+      ? Math.floor((new Date().getTime() - child.birthDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44))
       : null;
+      
+    const matchedAgeGroup = ageMonths !== null ? this.ageGroupForMonths(ageMonths) : null;
+    const ageYears = ageMonths !== null ? Math.floor(ageMonths / 12) : null;
+
     const moduleWhere = {
       ...this.moduleWhere(query, user),
-      ...(ageYears !== null && {
-        suggestedMinAgeYears: { lte: ageYears },
-        suggestedMaxAgeYears: { gte: ageYears },
+      ...(matchedAgeGroup !== null && {
+        ageGroup: matchedAgeGroup
       }),
     } satisfies Prisma.CareModuleWhereInput;
 
@@ -470,13 +476,13 @@ export class CareService {
       this.prisma.careModule.count({ where: moduleWhere }),
     ]);
 
-    const [savedIds, assignmentByModuleId] = await Promise.all([
+    const [savedIds, progressByModuleId] = await Promise.all([
       this.savedModuleIds(
         userId,
         modules.map((module) => module.id),
         childId,
       ),
-      this.assignmentMapForCards(
+      this.progressMapForCards(
         user,
         { ...query, childId },
         modules.map((module) => module.id),
@@ -485,7 +491,7 @@ export class CareService {
     const cards = modules.map((module) =>
       this.formatModuleCard(module, {
         isSaved: savedIds.has(module.id),
-        assignment: assignmentByModuleId.get(module.id),
+        progress: progressByModuleId.get(module.id),
       }),
     );
 
@@ -590,7 +596,7 @@ export class CareService {
             tab: activeTab,
             topicId: selectedTopicId ?? 'ALL',
             search: homeQuery.search ?? null,
-            nannyUserId: homeQuery.nannyUserId ?? null,
+            userId: null,
           },
         },
       },
@@ -680,7 +686,7 @@ export class CareService {
               },
             },
           },
-          { careAssignments: { some: {} } },
+          
         ],
       },
       select: {
@@ -1071,14 +1077,14 @@ export class CareService {
       tab === CareModuleTab.COMPLETED ||
       this.isNanny(user)
     ) {
-      const where = await this.assignmentWhereForUser(user, query, tab);
-      const [assignments, total] = await Promise.all([
-        this.prisma.careModuleAssignment.findMany({
+      const where = await this.progressWhereForUser(user, query, tab);
+      const [progresses, total] = await Promise.all([
+        this.prisma.careModuleProgress.findMany({
           where: { ...where, module: moduleWhere },
           include: {
             module: { select: moduleListSelect },
-            child: { select: { id: true, name: true, avatar: true } },
-            nannyUser: {
+            
+            user: {
               select: {
                 id: true,
                 fullName: true,
@@ -1091,22 +1097,22 @@ export class CareService {
           skip,
           take: limit,
         }),
-        this.prisma.careModuleAssignment.count({
+        this.prisma.careModuleProgress.count({
           where: { ...where, module: moduleWhere },
         }),
       ]);
 
       const savedIds = await this.savedModuleIds(
         userId,
-        assignments.map((assignment) => assignment.moduleId),
+        progresses.map((progress) => progress.moduleId),
         query.childId,
       );
 
       return this.paginatedModules(
-        assignments.map((assignment) =>
-          this.formatModuleCard(assignment.module, {
-            assignment,
-            isSaved: savedIds.has(assignment.moduleId),
+        progresses.map((progress) =>
+          this.formatModuleCard(progress.module, {
+            progress,
+            isSaved: savedIds.has(progress.moduleId),
           }),
         ),
         total,
@@ -1126,13 +1132,13 @@ export class CareService {
       this.prisma.careModule.count({ where: moduleWhere }),
     ]);
 
-    const [savedIds, assignmentByModuleId] = await Promise.all([
+    const [savedIds, progressByModuleId] = await Promise.all([
       this.savedModuleIds(
         userId,
         modules.map((module) => module.id),
         query.childId,
       ),
-      this.assignmentMapForCards(
+      this.progressMapForCards(
         user,
         query,
         modules.map((module) => module.id),
@@ -1143,7 +1149,7 @@ export class CareService {
       modules.map((module) =>
         this.formatModuleCard(module, {
           isSaved: savedIds.has(module.id),
-          assignment: assignmentByModuleId.get(module.id),
+          progress: progressByModuleId.get(module.id),
         }),
       ),
       total,
@@ -1173,7 +1179,7 @@ export class CareService {
         include: {
           _count: {
             select: {
-              assignments: true,
+              progresses: true,
             },
           },
         },
@@ -1187,23 +1193,20 @@ export class CareService {
     const formattedModules = modules.map((m) => ({
       id: m.id,
       title: m.title,
-      subtitle: m.subtitle,
-      description: m.description,
+      
+      description: m.shortDescription ?? undefined,
       coverImageUrl: m.coverImageUrl,
       videoUrl: m.videoUrl,
       category: m.category,
-      ageGroup: this.formatAgeRange(
-        m.suggestedMinAgeYears,
-        m.suggestedMaxAgeYears,
-      ),
-      suggestedMinAgeYears: m.suggestedMinAgeYears,
-      suggestedMaxAgeYears: m.suggestedMaxAgeYears,
-      estimatedMinutes: m.estimatedMinutes ?? 15,
-      coinReward: m.coinReward,
+      
+      ageGroup: m.ageGroup,
+      
+      estimatedMinutes: 15,
+      coinReward: m.completionPoints,
       adminStatus: m.adminStatus,
       isPublished: m.isPublished,
-      assignedNanniesCount: m._count.assignments,
-      assignedText: `${m._count.assignments} Nannies`,
+      assignedNanniesCount: m._count.progresses,
+      assignedText: `${m._count.progresses} Nannies`,
       createdAt: m.createdAt,
       updatedAt: m.updatedAt,
     }));
@@ -1227,7 +1230,7 @@ export class CareService {
   async toggleModuleStatus(
     user: CurrentUserPayload,
     moduleId: string,
-    dto?: ToggleCareModuleStatusDto,
+    dto?: any,
   ) {
     this.ensureAdmin(user);
 
@@ -1282,7 +1285,7 @@ export class CareService {
       throw new NotFoundException(`Care module with ID ${moduleId} not found`);
     }
 
-    const assignedNanniesCount = await this.prisma.careModuleAssignment.count({
+    const assignedNanniesCount = await this.prisma.careModuleProgress.count({
       where: { moduleId },
     });
 
@@ -1290,11 +1293,8 @@ export class CareService {
       success: true,
       message: 'Admin care module details fetched successfully',
       data: {
-        ...this.formatModuleDetail(module),
-        ageGroup: this.formatAgeRange(
-          module.suggestedMinAgeYears,
-          module.suggestedMaxAgeYears,
-        ),
+        ...this.formatModuleDetail(module as any, undefined as any),
+        
         assignedNanniesCount,
         assignedText: `${assignedNanniesCount} Nannies`,
       },
@@ -1304,7 +1304,7 @@ export class CareService {
   async getModuleDetail(
     user: CurrentUserPayload,
     moduleId: string,
-    assignmentId?: string,
+    progressId?: string,
     childId?: string,
   ) {
     const userId = this.currentUserId(user);
@@ -1320,50 +1320,48 @@ export class CareService {
       throw new NotFoundException('Care module not found');
     }
 
-    const assignment = assignmentId
-      ? await this.getAssignmentForUser(user, assignmentId)
-      : await this.findRelevantAssignment(user, moduleId);
+    const progress = await this.prisma.careModuleProgress.findFirst({
+      where: { moduleId, userId }
+    });
 
     if (
-      assignment &&
-      assignment.status === CareModuleAssignmentStatus.ASSIGNED
+      progress &&
+      progress.status === CareModuleProgressStatus.IN_PROGRESS
     ) {
-      await this.prisma.careModuleAssignment.update({
-        where: { id: assignment.id },
+      await this.prisma.careModuleProgress.update({
+        where: { id: progress.id },
         data: {
-          status: CareModuleAssignmentStatus.IN_PROGRESS,
+          status: CareModuleProgressStatus.IN_PROGRESS,
           startedAt: new Date(),
         },
       });
-      assignment.status = CareModuleAssignmentStatus.IN_PROGRESS;
-      assignment.startedAt = new Date();
+      progress.status = CareModuleProgressStatus.IN_PROGRESS;
+      progress.startedAt = new Date();
     }
 
-    const savedChildId = childId ?? assignment?.childId;
-    const isSaved = savedChildId
-      ? await this.prisma.careModuleSave.findUnique({
-          where: {
-            moduleId_userId_childId: {
-              moduleId,
-              userId,
-              childId: savedChildId,
-            },
-          },
-          select: { id: true },
-        })
-      : null;
+    
+    const isSavedRecord = await this.prisma.careModuleSave.findUnique({
+      where: {
+        moduleId_userId: {
+          moduleId,
+          userId,
+        },
+      },
+    });
+    const isSaved = !!isSavedRecord;
 
     return {
       success: true,
       message: 'Care module fetched successfully',
       data: this.formatModuleDetail(module, {
-        assignment,
+        progress,
         isSaved: Boolean(isSaved),
       }),
     };
   }
 
-  async assignModule(user: CurrentUserPayload, dto: AssignCareModuleDto) {
+  /* async assignModule(user: CurrentUserPayload, dto: AssignCareModuleDto) {
+
     const userId = this.currentUserId(user);
     await this.assertCanAssignCare(userId, dto.childId);
 
@@ -1372,7 +1370,7 @@ export class CareService {
         where: { id: dto.moduleId, isPublished: true },
         select: { id: true },
       }),
-      this.resolveAssignmentNanny(dto.nannyUserId, dto.childId),
+      this.resolveProgressNanny(dto.userId, dto.childId),
     ]);
 
     if (!module) {
@@ -1389,56 +1387,55 @@ export class CareService {
 
     await this.assertNannyBelongsToChild(nanny.id, dto.childId);
 
-    const assignment = await this.prisma.careModuleAssignment.upsert({
+    const progress = await this.prisma.careModuleProgress.upsert({
       where: {
-        moduleId_childId_nannyUserId: {
+        moduleId_childId_userId: {
           moduleId: dto.moduleId,
           childId: dto.childId,
-          nannyUserId: nanny.id,
+          userId: nanny.id,
         },
       },
       update: {
-        assignedByUserId: userId,
-        status: CareModuleAssignmentStatus.IN_PROGRESS,
+        
+        status: CareModuleProgressStatus.IN_PROGRESS,
         startedAt: new Date(),
       },
       create: {
         moduleId: dto.moduleId,
         childId: dto.childId,
-        nannyUserId: nanny.id,
-        assignedByUserId: userId,
-        status: CareModuleAssignmentStatus.IN_PROGRESS,
+        userId: nanny.id,
+        
+        status: CareModuleProgressStatus.IN_PROGRESS,
         startedAt: new Date(),
       },
-      include: this.assignmentInclude(),
+      include: this.progressInclude(),
     });
 
     return {
       success: true,
       message: 'Care module assigned successfully',
-      data: this.formatAssignment(assignment),
+      data: this.formatProgress(progress as any),
     };
-  }
+  } */
 
   async saveModule(
     user: CurrentUserPayload,
     moduleId: string,
-    dto: SaveCareModuleDto,
+    
   ) {
     const userId = this.currentUserId(user);
     await this.assertPublishedModule(moduleId);
-    await this.assertCanSaveModuleForChild(user, dto.childId);
+    
 
     const save = await this.prisma.careModuleSave.upsert({
       where: {
-        moduleId_userId_childId: {
+        moduleId_userId: {
           moduleId,
           userId,
-          childId: dto.childId,
         },
       },
       update: {},
-      create: { moduleId, userId, childId: dto.childId },
+      create: { moduleId, userId },
     });
 
     return {
@@ -1451,13 +1448,13 @@ export class CareService {
   async removeSavedModule(
     user: CurrentUserPayload,
     moduleId: string,
-    dto: SaveCareModuleDto,
+    
   ) {
     const userId = this.currentUserId(user);
-    await this.assertCanSaveModuleForChild(user, dto.childId);
+    
 
     await this.prisma.careModuleSave.deleteMany({
-      where: { moduleId, userId, childId: dto.childId },
+      where: { moduleId, userId },
     });
 
     return {
@@ -1468,11 +1465,11 @@ export class CareService {
 
   async submitQuiz(
     user: CurrentUserPayload,
-    assignmentId: string,
+    progressId: string,
     dto: SubmitCareQuizDto,
   ) {
-    const assignment = await this.getAssignmentForUser(user, assignmentId);
-    const lockedUntil = this.quizLockedUntil(assignment);
+    const progress = await this.getProgressForUser(user, progressId);
+    const lockedUntil = this.quizLockedUntil(progress);
     if (lockedUntil && lockedUntil > new Date()) {
       throw new BadRequestException(
         `This quiz is locked until ${lockedUntil.toISOString()}`,
@@ -1480,7 +1477,7 @@ export class CareService {
     }
 
     const module = await this.prisma.careModule.findUnique({
-      where: { id: assignment.moduleId },
+      where: { id: progress.moduleId },
       include: {
         questions: {
           include: { options: true },
@@ -1514,7 +1511,7 @@ export class CareService {
       }
 
       return {
-        assignmentId,
+        progressId,
         questionId: question.id,
         selectedOptionId: selectedOption.id,
         isCorrect: selectedOption.isCorrect,
@@ -1528,21 +1525,21 @@ export class CareService {
     const score = Math.round((correctAnswers / totalQuestions) * 100);
     const isPerfectScore = correctAnswers === totalQuestions;
     const pointsEarned =
-      isPerfectScore && !assignment.pointsAwardedAt
+      isPerfectScore && !progress.pointsAwardedAt
         ? QUIZ_PERFECT_SCORE_POINTS
-        : assignment.pointsEarned;
+        : progress.pointsEarned;
     const pointsAwardedAt =
-      isPerfectScore && !assignment.pointsAwardedAt
+      isPerfectScore && !progress.pointsAwardedAt
         ? new Date()
-        : assignment.pointsAwardedAt;
+        : progress.pointsAwardedAt;
 
     await this.prisma.$transaction(async (tx) => {
       await Promise.all(
         answerRows.map((answer) =>
           tx.careQuizAnswer.upsert({
             where: {
-              assignmentId_questionId: {
-                assignmentId,
+              progressId_questionId: {
+                progressId,
                 questionId: answer.questionId,
               },
             },
@@ -1556,44 +1553,44 @@ export class CareService {
         ),
       );
 
-      await tx.careModuleAssignment.update({
-        where: { id: assignmentId },
+      await tx.careModuleProgress.update({
+        where: { id: progressId },
         data: {
           status: isPerfectScore
-            ? CareModuleAssignmentStatus.COMPLETED
-            : CareModuleAssignmentStatus.IN_PROGRESS,
+            ? CareModuleProgressStatus.COMPLETED
+            : CareModuleProgressStatus.IN_PROGRESS,
           completedAt: isPerfectScore ? new Date() : null,
           totalQuestions,
           correctAnswers,
           score,
           pointsEarned,
           pointsAwardedAt,
-          startedAt: assignment.startedAt ?? new Date(),
+          startedAt: progress.startedAt ?? new Date(),
         },
       });
     });
 
     if (isPerfectScore) {
       await this.rewardsService.awardCareModuleCompletion(
-        assignment.nannyUserId,
-        assignmentId,
+        progress.userId,
+        progressId,
         QUIZ_PERFECT_SCORE_POINTS,
         {
           moduleId: module.id,
           moduleTitle: module.title,
-          childId: assignment.childId,
+          
           completedByRole: user.role,
         },
       );
     }
 
-    return this.getQuizResult(user, assignmentId);
+    return this.getQuizResult(user, progressId);
   }
 
-  async getQuizResult(user: CurrentUserPayload, assignmentId: string) {
-    const assignment = await this.getAssignmentForUser(user, assignmentId);
+  async getQuizResult(user: CurrentUserPayload, progressId: string) {
+    const progress = await this.getProgressForUser(user, progressId);
     const answers = await this.prisma.careQuizAnswer.findMany({
-      where: { assignmentId },
+      where: { progressId },
       include: {
         selectedOption: { select: { id: true, label: true, isCorrect: true } },
         question: {
@@ -1617,16 +1614,16 @@ export class CareService {
       success: true,
       message: 'Care quiz result fetched successfully',
       data: {
-        assignment: this.formatAssignmentSummary(assignment),
+        progress: this.formatProgressSummary(progress),
         result: {
-          correctAnswers: assignment.correctAnswers ?? 0,
-          totalQuestions: assignment.totalQuestions ?? answers.length,
-          score: assignment.score ?? 0,
-          pointsEarned: assignment.pointsEarned,
-          pointsAwardedAt: assignment.pointsAwardedAt,
-          canRetakeQuiz: !this.quizLockedUntil(assignment),
-          quizLockedUntil: this.quizLockedUntil(assignment),
-          completedAt: assignment.completedAt,
+          correctAnswers: progress.correctAnswers ?? 0,
+          totalQuestions: progress.totalQuestions ?? answers.length,
+          score: progress.score ?? 0,
+          pointsEarned: progress.pointsEarned,
+          pointsAwardedAt: progress.pointsAwardedAt,
+          canRetakeQuiz: !this.quizLockedUntil(progress),
+          quizLockedUntil: this.quizLockedUntil(progress),
+          completedAt: progress.completedAt,
         },
         answers: answers.map((answer) => ({
           questionId: answer.questionId,
@@ -1653,7 +1650,7 @@ export class CareService {
     };
   }
 
-  private validateQuestions(questions: CreateCareModuleDto['questions']) {
+  private validateQuestions(questions: any) {
     for (const question of questions) {
       const correctCount = question.options.filter(
         (option) => option.isCorrect,
@@ -1737,15 +1734,15 @@ export class CareService {
       tab === CareModuleTab.COMPLETED ||
       this.isNanny(user)
     ) {
-      const assignmentWhere = await this.assignmentWhereForUser(
+      const progressWhere = await this.progressWhereForUser(
         user,
         countQuery,
         tab,
       );
 
-      return this.prisma.careModuleAssignment.count({
+      return this.prisma.careModuleProgress.count({
         where: {
-          ...assignmentWhere,
+          ...progressWhere,
           module: moduleWhere,
         },
       });
@@ -1778,7 +1775,7 @@ export class CareService {
 
   private moduleWhere(query: CareModuleQueryDto, user?: CurrentUserPayload) {
     const isAdmin = user && this.isAdmin(user);
-    const adminStatus = query.adminStatus;
+    const adminStatus = undefined;
     const category = query.category;
     const searchCategories = query.search
       ? this.matchingCareCategories(query.search)
@@ -1786,24 +1783,14 @@ export class CareService {
 
     return {
       ...(!isAdmin && { isPublished: true }),
-      ...(isAdmin &&
-        adminStatus &&
-        adminStatus !== CareModuleAdminStatus.ALL && {
-          adminStatus: adminStatus,
-        }),
+      
       ...(category && { category: category }),
       ...(query.search && {
         OR: [
           { title: { contains: query.search, mode: 'insensitive' as const } },
+          { shortDescription: { contains: query.search, mode: "insensitive" as const } },
           {
-            subtitle: { contains: query.search, mode: 'insensitive' as const },
-          },
-          {
-            description: {
-              contains: query.search,
-              mode: 'insensitive' as const,
             },
-          },
           ...(searchCategories.length > 0
             ? [{ category: { in: searchCategories } }]
             : []),
@@ -1843,20 +1830,20 @@ export class CareService {
     return 'All ages';
   }
 
-  private async assignmentWhereForUser(
+  private async progressWhereForUser(
     user: CurrentUserPayload,
     query: CareModuleQueryDto,
     tab: CareModuleTab,
   ) {
     const userId = this.currentUserId(user);
-    const tabWhere = this.assignmentTabWhere(tab);
+    const tabWhere = this.progressTabWhere(tab);
 
     if (this.isNanny(user)) {
       return {
-        nannyUserId: userId,
+        userId: userId,
         ...(query.childId && { childId: query.childId }),
         ...tabWhere,
-      } satisfies Prisma.CareModuleAssignmentWhereInput;
+      } satisfies Prisma.CareModuleProgressWhereInput;
     }
 
     const childIds = query.childId
@@ -1864,49 +1851,49 @@ export class CareService {
       : await this.accessibleChildIds(userId);
 
     return {
-      childId: { in: childIds },
-      ...(query.nannyUserId && { nannyUserId: query.nannyUserId }),
+      
+      
       ...tabWhere,
-    } satisfies Prisma.CareModuleAssignmentWhereInput;
+    } satisfies Prisma.CareModuleProgressWhereInput;
   }
 
-  private assignmentTabWhere(tab: CareModuleTab) {
+  private progressTabWhere(tab: CareModuleTab) {
     if (tab === CareModuleTab.IN_PROGRESS) {
       return {
         OR: [
           {
             status: {
               in: [
-                CareModuleAssignmentStatus.ASSIGNED,
-                CareModuleAssignmentStatus.IN_PROGRESS,
+                CareModuleProgressStatus.IN_PROGRESS,
+                CareModuleProgressStatus.IN_PROGRESS,
               ],
             },
           },
           {
-            status: CareModuleAssignmentStatus.COMPLETED,
+            status: CareModuleProgressStatus.COMPLETED,
             score: { lt: 100 },
           },
         ],
-      } satisfies Prisma.CareModuleAssignmentWhereInput;
+      } satisfies Prisma.CareModuleProgressWhereInput;
     }
 
     if (tab === CareModuleTab.COMPLETED) {
       return {
-        status: CareModuleAssignmentStatus.COMPLETED,
+        status: CareModuleProgressStatus.COMPLETED,
         score: 100,
-      } satisfies Prisma.CareModuleAssignmentWhereInput;
+      } satisfies Prisma.CareModuleProgressWhereInput;
     }
 
     return {};
   }
 
-  private async assignmentMapForCards(
+  private async progressMapForCards(
     user: CurrentUserPayload,
     query: CareModuleQueryDto,
     moduleIds: string[],
   ) {
     if (moduleIds.length === 0) {
-      return new Map<string, Prisma.CareModuleAssignmentGetPayload<object>>();
+      return new Map<string, Prisma.CareModuleProgressGetPayload<object>>();
     }
 
     const userId = this.currentUserId(user);
@@ -1916,21 +1903,21 @@ export class CareService {
         ? undefined
         : await this.accessibleChildIds(userId);
 
-    const assignments = await this.prisma.careModuleAssignment.findMany({
+    const progresses = await this.prisma.careModuleProgress.findMany({
       where: {
         moduleId: { in: moduleIds },
         ...(this.isNanny(user)
-          ? { nannyUserId: userId }
+          ? { userId: userId }
           : {
-              childId: { in: childIds },
-              ...(query.nannyUserId && { nannyUserId: query.nannyUserId }),
+              
+              
             }),
       },
       orderBy: { updatedAt: 'desc' },
     });
 
     return new Map(
-      assignments.map((assignment) => [assignment.moduleId, assignment]),
+      progresses.map((progress) => [progress.moduleId, progress]),
     );
   }
 
@@ -1942,53 +1929,53 @@ export class CareService {
     if (moduleIds.length === 0 || !childId) return new Set<string>();
 
     const saves = await this.prisma.careModuleSave.findMany({
-      where: { userId, childId, moduleId: { in: moduleIds } },
+      where: { userId, moduleId: { in: moduleIds } },
       select: { moduleId: true },
     });
 
     return new Set(saves.map((save) => save.moduleId));
   }
 
-  private async findRelevantAssignment(
+  private async findRelevantProgress(
     user: CurrentUserPayload,
     moduleId: string,
   ) {
     if (!this.isNanny(user)) return null;
 
-    return this.prisma.careModuleAssignment.findFirst({
+    return this.prisma.careModuleProgress.findFirst({
       where: {
         moduleId,
-        nannyUserId: this.currentUserId(user),
+        userId: this.currentUserId(user),
       },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  private async getAssignmentForUser(
+  private async getProgressForUser(
     user: CurrentUserPayload,
-    assignmentId: string,
+    progressId: string,
   ) {
-    const assignment = await this.prisma.careModuleAssignment.findUnique({
-      where: { id: assignmentId },
-      include: this.assignmentInclude(),
+    const progress = await this.prisma.careModuleProgress.findUnique({
+      where: { id: progressId },
+      include: this.progressInclude(),
     });
 
-    if (!assignment) {
-      throw new NotFoundException('Care assignment not found');
+    if (!progress) {
+      throw new NotFoundException('Care progress not found');
     }
 
     const userId = this.currentUserId(user);
     if (this.isNanny(user)) {
-      if (assignment.nannyUserId !== userId) {
+      if (progress.userId !== userId) {
         throw new ForbiddenException(
-          'This assignment belongs to another nanny',
+          'This progress belongs to another nanny',
         );
       }
-      return assignment;
+      return progress;
     }
 
-    await this.assertCanViewCare(userId, assignment.childId);
-    return assignment;
+    
+    return progress;
   }
 
   private async assertCanViewCare(userId: string, childId: string) {
@@ -2021,22 +2008,21 @@ export class CareService {
   }
 
   private async assertNannyCanViewChildCare(
-    nannyUserId: string,
+    userId: string,
     childId: string,
   ) {
-    const [assignment, nannyLink, caregiverAccess] = await Promise.all([
-      this.prisma.careModuleAssignment.findFirst({
-        where: { childId, nannyUserId },
+    const [progress, nannyLink, caregiverAccess] = await Promise.all([
+      this.prisma.careModuleProgress.findFirst({ where: { userId },
         select: { id: true },
       }),
       this.prisma.nannyChildLink.findFirst({
-        where: { childId, nannyUserId },
+        where: { childId, nannyUserId: userId },
         select: { id: true },
       }),
       this.prisma.caregiverAccess.findFirst({
         where: {
           childId,
-          invitedUserId: nannyUserId,
+          invitedUserId: userId,
           role: CaregiverAccessRole.NANNY,
           status: CaregiverAccessStatus.ACCEPTED,
           OR: [{ careLearningAccess: true }, { nannyDevelopment: true }],
@@ -2045,7 +2031,7 @@ export class CareService {
       }),
     ]);
 
-    if (!assignment && !nannyLink && !caregiverAccess) {
+    if (!progress && !nannyLink && !caregiverAccess) {
       throw new ForbiddenException(
         'You do not have access to this care module',
       );
@@ -2086,7 +2072,7 @@ export class CareService {
   }
 
   private async accessibleChildIds(userId: string) {
-    const [children, accesses, nannyAssignments, nannyLinks] =
+    const [children, accesses, nannyProgresss, nannyLinks] =
       await Promise.all([
         this.prisma.child.findMany({
           where: { parentUserId: userId },
@@ -2102,29 +2088,28 @@ export class CareService {
               { manageCareTeam: true },
             ],
           },
-          select: { childId: true },
+          select: { id: true },
         }),
-        this.prisma.careModuleAssignment.findMany({
-          where: { nannyUserId: userId },
-          select: { childId: true },
+        this.prisma.careModuleProgress.findMany({ where: { userId },
+          select: { id: true },
         }),
         this.prisma.nannyChildLink.findMany({
           where: { nannyUserId: userId },
-          select: { childId: true },
+          select: { id: true },
         }),
       ]);
 
     return [
       ...new Set([
         ...children.map((child) => child.id),
-        ...accesses.map((access) => access.childId),
-        ...nannyAssignments.map((assignment) => assignment.childId),
-        ...nannyLinks.map((link) => link.childId),
+        
+        
+        
       ]),
     ];
   }
 
-  private async resolveAssignmentNanny(
+  private async resolveProgressNanny(
     nannyUserIdOrAccessId: string,
     childId: string,
   ) {
@@ -2165,14 +2150,14 @@ export class CareService {
   }
 
   private async assertNannyBelongsToChild(
-    nannyUserId: string,
+    userId: string,
     childId: string,
   ) {
     const [caregiverAccess, nannyLink] = await Promise.all([
       this.prisma.caregiverAccess.findFirst({
         where: {
           childId,
-          invitedUserId: nannyUserId,
+          invitedUserId: userId,
           role: CaregiverAccessRole.NANNY,
           status: {
             in: [CaregiverAccessStatus.PENDING, CaregiverAccessStatus.ACCEPTED],
@@ -2181,7 +2166,7 @@ export class CareService {
         select: { id: true },
       }),
       this.prisma.nannyChildLink.findFirst({
-        where: { childId, nannyUserId },
+        where: { childId, nannyUserId: userId },
         select: { id: true },
       }),
     ]);
@@ -2206,32 +2191,32 @@ export class CareService {
     module: Prisma.CareModuleGetPayload<{ select: typeof moduleListSelect }>,
     options: {
       isSaved?: boolean;
-      assignment?:
-        | Prisma.CareModuleAssignmentGetPayload<{
-            include: ReturnType<CareService['assignmentInclude']>;
+      progress?:
+        | Prisma.CareModuleProgressGetPayload<{
+            include: ReturnType<CarehubInsightsService['progressInclude']>;
           }>
-        | Prisma.CareModuleAssignmentGetPayload<object>
+        | Prisma.CareModuleProgressGetPayload<object>
         | null;
     } = {},
   ) {
     return {
       id: module.id,
       title: module.title,
-      subtitle: module.subtitle,
-      description: module.description,
+      
+      description: module.shortDescription ?? undefined,
       coverImageUrl: module.coverImageUrl,
       videoUrl: module.videoUrl,
       category: module.category,
-      estimatedMinutes: module.estimatedMinutes,
-      coinReward: module.coinReward,
-      suggestedMinAgeYears: module.suggestedMinAgeYears,
-      suggestedMaxAgeYears: module.suggestedMaxAgeYears,
-      keyTakeaway: module.keyTakeaway,
+      
+      coinReward: module.completionPoints,
+      ageGroup: module.ageGroup,
+      
+      keyTakeaway: (module as any).keyTakeaway,
       isPublished: module.isPublished,
       isSaved: Boolean(options.isSaved),
       questionCount: module.questions.length,
-      assignment: options.assignment
-        ? this.formatAssignmentSummary(options.assignment)
+      progress: options.progress
+        ? this.formatProgressSummary(options.progress)
         : null,
       createdAt: module.createdAt,
       updatedAt: module.updatedAt,
@@ -2244,29 +2229,29 @@ export class CareService {
     }>,
     options: {
       isSaved?: boolean;
-      assignment?: Prisma.CareModuleAssignmentGetPayload<object> | null;
+      progress?: Prisma.CareModuleProgressGetPayload<object> | null;
     } = {},
   ) {
     return {
       id: module.id,
       title: module.title,
-      subtitle: module.subtitle,
-      description: module.description,
+      
+      description: module.shortDescription ?? undefined,
       coverImageUrl: module.coverImageUrl,
       videoUrl: module.videoUrl,
       category: module.category,
-      estimatedMinutes: module.estimatedMinutes,
-      coinReward: module.coinReward,
-      suggestedMinAgeYears: module.suggestedMinAgeYears,
-      suggestedMaxAgeYears: module.suggestedMaxAgeYears,
-      contentTitle: module.contentTitle,
-      contentSections: module.contentSections,
-      keyTakeaway: module.keyTakeaway,
+      
+      coinReward: module.completionPoints,
+      ageGroup: module.ageGroup,
+      
+      
+      contentSections: module.moduleDescriptions,
+      keyTakeaway: (module as any).keyTakeaway,
       isPublished: module.isPublished,
       adminStatus: module.adminStatus,
       isSaved: Boolean(options.isSaved),
-      assignment: options.assignment
-        ? this.formatAssignmentSummary(options.assignment)
+      progress: options.progress
+        ? this.formatProgressSummary(options.progress)
         : null,
       questions: module.questions.map((question) => ({
         id: question.id,
@@ -2284,23 +2269,23 @@ export class CareService {
     };
   }
 
-  private formatAssignment(
-    assignment: Prisma.CareModuleAssignmentGetPayload<{
-      include: ReturnType<CareService['assignmentInclude']>;
+  private formatProgress(
+    progress: Prisma.CareModuleProgressGetPayload<{
+      include: ReturnType<CarehubInsightsService['progressInclude']>;
     }>,
   ) {
     return {
-      ...this.formatAssignmentSummary(assignment),
-      module: assignment.module,
-      child: assignment.child,
-      nanny: assignment.nannyUser,
-      assignedByUser: assignment.assignedByUser,
+      ...this.formatProgressSummary(progress),
+      module: progress.module,
+      
+      nanny: (progress as any).user,
+      
     };
   }
 
   private formatInsightActivity(
     activity: Prisma.DayActivityGetPayload<{
-      include: ReturnType<CareService['insightActivityInclude']>;
+      include: ReturnType<CarehubInsightsService['insightActivityInclude']>;
     }>,
   ) {
     return {
@@ -2329,7 +2314,7 @@ export class CareService {
 
   private formatChildNote(
     note: Prisma.CareChildNoteGetPayload<{
-      include: ReturnType<CareService['childNoteInclude']>;
+      include: ReturnType<CarehubInsightsService['childNoteInclude']>;
     }>,
     childId: string,
   ) {
@@ -2356,7 +2341,7 @@ export class CareService {
 
   private noteAuthorRelationship(
     note: Prisma.CareChildNoteGetPayload<{
-      include: ReturnType<CareService['childNoteInclude']>;
+      include: ReturnType<CarehubInsightsService['childNoteInclude']>;
     }>,
     childId: string,
   ) {
@@ -2430,69 +2415,67 @@ export class CareService {
     }));
   }
 
-  private formatAssignmentSummary(
-    assignment:
-      | Prisma.CareModuleAssignmentGetPayload<{
-          include: ReturnType<CareService['assignmentInclude']>;
+  private formatProgressSummary(
+    progress:
+      | Prisma.CareModuleProgressGetPayload<{
+          include: ReturnType<CarehubInsightsService['progressInclude']>;
         }>
-      | Prisma.CareModuleAssignmentGetPayload<object>,
+      | Prisma.CareModuleProgressGetPayload<object>,
   ) {
-    const status = this.effectiveAssignmentStatus(assignment);
+    const status = this.effectiveProgressStatus(progress);
 
     return {
-      id: assignment.id,
-      moduleId: assignment.moduleId,
-      childId: assignment.childId,
-      nannyUserId: assignment.nannyUserId,
-      assignedByUserId: assignment.assignedByUserId,
+      id: progress.id,
+      moduleId: progress.moduleId,
+      
+      userId: progress.userId,
+      
       status,
-      score: assignment.score,
-      totalQuestions: assignment.totalQuestions,
-      correctAnswers: assignment.correctAnswers,
-      pointsEarned: assignment.pointsEarned,
-      pointsAwardedAt: assignment.pointsAwardedAt,
-      canRetakeQuiz: !this.quizLockedUntil(assignment),
-      quizLockedUntil: this.quizLockedUntil(assignment),
-      startedAt: assignment.startedAt,
+      score: progress.score,
+      totalQuestions: progress.totalQuestions,
+      correctAnswers: progress.correctAnswers,
+      pointsEarned: progress.pointsEarned,
+      pointsAwardedAt: progress.pointsAwardedAt,
+      canRetakeQuiz: !this.quizLockedUntil(progress),
+      quizLockedUntil: this.quizLockedUntil(progress),
+      startedAt: progress.startedAt,
       completedAt:
-        status === CareModuleAssignmentStatus.COMPLETED
-          ? assignment.completedAt
+        status === CareModuleProgressStatus.COMPLETED
+          ? progress.completedAt
           : null,
-      createdAt: assignment.createdAt,
-      updatedAt: assignment.updatedAt,
+      createdAt: progress.createdAt,
+      updatedAt: progress.updatedAt,
     };
   }
 
-  private effectiveAssignmentStatus(
-    assignment: Prisma.CareModuleAssignmentGetPayload<object>,
+  private effectiveProgressStatus(
+    progress: Prisma.CareModuleProgressGetPayload<object>,
   ) {
-    if (assignment.status === CareModuleAssignmentStatus.ASSIGNED) {
-      return CareModuleAssignmentStatus.IN_PROGRESS;
-    }
+    
 
     if (
-      assignment.status === CareModuleAssignmentStatus.COMPLETED &&
-      (assignment.score ?? 0) < 100
+      progress.status === CareModuleProgressStatus.COMPLETED &&
+      (progress.score ?? 0) < 100
     ) {
-      return CareModuleAssignmentStatus.IN_PROGRESS;
+      return CareModuleProgressStatus.IN_PROGRESS;
     }
 
-    return assignment.status;
+    return progress.status;
   }
 
   private quizLockedUntil(
-    assignment: Prisma.CareModuleAssignmentGetPayload<object>,
+    progress: Prisma.CareModuleProgressGetPayload<object>,
   ) {
-    if (!assignment.pointsAwardedAt) return null;
+    if (!progress.pointsAwardedAt) return null;
 
-    const lockedUntil = new Date(assignment.pointsAwardedAt);
+    const lockedUntil = new Date(progress.pointsAwardedAt);
     lockedUntil.setMonth(lockedUntil.getMonth() + QUIZ_RETAKE_COOLDOWN_MONTHS);
 
     return lockedUntil > new Date() ? lockedUntil : null;
   }
 
   private paginatedModules(
-    modules: ReturnType<CareService['formatModuleCard']>[],
+    modules: ReturnType<CarehubInsightsService['formatModuleCard']>[],
     total: number,
     page: number,
     limit: number,
@@ -2510,11 +2493,11 @@ export class CareService {
     };
   }
 
-  private assignmentInclude() {
+  private progressInclude() {
     return {
       module: { select: moduleListSelect },
-      child: { select: { id: true, name: true, avatar: true } },
-      nannyUser: {
+      
+      user: {
         select: {
           id: true,
           fullName: true,
@@ -2522,15 +2505,7 @@ export class CareService {
           profilePictureUrl: true,
         },
       },
-      assignedByUser: {
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          profilePictureUrl: true,
-        },
-      },
-    } satisfies Prisma.CareModuleAssignmentInclude;
+    } satisfies Prisma.CareModuleProgressInclude;
   }
 
   private insightActivityInclude() {
