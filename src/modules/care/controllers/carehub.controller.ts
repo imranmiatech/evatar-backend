@@ -6,10 +6,8 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 
-import { CareModuleQueryDto } from '../dto/care-module-query.dto';
+import { CareModuleQueryDto, CareModuleTab } from '../dto/care-module-query.dto';
 import { CarehubService } from '../services/carehub.service';
-
-
 
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -27,7 +25,7 @@ export class CarehubController {
     @CurrentUser() user: CurrentUserPayload,
     @Query() query: CareModuleQueryDto,
   ) {
-    return this.careService.getModules(user, query);
+    return this.careService.getModules(user, { ...query, tab: CareModuleTab.ALL });
   }
 
   @Get('home/topics')
@@ -58,13 +56,14 @@ export class CarehubController {
 
   @Get('module-progress')
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
-  @ApiOperation({ summary: 'Get In Progress or Completed modules for the user' })
-  @ApiQuery({ name: 'tab', enum: ['IN_PROGRESS', 'COMPLETED'], required: true })
+  @ApiOperation({ summary: 'Get In Progress, Completed, or Saved modules for the user' })
+  @ApiQuery({ name: 'tab', enum: ['SAVED', 'IN_PROGRESS', 'COMPLETED'], required: true })
   getModuleProgress(
     @CurrentUser() user: CurrentUserPayload,
+    @Query('tab') tab: CareModuleTab,
     @Query() query: CareModuleQueryDto,
   ) {
-    return this.careService.getModuleProgress(user, query);
+    return this.careService.getModules(user, { ...query, tab });
   }
 
   @Get('modules/:moduleId')

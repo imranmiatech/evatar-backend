@@ -164,42 +164,7 @@ export class CarehubService {
     return '4 years +';
   }
 
-  async getModuleProgress(user: any, query: any) {
-    const tab = query.tab;
-    const userId = user.userId || user.id;
-    const progresses = await this.prisma.careModuleProgress.findMany({
-      where: {
-        userId,
-        status: tab === 'COMPLETED' ? 'COMPLETED' : 'IN_PROGRESS',
-      },
-      include: {
-        module: {
-          select: moduleListSelect
-        }
-      }
-    });
 
-    const items = progresses.map(p => {
-      return this.formatModuleCard(p.module as any, p as any);
-    });
-
-    return {
-      success: true,
-      statusCode: 200,
-      message: 'Modules fetched successfully',
-      data: {
-        modules: items,
-        meta: {
-          total: items.length,
-          page: 1,
-          limit: 100,
-          totalPages: 1
-        }
-      },
-      timestamp: new Date().toISOString(),
-      path: '/api/v1/care/module-progress'
-    };
-  }
 
   constructor(
     private readonly prisma: PrismaService,
@@ -1060,7 +1025,7 @@ export class CarehubService {
     };
   }
 
-  async getModules(user: CurrentUserPayload, query: CareModuleQueryDto) {
+  async getModules(user: CurrentUserPayload, query: CareModuleQueryDto & { tab?: CareModuleTab }) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
@@ -1459,12 +1424,16 @@ export class CarehubService {
     const userId = this.currentUserId(user);
     await this.assertPublishedModule(moduleId);
 
-    const save = await this.prisma.careModuleSave.upsert({
-      where: {
-        moduleId_userId: { moduleId, userId },
-      },
-      update: {},
-      create: { moduleId, userId },
+    const existingSave = await this.prisma.careModuleSave.findUnique({
+      where: { moduleId_userId: { moduleId, userId } },
+    });
+
+    if (existingSave) {
+      throw new BadRequestException('Care module is already saved');
+    }
+
+    const save = await this.prisma.careModuleSave.create({
+      data: { moduleId, userId },
     });
 
     return {
@@ -1480,8 +1449,16 @@ export class CarehubService {
   ) {
     const userId = this.currentUserId(user);
 
-    await this.prisma.careModuleSave.deleteMany({
-      where: { moduleId, userId },
+    const existingSave = await this.prisma.careModuleSave.findUnique({
+      where: { moduleId_userId: { moduleId, userId } },
+    });
+
+    if (!existingSave) {
+      throw new NotFoundException('Care module is not in your saved list');
+    }
+
+    await this.prisma.careModuleSave.delete({
+      where: { moduleId_userId: { moduleId, userId } },
     });
 
     return {

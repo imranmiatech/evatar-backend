@@ -1024,7 +1024,7 @@ export class CarehubQuizService {
     };
   }
 
-  async getModules(user: CurrentUserPayload, query: CareModuleQueryDto) {
+  async getModules(user: CurrentUserPayload, query: CareModuleQueryDto & { tab?: CareModuleTab }) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;

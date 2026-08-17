@@ -27,11 +27,11 @@ export class CareModuleQueryDto {
   @IsString()
   @IsOptional()
   ageGroup?: string;
-
-  @ApiPropertyOptional({ enum: CareModuleTab, default: CareModuleTab.ALL })
+  @ApiHideProperty()
   @IsEnum(CareModuleTab)
   @IsOptional()
   tab?: CareModuleTab = CareModuleTab.ALL;
+
 
   @ApiPropertyOptional({ description: 'Search by title/subtitle' })
   @IsString()
