@@ -47,7 +47,7 @@ export class SignupDto {
 
   @ApiProperty({ example: 'Password123!', description: 'Strong password' })
   @IsString()
-  @MinLength(6)
+  @MinLength(4)
   password: string;
 
   @ApiPropertyOptional({ example: 'en', description: 'Preferred language' })

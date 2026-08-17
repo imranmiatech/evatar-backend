@@ -23,10 +23,11 @@ import { CareModule } from './modules/care/care.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { RewardsModule } from './modules/rewards/rewards.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
-import { CaregiverModule } from './modules/caregiver/caregiver.module';
 import { ScheduleModule } from './modules/parent/schedule/schedule.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { PartnerModule } from './modules/partner/partner.module';
+import { ManageSystemModule } from './modules/manageSystem/manage-system.module';
+import { MyOfferModule } from './modules/myoffer/my-offer.module';
 
 @Module({
   imports: [
@@ -49,7 +50,8 @@ import { PartnerModule } from './modules/partner/partner.module';
     ParentModule,
     LibraryModule,
     ScheduleModule,
-    CaregiverModule,
+    ManageSystemModule,
+    MyOfferModule,
     NannyFeedbackModule,
     CareModule,
     ProfileModule,

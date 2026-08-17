@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { CaregiverModule } from '../caregiver/caregiver.module';
+import { ManageSystemModule } from '../manageSystem/manage-system.module';
 import { RewardsController } from './rewards.controller';
 import { RewardsService } from './rewards.service';
 
 @Module({
-  imports: [CaregiverModule],
+  imports: [ManageSystemModule],
   controllers: [RewardsController],
   providers: [RewardsService],
   exports: [RewardsService],

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { CaregiverModule } from '../../caregiver/caregiver.module';
+import { ManageSystemModule } from '../../manageSystem/manage-system.module';
 import { ChildController } from './controllers/child.controller';
 import { ChildTimelineController } from './controllers/child-timeline.controller';
 import { ChildService } from './services/child.service';
@@ -8,7 +8,7 @@ import { RecurringActivityController } from './controllers/recurring-activity.co
 import { RecurringActivityService } from './services/recurring-activity.service';
 
 @Module({
-  imports: [CaregiverModule],
+  imports: [ManageSystemModule],
   controllers: [ChildController, ChildTimelineController, RecurringActivityController],
   providers: [ChildService, ChildTimelineService, RecurringActivityService],
 })

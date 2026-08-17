@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Caregivers & Permissions Playground - EvaTurner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0d9488;
+      --primary-dark: #0f766e;
+      --primary-light: #ccfbf1;
+      --accent: #6366f1;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --radius: 16px;
+      --shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 12px 18px;
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #5eead4;
+    }
+
+    .user-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-badge {
+      font-size: 0.8rem;
+      background: rgba(13, 148, 136, 0.2);
+      color: #5eead4;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(94, 234, 212, 0.3);
+      max-width: 150px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .btn-login-open {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+    }
+
+    .btn-login-open:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(13, 148, 136, 0.5);
+    }
+
+    /* App Phone Frame Container */
+    .mobile-frame {
+      width: 100%;
+      max-width: 440px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 720px;
+      position: relative;
+    }
+
+    /* Screen Views */
+    .screen {
+      display: none;
+      flex-direction: column;
+      height: 100%;
+      padding: 20px;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .screen-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .screen-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    .btn-back {
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      color: var(--text-main);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.1rem;
+    }
+
+    /* Section Cards & Lists */
+    .section-group {
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-title::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 12px;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+
+    .caregiver-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s;
+    }
+
+    .caregiver-card:hover {
+      border-color: rgba(94, 234, 212, 0.3);
+      background: rgba(15, 23, 42, 0.8);
+    }
+
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: linear-gradient(135deg, #334155, #475569);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #5eead4;
+      font-size: 1.1rem;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .caregiver-info {
+      flex: 1;
+    }
+
+    .caregiver-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #f8fafc;
+      margin-bottom: 2px;
+    }
+
+    .caregiver-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+    }
+
+    .badge-active { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .badge-pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .badge-owner { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
+
+    .card-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .btn-action-text {
+      background: none;
+      border: none;
+      color: #38bdf8;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .btn-remove {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: none;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+    }
+
+    /* Primary Sticky Bottom Button */
+    .bottom-bar {
+      margin-top: auto;
+      padding-top: 16px;
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 14px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(13, 148, 136, 0.6);
+    }
+
+    /* Child Item Card */
+    .child-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 2px solid transparent;
+      border-radius: 18px;
+      padding: 14px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .child-card.selected, .child-card:hover {
+      border-color: var(--primary);
+      background: rgba(13, 148, 136, 0.1);
+    }
+
+    /* Role Cards */
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .role-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 2px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .role-card.selected {
+      border-color: var(--primary);
+      background: rgba(13, 148, 136, 0.15);
+    }
+
+    .role-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+    }
+
+    .subrole-select {
+      width: 100%;
+      background: #0f172a;
+      color: white;
+      border: 1px solid var(--card-border);
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      margin-top: 10px;
+      outline: none;
+    }
+
+    /* Permissions Toggles */
+    .toggle-list {
+      max-height: 420px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .toggle-item {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .toggle-text h4 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 3px;
+    }
+
+    .toggle-text p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+
+    /* Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #334155;
+      transition: .3s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--primary);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Modal Popup Component */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      width: 100%;
+      max-width: 400px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      position: relative;
+      animation: modalPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes modalPop {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .btn-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.4rem;
+      cursor: pointer;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .form-input {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      color: white;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .form-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+    }
+
+    /* Tabs */
+    .tab-bar {
+      display: flex;
+      background: #0f172a;
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #1e293b;
+      color: white;
+      border: 1px solid var(--primary);
+      padding: 12px 20px;
+      border-radius: 30px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header>
+    <div class="brand">
+      <span>🛡️ EvaTurner</span>
+    </div>
+    <div class="user-status">
+      <div id="userBadge" class="user-badge">Not Logged In</div>
+      <button id="authBtn" class="btn-login-open" onclick="openLoginModal()">🔑 Login</button>
+    </div>
+  </header>
+
+  <!-- Mobile Frame Container -->
+  <div class="mobile-frame">
+
+    <!-- SCREEN 1: Manage Caregivers Main Screen -->
+    <div id="screen1" class="screen active">
+      <div class="screen-header">
+        <h2 class="screen-title">Manage caregivers</h2>
+      </div>
+
+      <div id="caregiverSectionsContainer" style="flex: 1; overflow-y: auto;">
+        <div style="text-align: center; color: var(--text-muted); margin-top: 40px;">
+          Click <strong>🔑 Login</strong> above to load caregivers.
+        </div>
+      </div>
+
+      <div class="bottom-bar">
+        <button class="btn-primary" onclick="state.activeEditingAccessId = null; goToScreen(2)">
+          <span>👥 Add Caregiver</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: Select Child Picker -->
+    <div id="screen2" class="screen">
+      <div class="screen-header">
+        <button class="btn-back" onclick="goToScreen(1)">←</button>
+        <h2 class="screen-title">Select Child</h2>
+        <div style="width:36px;"></div>
+      </div>
+
+      <div id="childrenListContainer" style="flex: 1; overflow-y: auto;">
+        <div style="text-align: center; color: var(--text-muted); margin-top: 40px;">Loading children...</div>
+      </div>
+
+      <div class="bottom-bar">
+        <button id="btnProceedToRole" class="btn-primary" onclick="proceedToRole()" disabled style="opacity: 0.5;">
+          <span>Continue →</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- SCREEN 3: Select Role & Sub-Role -->
+    <div id="screen3" class="screen">
+      <div class="screen-header">
+        <button class="btn-back" onclick="goToScreen(2)">←</button>
+        <h2 class="screen-title">Select Caregiver Role</h2>
+        <div style="width:36px;"></div>
+      </div>
+
+      <div style="flex: 1; overflow-y: auto;">
+        <div class="role-grid">
+          <!-- Role 1: Nanny -->
+          <div class="role-card" onclick="selectRole('NANNY')">
+            <div class="role-icon">👩‍🍼</div>
+            <div>
+              <div style="font-weight:700; font-size:1rem;">Nanny</div>
+              <div style="font-size:0.78rem; color:var(--text-muted);">Assigned nanny with daily plan & list access</div>
+            </div>
+          </div>
+
+          <!-- Role 2: Parent -->
+          <div class="role-card" onclick="selectRole('PARENT')">
+            <div class="role-icon">👪</div>
+            <div style="flex:1;">
+              <div style="font-weight:700; font-size:1rem;">Parent</div>
+              <div style="font-size:0.78rem; color:var(--text-muted);">Father or Mother co-parenting</div>
+            </div>
+          </div>
+          <div id="parentSubroleGroup" style="display:none; margin-top:-6px; margin-bottom:10px;">
+            <label class="form-label">Select Parent Sub-role:</label>
+            <select id="parentSubrole" class="subrole-select" onchange="state.relationship = this.value">
+              <option value="FATHER">1. Father</option>
+              <option value="MOTHER">2. Mother</option>
+            </select>
+          </div>
+
+          <!-- Role 3: Family Member -->
+          <div class="role-card" onclick="selectRole('FAMILY_MEMBER')">
+            <div class="role-icon">🏡</div>
+            <div style="flex:1;">
+              <div style="font-weight:700; font-size:1rem;">Family Member</div>
+              <div style="font-size:0.78rem; color:var(--text-muted);">Grandparents, uncles, aunts & relatives</div>
+            </div>
+          </div>
+          <div id="familySubroleGroup" style="display:none; margin-top:-6px; margin-bottom:10px;">
+            <label class="form-label">Select Family Relationship:</label>
+            <select id="familySubrole" class="subrole-select" onchange="state.relationship = this.value">
+              <option value="GRANDMOTHER">1. Grandmother</option>
+              <option value="GUARDIAN">2. Guardian</option>
+              <option value="GODPARENT">3. Godparent</option>
+              <option value="GRANDFATHER">4. Grandfather</option>
+              <option value="UNCLE">5. Uncle</option>
+              <option value="SIBLING">6. Sibling</option>
+              <option value="AUNT">7. Aunt</option>
+              <option value="OTHER">8. Other</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-bar">
+        <button id="btnProceedToPermissions" class="btn-primary" onclick="proceedToPermissions()" disabled style="opacity: 0.5;">
+          <span>Manage Permissions →</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- SCREEN 4: Manage Permissions Modal / Screen -->
+    <div id="screen4" class="screen">
+      <div class="screen-header">
+        <button class="btn-back" onclick="goToScreen(3)">←</button>
+        <h2 id="permissionsScreenTitle" class="screen-title">Access & Permissions</h2>
+        <div style="width:36px;"></div>
+      </div>
+
+      <div class="toggle-list" id="permissionTogglesContainer">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="bottom-bar">
+        <button id="btnScreen4Action" class="btn-primary" onclick="handlePermissionsScreenAction()">
+          <span id="btnScreen4ActionText">Next: Send Invitation →</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- SCREEN 5: Search & Send Invitation Screen -->
+    <div id="screen5" class="screen">
+      <div class="screen-header">
+        <button class="btn-back" onclick="goToScreen(4)">←</button>
+        <h2 id="inviteScreenTitle" class="screen-title">Invite Caregiver</h2>
+        <div style="width:36px;"></div>
+      </div>
+
+      <!-- Tab Switcher -->
+      <div class="tab-bar">
+        <button id="tabOnPlatform" class="tab-btn active" onclick="switchInviteTab('ON_PLATFORM')">On Alurei (Search)</button>
+        <button id="tabNotOnPlatform" class="tab-btn" onclick="switchInviteTab('NOT_ON_PLATFORM')">Not on Alurei</button>
+      </div>
+
+      <!-- TAB 1: On Platform Search -->
+      <div id="tabContentOnPlatform">
+        <div class="form-group">
+          <input type="text" id="searchInput" class="form-input" placeholder="Search by name or email..." oninput="debounceSearchUsers()" />
+        </div>
+        <div id="searchResultsContainer" style="max-height: 380px; overflow-y: auto;">
+          <div style="text-align: center; color: var(--text-muted); margin-top: 30px; font-size: 0.85rem;">
+            Type an email (e.g. <code>emily@alurei.app</code>) to search.
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Not on Platform -->
+      <div id="tabContentNotOnPlatform" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">Send via Email:</label>
+          <input type="email" id="inviteEmailInput" class="form-input" placeholder="nanny@example.com" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Send via WhatsApp / Phone:</label>
+          <input type="tel" id="invitePhoneInput" class="form-input" placeholder="+15550000000" />
+        </div>
+        <div style="margin-top: 20px;">
+          <button class="btn-primary" onclick="submitDirectInvite('EMAIL')" style="margin-bottom:10px;">
+            <span>📩 Send Invite via Email / WhatsApp</span>
+          </button>
+          <button class="btn-primary" onclick="submitDirectInvite('LINK')" style="background: rgba(255,255,255,0.1);">
+            <span>🔗 Generate & Copy Invite Link</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- POPUP LOGIN MODAL -->
+  <div id="loginModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">🔑 Account Login</h3>
+        <button class="btn-close" onclick="closeLoginModal()">&times;</button>
+      </div>
+      <form onsubmit="handleLoginSubmit(event)">
+        <div class="form-group">
+          <label class="form-label">Email Address:</label>
+          <input type="email" id="loginEmail" class="form-input" placeholder="imran32472@gmail.com" required value="imran32472@gmail.com" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password:</label>
+          <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required value="123456" />
+        </div>
+        <button type="submit" class="btn-primary" style="margin-top: 10px;">
+          <span>Login & Save Token</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- POPUP INVITATION PREVIEW MODAL -->
+  <div id="invitePreviewModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">💌 Caregiver Invitation</h3>
+        <button class="btn-close" onclick="closeInvitePreviewModal()">&times;</button>
+      </div>
+      <div id="invitePreviewBody">
+    </div>
+  </div>
+
+  <!-- POPUP SIGNUP MODAL FOR NEW UNREGISTERED CAREGIVERS -->
+  <div id="signupModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">✍️ Complete Registration</h3>
+        <button class="btn-close" onclick="closeSignupModal()">&times;</button>
+      </div>
+      <form onsubmit="handleSignupSubmit(event)">
+        <input type="hidden" id="signupToken" />
+        <input type="hidden" id="signupRole" />
+        <div class="form-group">
+          <label class="form-label">Full Name:</label>
+          <input type="text" id="signupFullName" class="form-input" placeholder="Your Full Name" required value="New Caregiver" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address:</label>
+          <input type="email" id="signupEmail" class="form-input" required readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted);" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number (Optional):</label>
+          <input type="tel" id="signupPhone" class="form-input" placeholder="+8801700000000" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Create Password:</label>
+          <input type="password" id="signupPassword" class="form-input" placeholder="••••••••" required value="123456" />
+        </div>
+        <button type="submit" class="btn-primary" style="margin-top: 10px;">
+          <span>Register & Join Care Team</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">
+    <span id="toastIcon">✨</span>
+    <span id="toastMsg">Action completed</span>
+  </div>
+
+  <script>
+    const getApiBase = () => {
+      // If served directly by NestJS on port 5000
+      if (window.location.origin && window.location.origin.includes(':5000')) {
+        return `${window.location.origin}/api/v1`;
+      }
+      // If opened via Live Server (port 5500), file:// or other ports, target NestJS backend at port 5000
+      return 'http://localhost:5000/api/v1';
+    };
+    const API_BASE = getApiBase();
+
+    // Helper to extract token from nested response objects
+    function extractToken(obj) {
+      if (!obj || typeof obj !== 'object') return null;
+      if (typeof obj.accessToken === 'string') return obj.accessToken;
+      if (typeof obj.token === 'string') return obj.token;
+
+      if (obj.data && typeof obj.data === 'object') {
+        if (typeof obj.data.accessToken === 'string') return obj.data.accessToken;
+        if (typeof obj.data.token === 'string') return obj.data.token;
+
+        if (obj.data.data && typeof obj.data.data === 'object') {
+          if (typeof obj.data.data.accessToken === 'string') return obj.data.data.accessToken;
+          if (typeof obj.data.data.token === 'string') return obj.data.data.token;
+        }
+      }
+      return null;
+    }
+
+    // App Global State
+    const state = {
+      token: localStorage.getItem('accessToken') || null,
+      currentUser: null,
+      selectedChild: null,
+      selectedRole: null,
+      relationship: null,
+      permissions: {},
+      children: [],
+      caregivers: []
+    };
+
+    // On App Load
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const action = params.get('action');
+      const token = params.get('token');
+
+      if (action === 'signup' && token) {
+        checkUrlInvitationToken();
+      } else if (state.token) {
+        updateAuthBadge('Token Loaded', true);
+        loadManageCaregivers();
+        checkUrlInvitationToken();
+      } else {
+        openLoginModal();
+        checkUrlInvitationToken();
+      }
+    });
+
+    async function checkUrlInvitationToken() {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+      const action = params.get('action');
+      const email = params.get('email');
+      const role = params.get('role');
+      const accepted = params.get('accepted');
+
+      if (accepted === 'true') {
+        showToast('Invitation accepted successfully! 🎉 Please login.', '✅');
+        if (email) {
+          const emailInput = document.getElementById('loginEmail');
+          if (emailInput) emailInput.value = email;
+        }
+      }
+
+      if (action === 'signup' && token) {
+        openSignupModal(token, email, role);
+        return;
+      }
+
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/manage-system/invitations/${encodeURIComponent(token)}`);
+        const json = await res.json();
+
+        if (res.ok && json.data) {
+          state.pendingInviteToken = token;
+          state.pendingInviteData = json.data;
+          renderInvitationModal(json.data);
+        }
+      } catch (err) {
+        console.error('Error fetching invitation token:', err);
+      }
+    }
+
+    function openSignupModal(token, email, role) {
+      closeLoginModal();
+      closeInvitePreviewModal();
+      document.getElementById('signupToken').value = token || '';
+      document.getElementById('signupEmail').value = email || '';
+      document.getElementById('signupRole').value = role || 'NANNY';
+      document.getElementById('signupModal').classList.add('active');
+    }
+
+    function closeSignupModal() {
+      document.getElementById('signupModal').classList.remove('active');
+    }
+
+    async function handleSignupSubmit(e) {
+      e.preventDefault();
+      const token = document.getElementById('signupToken').value;
+      const fullName = document.getElementById('signupFullName').value.trim();
+      const email = document.getElementById('signupEmail').value.trim();
+      const password = document.getElementById('signupPassword').value.trim();
+      const phoneNumber = document.getElementById('signupPhone').value.trim();
+      const role = document.getElementById('signupRole').value || 'NANNY';
+
+      try {
+        const res = await fetch(`${API_BASE}/manage-system/invitations/accept-signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, fullName, email, password, phoneNumber, role })
+        });
+        const json = await res.json();
+        if (res.ok && json.data) {
+          showToast('Account created and invitation accepted! 🎉', '✅');
+          closeSignupModal();
+
+          // Auto Login
+          const loginRes = await fetch(`${API_BASE}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+          const loginJson = await loginRes.json();
+          const tokenVal = extractToken(loginJson);
+          if (tokenVal) {
+            state.token = tokenVal;
+            localStorage.setItem('accessToken', tokenVal);
+            updateAuthBadge('Logged in as ' + fullName, true);
+            goToScreen(1);
+          } else {
+            openLoginModal();
+          }
+        } else {
+          showToast(json.message || 'Signup failed', '❌');
+        }
+      } catch (err) {
+        showToast('Error completing signup', '❌');
+      }
+    }
+
+    function renderInvitationModal(invite) {
+      const container = document.getElementById('invitePreviewBody');
+      const roleName = invite.relationship ? `${invite.role} (${invite.relationship})` : invite.role;
+
+      container.innerHTML = `
+        <div style="text-align: center; margin-bottom: 20px;">
+          <div style="font-size: 2.8rem; margin-bottom: 6px;">👶</div>
+          <h3 style="color: #5eead4; font-size: 1.15rem;">Care Team Invitation</h3>
+          <p style="color: #cbd5e1; font-size: 0.88rem; margin-top: 8px; line-height: 1.4;">
+            You have been invited to join <strong>${invite.childName || 'Child'}</strong>'s care team on Alurei as a <strong>${roleName}</strong>.
+          </p>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button class="btn-primary" onclick="acceptTokenInvite()" style="flex: 1;">
+            <span>✅ Accept</span>
+          </button>
+          <button class="btn-primary" onclick="declineTokenInvite()" style="flex: 1; background: rgba(239, 68, 68, 0.2); color: #f87171;">
+            <span>❌ Decline</span>
+          </button>
+        </div>
+      `;
+      document.getElementById('invitePreviewModal').classList.add('active');
+    }
+
+    function closeInvitePreviewModal() {
+      document.getElementById('invitePreviewModal').classList.remove('active');
+    }
+
+    async function acceptTokenInvite() {
+      if (!state.token) {
+        const invite = state.pendingInviteData;
+        openSignupModal(state.pendingInviteToken, invite?.invitedEmail || '', invite?.role || 'NANNY');
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/manage-system/invitations/${encodeURIComponent(state.pendingInviteToken)}/accept`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const json = await res.json();
+        if (res.ok) {
+          showToast('Invitation accepted successfully! 🎉', '✅');
+          closeInvitePreviewModal();
+          loadManageCaregivers();
+        } else {
+          showToast(json.message || 'Accept failed', '❌');
+        }
+      } catch (err) {
+        showToast('Error accepting invitation', '❌');
+      }
+    }
+
+    async function declineTokenInvite() {
+      if (!state.token) {
+        showToast('Please login first to decline this invitation', '⚠️');
+        openLoginModal();
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/manage-system/invitations/${encodeURIComponent(state.pendingInviteToken)}/decline`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const json = await res.json();
+        if (res.ok) {
+          showToast('Invitation declined', 'ℹ️');
+          closeInvitePreviewModal();
+        } else {
+          showToast(json.message || 'Decline failed', '❌');
+        }
+      } catch (err) {
+        showToast('Error declining invitation', '❌');
+      }
+    }
+
+    // Screen Switching
+    function goToScreen(screenNum) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById(`screen${screenNum}`);
+      if (target) target.classList.add('active');
+
+      if (screenNum === 1) loadManageCaregivers();
+      if (screenNum === 2) loadChildrenPicker();
+      if (screenNum === 4) renderPermissionsToggle();
+    }
+
+    // Modal Control
+    function openLoginModal() {
+      document.getElementById('loginModal').classList.add('active');
+    }
+    function closeLoginModal() {
+      document.getElementById('loginModal').classList.remove('active');
+    }
+
+    function updateAuthBadge(text, isLogged) {
+      const badge = document.getElementById('userBadge');
+      const btn = document.getElementById('authBtn');
+      badge.textContent = text;
+      if (isLogged) {
+        badge.style.background = 'rgba(16, 185, 129, 0.2)';
+        badge.style.color = '#34d399';
+        btn.textContent = '🚪 Logout';
+        btn.onclick = logout;
+      } else {
+        badge.style.background = 'rgba(239, 68, 68, 0.2)';
+        badge.style.color = '#f87171';
+        btn.textContent = '🔑 Login';
+        btn.onclick = openLoginModal;
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('accessToken');
+      state.token = null;
+      updateAuthBadge('Not Logged In', false);
+      document.getElementById('caregiverSectionsContainer').innerHTML = `
+        <div style="text-align: center; color: var(--text-muted); margin-top: 40px;">
+          Logged out. Click <strong>🔑 Login</strong> to continue.
+        </div>
+      `;
+      showToast('Logged out successfully', 'ℹ️');
+    }
+
+    // Handle Login Submit & Auto Save Token
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      try {
+        let res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        if (res.status === 404) {
+          res = await fetch(`${API_BASE}/auth/signin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+        }
+
+        const json = await res.json();
+        const token = extractToken(json);
+
+        if (res.ok && token) {
+          state.token = token;
+          localStorage.setItem('accessToken', token);
+          const userData = json.data?.user || json.user || {};
+          const userName = userData.fullName || userData.name || email;
+          updateAuthBadge(userName, true);
+          closeLoginModal();
+          showToast('Login successful! Token saved.', '✅');
+          loadManageCaregivers();
+        } else {
+          const errMsg = json.message || (Array.isArray(json.errors) ? json.errors[0]?.message : null) || 'Login failed';
+          showToast(errMsg, '❌');
+        }
+      } catch (err) {
+        console.error('Login Fetch Error:', err);
+        showToast('Server connection failed. Ensure backend is running at http://localhost:5000', '⚠️');
+      }
+    }
+
+    // Screen 1: Fetch Caregivers
+    async function loadManageCaregivers() {
+      if (!state.token) return;
+      try {
+        const res = await fetch(`${API_BASE}/manage-system/caregivers`, {
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const json = await res.json();
+        if (res.ok && json.data) {
+          renderManageCaregivers(json.data);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderManageCaregivers(data) {
+      const container = document.getElementById('caregiverSectionsContainer');
+      container.innerHTML = '';
+
+      if (!data.sections || data.sections.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted)">No caregivers found.</div>';
+        return;
+      }
+
+      data.sections.forEach(sec => {
+        const secEl = document.createElement('div');
+        secEl.className = 'section-group';
+        secEl.innerHTML = `<div class="section-title">${sec.title}</div>`;
+
+        if (sec.items.length === 0) {
+          secEl.innerHTML += `<div style="font-size:0.8rem; color:var(--text-muted); margin-left:12px; margin-bottom:10px;">No ${sec.title.toLowerCase()} added yet</div>`;
+        } else {
+          sec.items.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'caregiver-card';
+            const initial = (item.fullName || item.name || 'C')[0].toUpperCase();
+            const badgeClass = item.isAccountOwner ? 'badge-owner' : item.status === 'ACCEPTED' ? 'badge-active' : 'badge-pending';
+            const badgeText = item.isAccountOwner ? 'Owner' : item.status || 'Active';
+
+            card.innerHTML = `
+              <div class="avatar">${initial}</div>
+              <div class="caregiver-info">
+                <div class="caregiver-name">${item.fullName || item.name}</div>
+                <div class="caregiver-sub">${item.childName ? 'Caregiver for ' + item.childName : (item.email || '')}</div>
+              </div>
+              <div class="card-actions">
+                <span class="badge ${badgeClass}">${badgeText}</span>
+                ${!item.isAccountOwner ? `<button class="btn-action-text" onclick="openPermissionModal('${item.id}')">Manage Permissions</button>` : ''}
+                ${!item.isAccountOwner ? `<button class="btn-remove" onclick="removeCaregiver('${item.id}')">&times;</button>` : ''}
+              </div>
+            `;
+            secEl.appendChild(card);
+          });
+        }
+        container.appendChild(secEl);
+      });
+    }
+
+    // Remove Caregiver Access
+    async function removeCaregiver(accessId) {
+      if (!confirm('Are you sure you want to remove this caregiver access?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/manage-system/access/${accessId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const json = await res.json();
+        if (res.ok) {
+          showToast('Caregiver access removed', '🗑️');
+          loadManageCaregivers();
+        } else {
+          showToast(json.message || 'Could not remove access', '❌');
+        }
+      } catch (err) {
+        showToast('Error removing caregiver', '❌');
+      }
+    }
+
+    // Open Permission Edit Modal for Existing Caregiver
+    async function openPermissionModal(accessId) {
+      state.activeEditingAccessId = accessId;
+      try {
+        const res = await fetch(`${API_BASE}/manage-system/access/${accessId}/permissions`, {
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const json = await res.json();
+        if (res.ok && json.data) {
+          const data = json.data;
+          state.selectedRole = data.role;
+          state.permissions = {};
+          if (Array.isArray(data.toggles)) {
+            data.toggles.forEach(t => {
+              state.permissions[t.key] = Boolean(t.enabled ?? t.value);
+            });
+          }
+          goToScreen(4);
+        } else {
+          showToast(json.message || 'Could not fetch permissions', '❌');
+        }
+      } catch (err) {
+        showToast('Error fetching permissions', '❌');
+      }
+    }
+
+    // Screen 2: Load Children Picker
+    async function loadChildrenPicker() {
+      const container = document.getElementById('childrenListContainer');
+      container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted)">Loading children...</div>';
+
+      try {
+        const res = await fetch(`${API_BASE}/manage-system/children`, {
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const json = await res.json();
+        if (res.ok && json.data) {
+          state.children = json.data;
+          renderChildrenPicker(json.data);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderChildrenPicker(children) {
+      const container = document.getElementById('childrenListContainer');
+      container.innerHTML = '';
+
+      if (children.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); margin-top:20px;">No children registered.</div>';
+        return;
+      }
+
+      children.forEach(child => {
+        const card = document.createElement('div');
+        card.className = `child-card ${state.selectedChild?.id === child.id ? 'selected' : ''}`;
+        card.onclick = () => {
+          state.selectedChild = child;
+          renderChildrenPicker(state.children);
+          document.getElementById('btnProceedToRole').disabled = false;
+          document.getElementById('btnProceedToRole').style.opacity = 1;
+        };
+
+        const initial = child.name[0].toUpperCase();
+        card.innerHTML = `
+          <div class="avatar">${initial}</div>
+          <div>
+            <div style="font-weight:700; font-size:1rem; color:#f8fafc;">${child.name}</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">${child.ageLabel || 'Age not specified'}</div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function proceedToRole() {
+      if (!state.selectedChild) return;
+      goToScreen(3);
+    }
+
+    // Screen 3: Role Selection
+    function selectRole(role) {
+      state.selectedRole = role;
+      document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+      event.currentTarget.classList.add('selected');
+
+      document.getElementById('parentSubroleGroup').style.display = role === 'PARENT' ? 'block' : 'none';
+      document.getElementById('familySubroleGroup').style.display = role === 'FAMILY_MEMBER' ? 'block' : 'none';
+
+      if (role === 'PARENT') state.relationship = document.getElementById('parentSubrole').value;
+      else if (role === 'FAMILY_MEMBER') state.relationship = document.getElementById('familySubrole').value;
+      else state.relationship = null;
+
+      document.getElementById('btnProceedToPermissions').disabled = false;
+      document.getElementById('btnProceedToPermissions').style.opacity = 1;
+    }
+
+    function proceedToPermissions() {
+      if (!state.selectedRole) return;
+      goToScreen(4);
+    }
+
+    // Screen 4: Render Permission Toggles
+    const PERMISSION_CONFIG = {
+      NANNY: [
+        { key: 'manageDailyPlans', title: 'Manage Daily Plans', desc: 'Create, edit & organize activities and AI plans.' },
+        { key: 'manageGroceryLists', title: 'Manage Grocery Lists', desc: 'View and edit kitchen shopping lists.' },
+        { key: 'editChildProfile', title: 'Edit Child Profile', desc: 'Update dietary preferences and child habits.' },
+        { key: 'accessChildInsights', title: 'Access Child Insights', desc: 'View developmental progress and milestone reports.' }
+      ],
+      PARENT: [
+        { key: 'manageDailyPlans', title: 'Manage Daily Plans', desc: 'Allow the parent to adjust, generate activities, meals, and schedules when needed.' },
+        { key: 'manageBilling', title: 'Manage Subscription & Billing', desc: 'Allow this parent to manage memberships, payments, and billing details.' },
+        { key: 'manageCareTeam', title: 'Manage Nannies & Family Members', desc: 'Allow this parent to invite, manage, and remove caregivers and family members.' },
+        { key: 'manageGroceryOrders', title: 'Manage Grocery Orders', desc: 'Allow this parent to review, place, and track grocery orders for the family.' },
+        { key: 'editChildProfile', title: 'Manage Child Profiles', desc: 'Allow this parent to add, edit, or remove child profiles within the family account.' },
+        { key: 'addRemoveChildren', title: 'Add or remove children', desc: 'Allow this parent to add, edit, or remove child profiles.' }
+      ],
+      FAMILY_MEMBER: [
+        { key: 'dailyActivitiesRecipes', title: 'Daily Activities & Recipes', desc: "Allow access to view your child's daily activities, recipes, and completed tasks." },
+        { key: 'manageDailyPlans', title: 'Manage Daily Plans', desc: 'Allow this member to create, edit, and organize activities and recipes for your child.' },
+        { key: 'manageCareTeam', title: 'Care Team Management', desc: 'Allow this member to add, remove, and manage nannies assigned to your child.' },
+        { key: 'manageGroceryLists', title: 'Grocery Management', desc: 'Allow this member to manage grocery lists, create requests, and update grocery items.' },
+        { key: 'groceryOrdering', title: 'Grocery Ordering', desc: 'Allow this member to generate vouchers, review quotations, and place grocery orders.' },
+        { key: 'careLearningAccess', title: 'Care Learning Access', desc: 'Allow this member to access childcare lessons, guidance, and educational care modules.' },
+        { key: 'nannyDevelopment', title: 'Nanny Development', desc: "Allow this member to assign care modules and monitor the nanny's learning progress." },
+        { key: 'accessChildInsights', title: 'Child Insights & Progress', desc: 'Allow this member to view developmental insights, milestones, nutrition reports, and add observations.' },
+        { key: 'memoriesStories', title: 'Memories & Stories', desc: "Allow this member to access, download, and contribute to your child's photos, memories, and bedtime stories." }
+      ]
+    };
+
+    function renderPermissionsToggle() {
+      const container = document.getElementById('permissionTogglesContainer');
+      container.innerHTML = '';
+      const role = state.selectedRole || 'NANNY';
+      const items = PERMISSION_CONFIG[role] || PERMISSION_CONFIG.NANNY;
+
+      document.getElementById('permissionsScreenTitle').textContent = `${role.replace('_',' ')} Permissions`;
+
+      if (state.activeEditingAccessId) {
+        document.getElementById('btnScreen4ActionText').textContent = '💾 Save Permission Changes';
+      } else {
+        document.getElementById('btnScreen4ActionText').textContent = 'Next: Send Invitation →';
+      }
+
+      items.forEach(p => {
+        const isChecked = state.permissions[p.key] ?? true;
+        state.permissions[p.key] = isChecked;
+
+        const itemEl = document.createElement('div');
+        itemEl.className = 'toggle-item';
+        itemEl.innerHTML = `
+          <div class="toggle-text">
+            <h4>${p.title}</h4>
+            <p>${p.desc}</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="state.permissions['${p.key}'] = this.checked">
+            <span class="slider"></span>
+          </label>
+        `;
+        container.appendChild(itemEl);
+      });
+    }
+
+    async function handlePermissionsScreenAction() {
+      if (state.activeEditingAccessId) {
+        try {
+          const res = await fetch(`${API_BASE}/manage-system/access/${state.activeEditingAccessId}/permissions`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${state.token}`
+            },
+            body: JSON.stringify(state.permissions)
+          });
+          const json = await res.json();
+          if (res.ok) {
+            showToast('Permissions updated successfully! 🎉', '✅');
+            state.activeEditingAccessId = null;
+            goToScreen(1);
+          } else {
+            showToast(json.message || 'Failed to update permissions', '❌');
+          }
+        } catch (err) {
+          showToast('Error updating permissions', '❌');
+        }
+      } else {
+        proceedToInviteScreen();
+      }
+    }
+
+    function proceedToInviteScreen() {
+      goToScreen(5);
+    }
+
+    // Screen 5: Search & Invite
+    function switchInviteTab(tab) {
+      document.getElementById('tabOnPlatform').classList.toggle('active', tab === 'ON_PLATFORM');
+      document.getElementById('tabNotOnPlatform').classList.toggle('active', tab === 'NOT_ON_PLATFORM');
+      document.getElementById('tabContentOnPlatform').style.display = tab === 'ON_PLATFORM' ? 'block' : 'none';
+      document.getElementById('tabContentNotOnPlatform').style.display = tab === 'NOT_ON_PLATFORM' ? 'block' : 'none';
+    }
+
+    let searchTimer = null;
+    function debounceSearchUsers() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(searchUsersOnPlatform, 300);
+    }
+
+    async function searchUsersOnPlatform() {
+      const query = document.getElementById('searchInput').value.trim();
+      const container = document.getElementById('searchResultsContainer');
+      if (!query) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/manage-system/search-user?query=${encodeURIComponent(query)}`, {
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const json = await res.json();
+        if (res.ok && json.data) {
+          renderSearchResults(json.data);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderSearchResults(users) {
+      const container = document.getElementById('searchResultsContainer');
+      container.innerHTML = '';
+
+      if (users.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); margin-top:20px;">No registered user found matching query.</div>';
+        return;
+      }
+
+      users.forEach(u => {
+        const card = document.createElement('div');
+        card.className = 'caregiver-card';
+        const initial = u.fullName[0].toUpperCase();
+
+        card.innerHTML = `
+          <div class="avatar">${initial}</div>
+          <div class="caregiver-info">
+            <div class="caregiver-name">${u.fullName}</div>
+            <div class="caregiver-sub">${u.email}</div>
+          </div>
+          <button class="btn-login-open" onclick="sendInviteToUser('${u.id}')">➕ Invite</button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    async function sendInviteToUser(userId) {
+      const body = {
+        role: state.selectedRole,
+        relationship: state.relationship,
+        invitedUserId: userId,
+        inviteChannel: 'IN_APP',
+        ...state.permissions
+      };
+      await executeCreateInvite(body);
+    }
+
+    async function submitDirectInvite(channel) {
+      const email = document.getElementById('inviteEmailInput').value.trim();
+      const phone = document.getElementById('invitePhoneInput').value.trim();
+
+      const body = {
+        role: state.selectedRole,
+        relationship: state.relationship,
+        invitedEmail: email || undefined,
+        invitedPhone: phone || undefined,
+        inviteChannel: channel,
+        ...state.permissions
+      };
+      await executeCreateInvite(body);
+    }
+
+    async function executeCreateInvite(body) {
+      if (!state.selectedChild) {
+        showToast('Please select a child first', '⚠️');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/manage-system/children/${state.selectedChild.id}/invite`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.token}`
+          },
+          body: JSON.stringify(body)
+        });
+        const json = await res.json();
+
+        if (res.ok) {
+          showToast('Invitation sent successfully!', '🎉');
+          if (json.data?.inviteUrl && body.inviteChannel === 'LINK') {
+            navigator.clipboard.writeText(json.data.inviteUrl);
+            alert('Invite Link copied to clipboard:\n' + json.data.inviteUrl);
+          }
+          goToScreen(1);
+        } else {
+          showToast(json.message || 'Invitation failed', '❌');
+        }
+      } catch (err) {
+        showToast('Error creating invitation', '❌');
+      }
+    }
+
+    // Helper Toast
+    function showToast(msg, icon = '✨') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastIcon').textContent = icon;
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+  </script>
+</body>
+</html>

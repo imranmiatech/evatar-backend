@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
-import { CaregiverModule } from '../caregiver/caregiver.module';
+import { ManageSystemModule } from '../manageSystem/manage-system.module';
 import { NanyController } from './nany.controller';
 import { NanyService } from './nany.service';
 
 @Module({
-  imports: [PrismaModule, CaregiverModule],
+  imports: [PrismaModule, ManageSystemModule],
   controllers: [NanyController],
   providers: [NanyService],
 })

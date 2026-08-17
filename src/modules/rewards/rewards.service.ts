@@ -23,7 +23,7 @@ import { randomBytes } from 'crypto';
 import type { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { StorageService } from '../../common/storage/storage.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CaregiverService } from '../caregiver/caregiver.service';
+import { ManageSystemService } from '../manageSystem/manage-system.service';
 import { CreateRewardOfferDto } from './dto/create-reward-offer.dto';
 import {
   CreatePartnerStoreDto,
@@ -50,7 +50,7 @@ const REWARD_HUB_RECENT_DAYS = 7;
 export class RewardsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly caregiverService: CaregiverService,
+    private readonly caregiverService: ManageSystemService,
     private readonly storageService: StorageService,
   ) {}
 

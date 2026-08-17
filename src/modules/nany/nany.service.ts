@@ -12,7 +12,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
-import { CaregiverService } from '../caregiver/caregiver.service';
+import { ManageSystemService } from '../manageSystem/manage-system.service';
 import { CreateNannyInvitationDto } from './dto/create-nanny-invitation.dto';
 import { NannyProfileQueryDto } from './dto/nanny-profile-query.dto';
 
@@ -40,7 +40,7 @@ const CARE_CATEGORY_KEYWORDS = ['CARE', 'NAP', 'BEDTIME', 'ROUTINE', 'HYGIENE'];
 export class NanyService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly caregiverService: CaregiverService,
+    private readonly caregiverService: ManageSystemService,
   ) {}
 
   async createInvitation(

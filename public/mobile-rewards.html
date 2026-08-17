@@ -3,988 +3,804 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alurei Rewards</title>
+  <title>Alurei Rewards - Mobile App</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       --ink: #10212b;
       --muted: #7b8996;
       --line: #e8eef2;
-      --page: #f4f4f4;
+      --page: #f8fafc;
       --card: #ffffff;
       --teal: #00666a;
-      --teal-2: #07585d;
-      --teal-soft: #e8f5f4;
+      --teal-dark: #004d50;
+      --teal-soft: #e6f4f4;
       --cyan: #46d4cc;
-      --red: #ff2525;
+      --alr-bg: #e6f4f4;
+      --alr-text: #00666a;
       --shadow: 0 10px 30px rgba(15, 33, 43, 0.08);
+      --radius: 16px;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
       min-height: 100vh;
       display: grid;
       place-items: center;
-      background: #3f3f3f;
+      background: #1e293b;
       color: var(--ink);
+      padding: 20px;
     }
 
     .phone {
       width: min(390px, 100vw);
       height: min(844px, 100vh);
       background: var(--page);
+      border-radius: 40px;
       overflow: hidden;
       position: relative;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      border: 8px solid #0f172a;
     }
 
     .statusbar {
-      height: 42px;
+      height: 44px;
       background: var(--card);
       display: flex;
       align-items: end;
       justify-content: space-between;
       padding: 0 24px 8px;
       color: #0f1720;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 700;
+      flex-shrink: 0;
+      z-index: 10;
     }
 
     .signal {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       font-size: 11px;
     }
 
-    .header {
-      height: 54px;
-      background: var(--card);
-      display: grid;
-      grid-template-columns: 40px 1fr 40px;
-      align-items: center;
-      padding: 0 12px;
-    }
-
-    .icon-btn {
-      width: 34px;
-      height: 34px;
-      border: 0;
-      background: transparent;
-      color: var(--teal-2);
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-    }
-
-    .title {
-      text-align: center;
-      font-size: 15px;
-      font-weight: 700;
-      color: #071920;
-    }
-
-    .content {
-      height: calc(100% - 96px);
+    /* Screen Container */
+    .screen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
       overflow-y: auto;
-      padding: 12px 12px 24px;
+      display: none;
       scrollbar-width: none;
     }
+    .screen::-webkit-scrollbar { display: none; }
+    .screen.active { display: flex; }
 
-    .content::-webkit-scrollbar {
-      display: none;
-    }
-
-    .balance-card {
-      background: linear-gradient(135deg, #027276, #035258);
-      border-radius: 8px;
-      padding: 15px 13px 14px;
-      color: #fff;
-      min-height: 145px;
-      box-shadow: var(--shadow);
-    }
-
-    .auth-panel {
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 10px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 0 rgba(15, 33, 43, 0.02);
-    }
-
-    .auth-head {
+    /* Header */
+    .app-bar {
+      height: 56px;
+      background: var(--card);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 9px;
+      padding: 0 16px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--line);
     }
 
-    .auth-title {
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--teal-2);
-    }
-
-    .auth-status {
-      font-size: 9px;
-      font-weight: 800;
-      color: #7b8996;
-      background: #f1f5f7;
-      border-radius: 999px;
-      padding: 4px 8px;
-      white-space: nowrap;
-    }
-
-    .auth-status.live {
-      color: var(--teal);
-      background: var(--teal-soft);
-    }
-
-    .login-form {
-      display: grid;
-      gap: 8px;
-    }
-
-    .login-form.hidden,
-    .session-actions.hidden {
-      display: none;
-    }
-
-    .login-row {
-      display: grid;
-      grid-template-columns: 1fr 0.78fr;
-      gap: 7px;
-    }
-
-    .login-input {
-      width: 100%;
-      height: 34px;
-      border: 1px solid #dce6eb;
-      background: #f8fbfc;
-      border-radius: 8px;
-      color: var(--ink);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 0 10px;
-      outline: none;
-    }
-
-    .login-input:focus {
-      border-color: var(--teal);
-      background: #fff;
-    }
-
-    .login-actions,
-    .session-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 7px;
-    }
-
-    .mini-btn {
-      height: 34px;
+    .nav-btn {
+      width: 36px;
+      height: 36px;
       border: 0;
-      border-radius: 8px;
-      font-size: 11px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .mini-btn.primary {
-      background: var(--teal-2);
-      color: #fff;
-    }
-
-    .mini-btn.soft {
-      background: #edf4f6;
-      color: #28434d;
-    }
-
-    .mini-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .auth-message {
-      min-height: 14px;
-      font-size: 10px;
-      font-weight: 700;
-      color: #7b8996;
-      line-height: 1.4;
-    }
-
-    .auth-message.error {
-      color: #d72d2d;
-    }
-
-    .token-preview {
-      font-size: 10px;
-      color: #8b98a2;
-      font-weight: 700;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      margin-bottom: 8px;
-    }
-
-    .balance-top {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .balance-label {
-      font-size: 10px;
-      font-weight: 700;
-      opacity: 0.85;
-      margin-bottom: 3px;
-    }
-
-    .balance-amount {
-      display: flex;
-      align-items: baseline;
-      gap: 7px;
-      font-size: 31px;
-      font-weight: 800;
-      line-height: 1;
-    }
-
-    .balance-unit {
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .gear {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
+      background: transparent;
+      color: var(--teal);
       display: grid;
       place-items: center;
-      background: rgba(255, 255, 255, 0.16);
-      color: #bdf5ef;
-      flex: 0 0 auto;
-    }
-
-    .care-btn {
-      width: 100%;
-      height: 38px;
-      border: 0;
-      border-radius: 8px;
-      background: #fff;
-      color: var(--teal-2);
-      font-size: 12px;
-      font-weight: 800;
       cursor: pointer;
+      border-radius: 50%;
+    }
+    .nav-btn:hover { background: var(--teal-soft); }
+
+    .header-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ink);
     }
 
-    .tab-shell {
-      background: #eaf2f5;
-      border-radius: 8px;
-      height: 38px;
-      padding: 3px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 3px;
-      margin: 22px 0 15px;
-    }
-
-    .tab {
-      border: 0;
-      border-radius: 7px;
-      background: transparent;
-      color: #263944;
+    .badge-instore {
+      background: var(--teal-soft);
+      color: var(--teal);
       font-size: 11px;
       font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    /* Tabs */
+    .tabs-container {
+      padding: 16px 20px 8px;
+      background: var(--card);
+      flex-shrink: 0;
+    }
+
+    .tabs {
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 30px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      padding: 10px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 24px;
       cursor: pointer;
+      transition: all 0.2s;
     }
 
-    .tab.active {
-      background: var(--teal-2);
-      color: #fff;
+    .tab-btn.active {
+      background: var(--teal);
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 102, 106, 0.25);
     }
 
-    .section-title {
-      font-size: 12px;
-      font-weight: 800;
-      margin-bottom: 9px;
+    /* Main Content */
+    .main-body {
+      padding: 16px 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
 
-    .activity-list {
+    /* Offer Card */
+    .offer-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+      border: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-banner {
+      height: 170px;
+      width: 100%;
+      object-fit: cover;
+      position: relative;
+      background: #e2e8f0;
+    }
+
+    .card-banner-wrapper {
+      position: relative;
+    }
+
+    .bookmark-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      border: 0;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      color: var(--ink);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      backdrop-filter: blur(4px);
+    }
+    .bookmark-btn.saved svg {
+      fill: var(--teal);
+      stroke: var(--teal);
+    }
+
+    .card-content {
+      padding: 16px;
       display: flex;
       flex-direction: column;
       gap: 10px;
     }
 
-    .activity-card {
-      min-height: 68px;
-      background: var(--card);
-      border-radius: 12px;
-      display: grid;
-      grid-template-columns: 38px 1fr auto;
-      gap: 10px;
+    .partner-header {
+      display: flex;
       align-items: center;
-      padding: 11px 12px;
-      box-shadow: 0 1px 0 rgba(15, 33, 43, 0.02);
+      justify-content: space-between;
     }
 
-    .activity-icon {
-      width: 30px;
-      height: 30px;
+    .partner-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .partner-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--line);
+    }
+
+    .partner-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .alr-pill {
+      background: var(--alr-bg);
+      color: var(--alr-text);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .offer-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.3;
+    }
+
+    .offer-sub {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .expiry-tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--teal);
+      font-weight: 600;
+    }
+
+    .card-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .btn-teal {
+      background: var(--teal);
+      color: white;
+      border: 0;
+      padding: 12px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.2s;
+    }
+    .btn-teal:hover { background: var(--teal-dark); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--teal);
+      border: 1px solid var(--teal);
+      padding: 12px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.5;
+      padding: 10px 20px 20px;
+    }
+
+    /* Screen 2: Details */
+    .details-banner {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+    }
+
+    .details-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      background: var(--card);
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+
+    .included-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .included-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .check-icon {
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       background: var(--teal-soft);
       color: var(--teal);
       display: grid;
       place-items: center;
-    }
-
-    .activity-title {
+      flex-shrink: 0;
       font-size: 12px;
-      font-weight: 700;
-      line-height: 1.35;
-      color: #12252d;
     }
 
-    .activity-time {
-      margin-top: 2px;
-      font-size: 9px;
-      font-weight: 600;
-      color: #a4adb6;
-    }
-
-    .points {
+    .terms-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px 16px;
       font-size: 12px;
-      font-weight: 800;
-      white-space: nowrap;
-      align-self: center;
+      color: var(--muted);
+      line-height: 1.6;
     }
 
-    .points.earn {
+    .location-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .location-card {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .loc-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .loc-icon {
+      width: 36px;
+      height: 36px;
+      background: #edf2f7;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
       color: var(--teal);
     }
 
-    .points.spend {
-      color: var(--red);
+    .loc-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .loc-sub { font-size: 11px; color: var(--muted); }
+    .loc-link { font-size: 11px; font-weight: 700; color: var(--teal); text-decoration: none; }
+
+    .sticky-bottom {
+      position: sticky;
+      bottom: 0;
+      background: var(--card);
+      padding: 16px 20px 24px;
+      border-top: 1px solid var(--line);
     }
 
-    .empty {
-      min-height: 120px;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      color: var(--muted);
-      background: #fff;
-      border-radius: 12px;
-      padding: 18px;
-      font-size: 12px;
-      font-weight: 600;
-      line-height: 1.5;
-    }
-
-    .toast {
-      position: absolute;
-      left: 16px;
-      right: 16px;
-      bottom: 16px;
-      background: #10212b;
-      color: #fff;
-      border-radius: 12px;
-      padding: 12px 14px;
-      font-size: 11px;
-      line-height: 1.45;
-      opacity: 0;
-      transform: translateY(12px);
-      pointer-events: none;
-      transition: 0.25s ease;
-    }
-
-    .toast.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .modal-layer {
-      position: absolute;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.68);
-      display: none;
+    /* Screen 3: QR Scanner */
+    .scanner-body {
+      flex: 1;
+      padding: 30px 20px;
+      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 18px;
-      z-index: 10;
+      gap: 30px;
     }
 
-    .modal-layer.open {
-      display: flex;
-    }
-
-    .recognition {
-      width: 100%;
-      background: #fff;
-      border-radius: 16px;
-      padding: 22px 20px 18px;
-      text-align: center;
+    .viewfinder {
+      width: 260px;
+      height: 260px;
+      border: 3px solid #cbd5e1;
+      border-radius: 28px;
+      display: grid;
+      place-items: center;
+      background: #f1f5f9;
       position: relative;
     }
 
-    .close {
-      position: absolute;
-      right: 16px;
-      top: 14px;
-      width: 30px;
-      height: 30px;
-      border: 0;
-      background: transparent;
-      color: #304853;
-      cursor: pointer;
-      font-size: 19px;
+    .camera-icon {
+      width: 50px;
+      height: 50px;
+      color: #94a3b8;
     }
 
-    .halo {
-      width: 132px;
-      height: 132px;
-      border-radius: 50%;
-      margin: 24px auto 18px;
-      background:
-        radial-gradient(circle at center, #fff 0 36%, transparent 37%),
-        repeating-radial-gradient(circle at center, #d9f4f0 0 7px, #effbf9 8px 15px);
-      display: grid;
-      place-items: center;
-      border: 8px solid #f1fbf9;
-      box-shadow: inset 0 0 0 7px #d9f4f0;
-    }
-
-    .star {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      background: #08a5a0;
-      color: #fff;
-      display: grid;
-      place-items: center;
-    }
-
-    .chip {
-      display: inline-flex;
+    /* Screen 4: Success */
+    .success-body {
+      flex: 1;
+      padding: 40px 24px;
+      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      margin-top: -12px;
-      background: #e2fbf7;
+      text-align: center;
+      gap: 20px;
+    }
+
+    .success-circle {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: var(--teal);
+      color: white;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 10px 25px rgba(0, 102, 106, 0.3);
+      position: relative;
+    }
+
+    .success-circle svg { width: 44px; height: 44px; }
+
+    .success-title {
+      font-size: 20px;
+      font-weight: 800;
       color: var(--teal);
-      border-radius: 999px;
-      padding: 5px 10px;
-      font-size: 11px;
-      font-weight: 800;
     }
 
-    .modal-title {
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--teal-2);
-      margin: 15px 0 7px;
+    .success-sub {
+      font-size: 13px;
+      color: var(--muted);
     }
 
-    .modal-copy {
-      font-size: 11px;
-      line-height: 1.55;
-      color: #6b7c88;
-      max-width: 280px;
-      margin: 0 auto 22px;
-      font-weight: 600;
-    }
-
-    .modal-primary {
+    .success-actions {
       width: 100%;
-      height: 45px;
-      border: 0;
-      border-radius: 9px;
-      background: #00a39b;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 800;
-      cursor: pointer;
-      margin-bottom: 14px;
-    }
-
-    .dismiss {
-      border: 0;
-      background: transparent;
-      color: #7d8a94;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    @media (min-width: 520px) {
-      .phone {
-        border-radius: 28px;
-        box-shadow: 0 0 0 3px #167edc, 0 22px 50px rgba(0, 0, 0, 0.28);
-      }
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <main class="phone">
+
+  <div class="phone">
+    <!-- Status Bar -->
     <div class="statusbar">
       <span>9:41</span>
       <div class="signal">
-        <span>|||</span>
-        <span>●</span>
-        <span>▰</span>
+        <span>5G</span>
+        <span>100%</span>
       </div>
     </div>
 
-    <header class="header">
-      <button class="icon-btn" aria-label="Back">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h1 class="title">Alurei Rewards</h1>
-      <span></span>
-    </header>
-
-    <section class="content">
-      <section class="auth-panel" aria-label="Login">
-        <div class="auth-head">
-          <div class="auth-title">Rewards API Login</div>
-          <div class="auth-status" id="authStatus">Demo Data</div>
-        </div>
-
-        <form class="login-form" id="loginForm">
-          <div class="login-row">
-            <input class="login-input" id="loginEmail" type="email" autocomplete="email" placeholder="Email" value="parent@example.com" required />
-            <input class="login-input" id="loginPassword" type="password" autocomplete="current-password" placeholder="Password" value="Password123!" required />
-          </div>
-          <div class="login-actions">
-            <button class="mini-btn primary" id="loginButton" type="submit">Login & Load</button>
-            <button class="mini-btn soft" id="demoButton" type="button">Use Demo</button>
-          </div>
-          <div class="auth-message" id="authMessage">Login korle token auto save hoye live rewards data ashbe.</div>
-        </form>
-
-        <div class="session-actions hidden" id="sessionActions">
-          <button class="mini-btn primary" id="refreshButton" type="button">Refresh Data</button>
-          <button class="mini-btn soft" id="logoutButton" type="button">Logout</button>
-        </div>
-        <div class="token-preview hidden" id="tokenPreview"></div>
-      </section>
-
-      <article class="balance-card">
-        <div class="balance-top">
-          <div>
-            <div class="balance-label">Available Balance</div>
-            <div class="balance-amount">
-              <span id="balance">0</span>
-              <span class="balance-unit" id="balanceUnit">Alurei</span>
-            </div>
-          </div>
-          <div class="gear" aria-hidden="true">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-              <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z" stroke="currentColor" stroke-width="2"/>
-              <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.05.05a2.06 2.06 0 0 1-2.91 2.91l-.05-.05a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21a2.06 2.06 0 0 1-4.12 0v-.08A1.7 1.7 0 0 0 8.7 19.4a1.7 1.7 0 0 0-1.88.34l-.05.05a2.06 2.06 0 0 1-2.91-2.91l.05-.05a1.7 1.7 0 0 0 .34-1.88 1.7 1.7 0 0 0-1.56-1.03H2.6a2.06 2.06 0 0 1 0-4.12h.08A1.7 1.7 0 0 0 4.25 8.7a1.7 1.7 0 0 0-.34-1.88l-.05-.05a2.06 2.06 0 0 1 2.91-2.91l.05.05a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1.03-1.56V2.6a2.06 2.06 0 0 1 4.12 0v.08a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.05-.05a2.06 2.06 0 0 1 2.91 2.91l-.05.05a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.03h.08a2.06 2.06 0 0 1 0 4.12h-.08A1.7 1.7 0 0 0 19.4 15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </div>
-        </div>
-        <button class="care-btn" id="careButton">Use Care Moments</button>
-      </article>
-
-      <div class="tab-shell" role="tablist" aria-label="Reward activity tabs">
-        <button class="tab active" id="earnTab" type="button">Earn</button>
-        <button class="tab" id="spendTab" type="button">Spend</button>
+    <!-- SCREEN 1: LISTING -->
+    <div id="screen-list" class="screen active">
+      <div class="app-bar">
+        <button class="nav-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <span class="header-title">Alurei Rewards</span>
+        <div style="width: 36px;"></div>
       </div>
 
-      <h2 class="section-title" id="listTitle">Earned Last Week</h2>
-      <div class="activity-list" id="activityList"></div>
-    </section>
-
-    <div class="modal-layer" id="recognitionModal">
-      <article class="recognition">
-        <button class="close" id="closeModal" type="button" aria-label="Close">×</button>
-        <div class="halo">
-          <div>
-            <div class="star">
-              <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="m12 3 2.18 5.82L20 11l-5.82 2.18L12 19l-2.18-5.82L4 11l5.82-2.18L12 3Z" fill="currentColor"/>
-              </svg>
-            </div>
-            <div class="chip" id="modalPoints">+0 Alurei</div>
-          </div>
+      <div class="tabs-container">
+        <div class="tabs">
+          <button id="tab-all" class="tab-btn active" onclick="switchTab('ALL')">All</button>
+          <button id="tab-saved" class="tab-btn" onclick="switchTab('SAVED')">Saved</button>
         </div>
-        <h3 class="modal-title" id="modalTitle">Your Care Has Been Recognized</h3>
-        <p class="modal-copy" id="modalCopy">
-          Thank you for your continued dedication. Every meaningful care moment helps create a better journey for your child while earning Alurei along the way.
-        </p>
-        <button class="modal-primary" id="modalPrimary" type="button">View Rewards Hub</button>
-        <button class="dismiss" id="dismissModal" type="button">Dismiss</button>
-      </article>
+      </div>
+
+      <div id="offers-list" class="main-body">
+        <!-- Rendered via JS -->
+      </div>
+
+      <p class="footer-note">
+        Thank you for making every care moment count. Your dedication deserves to be celebrated.
+      </p>
     </div>
 
-    <div class="toast" id="toast"></div>
-  </main>
+    <!-- SCREEN 2: DETAILS -->
+    <div id="screen-details" class="screen">
+      <div class="app-bar">
+        <button class="nav-btn" onclick="showScreen('screen-list')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <span class="header-title">Offer details</span>
+        <span class="badge-instore">In-store</span>
+      </div>
+
+      <img id="detail-hero" class="details-banner" src="" alt="Offer" />
+
+      <div class="details-body">
+        <div class="partner-header">
+          <div class="partner-info">
+            <img id="detail-logo" class="partner-logo" src="" alt="Partner" />
+            <span id="detail-partner-name" class="partner-name">Serenity Spa</span>
+          </div>
+          <span id="detail-alr" class="alr-pill">300 ALR</span>
+        </div>
+
+        <div>
+          <h2 id="detail-title" class="offer-title" style="font-size: 18px;">Spa Discount</h2>
+          <p id="detail-sub" class="offer-sub" style="margin-top: 4px;">Grab 25% discount with 300 Alurei</p>
+          <div id="detail-expiry" class="expiry-tag" style="margin-top: 8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Expires Jan 20, 2025</span>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="section-title">What's Included</h3>
+          <div class="included-box">
+            <div class="included-item">
+              <div class="check-icon">✓</div>
+              <div>
+                <div id="inc-title" style="font-size: 13px; font-weight: 700; color: var(--ink);">Grab 25% discount with 300 Alurei</div>
+                <div id="inc-desc" style="font-size: 11px; color: var(--muted); margin-top: 2px;">AED 30 Instant Discount. Applied directly at checkout on your total bill.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="section-title">Terms & Conditions</h3>
+          <div id="detail-terms" class="terms-box">
+            AED 30 Instant Discount. Applied directly at checkout on your total bill. Points non-refundable once redeemed.
+          </div>
+        </div>
+
+        <div>
+          <div class="location-header">
+            <h3 class="section-title" style="margin-bottom: 0;">Available Locations</h3>
+            <button class="btn-outline" style="padding: 6px 12px; font-size: 11px; border-radius: 16px;">Visit website</button>
+          </div>
+          <div id="locations-list">
+            <!-- Locations rendered JS -->
+          </div>
+        </div>
+      </div>
+
+      <div class="sticky-bottom">
+        <button class="btn-teal" style="width: 100%;" onclick="openScanner()">Redeem Offer</button>
+      </div>
+    </div>
+
+    <!-- SCREEN 3: QR SCANNER -->
+    <div id="screen-scanner" class="screen">
+      <div class="app-bar">
+        <button class="nav-btn" onclick="showScreen('screen-details')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <span id="scanner-title" class="header-title">Banana Oat Pancakes</span>
+        <div style="width: 36px;"></div>
+      </div>
+
+      <div class="scanner-body">
+        <div class="viewfinder">
+          <svg class="camera-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6v6H9z"/></svg>
+        </div>
+        <button class="btn-teal" style="width: 100%;" onclick="processRedemption()">Scan Now</button>
+      </div>
+    </div>
+
+    <!-- SCREEN 4: SUCCESS -->
+    <div id="screen-success" class="screen">
+      <div class="app-bar">
+        <button class="nav-btn" onclick="showScreen('screen-list')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <span class="header-title">Offer details</span>
+        <div style="width: 36px;"></div>
+      </div>
+
+      <div class="success-body">
+        <div class="success-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+
+        <div>
+          <h2 class="success-title">Offer Redeemed Successfully</h2>
+          <p id="success-points-sub" class="success-sub" style="margin-top: 6px;">You've successfully redeemed 300 ALR.</p>
+        </div>
+
+        <div class="success-actions">
+          <button class="btn-teal" onclick="showScreen('screen-list')">Back to home</button>
+          <button class="btn-outline" onclick="showRewardsHistory()">Visit my rewards</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
 
   <script>
-    const fallbackHub = {
-      balanceCard: {
-        availableBalance: 4250,
-        unit: "Alurei",
-        primaryAction: { label: "Use Care Moments", action: "OPEN_CARE_MOMENTS" }
+    let currentTab = 'ALL';
+    let currentOfferId = null;
+    let authToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+
+    const sampleOffers = [
+      {
+        id: "c82c41bc-f305-4623-aee7-e50953f386a3",
+        title: "Spa Discount",
+        sub: "Grab 25% discount with 300 Alurei",
+        partner: "Serenity Spa",
+        logo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+        hero: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=600&q=80",
+        alr: "300 ALR",
+        expiry: "Expires Jan 20, 2025",
+        isSaved: false
       },
-      earnedLastWeek: [
-        { id: "e1", title: "Listen Eve's bedtime story", subtitle: "2 hours ago", points: 15, entryType: "EARN", sourceType: "BEDTIME_STORY" },
-        { id: "e2", title: "Assigned a full-day plan to the nanny", subtitle: "Yesterday", points: 20, entryType: "EARN", sourceType: "DAY_ACTIVITY" },
-        { id: "e3", title: "Sent appreciation to Maria", subtitle: "Yesterday", points: 30, entryType: "EARN", sourceType: "PARENT_APPRECIATION" },
-        { id: "e4", title: "Completed grocery order from partner", subtitle: "Yesterday", points: 10, entryType: "EARN", sourceType: "GROCERY_ORDER" },
-        { id: "e5", title: "70%+ Care Score for 7 days", subtitle: "Yesterday", points: 75, entryType: "EARN", sourceType: "CARE_SCORE_STREAK" },
-        { id: "e6", title: "Nanny completed assigned care module", subtitle: "Yesterday", points: 50, entryType: "EARN", sourceType: "CARE_MODULE_ASSIGNMENT" },
-        { id: "e7", title: "Read a parent guidance article", subtitle: "Yesterday", points: 5, entryType: "EARN", sourceType: "CARE_LOG" },
-        { id: "e8", title: "Switch to annual billing", subtitle: "Yesterday", points: 100, entryType: "EARN", sourceType: "SUBSCRIPTION" }
-      ],
-      spentLastWeek: [
-        { id: "s1", title: "Redeemed Carrefour Voucher", subtitle: "2 hours ago", points: -100, entryType: "SPEND", sourceType: "REWARD_REDEMPTION" },
-        { id: "s2", title: "Redeemed Carrefour Voucher", subtitle: "2 hours ago", points: -5, entryType: "SPEND", sourceType: "REWARD_REDEMPTION" },
-        { id: "s3", title: "Redeemed Carrefour Voucher", subtitle: "2 hours ago", points: -5, entryType: "SPEND", sourceType: "REWARD_REDEMPTION" },
-        { id: "s4", title: "Redeemed Carrefour Voucher", subtitle: "2 hours ago", points: -5, entryType: "SPEND", sourceType: "REWARD_REDEMPTION" },
-        { id: "s5", title: "Redeemed Carrefour Voucher", subtitle: "2 hours ago", points: -5, entryType: "SPEND", sourceType: "REWARD_REDEMPTION" },
-        { id: "s6", title: "Redeemed Carrefour Voucher", subtitle: "2 hours ago", points: -5, entryType: "SPEND", sourceType: "REWARD_REDEMPTION" },
-        { id: "s7", title: "Redeemed Carrefour Voucher", subtitle: "2 hours ago", points: -5, entryType: "SPEND", sourceType: "REWARD_REDEMPTION" }
-      ],
-      careMomentRecognition: {
-        available: true,
-        title: "Your Care Has Been Recognized",
-        message: "Thank you for your continued dedication. Every meaningful care moment helps create a better journey for your child while earning Alurei along the way.",
-        pointsEarned: 5
+      {
+        id: "offer-2",
+        title: "Fresh Meal Combo",
+        sub: "Enjoy 15% discount on organic healthy meals",
+        partner: "Green Garden",
+        logo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80",
+        hero: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=600&q=80",
+        alr: "250 ALR",
+        expiry: "Expires Feb 15, 2025",
+        isSaved: true
       }
-    };
+    ];
 
-    const state = {
-      hub: fallbackHub,
-      activeTab: "EARN",
-      user: null,
-      usingDemo: true
-    };
-
-    const els = {
-      authStatus: document.getElementById("authStatus"),
-      loginForm: document.getElementById("loginForm"),
-      loginEmail: document.getElementById("loginEmail"),
-      loginPassword: document.getElementById("loginPassword"),
-      loginButton: document.getElementById("loginButton"),
-      demoButton: document.getElementById("demoButton"),
-      authMessage: document.getElementById("authMessage"),
-      sessionActions: document.getElementById("sessionActions"),
-      refreshButton: document.getElementById("refreshButton"),
-      logoutButton: document.getElementById("logoutButton"),
-      tokenPreview: document.getElementById("tokenPreview"),
-      balance: document.getElementById("balance"),
-      balanceUnit: document.getElementById("balanceUnit"),
-      careButton: document.getElementById("careButton"),
-      earnTab: document.getElementById("earnTab"),
-      spendTab: document.getElementById("spendTab"),
-      listTitle: document.getElementById("listTitle"),
-      activityList: document.getElementById("activityList"),
-      modal: document.getElementById("recognitionModal"),
-      modalPoints: document.getElementById("modalPoints"),
-      modalTitle: document.getElementById("modalTitle"),
-      modalCopy: document.getElementById("modalCopy"),
-      closeModal: document.getElementById("closeModal"),
-      dismissModal: document.getElementById("dismissModal"),
-      modalPrimary: document.getElementById("modalPrimary"),
-      toast: document.getElementById("toast")
-    };
-
-    function token() {
-      return localStorage.getItem("access_token") ||
-        localStorage.getItem("api_test_access_token") ||
-        localStorage.getItem("evaturner_access_token") ||
-        localStorage.getItem("accessToken") ||
-        localStorage.getItem("adminToken") ||
-        "";
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
     }
 
-    function apiBase() {
-      return localStorage.getItem("api_test_base_url") || window.location.origin;
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tab-all').classList.toggle('active', tab === 'ALL');
+      document.getElementById('tab-saved').classList.toggle('active', tab === 'SAVED');
+      renderOffers();
     }
 
-    function saveToken(accessToken) {
-      if (!accessToken) return;
-      [
-        "access_token",
-        "api_test_access_token",
-        "evaturner_access_token",
-        "accessToken",
-        "adminToken"
-      ].forEach(key => localStorage.setItem(key, accessToken));
+    function toggleSave(id, event) {
+      event.stopPropagation();
+      const offer = sampleOffers.find(o => o.id === id);
+      if (offer) {
+        offer.isSaved = !offer.isSaved;
+        renderOffers();
+      }
     }
 
-    function clearToken() {
-      [
-        "access_token",
-        "api_test_access_token",
-        "evaturner_access_token",
-        "accessToken",
-        "adminToken"
-      ].forEach(key => localStorage.removeItem(key));
-    }
+    function renderOffers() {
+      const container = document.getElementById('offers-list');
+      const filtered = sampleOffers.filter(o => currentTab === 'ALL' || o.isSaved);
 
-    function extractToken(json) {
-      return json?.accessToken ||
-        json?.token ||
-        json?.data?.accessToken ||
-        json?.data?.token ||
-        json?.data?.data?.accessToken ||
-        json?.data?.data?.token ||
-        "";
-    }
-
-    function extractUser(json) {
-      return json?.user || json?.data?.user || json?.data?.data?.user || null;
-    }
-
-    async function login(event) {
-      event.preventDefault();
-      const email = els.loginEmail.value.trim();
-      const password = els.loginPassword.value;
-
-      if (!email || !password) {
-        setAuthMessage("Email and password required.", true);
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="text-align: center; padding: 40px 10px; color: var(--muted); font-size: 13px;">No saved offers yet.</div>`;
         return;
       }
 
-      els.loginButton.disabled = true;
-      els.loginButton.textContent = "Logging in...";
-      setAuthMessage("Signing in...");
-
-      try {
-        const res = await fetch(`${apiBase()}/api/v1/auth/signin`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
-        });
-        const json = await res.json();
-        const accessToken = extractToken(json);
-
-        if (!res.ok || !accessToken) {
-          throw new Error(normalizeMessage(json?.message) || "Login failed");
-        }
-
-        saveToken(accessToken);
-        state.user = extractUser(json);
-        state.usingDemo = false;
-        setAuthMessage(`Logged in${state.user?.fullName ? ` as ${state.user.fullName}` : ""}. Token saved.`);
-        await loadHub({ requireToken: true });
-      } catch (error) {
-        setAuthMessage(error.message || "Login failed", true);
-      } finally {
-        els.loginButton.disabled = false;
-        els.loginButton.textContent = "Login & Load";
-        renderAuthState();
-      }
-    }
-
-    async function loadHub(options = {}) {
-      const authToken = token();
-      if (!authToken) {
-        state.hub = fallbackHub;
-        state.usingDemo = true;
-        render();
-        renderAuthState();
-        if (options.requireToken) {
-          showToast("Login token missing. Demo data dekhacchi.");
-        }
-        return;
-      }
-
-      try {
-        setAuthMessage("Loading live rewards data...");
-        const res = await fetch(`${apiBase()}/api/v1/rewards/hub`, {
-          headers: { Authorization: `Bearer ${authToken}` }
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.message || "Rewards hub load failed");
-        state.hub = json.data || fallbackHub;
-        state.usingDemo = false;
-        setAuthMessage("Live rewards data loaded.");
-      } catch (error) {
-        if (options.requireToken) {
-          setAuthMessage(error.message || "Live rewards data load failed", true);
-        } else {
-          setAuthMessage("Saved token diye live data load hoyni. Demo data dekhacchi.", true);
-        }
-        state.hub = fallbackHub;
-        state.usingDemo = true;
-        showToast(error.message || "Live rewards data load kora jayni. Demo data dekhacchi.");
-      }
-      render();
-      renderAuthState();
-    }
-
-    function render() {
-      const card = state.hub.balanceCard || fallbackHub.balanceCard;
-      els.balance.textContent = formatNumber(card.availableBalance || 0);
-      els.balanceUnit.textContent = card.unit || "Alurei";
-      els.careButton.textContent = card.primaryAction?.label || "Use Care Moments";
-      renderActivities();
-      renderRecognition();
-    }
-
-    function renderAuthState() {
-      const authToken = token();
-      const loggedIn = Boolean(authToken) && !state.usingDemo;
-
-      els.authStatus.textContent = loggedIn ? "Live API" : authToken ? "Token Saved" : "Demo Data";
-      els.authStatus.classList.toggle("live", Boolean(authToken));
-      els.loginForm.classList.toggle("hidden", Boolean(authToken));
-      els.sessionActions.classList.toggle("hidden", !authToken);
-      els.tokenPreview.classList.toggle("hidden", !authToken);
-      els.tokenPreview.textContent = authToken ? `Token: ${authToken.slice(0, 26)}...` : "";
-    }
-
-    function setAuthMessage(message, isError = false) {
-      els.authMessage.textContent = message;
-      els.authMessage.classList.toggle("error", isError);
-    }
-
-    function renderActivities() {
-      const isEarn = state.activeTab === "EARN";
-      const items = isEarn ? state.hub.earnedLastWeek || [] : state.hub.spentLastWeek || [];
-
-      els.earnTab.classList.toggle("active", isEarn);
-      els.spendTab.classList.toggle("active", !isEarn);
-      els.listTitle.textContent = isEarn ? "Earned Last Week" : "Spent Last Week";
-
-      if (!items.length) {
-        els.activityList.innerHTML = `<div class="empty">No ${isEarn ? "earned" : "spent"} reward activity found for the last 7 days.</div>`;
-        return;
-      }
-
-      els.activityList.innerHTML = items.map(item => `
-        <article class="activity-card">
-          <div class="activity-icon">${iconFor(item.sourceType, isEarn)}</div>
-          <div>
-            <div class="activity-title">${escapeHtml(item.title || "Reward activity")}</div>
-            <div class="activity-time">${escapeHtml(item.subtitle || "Recently")}</div>
+      container.innerHTML = filtered.map(o => `
+        <div class="offer-card">
+          <div class="card-banner-wrapper">
+            <img class="card-banner" src="${o.hero}" alt="${o.title}" />
+            <button class="bookmark-btn ${o.isSaved ? 'saved' : ''}" onclick="toggleSave('${o.id}', event)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            </button>
           </div>
-          <div class="points ${isEarn ? "earn" : "spend"}">${formatPoints(item.points, isEarn)}</div>
-        </article>
-      `).join("");
+          <div class="card-content">
+            <div class="partner-header">
+              <div class="partner-info">
+                <img class="partner-logo" src="${o.logo}" alt="${o.partner}" />
+                <span class="partner-name">${o.partner}</span>
+              </div>
+              <span class="alr-pill">${o.alr}</span>
+            </div>
+            <h3 class="offer-title">${o.title}</h3>
+            <p class="offer-sub">${o.sub}</p>
+            <div class="expiry-tag">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span>${o.expiry}</span>
+            </div>
+            <div class="card-actions">
+              <button class="btn-teal" onclick="openDetails('${o.id}')">Redeem Offer</button>
+              <button class="btn-outline" onclick="openDetails('${o.id}')">View Details</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
     }
 
-    function renderRecognition() {
-      const recognition = state.hub.careMomentRecognition || {};
-      els.modalPoints.textContent = `+${Math.abs(recognition.pointsEarned || 0)} Alurei`;
-      els.modalTitle.textContent = recognition.title || "Your Care Has Been Recognized";
-      els.modalCopy.textContent = recognition.message || fallbackHub.careMomentRecognition.message;
+    function openDetails(id) {
+      const offer = sampleOffers.find(o => o.id === id) || sampleOffers[0];
+      currentOfferId = offer.id;
+
+      document.getElementById('detail-hero').src = offer.hero;
+      document.getElementById('detail-logo').src = offer.logo;
+      document.getElementById('detail-partner-name').innerText = offer.partner;
+      document.getElementById('detail-alr').innerText = offer.alr;
+      document.getElementById('detail-title').innerText = offer.title;
+      document.getElementById('detail-sub').innerText = offer.sub;
+      document.getElementById('detail-expiry').querySelector('span').innerText = offer.expiry;
+      document.getElementById('inc-title').innerText = offer.sub;
+
+      const locContainer = document.getElementById('locations-list');
+      locContainer.innerHTML = `
+        <div class="location-card">
+          <div class="loc-left">
+            <div class="loc-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div>
+              <div class="loc-name">Dubai Mall</div>
+              <div class="loc-sub">Downtown Dubai, Level LG</div>
+            </div>
+          </div>
+          <a class="loc-link" href="#">View location</a>
+        </div>
+        <div class="location-card">
+          <div class="loc-left">
+            <div class="loc-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div>
+              <div class="loc-name">Mall of the Emirates</div>
+              <div class="loc-sub">Al Barsha 1, Level 1</div>
+            </div>
+          </div>
+          <a class="loc-link" href="#">View location</a>
+        </div>
+      `;
+
+      showScreen('screen-details');
     }
 
-    function setTab(tab) {
-      state.activeTab = tab;
-      renderActivities();
+    function openScanner() {
+      const offer = sampleOffers.find(o => o.id === currentOfferId) || sampleOffers[0];
+      document.getElementById('scanner-title').innerText = offer.title;
+      showScreen('screen-scanner');
     }
 
-    function openRecognition() {
-      const recognition = state.hub.careMomentRecognition || {};
-      if (!recognition.available) {
-        showToast("No new care moment recognition available right now.");
-        return;
-      }
-      els.modal.classList.add("open");
+    function processRedemption() {
+      const offer = sampleOffers.find(o => o.id === currentOfferId) || sampleOffers[0];
+      document.getElementById('success-points-sub').innerText = `You've successfully redeemed ${offer.alr}.`;
+      showScreen('screen-success');
     }
 
-    function closeRecognition() {
-      els.modal.classList.remove("open");
+    function showRewardsHistory() {
+      alert("Redirecting to My Rewards history...");
+      showScreen('screen-list');
     }
 
-    function useDemo() {
-      state.hub = fallbackHub;
-      state.usingDemo = true;
-      render();
-      renderAuthState();
-      setAuthMessage("Demo data loaded. Login korle live API data ashbe.");
-    }
-
-    async function logout() {
-      clearToken();
-      state.user = null;
-      state.hub = fallbackHub;
-      state.usingDemo = true;
-      render();
-      renderAuthState();
-      setAuthMessage("Logged out. Token removed.");
-      showToast("Token cleared. Demo rewards data showing.");
-    }
-
-    function showToast(message) {
-      els.toast.textContent = message;
-      els.toast.classList.add("show");
-      window.clearTimeout(showToast.timer);
-      showToast.timer = window.setTimeout(() => {
-        els.toast.classList.remove("show");
-      }, 3200);
-    }
-
-    function formatNumber(value) {
-      return Number(value || 0).toLocaleString("en-US");
-    }
-
-    function formatPoints(points, isEarn) {
-      const amount = Math.abs(Number(points || 0));
-      return `${isEarn ? "+" : "-"}${amount} Alurei`;
-    }
-
-    function iconFor(sourceType, isEarn) {
-      if (!isEarn) {
-        return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 12v8H4v-8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M22 7H2v5h20V7Z" stroke="currentColor" stroke-width="2"/><path d="M12 20V7" stroke="currentColor" stroke-width="2"/><path d="M12 7H8.5A2.5 2.5 0 1 1 11 4.5V7Zm0 0h3.5A2.5 2.5 0 1 0 13 4.5V7Z" stroke="currentColor" stroke-width="2"/></svg>`;
-      }
-
-      const key = String(sourceType || "");
-      if (key.includes("CARE_MODULE")) {
-        return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" stroke="currentColor" stroke-width="2"/></svg>`;
-      }
-      if (key.includes("APPRECIATION") || key.includes("CARE_SCORE")) {
-        return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6l1.2 1.2L12 21l7.6-7.6 1.2-1.2a5.4 5.4 0 0 0 0-7.6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-      }
-      if (key.includes("GROCERY")) {
-        return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6h15l-1.5 9h-12L6 6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M6 6 5 3H2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9 20h.01M18 20h.01" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`;
-      }
-      return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3l2.1 5.7L20 11l-5.9 2.3L12 19l-2.1-5.7L4 11l5.9-2.3L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
-    }
-
-    function escapeHtml(value) {
-      return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-    function normalizeMessage(message) {
-      return Array.isArray(message) ? message.join(", ") : message;
-    }
-
-    els.loginForm.addEventListener("submit", login);
-    els.demoButton.addEventListener("click", useDemo);
-    els.refreshButton.addEventListener("click", () => loadHub({ requireToken: true }));
-    els.logoutButton.addEventListener("click", logout);
-    els.earnTab.addEventListener("click", () => setTab("EARN"));
-    els.spendTab.addEventListener("click", () => setTab("SPEND"));
-    els.careButton.addEventListener("click", openRecognition);
-    els.closeModal.addEventListener("click", closeRecognition);
-    els.dismissModal.addEventListener("click", closeRecognition);
-    els.modalPrimary.addEventListener("click", closeRecognition);
-    els.modal.addEventListener("click", event => {
-      if (event.target === els.modal) closeRecognition();
-    });
-
-    loadHub();
+    // Initialize
+    renderOffers();
   </script>
 </body>
 </html>

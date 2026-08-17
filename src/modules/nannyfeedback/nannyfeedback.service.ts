@@ -7,7 +7,7 @@ import {
 import { ActivityStatus, MediaType, UserRole } from '@prisma/client';
 import type { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { StorageService } from '../../common/storage/storage.service';
-import { CaregiverService } from '../caregiver/caregiver.service';
+import { ManageSystemService } from '../manageSystem/manage-system.service';
 import { RewardsService } from '../rewards/rewards.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NannyFeedbackQueryDto } from './dto/nanny-feedback-query.dto';
@@ -23,7 +23,7 @@ type UploadedImageFile = {
 export class NannyFeedbackService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly caregiverService: CaregiverService,
+    private readonly caregiverService: ManageSystemService,
     private readonly storageService: StorageService,
     private readonly rewardsService: RewardsService,
   ) {}

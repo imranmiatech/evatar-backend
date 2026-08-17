@@ -14,7 +14,7 @@ import {
   IsString,
   ValidateIf,
 } from 'class-validator';
-import { CaregiverPermissionsDto } from './caregiver-permissions.dto';
+import { ManageSystemPermissionsDto } from './manage-system-permissions.dto';
 
 const optionalString = ({ value }: { value: unknown }) => {
   if (value === false || value === null || value === undefined) return undefined;
@@ -25,7 +25,13 @@ const optionalString = ({ value }: { value: unknown }) => {
   return trimmed;
 };
 
-export class CreateCaregiverInvitationDto extends CaregiverPermissionsDto {
+const uppercaseEnumString = ({ value }: { value: unknown }) => {
+  const str = optionalString({ value });
+  if (typeof str === 'string') return str.toUpperCase();
+  return str;
+};
+
+export class CreateManageSystemInvitationDto extends ManageSystemPermissionsDto {
   @ApiProperty({
     enum: CaregiverAccessRole,
     example: CaregiverAccessRole.NANNY,
@@ -35,23 +41,31 @@ export class CreateCaregiverInvitationDto extends CaregiverPermissionsDto {
 
   @ApiPropertyOptional({
     enum: CaregiverRelationship,
-    example: CaregiverRelationship.GRANDMOTHER,
+    example: CaregiverRelationship.FATHER,
+    description: 'Sub-role for Parent (FATHER, MOTHER) or Family Member (GRANDMOTHER, GUARDIAN, GODPARENT, GRANDFATHER, UNCLE, SIBLING, AUNT, OTHER)',
   })
-  @ValidateIf((dto) => dto.role === CaregiverAccessRole.FAMILY_MEMBER)
+  @Transform(uppercaseEnumString)
+  @IsOptional()
+  @ValidateIf(
+    (dto) =>
+      (dto.role === CaregiverAccessRole.FAMILY_MEMBER ||
+      dto.role === CaregiverAccessRole.PARENT) &&
+      dto.relationship,
+  )
   @IsEnum(CaregiverRelationship)
   relationship?: CaregiverRelationship;
 
   @ApiPropertyOptional({
     example: 'Martha Stewart',
-    description: 'Required only when inviting a family member.',
+    description: 'Optional display name when inviting a family member.',
   })
   @Transform(optionalString)
-  @ValidateIf((dto) => dto.role === CaregiverAccessRole.FAMILY_MEMBER)
+  @ValidateIf((dto) => dto.role === CaregiverAccessRole.FAMILY_MEMBER && dto.invitedName)
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   invitedName?: string;
 
-  @ApiPropertyOptional({ example: 'caregiver@example.com' })
+  @ApiPropertyOptional({ example: 'nanny@example.com' })
   @Transform(optionalString)
   @IsEmail()
   @IsOptional()
@@ -59,11 +73,11 @@ export class CreateCaregiverInvitationDto extends CaregiverPermissionsDto {
 
   @ApiPropertyOptional({ example: '+15550000000' })
   @Transform(optionalString)
-  @IsPhoneNumber()
+  @IsString()
   @IsOptional()
   invitedPhone?: string;
 
-  @ApiPropertyOptional({ example: 'cmrwwed7q0000aalr1ka7hzth' })
+  @ApiPropertyOptional({ example: 'user-uuid-1234' })
   @Transform(optionalString)
   @IsString()
   @IsOptional()

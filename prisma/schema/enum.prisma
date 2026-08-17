@@ -41,6 +41,8 @@ enum CaregiverAccessRole {
 }
 
 enum CaregiverRelationship {
+  FATHER
+  MOTHER
   GRANDMOTHER
   GUARDIAN
   GODPARENT

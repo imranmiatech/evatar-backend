@@ -7,18 +7,23 @@ export class MailService {
 
   constructor(private readonly mailerService: MailerService) {}
 
-  async sendDummyEmail(to: string, subject: string, content: string) {
+  async sendMail(options: { to: string; subject: string; text?: string; html?: string }) {
     try {
       await this.mailerService.sendMail({
-        to,
-        subject,
-        text: content,
+        to: options.to,
+        subject: options.subject,
+        text: options.text,
+        html: options.html,
       });
-      this.logger.log(`Dummy email sent to ${to}`);
+      this.logger.log(`Email sent to ${options.to}`);
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send dummy email to ${to}:`, error);
+      this.logger.error(`Failed to send email to ${options.to}:`, error);
       return false;
     }
+  }
+
+  async sendDummyEmail(to: string, subject: string, content: string, html?: string) {
+    return this.sendMail({ to, subject, text: content, html: html || `<p>${content}</p>` });
   }
 }

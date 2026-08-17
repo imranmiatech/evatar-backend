@@ -2,11 +2,16 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { CaregiverAccessRole } from '@prisma/client';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 
-export class SearchCaregiversDto {
-  @ApiPropertyOptional({ example: 'deepa' })
+export class SearchManageSystemDto {
+  @ApiPropertyOptional({ example: 'emily@alurei.app' })
   @IsString()
   @IsOptional()
   query?: string;
+
+  @ApiPropertyOptional({ example: 'cmrwwed7q0000aalr1ka7hzth' })
+  @IsString()
+  @IsOptional()
+  childId?: string;
 
   @ApiPropertyOptional({
     enum: CaregiverAccessRole,
@@ -15,13 +20,4 @@ export class SearchCaregiversDto {
   @IsEnum(CaregiverAccessRole)
   @IsOptional()
   role?: CaregiverAccessRole;
-
-  @ApiPropertyOptional({
-    example: 'cmrwwed7q0000aalr1ka7hzth',
-    description:
-      'Optional child id. When query and role are empty, this filters the manage caregivers list.',
-  })
-  @IsString()
-  @IsOptional()
-  childId?: string;
 }

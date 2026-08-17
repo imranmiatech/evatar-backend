@@ -4,7 +4,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { CaregiverService } from '../../../caregiver/caregiver.service';
+import { ManageSystemService } from '../../../manageSystem/manage-system.service';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { ScheduleMode, DayOfWeek } from '@prisma/client';
 import { CreateLibraryScheduleDto } from '../dto/create-library-schedule.dto';
@@ -17,7 +17,7 @@ import { UpdateManualScheduleDto } from '../dto/update-manual-schedule.dto';
 export class ScheduleService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly caregiverService: CaregiverService,
+    private readonly caregiverService: ManageSystemService,
   ) {}
 
   private resolveDate(dateStr?: string): Date {

@@ -31,6 +31,6 @@ export class ResetPasswordDto {
     example: 'NewPassword123!',
   })
   @IsString()
-  @MinLength(6)
+  @MinLength(4)
   newPassword: string;
 }

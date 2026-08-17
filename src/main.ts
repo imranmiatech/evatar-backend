@@ -191,6 +191,22 @@ async function bootstrap() {
     },
   );
 
+  expressApp.get(
+    ['/manage-system-ui', '/manage-caregivers-ui', '/public/manage-system.html'],
+    (req: any, res: any) => {
+      const fs = require('fs');
+      const path = require('path');
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'public/manage-system.html'),
+        path.resolve(__dirname, '../public/manage-system.html'),
+        path.resolve(__dirname, '../../public/manage-system.html'),
+      ];
+      const targetPath =
+        possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+      res.sendFile(targetPath);
+    },
+  );
+
   expressApp.get('/caregiver-ui', (req: any, res: any) => {
     const fs = require('fs');
     const path = require('path');

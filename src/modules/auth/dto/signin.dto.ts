@@ -23,6 +23,6 @@ export class SigninDto {
         example: 'Password123!'
     })
     @IsString()
-    @MinLength(6)
+    @MinLength(4)
     password: string;
 }

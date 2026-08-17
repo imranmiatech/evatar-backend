@@ -11,7 +11,7 @@ import {
   TaskCompletionRate,
   TaskEnjoymentLevel,
 } from '@prisma/client';
-import { CaregiverService } from '../../../caregiver/caregiver.service';
+import { ManageSystemService } from '../../../manageSystem/manage-system.service';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { StorageService } from '../../../../common/storage/storage.service';
 import { AddChildDto } from '../dto/add-child.dto';
@@ -21,7 +21,7 @@ import { UpdateChildDto } from '../dto/update-child.dto';
 export class ChildService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly caregiverService: CaregiverService,
+    private readonly caregiverService: ManageSystemService,
     private readonly storageService: StorageService,
   ) {}
 
@@ -131,29 +131,37 @@ export class ChildService {
 
     return {
       message: 'Children fetched successfully',
-      data: children.map((child) => ({
-        ...child,
-        hasAllergy: this.computeHasAllergy(child),
-        hasAssignedCaregivers: child.caregiverAccesses.length > 0,
-        assignedCount: child.caregiverAccesses.length,
-        assignedUsers: child.caregiverAccesses.map((access) => ({
+      data: children.map((child) => {
+        const assignedCaregivers = child.caregiverAccesses.map((access) => ({
+          id: access.id,
           accessId: access.id,
-          userId: access.invitedUser?.id ?? null,
           name:
             access.invitedUser?.fullName ??
             access.invitedName ??
             access.invitedEmail ??
-            access.invitedPhone,
+            access.invitedPhone ??
+            'Caregiver',
           image: access.invitedUser?.profilePictureUrl ?? null,
-          email: access.invitedUser?.email ?? access.invitedEmail,
-          phoneNumber: access.invitedUser?.phoneNumber ?? access.invitedPhone,
           role: access.role,
           relationship: access.relationship,
-          status: access.status,
-          acceptedAt: access.acceptedAt,
-          assignedAt: access.createdAt,
-        })),
-      })),
+        }));
+
+        return {
+          id: child.id,
+          name: child.name,
+          image: child.avatar,
+          avatar: child.avatar,
+          birthDate: child.birthDate,
+          age: this.formatChildAge(child.birthDate),
+          gender: child.gender,
+          weight: child.weight,
+          hasAllergy: this.computeHasAllergy(child),
+          hasAssignedCaregivers: assignedCaregivers.length > 0,
+          assignedCount: assignedCaregivers.length,
+          assignedCaregivers,
+          assignedUsers: assignedCaregivers,
+        };
+      }),
     };
   }
 
@@ -203,7 +211,7 @@ export class ChildService {
       storyCount,
       stories,
       insightActivities,
-    ] = await this.prisma.$transaction([
+    ] = await Promise.all([
       this.prisma.child.findUnique({
         where: { id: childId },
         include: {

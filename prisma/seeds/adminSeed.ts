@@ -541,6 +541,15 @@ export async function seedAdmin(prisma: PrismaClient) {
 
   const extraNannies = [
     {
+      email: 'imran32472@gmail.com',
+      fullName: 'Imran Nanny',
+      headline: 'Professional Childcare Specialist',
+      hourlyRateCents: 1500,
+      completedJobs: 12,
+      yearsExperience: 5,
+      skills: ['Child safety', 'Daily routines', 'Play learning', 'First aid'],
+    },
+    {
       email: 'nanny1@e.com',
       fullName: 'Test Nanny One',
       headline: 'Infant Care Specialist',

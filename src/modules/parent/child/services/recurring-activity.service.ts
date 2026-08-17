@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { CaregiverService } from '../../../caregiver/caregiver.service';
+import { ManageSystemService } from '../../../manageSystem/manage-system.service';
 import { CreateRecurringActivityDto } from '../dto/create-recurring-activity.dto';
 import { UpdateRecurringActivityDto } from '../dto/update-recurring-activity.dto';
 
@@ -8,7 +8,7 @@ import { UpdateRecurringActivityDto } from '../dto/update-recurring-activity.dto
 export class RecurringActivityService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly caregiverService: CaregiverService,
+    private readonly caregiverService: ManageSystemService,
   ) {}
 
   async addRecurringActivity(parentUserId: string, childId: string, dto: CreateRecurringActivityDto) {
