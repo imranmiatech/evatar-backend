@@ -326,6 +326,7 @@ enum CareModuleAdminStatus {
 }
 
 enum CareModuleProgressStatus {
+  PENDING
   IN_PROGRESS
   COMPLETED
 }

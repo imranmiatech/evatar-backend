@@ -7,16 +7,16 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 
 import { CareModuleQueryDto, CareModuleTab } from '../dto/care-module-query.dto';
+import { AssignCareModuleDto } from '../dto/assign-module.dto';
+import { SubmitCareQuizDto } from '../dto/submit-care-quiz.dto';
 import { CarehubService } from '../services/carehub.service';
 
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@ApiTags('(Parent/Nanny) > Care Hub')
+@ApiTags('(Parent/Nanny) > Care Hub - Modules')
 @Controller('care')
 export class CarehubController {
   constructor(private readonly careService: CarehubService) {}
-
-
 
   @Get('modules')
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
@@ -77,6 +77,15 @@ export class CarehubController {
     return this.careService.getModuleDetail(user, moduleId);
   }
 
+}
+
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiTags('(Parent/Nanny) > Care Hub - Actions')
+@Controller('care')
+export class CarehubActionsController {
+  constructor(private readonly careService: CarehubService) {}
+
   @Post('modules/:moduleId/save')
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
   @ApiOperation({ summary: 'Save a module to the user Saved tab' })
@@ -97,5 +106,17 @@ export class CarehubController {
     @Param('moduleId') moduleId: string,
   ) {
     return this.careService.removeSavedModule(user, moduleId);
+  }
+
+  @Post('modules/:moduleId/assign')
+  @Roles(UserRole.ADMIN, UserRole.PARENT)
+  @ApiOperation({ summary: 'Assign a module to a Nanny' })
+  @ApiParam({ name: 'moduleId' })
+  assignModuleToNannies(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('moduleId') moduleId: string,
+    @Body() dto: AssignCareModuleDto,
+  ) {
+    return this.careService.assignModuleToNannies(user, moduleId, dto.childId);
   }
 }

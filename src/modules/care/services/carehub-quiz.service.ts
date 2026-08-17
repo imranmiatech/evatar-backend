@@ -169,245 +169,7 @@ export class CarehubQuizService {
     private readonly prisma: PrismaService,
     private readonly rewardsService: RewardsService,
     private readonly storageService: StorageService,
-  ) {}
-
-  async createModule(
-    user: CurrentUserPayload,
-    dto: any,
-    files?: {
-      coverImage?: Express.Multer.File[];
-      video?: Express.Multer.File[];
-    },
-  ) {
-    this.ensureAdmin(user);
-
-    let questions = this.parseFormValue(dto.questions);
-    let contentSections = this.parseFormValue(dto.contentSections);
-    let isPublished =
-      typeof dto.isPublished === 'string'
-        ? dto.isPublished === 'true'
-        : dto.isPublished;
-    let coinReward = dto.coinReward !== undefined ? Number(dto.coinReward) : 5;
-    let estimatedMinutes =
-      dto.estimatedMinutes !== undefined && dto.estimatedMinutes !== ''
-        ? Number(dto.estimatedMinutes)
-        : 15;
-    let suggestedMinAgeYears =
-      dto.suggestedMinAgeYears !== undefined
-        ? Number(dto.suggestedMinAgeYears)
-        : undefined;
-    let suggestedMaxAgeYears =
-      dto.suggestedMaxAgeYears !== undefined
-        ? Number(dto.suggestedMaxAgeYears)
-        : undefined;
-
-    let coverImageUrl = dto.coverImageUrl?.trim();
-    let videoUrl = dto.videoUrl?.trim();
-
-    if (files?.coverImage?.[0]) {
-      coverImageUrl = await this.storageService.uploadFile(
-        files.coverImage[0],
-        'care-modules/covers',
-      );
-    }
-    if (files?.video?.[0]) {
-      videoUrl = await this.storageService.uploadFile(
-        files.video[0],
-        'care-modules/videos',
-      );
-    }
-
-    if (Array.isArray(questions)) {
-      this.validateQuestions(questions);
-    }
-    this.validateSuggestedAgeRange({
-      /* suggestedMinAgeYears, */
-      /* suggestedMaxAgeYears, */
-    });
-
-    const module = await this.prisma.careModule.create({
-      data: {
-        title: dto.title.trim(),
-        
-        shortDescription: dto.description?.trim(),
-        coverImageUrl,
-        videoUrl,
-        category: dto.category,
-        /* estimatedMinutes, */
-        /* coinReward, */
-        /* suggestedMinAgeYears, */
-        /* suggestedMaxAgeYears, */
-        
-        
-        keyTakeaway: dto.keyTakeaway?.trim(),
-        isPublished:
-          isPublished ?? dto.adminStatus === CareModuleAdminStatus.PUBLISHED,
-        adminStatus:
-          dto.adminStatus ??
-          (isPublished
-            ? CareModuleAdminStatus.PUBLISHED
-            : CareModuleAdminStatus.DRAFT),
-        createdByUserId: this.currentUserId(user),
-        ...(Array.isArray(questions) &&
-          questions.length > 0 && {
-            questions: {
-              create: questions.map((question: any, questionIndex: number) => ({
-                question: question.question.trim(),
-                type: question.type ?? CareQuestionType.SINGLE_CHOICE,
-                explanation: question.explanation.trim(),
-                sortOrder: questionIndex + 1,
-                options: {
-                  create: question.options.map(
-                    (option: any, optionIndex: number) => ({
-                      label: option.label.trim(),
-                      isCorrect: Boolean(option.isCorrect),
-                      sortOrder: optionIndex + 1,
-                    }),
-                  ),
-                },
-              })),
-            },
-          }),
-      },
-      include: moduleDetailInclude,
-    });
-
-    return {
-      success: true,
-      message: 'Care module created successfully',
-      data: this.formatModuleDetail(module as any, undefined as any),
-    };
-  }
-
-  async updateModule(
-    user: CurrentUserPayload,
-    id: string,
-    dto: any,
-    files?: {
-      coverImage?: Express.Multer.File[];
-      video?: Express.Multer.File[];
-    },
-  ) {
-    this.ensureAdmin(user);
-
-    const existing = await this.prisma.careModule.findUnique({ where: { id } });
-    if (!existing) {
-      throw new NotFoundException('Care module not found');
-    }
-
-    let questions =
-      dto.questions !== undefined
-        ? this.parseFormValue(dto.questions)
-        : undefined;
-    let contentSections =
-      dto.contentSections !== undefined
-        ? this.parseFormValue(dto.contentSections)
-        : undefined;
-    let isPublished =
-      dto.isPublished !== undefined
-        ? typeof dto.isPublished === 'string'
-          ? dto.isPublished === 'true'
-          : dto.isPublished
-        : undefined;
-    let coinReward =
-      dto.coinReward !== undefined ? Number(dto.coinReward) : undefined;
-    let estimatedMinutes =
-      dto.estimatedMinutes !== undefined
-        ? Number(dto.estimatedMinutes)
-        : undefined;
-    let suggestedMinAgeYears =
-      dto.suggestedMinAgeYears !== undefined
-        ? Number(dto.suggestedMinAgeYears)
-        : undefined;
-    let suggestedMaxAgeYears =
-      dto.suggestedMaxAgeYears !== undefined
-        ? Number(dto.suggestedMaxAgeYears)
-        : undefined;
-
-    let coverImageUrl = dto.coverImageUrl?.trim();
-    let videoUrl = dto.videoUrl?.trim();
-
-    if (files?.coverImage?.[0]) {
-      coverImageUrl = await this.storageService.uploadFile(
-        files.coverImage[0],
-        'care-modules/covers',
-      );
-    }
-    if (files?.video?.[0]) {
-      videoUrl = await this.storageService.uploadFile(
-        files.video[0],
-        'care-modules/videos',
-      );
-    }
-
-    if (Array.isArray(questions)) {
-      this.validateQuestions(questions);
-      await this.prisma.careQuizQuestion.deleteMany({
-        where: { moduleId: id },
-      });
-    }
-
-    const updated = await this.prisma.careModule.update({
-      where: { id },
-      data: {
-        ...(dto.title !== undefined && { title: dto.title.trim() }),
-        ...(dto.subtitle !== undefined && { subtitle: dto.subtitle?.trim() }),
-        ...(dto.description !== undefined && {
-          shortDescription: dto.description?.trim(),
-        }),
-        ...(coverImageUrl !== undefined && { coverImageUrl }),
-        ...(videoUrl !== undefined && { videoUrl }),
-        ...(dto.category !== undefined && { category: dto.category }),
-        ...(estimatedMinutes !== undefined && { estimatedMinutes }),
-        ...(coinReward !== undefined && { coinReward }),
-        ...(suggestedMinAgeYears !== undefined && { suggestedMinAgeYears }),
-        ...(suggestedMaxAgeYears !== undefined && { suggestedMaxAgeYears }),
-        ...(dto.contentTitle !== undefined && {
-          
-        }),
-        ...(contentSections !== undefined && { contentSections }),
-        ...(dto.keyTakeaway !== undefined && {
-          keyTakeaway: dto.keyTakeaway?.trim(),
-        }),
-        ...(isPublished !== undefined && {
-          isPublished,
-          adminStatus: isPublished
-            ? CareModuleAdminStatus.PUBLISHED
-            : CareModuleAdminStatus.DRAFT,
-        }),
-        ...(dto.adminStatus !== undefined && {
-          adminStatus: dto.adminStatus,
-          isPublished: dto.adminStatus === CareModuleAdminStatus.PUBLISHED,
-        }),
-        ...(Array.isArray(questions) && {
-          questions: {
-            create: questions.map((question: any, questionIndex: number) => ({
-              question: question.question.trim(),
-              type: question.type ?? CareQuestionType.SINGLE_CHOICE,
-              explanation: question.explanation.trim(),
-              sortOrder: questionIndex + 1,
-              options: {
-                create: question.options.map(
-                  (option: any, optionIndex: number) => ({
-                    label: option.label.trim(),
-                    isCorrect: Boolean(option.isCorrect),
-                    sortOrder: optionIndex + 1,
-                  }),
-                ),
-              },
-            })),
-          },
-        }),
-      },
-      include: moduleDetailInclude,
-    });
-
-    return {
-      success: true,
-      message: 'Care module updated successfully',
-      data: this.formatModuleDetail(updated),
-    };
-  }
+  ) { }
 
   /* async deleteModule(user: CurrentUserPayload, id: string) {
 
@@ -425,941 +187,6 @@ export class CarehubQuizService {
       message: 'Care module deleted successfully',
     };
   } */
-
-  async getSuggestedModules(
-    user: CurrentUserPayload,
-    childId: string,
-    query: CareModuleQueryDto,
-  ) {
-    const userId = this.currentUserId(user);
-
-    if (this.isNanny(user)) {
-      await this.assertNannyCanViewChildCare(userId, childId);
-    } else {
-      await this.assertCanViewCare(userId, childId);
-    }
-
-    const child = await this.prisma.child.findUnique({
-      where: { id: childId },
-      select: { id: true, name: true, birthDate: true },
-    });
-
-    if (!child) {
-      throw new NotFoundException('Child not found');
-    }
-
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
-    const ageMonths = child.birthDate
-      ? Math.floor((new Date().getTime() - child.birthDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44))
-      : null;
-      
-    const matchedAgeGroup = ageMonths !== null ? this.ageGroupForMonths(ageMonths) : null;
-    const ageYears = ageMonths !== null ? Math.floor(ageMonths / 12) : null;
-
-    const moduleWhere = {
-      ...this.moduleWhere(query, user),
-      ...(matchedAgeGroup !== null && {
-        ageGroup: matchedAgeGroup
-      }),
-    } satisfies Prisma.CareModuleWhereInput;
-
-    const [modules, total] = await Promise.all([
-      this.prisma.careModule.findMany({
-        where: moduleWhere,
-        select: moduleListSelect,
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.careModule.count({ where: moduleWhere }),
-    ]);
-
-    const [savedIds, progressByModuleId] = await Promise.all([
-      this.savedModuleIds(
-        userId,
-        modules.map((module) => module.id),
-        childId,
-      ),
-      this.progressMapForCards(
-        user,
-        { ...query, childId },
-        modules.map((module) => module.id),
-      ),
-    ]);
-    const cards = modules.map((module) =>
-      this.formatModuleCard(module, {
-        isSaved: savedIds.has(module.id),
-        progress: progressByModuleId.get(module.id),
-      }),
-    );
-
-    return {
-      success: true,
-      message: 'Suggested care modules fetched successfully',
-      data: {
-        child,
-        ageYears,
-        modules: cards,
-      },
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-        ageMatched: ageYears !== null,
-        warning:
-          ageYears === null
-            ? 'Child birthDate is missing, so suggestions are not filtered by age.'
-            : undefined,
-      },
-    };
-  }
-
-  async getCareHome(user: CurrentUserPayload, query: CareHomeQueryDto) {
-    const userId = this.currentUserId(user);
-    const { adminStatus, ageGroup, category, topicId, ...baseHomeQuery } =
-      query;
-    const activeTab = baseHomeQuery.tab ?? CareModuleTab.ALL;
-    const canApplyTopic = activeTab === CareModuleTab.ALL;
-    const selectedTopicId =
-      canApplyTopic && topicId && topicId !== 'ALL' ? topicId : null;
-    if (
-      topicId &&
-      topicId !== 'ALL' &&
-      !Object.values(CareModuleCategory).includes(
-        topicId as CareModuleCategory,
-      )
-    ) {
-      throw new BadRequestException('Invalid topicId');
-    }
-
-    const moduleQuery = {
-      ...baseHomeQuery,
-      ...(selectedTopicId && {
-        category: selectedTopicId as CareModuleCategory,
-      }),
-    };
-
-    const [account, careChildren] = await Promise.all([
-      this.prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          profilePictureUrl: true,
-          role: true,
-        },
-      }),
-      this.getMyCareChildren(user),
-    ]);
-
-    if (!account) {
-      throw new NotFoundException('User not found');
-    }
-
-    const children = careChildren.data;
-    const selectedChildId = moduleQuery.childId ?? children[0]?.id ?? null;
-    const homeQuery = {
-      ...moduleQuery,
-      ...(selectedChildId && { childId: selectedChildId }),
-    };
-    const moduleResponse = await this.getModules(user, homeQuery);
-
-    return {
-      success: true,
-      message: 'Care home fetched successfully',
-      data: {
-        user: {
-          id: account.id,
-          name: account.fullName,
-          email: account.email,
-          image: account.profilePictureUrl,
-          role: account.role,
-          greeting: this.timeGreeting(),
-        },
-        selectedChildId,
-        modules: moduleResponse.data,
-        caregivingHub: {
-          title: 'Explore Baby handling lesson',
-          subtitle:
-            "Assign care modules to your nanny based on your child's needs.",
-          selectedChildId,
-          modules: moduleResponse.data,
-        },
-        meta: {
-          ...moduleResponse.meta,
-          filters: {
-            childId: selectedChildId,
-            tab: activeTab,
-            topicId: selectedTopicId ?? 'ALL',
-            search: homeQuery.search ?? null,
-            userId: null,
-          },
-        },
-      },
-    };
-  }
-
-  async getCareHomeTabs(user: CurrentUserPayload, query: CareHomeTabsQueryDto) {
-    if (!query.childId) {
-      throw new BadRequestException('childId query parameter is required');
-    }
-
-    const userId = this.currentUserId(user);
-    if (this.isNanny(user)) {
-      await this.assertNannyCanViewChildCare(userId, query.childId);
-    } else {
-      await this.assertCanViewCare(userId, query.childId);
-    }
-
-    const homeQuery = {
-      childId: query.childId,
-      page: 1,
-      limit: 1,
-    };
-    const tabCounts = await this.careHomeTabCounts(user, homeQuery);
-
-    return {
-      success: true,
-      message: 'Care home tabs fetched successfully',
-      meta: {
-        childId: query.childId ?? null,
-      },
-      data: [
-        {
-          id: CareModuleTab.ALL,
-          key: CareModuleTab.ALL,
-          label: 'All Modules',
-          count: tabCounts.all,
-          isActive: true,
-        },
-        {
-          id: CareModuleTab.IN_PROGRESS,
-          key: CareModuleTab.IN_PROGRESS,
-          label: 'In progress',
-          count: tabCounts.inProgress,
-          isActive: false,
-        },
-        {
-          id: CareModuleTab.COMPLETED,
-          key: CareModuleTab.COMPLETED,
-          label: 'Completed',
-          count: tabCounts.completed,
-          isActive: false,
-        },
-        {
-          id: CareModuleTab.SAVED,
-          key: CareModuleTab.SAVED,
-          label: 'Saved',
-          count: tabCounts.saved,
-          isActive: false,
-        },
-      ],
-    };
-  }
-
-  getCareHomeTopics() {
-    return {
-      success: true,
-      message: 'Care home topics fetched successfully',
-      data: CARE_HOME_TOPICS.map(({ id, label }) => ({ id, label })),
-    };
-  }
-
-  async getMyCareChildren(user: CurrentUserPayload) {
-    const userId = this.currentUserId(user);
-    const childIds = await this.accessibleChildIds(userId);
-
-    const children = await this.prisma.child.findMany({
-      where: {
-        id: { in: childIds },
-        OR: [
-          { nannies: { some: {} } },
-          {
-            caregiverAccesses: {
-              some: {
-                role: CaregiverAccessRole.NANNY,
-                status: CaregiverAccessStatus.ACCEPTED,
-              },
-            },
-          },
-          
-        ],
-      },
-      select: {
-        id: true,
-        name: true,
-        avatar: true,
-        gender: true,
-        birthDate: true,
-        parentUserId: true,
-        parentUser: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            profilePictureUrl: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    return {
-      success: true,
-      message: 'Care children fetched successfully',
-      data: children.map((child) => ({
-        ...child,
-        ageYears: child.birthDate ? this.childAgeYears(child.birthDate) : null,
-      })),
-    };
-  }
-
-  async getChildInsights(
-    user: CurrentUserPayload,
-    childId: string,
-    query: CareChildInsightsQueryDto,
-  ) {
-    const userId = this.currentUserId(user);
-
-    if (this.isNanny(user)) {
-      await this.assertNannyCanViewChildCare(userId, childId);
-    } else {
-      await this.assertCanViewCare(userId, childId);
-    }
-
-    const child = await this.prisma.child.findUnique({
-      where: { id: childId },
-      select: { id: true, name: true, avatar: true, birthDate: true },
-    });
-
-    if (!child) {
-      throw new NotFoundException('Child not found');
-    }
-
-    const range = this.resolveInsightsRange(query);
-    const baseWhere = {
-      dayPlan: {
-        childId,
-        date: {
-          gte: range.start,
-          lt: range.end,
-        },
-      },
-    } satisfies Prisma.DayActivityWhereInput;
-
-    const favoriteWhere = {
-      ...baseWhere,
-      feedback: {
-        is: {
-          enjoyment: { in: [...FAVORITE_ENJOYMENT] },
-          childMood: { in: [...FAVORITE_MOODS] },
-          completionRate: FAVORITE_COMPLETION,
-        },
-      },
-    } satisfies Prisma.DayActivityWhereInput;
-
-    const [activitiesDone, mealsLogged, favoriteMeals, favoriteActivities] =
-      await Promise.all([
-        this.prisma.dayActivity.count({
-          where: {
-            ...baseWhere,
-            OR: this.categoryKeywordWhere(ACTIVITY_CATEGORY_KEYWORDS),
-          },
-        }),
-        this.prisma.dayActivity.count({
-          where: {
-            ...baseWhere,
-            OR: this.categoryKeywordWhere(MEAL_CATEGORY_KEYWORDS),
-          },
-        }),
-        this.prisma.dayActivity.findMany({
-          where: {
-            ...favoriteWhere,
-            OR: this.categoryKeywordWhere(MEAL_CATEGORY_KEYWORDS),
-          },
-          include: this.insightActivityInclude(),
-          orderBy: [
-            { feedback: { submittedAt: 'desc' } },
-            { updatedAt: 'desc' },
-          ],
-          take: 10,
-        }),
-        this.prisma.dayActivity.findMany({
-          where: {
-            ...favoriteWhere,
-            OR: this.categoryKeywordWhere(ACTIVITY_CATEGORY_KEYWORDS),
-          },
-          include: this.insightActivityInclude(),
-          orderBy: [
-            { feedback: { submittedAt: 'desc' } },
-            { updatedAt: 'desc' },
-          ],
-          take: 10,
-        }),
-      ]);
-
-    return {
-      success: true,
-      message: 'Care child insights fetched successfully',
-      data: {
-        child: {
-          ...child,
-          ageYears: child.birthDate
-            ? this.childAgeYears(child.birthDate)
-            : null,
-        },
-        period: {
-          type: query.period ?? 'month',
-          month: range.month,
-          week: range.week,
-          startDate: range.start,
-          endDate: range.end,
-        },
-        meta: {
-          activitiesDone,
-          mealsLogged,
-        },
-        favoriteActivities: favoriteActivities.map((activity) =>
-          this.formatInsightActivity(activity),
-        ),
-        favoriteMeals: favoriteMeals.map((activity) =>
-          this.formatInsightActivity(activity),
-        ),
-      },
-    };
-  }
-
-  async getMonthlyHighlights(
-    user: CurrentUserPayload,
-    childId: string,
-    query: CareMonthlyHighlightsQueryDto,
-  ) {
-    const userId = this.currentUserId(user);
-
-    if (this.isNanny(user)) {
-      await this.assertNannyCanViewChildCare(userId, childId);
-    } else {
-      await this.assertCanViewCare(userId, childId);
-    }
-
-    const child = await this.prisma.child.findUnique({
-      where: { id: childId },
-      select: { id: true, name: true, avatar: true },
-    });
-
-    if (!child) {
-      throw new NotFoundException('Child not found');
-    }
-
-    const range = this.resolveMonthRange(query.month);
-    const proofWhere = {
-      mediaAsset: {
-        type: MediaType.IMAGE,
-      },
-      dayActivity: {
-        dayPlan: {
-          childId,
-          date: {
-            gte: range.start,
-            lt: range.end,
-          },
-        },
-        feedback: {
-          is: {
-            enjoyment: { in: [...FAVORITE_ENJOYMENT] },
-            childMood: { in: [...FAVORITE_MOODS] },
-            completionRate: FAVORITE_COMPLETION,
-          },
-        },
-      },
-    } satisfies Prisma.DayActivityProofWhereInput;
-
-    const [proofs, totalProofs] = await Promise.all([
-      this.prisma.dayActivityProof.findMany({
-        where: proofWhere,
-        include: {
-          mediaAsset: {
-            select: {
-              id: true,
-              url: true,
-              type: true,
-              mimeType: true,
-            },
-          },
-          uploadedByUser: {
-            select: {
-              id: true,
-              fullName: true,
-              profilePictureUrl: true,
-            },
-          },
-          dayActivity: {
-            include: {
-              dayPlan: { select: { id: true, date: true } },
-              feedback: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 30,
-      }),
-      this.prisma.dayActivityProof.count({ where: proofWhere }),
-    ]);
-
-    return {
-      success: true,
-      message: 'Care monthly highlights fetched successfully',
-      data: {
-        child,
-        period: {
-          month: range.month,
-          label: range.label,
-          startDate: range.start,
-          endDate: range.end,
-        },
-        summary: {
-          photos: totalProofs,
-        },
-        previewImages: proofs.slice(0, 3).map((proof) => proof.mediaAsset.url),
-        highlights: proofs.map((proof) => ({
-          id: proof.id,
-          imageUrl: proof.mediaAsset.url,
-          caption: proof.caption,
-          createdAt: proof.createdAt,
-          uploadedByUser: proof.uploadedByUser,
-          activity: {
-            id: proof.dayActivity.id,
-            title: proof.dayActivity.title,
-            category: proof.dayActivity.category,
-            description: proof.dayActivity.description,
-            date: proof.dayActivity.dayPlan.date,
-            feedback: proof.dayActivity.feedback
-              ? {
-                  enjoyment: proof.dayActivity.feedback.enjoyment,
-                  childMood: proof.dayActivity.feedback.childMood,
-                  completionRate: proof.dayActivity.feedback.completionRate,
-                  note: proof.dayActivity.feedback.note,
-                }
-              : null,
-          },
-        })),
-      },
-    };
-  }
-
-  async getChildNotes(user: CurrentUserPayload, childId: string) {
-    await this.assertCanUseChildNotes(user, childId);
-
-    const notes = await this.prisma.careChildNote.findMany({
-      where: { childId },
-      include: this.childNoteInclude(),
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return {
-      success: true,
-      message: 'Care child notes fetched successfully',
-      data: notes.map((note) => this.formatChildNote(note, childId)),
-    };
-  }
-
-  async createChildNote(
-    user: CurrentUserPayload,
-    childId: string,
-    dto: CreateCareChildNoteDto,
-  ) {
-    await this.assertCanUseChildNotes(user, childId);
-
-    const note = await this.prisma.careChildNote.create({
-      data: {
-        childId,
-        authorUserId: this.currentUserId(user),
-        note: dto.note.trim(),
-      },
-      include: this.childNoteInclude(),
-    });
-
-    return {
-      success: true,
-      message: 'Care child note created successfully',
-      data: this.formatChildNote(note, childId),
-    };
-  }
-
-  async deleteChildNote(
-    user: CurrentUserPayload,
-    childId: string,
-    noteId: string,
-  ) {
-    await this.assertCanUseChildNotes(user, childId);
-
-    const note = await this.prisma.careChildNote.findUnique({
-      where: { id: noteId },
-      select: {
-        id: true,
-        childId: true,
-        authorUserId: true,
-        child: { select: { parentUserId: true } },
-      },
-    });
-
-    if (!note || note.childId !== childId) {
-      throw new NotFoundException('Care child note not found');
-    }
-
-    const userId = this.currentUserId(user);
-    if (note.authorUserId !== userId && note.child.parentUserId !== userId) {
-      throw new ForbiddenException('You cannot delete this care note');
-    }
-
-    await this.prisma.careChildNote.delete({ where: { id: noteId } });
-
-    return {
-      success: true,
-      message: 'Care child note deleted successfully',
-    };
-  }
-
-  async getModules(user: CurrentUserPayload, query: CareModuleQueryDto & { tab?: CareModuleTab }) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
-    const userId = this.currentUserId(user);
-    const tab = query.tab ?? CareModuleTab.ALL;
-
-    if (query.childId) {
-      if (this.isNanny(user)) {
-        await this.assertNannyCanViewChildCare(userId, query.childId);
-      } else {
-        await this.assertCanViewCare(userId, query.childId);
-      }
-    }
-
-    const moduleWhere = this.moduleWhere(query, user);
-
-    if (tab === CareModuleTab.SAVED) {
-      const where = {
-        userId,
-        ...(query.childId && { childId: query.childId }),
-        module: moduleWhere,
-      } satisfies Prisma.CareModuleSaveWhereInput;
-
-      const [saves, total] = await Promise.all([
-        this.prisma.careModuleSave.findMany({
-          where,
-          include: { module: { select: moduleListSelect } },
-          orderBy: { createdAt: 'desc' },
-          skip,
-          take: limit,
-        }),
-        this.prisma.careModuleSave.count({ where }),
-      ]);
-
-      return this.paginatedModules(
-        saves.map((save) =>
-          this.formatModuleCard(save.module, {
-            isSaved: true,
-          }),
-        ),
-        total,
-        page,
-        limit,
-      );
-    }
-
-    if (
-      (query.childId && tab === CareModuleTab.ALL) ||
-      tab === CareModuleTab.IN_PROGRESS ||
-      tab === CareModuleTab.COMPLETED ||
-      this.isNanny(user)
-    ) {
-      const where = await this.progressWhereForUser(user, query, tab);
-      const [progresses, total] = await Promise.all([
-        this.prisma.careModuleProgress.findMany({
-          where: { ...where, module: moduleWhere },
-          include: {
-            module: { select: moduleListSelect },
-            
-            user: {
-              select: {
-                id: true,
-                fullName: true,
-                email: true,
-                profilePictureUrl: true,
-              },
-            },
-          },
-          orderBy: { createdAt: 'desc' },
-          skip,
-          take: limit,
-        }),
-        this.prisma.careModuleProgress.count({
-          where: { ...where, module: moduleWhere },
-        }),
-      ]);
-
-      const savedIds = await this.savedModuleIds(
-        userId,
-        progresses.map((progress) => progress.moduleId),
-        query.childId,
-      );
-
-      return this.paginatedModules(
-        progresses.map((progress) =>
-          this.formatModuleCard(progress.module, {
-            progress,
-            isSaved: savedIds.has(progress.moduleId),
-          }),
-        ),
-        total,
-        page,
-        limit,
-      );
-    }
-
-    const [modules, total] = await Promise.all([
-      this.prisma.careModule.findMany({
-        where: moduleWhere,
-        select: moduleListSelect,
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.careModule.count({ where: moduleWhere }),
-    ]);
-
-    const [savedIds, progressByModuleId] = await Promise.all([
-      this.savedModuleIds(
-        userId,
-        modules.map((module) => module.id),
-        query.childId,
-      ),
-      this.progressMapForCards(
-        user,
-        query,
-        modules.map((module) => module.id),
-      ),
-    ]);
-
-    return this.paginatedModules(
-      modules.map((module) =>
-        this.formatModuleCard(module, {
-          isSaved: savedIds.has(module.id),
-          progress: progressByModuleId.get(module.id),
-        }),
-      ),
-      total,
-      page,
-      limit,
-    );
-  }
-
-  async getAdminModules(user: CurrentUserPayload, query: CareModuleQueryDto) {
-    this.ensureAdmin(user);
-
-    const where = this.moduleWhere(query, user);
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
-
-    const [totalModules, published, draft, modules, total] = await Promise.all([
-      this.prisma.careModule.count(),
-      this.prisma.careModule.count({
-        where: { adminStatus: CareModuleAdminStatus.PUBLISHED },
-      }),
-      this.prisma.careModule.count({
-        where: { adminStatus: CareModuleAdminStatus.DRAFT },
-      }),
-      this.prisma.careModule.findMany({
-        where,
-        include: {
-          _count: {
-            select: {
-              progresses: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.careModule.count({ where }),
-    ]);
-
-    const formattedModules = modules.map((m) => ({
-      id: m.id,
-      title: m.title,
-      
-      description: m.shortDescription ?? undefined,
-      coverImageUrl: m.coverImageUrl,
-      videoUrl: m.videoUrl,
-      category: m.category,
-      
-      ageGroup: m.ageGroup,
-      
-      estimatedMinutes: 15,
-      coinReward: m.completionPoints,
-      adminStatus: m.adminStatus,
-      isPublished: m.isPublished,
-      assignedNanniesCount: m._count.progresses,
-      assignedText: `${m._count.progresses} Nannies`,
-      createdAt: m.createdAt,
-      updatedAt: m.updatedAt,
-    }));
-
-    return {
-      stats: {
-        totalModules,
-        published,
-        draft,
-      },
-      modules: formattedModules,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
-
-  async toggleModuleStatus(
-    user: CurrentUserPayload,
-    moduleId: string,
-    dto?: any,
-  ) {
-    this.ensureAdmin(user);
-
-    const module = await this.prisma.careModule.findUnique({
-      where: { id: moduleId },
-      select: { id: true, adminStatus: true, isPublished: true },
-    });
-
-    if (!module) {
-      throw new NotFoundException(`Care module with ID ${moduleId} not found`);
-    }
-
-    let nextStatus: CareModuleAdminStatus;
-    if (dto?.adminStatus) {
-      nextStatus = dto.adminStatus;
-    } else {
-      nextStatus =
-        module.adminStatus === CareModuleAdminStatus.PUBLISHED
-          ? CareModuleAdminStatus.DRAFT
-          : CareModuleAdminStatus.PUBLISHED;
-    }
-
-    const isPublished = nextStatus === CareModuleAdminStatus.PUBLISHED;
-
-    const updated = await this.prisma.careModule.update({
-      where: { id: moduleId },
-      data: {
-        adminStatus: nextStatus,
-        isPublished,
-      },
-      select: {
-        id: true,
-        title: true,
-        adminStatus: true,
-        isPublished: true,
-        updatedAt: true,
-      },
-    });
-
-    return updated;
-  }
-
-  async getAdminModuleDetail(user: CurrentUserPayload, moduleId: string) {
-    this.ensureAdmin(user);
-
-    const module = await this.prisma.careModule.findUnique({
-      where: { id: moduleId },
-      include: moduleDetailInclude,
-    });
-
-    if (!module) {
-      throw new NotFoundException(`Care module with ID ${moduleId} not found`);
-    }
-
-    const assignedNanniesCount = await this.prisma.careModuleProgress.count({
-      where: { moduleId },
-    });
-
-    return {
-      success: true,
-      message: 'Admin care module details fetched successfully',
-      data: {
-        ...this.formatModuleDetail(module as any, undefined as any),
-        
-        assignedNanniesCount,
-        assignedText: `${assignedNanniesCount} Nannies`,
-      },
-    };
-  }
-
-  async getModuleDetail(
-    user: CurrentUserPayload,
-    moduleId: string,
-    progressId?: string,
-    childId?: string,
-  ) {
-    const userId = this.currentUserId(user);
-    const module = await this.prisma.careModule.findFirst({
-      where: {
-        id: moduleId,
-        ...(!this.isAdmin(user) && { isPublished: true }),
-      },
-      include: moduleDetailInclude,
-    });
-
-    if (!module) {
-      throw new NotFoundException('Care module not found');
-    }
-
-    const progress = await this.prisma.careModuleProgress.findFirst({
-      where: { moduleId, userId }
-    });
-
-    if (
-      progress &&
-      progress.status === CareModuleProgressStatus.IN_PROGRESS
-    ) {
-      await this.prisma.careModuleProgress.update({
-        where: { id: progress.id },
-        data: {
-          status: CareModuleProgressStatus.IN_PROGRESS,
-          startedAt: new Date(),
-        },
-      });
-      progress.status = CareModuleProgressStatus.IN_PROGRESS;
-      progress.startedAt = new Date();
-    }
-
-    
-    const isSavedRecord = await this.prisma.careModuleSave.findUnique({
-      where: {
-        moduleId_userId: {
-          moduleId,
-          userId,
-        },
-      },
-    });
-    const isSaved = !!isSavedRecord;
-
-    return {
-      success: true,
-      message: 'Care module fetched successfully',
-      data: this.formatModuleDetail(module, {
-        progress,
-        isSaved: Boolean(isSaved),
-      }),
-    };
-  }
-
   /* async assignModule(user: CurrentUserPayload, dto: AssignCareModuleDto) {
 
     const userId = this.currentUserId(user);
@@ -1418,66 +245,76 @@ export class CarehubQuizService {
     };
   } */
 
-  async saveModule(
-    user: CurrentUserPayload,
-    moduleId: string,
-    
-  ) {
+  async startQuiz(user: CurrentUserPayload, moduleId: string) {
     const userId = this.currentUserId(user);
-    await this.assertPublishedModule(moduleId);
-    
-
-    const save = await this.prisma.careModuleSave.upsert({
-      where: {
-        moduleId_userId: {
-          moduleId,
-          userId,
+    const module = await this.prisma.careModule.findUnique({
+      where: { id: moduleId },
+      include: {
+        questions: {
+          select: {
+            id: true,
+            question: true,
+            type: true,
+            sortOrder: true,
+            options: {
+              select: { id: true, label: true, sortOrder: true },
+              orderBy: { sortOrder: 'asc' },
+            },
+          },
+          orderBy: { sortOrder: 'asc' },
         },
       },
-      update: {},
-      create: { moduleId, userId },
     });
+
+    if (!module) {
+      throw new NotFoundException('Care module not found');
+    }
+
+    let progress = await this.prisma.careModuleProgress.findUnique({
+      where: { moduleId_userId: { moduleId, userId } },
+    });
+
+    if (!progress) {
+      progress = await this.prisma.careModuleProgress.create({
+        data: {
+          moduleId,
+          userId,
+          status: CareModuleProgressStatus.IN_PROGRESS,
+          startedAt: new Date(),
+        },
+      });
+    } else if (
+      progress.status === CareModuleProgressStatus.PENDING ||
+      (progress.status === CareModuleProgressStatus.IN_PROGRESS && !progress.startedAt)
+    ) {
+      progress = await this.prisma.careModuleProgress.update({
+        where: { id: progress.id },
+        data: {
+          status: CareModuleProgressStatus.IN_PROGRESS,
+          startedAt: new Date(),
+        },
+      });
+    }
 
     return {
       success: true,
-      message: 'Care module saved successfully',
-      data: save,
-    };
-  }
-
-  async removeSavedModule(
-    user: CurrentUserPayload,
-    moduleId: string,
-    
-  ) {
-    const userId = this.currentUserId(user);
-    
-
-    await this.prisma.careModuleSave.deleteMany({
-      where: { moduleId, userId },
-    });
-
-    return {
-      success: true,
-      message: 'Care module removed from saved list',
+      message: 'Quiz started successfully',
+      data: {
+        moduleId: module.id,
+        title: module.title,
+        questions: module.questions,
+      },
     };
   }
 
   async submitQuiz(
     user: CurrentUserPayload,
-    progressId: string,
+    moduleId: string,
     dto: SubmitCareQuizDto,
   ) {
-    const progress = await this.getProgressForUser(user, progressId);
-    const lockedUntil = this.quizLockedUntil(progress);
-    if (lockedUntil && lockedUntil > new Date()) {
-      throw new BadRequestException(
-        `This quiz is locked until ${lockedUntil.toISOString()}`,
-      );
-    }
-
+    const userId = this.currentUserId(user);
     const module = await this.prisma.careModule.findUnique({
-      where: { id: progress.moduleId },
+      where: { id: moduleId },
       include: {
         questions: {
           include: { options: true },
@@ -1488,6 +325,28 @@ export class CarehubQuizService {
 
     if (!module) {
       throw new NotFoundException('Care module not found');
+    }
+
+    let progress = await this.prisma.careModuleProgress.findUnique({
+      where: { moduleId_userId: { moduleId, userId } },
+    });
+
+    if (!progress) {
+      progress = await this.prisma.careModuleProgress.create({
+        data: {
+          moduleId,
+          userId,
+          status: CareModuleProgressStatus.IN_PROGRESS,
+          startedAt: new Date(),
+        },
+      });
+    }
+
+    const lockedUntil = this.quizLockedUntil(progress);
+    if (lockedUntil && lockedUntil > new Date()) {
+      throw new BadRequestException(
+        `This quiz is locked until ${lockedUntil.toISOString()}`,
+      );
     }
 
     const answersByQuestionId = new Map(
@@ -1511,7 +370,7 @@ export class CarehubQuizService {
       }
 
       return {
-        progressId,
+        progressId: progress!.id,
         questionId: question.id,
         selectedOptionId: selectedOption.id,
         isCorrect: selectedOption.isCorrect,
@@ -1524,10 +383,7 @@ export class CarehubQuizService {
     const totalQuestions = module.questions.length;
     const score = Math.round((correctAnswers / totalQuestions) * 100);
     const isPerfectScore = correctAnswers === totalQuestions;
-    const pointsEarned =
-      isPerfectScore && !progress.pointsAwardedAt
-        ? QUIZ_PERFECT_SCORE_POINTS
-        : progress.pointsEarned;
+    const pointsEarned = isPerfectScore && !progress.pointsAwardedAt ? module.completionPoints : progress.pointsEarned;
     const pointsAwardedAt =
       isPerfectScore && !progress.pointsAwardedAt
         ? new Date()
@@ -1539,7 +395,7 @@ export class CarehubQuizService {
           tx.careQuizAnswer.upsert({
             where: {
               progressId_questionId: {
-                progressId,
+                progressId: progress!.id,
                 questionId: answer.questionId,
               },
             },
@@ -1553,8 +409,8 @@ export class CarehubQuizService {
         ),
       );
 
-      await tx.careModuleProgress.update({
-        where: { id: progressId },
+      progress = await tx.careModuleProgress.update({
+        where: { id: progress!.id },
         data: {
           status: isPerfectScore
             ? CareModuleProgressStatus.COMPLETED
@@ -1565,7 +421,7 @@ export class CarehubQuizService {
           score,
           pointsEarned,
           pointsAwardedAt,
-          startedAt: progress.startedAt ?? new Date(),
+          startedAt: progress!.startedAt ?? new Date(),
         },
       });
     });
@@ -1573,24 +429,49 @@ export class CarehubQuizService {
     if (isPerfectScore) {
       await this.rewardsService.awardCareModuleCompletion(
         progress.userId,
-        progressId,
-        QUIZ_PERFECT_SCORE_POINTS,
+        progress.id,
+        module.completionPoints,
         {
           moduleId: module.id,
           moduleTitle: module.title,
-          
           completedByRole: user.role,
         },
       );
+      
+      if (progress.assignedById && user.role === UserRole.NANNY) {
+        await this.rewardsService.awardCareModuleCompletion(
+          progress.assignedById,
+          progress.id,
+          module.completionPoints,
+          {
+            moduleId: module.id,
+            moduleTitle: module.title,
+            completedByRole: UserRole.PARENT,
+          },
+        );
+      }
     }
 
-    return this.getQuizResult(user, progressId);
+    const result = await this.getQuizResult(user, moduleId);
+    return {
+      ...result,
+      message: 'Quiz submitted successfully',
+    };
   }
 
-  async getQuizResult(user: CurrentUserPayload, progressId: string) {
-    const progress = await this.getProgressForUser(user, progressId);
+  async getQuizResult(user: CurrentUserPayload, moduleId: string) {
+    const userId = this.currentUserId(user);
+    const progress = await this.prisma.careModuleProgress.findUnique({
+      where: { moduleId_userId: { moduleId, userId } },
+      include: this.progressInclude(),
+    });
+
+    if (!progress) {
+      throw new NotFoundException('Quiz progress not found');
+    }
+
     const answers = await this.prisma.careQuizAnswer.findMany({
-      where: { progressId },
+      where: { progressId: progress.id },
       include: {
         selectedOption: { select: { id: true, label: true, isCorrect: true } },
         question: {
@@ -1783,14 +664,14 @@ export class CarehubQuizService {
 
     return {
       ...(!isAdmin && { isPublished: true }),
-      
+
       ...(category && { category: category }),
       ...(query.search && {
         OR: [
           { title: { contains: query.search, mode: 'insensitive' as const } },
           { shortDescription: { contains: query.search, mode: "insensitive" as const } },
           {
-            },
+          },
           ...(searchCategories.length > 0
             ? [{ category: { in: searchCategories } }]
             : []),
@@ -1851,8 +732,8 @@ export class CarehubQuizService {
       : await this.accessibleChildIds(userId);
 
     return {
-      
-      
+
+
       ...tabWhere,
     } satisfies Prisma.CareModuleProgressWhereInput;
   }
@@ -1909,9 +790,9 @@ export class CarehubQuizService {
         ...(this.isNanny(user)
           ? { userId: userId }
           : {
-              
-              
-            }),
+
+
+          }),
       },
       orderBy: { updatedAt: 'desc' },
     });
@@ -1974,7 +855,7 @@ export class CarehubQuizService {
       return progress;
     }
 
-    
+
     return progress;
   }
 
@@ -2012,7 +893,8 @@ export class CarehubQuizService {
     childId: string,
   ) {
     const [progress, nannyLink, caregiverAccess] = await Promise.all([
-      this.prisma.careModuleProgress.findFirst({ where: { userId },
+      this.prisma.careModuleProgress.findFirst({
+        where: { userId },
         select: { id: true },
       }),
       this.prisma.nannyChildLink.findFirst({
@@ -2090,7 +972,8 @@ export class CarehubQuizService {
           },
           select: { id: true },
         }),
-        this.prisma.careModuleProgress.findMany({ where: { userId },
+        this.prisma.careModuleProgress.findMany({
+          where: { userId },
           select: { id: true },
         }),
         this.prisma.nannyChildLink.findMany({
@@ -2102,9 +985,9 @@ export class CarehubQuizService {
     return [
       ...new Set([
         ...children.map((child) => child.id),
-        
-        
-        
+
+
+
       ]),
     ];
   }
@@ -2192,25 +1075,25 @@ export class CarehubQuizService {
     options: {
       isSaved?: boolean;
       progress?:
-        | Prisma.CareModuleProgressGetPayload<{
-            include: ReturnType<CarehubQuizService['progressInclude']>;
-          }>
-        | Prisma.CareModuleProgressGetPayload<object>
-        | null;
+      | Prisma.CareModuleProgressGetPayload<{
+        include: ReturnType<CarehubQuizService['progressInclude']>;
+      }>
+      | Prisma.CareModuleProgressGetPayload<object>
+      | null;
     } = {},
   ) {
     return {
       id: module.id,
       title: module.title,
-      
+
       description: module.shortDescription ?? undefined,
       coverImageUrl: module.coverImageUrl,
       videoUrl: module.videoUrl,
       category: module.category,
-      
+
       coinReward: module.completionPoints,
       ageGroup: module.ageGroup,
-      
+
       keyTakeaway: (module as any).keyTakeaway,
       isPublished: module.isPublished,
       isSaved: Boolean(options.isSaved),
@@ -2235,16 +1118,16 @@ export class CarehubQuizService {
     return {
       id: module.id,
       title: module.title,
-      
+
       description: module.shortDescription ?? undefined,
       coverImageUrl: module.coverImageUrl,
       videoUrl: module.videoUrl,
       category: module.category,
-      
+
       coinReward: module.completionPoints,
       ageGroup: module.ageGroup,
-      
-      
+
+
       contentSections: module.moduleDescriptions,
       keyTakeaway: (module as any).keyTakeaway,
       isPublished: module.isPublished,
@@ -2277,9 +1160,9 @@ export class CarehubQuizService {
     return {
       ...this.formatProgressSummary(progress),
       module: progress.module,
-      
+
       nanny: (progress as any).user,
-      
+
     };
   }
 
@@ -2301,13 +1184,13 @@ export class CarehubQuizService {
       endTime: activity.endTime,
       feedback: activity.feedback
         ? {
-            enjoyment: activity.feedback.enjoyment,
-            childMood: activity.feedback.childMood,
-            completionRate: activity.feedback.completionRate,
-            note: activity.feedback.note,
-            submittedAt: activity.feedback.submittedAt,
-            submittedByUser: activity.feedback.submittedByUser,
-          }
+          enjoyment: activity.feedback.enjoyment,
+          childMood: activity.feedback.childMood,
+          completionRate: activity.feedback.completionRate,
+          note: activity.feedback.note,
+          submittedAt: activity.feedback.submittedAt,
+          submittedByUser: activity.feedback.submittedByUser,
+        }
         : null,
     };
   }
@@ -2418,8 +1301,8 @@ export class CarehubQuizService {
   private formatProgressSummary(
     progress:
       | Prisma.CareModuleProgressGetPayload<{
-          include: ReturnType<CarehubQuizService['progressInclude']>;
-        }>
+        include: ReturnType<CarehubQuizService['progressInclude']>;
+      }>
       | Prisma.CareModuleProgressGetPayload<object>,
   ) {
     const status = this.effectiveProgressStatus(progress);
@@ -2427,9 +1310,9 @@ export class CarehubQuizService {
     return {
       id: progress.id,
       moduleId: progress.moduleId,
-      
+
       userId: progress.userId,
-      
+
       status,
       score: progress.score,
       totalQuestions: progress.totalQuestions,
@@ -2451,7 +1334,7 @@ export class CarehubQuizService {
   private effectiveProgressStatus(
     progress: Prisma.CareModuleProgressGetPayload<object>,
   ) {
-    
+
 
     if (
       progress.status === CareModuleProgressStatus.COMPLETED &&
@@ -2496,7 +1379,7 @@ export class CarehubQuizService {
   private progressInclude() {
     return {
       module: { select: moduleListSelect },
-      
+
       user: {
         select: {
           id: true,

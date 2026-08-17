@@ -11,36 +11,42 @@ import { CarehubQuizService } from '../services/carehub-quiz.service';
 
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@ApiTags('(Parent/Nanny) > Care Hub Quiz')
+@ApiTags('(Parent/Nanny) > Care Hub - Quiz')
 @Controller('care')
 export class CarehubQuizController {
-  constructor(private readonly careService: CarehubQuizService) {}
+  constructor(private readonly careService: CarehubQuizService) { }
 
-  @Post('progress/:progressId/quiz')
-  @Roles(UserRole.PARENT, UserRole.NANNY)
-  @ApiOperation({
-    summary: 'Submit quiz answers and get result review',
-  })
-  @ApiParam({ name: 'progressId' })
-  @ApiBody({ type: SubmitCareQuizDto })
-  submitQuiz(
+  @Get('modules/:moduleId/quiz')
+  @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
+  @ApiOperation({ summary: 'Get quiz questions (and start progress)' })
+  @ApiParam({ name: 'moduleId' })
+  startQuiz(
     @CurrentUser() user: CurrentUserPayload,
-    @Param('progressId') progressId: string,
-    @Body() dto: SubmitCareQuizDto,
+    @Param('moduleId') moduleId: string,
   ) {
-    return this.careService.submitQuiz(user, progressId, dto);
+    return this.careService.startQuiz(user, moduleId);
   }
 
-  @Get('progress/:progressId/result')
-  @Roles(UserRole.PARENT, UserRole.NANNY)
-  @ApiOperation({
-    summary: 'Get completed quiz result review',
-  })
-  @ApiParam({ name: 'progressId' })
+  @Post('modules/:moduleId/quiz')
+  @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
+  @ApiOperation({ summary: 'Submit quiz answers and get result review' })
+  @ApiParam({ name: 'moduleId' })
+  submitQuiz(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('moduleId') moduleId: string,
+    @Body() dto: SubmitCareQuizDto,
+  ) {
+    return this.careService.submitQuiz(user, moduleId, dto);
+  }
+
+  @Get('modules/:moduleId/quiz/result')
+  @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
+  @ApiOperation({ summary: 'Get completed quiz result review' })
+  @ApiParam({ name: 'moduleId' })
   getQuizResult(
     @CurrentUser() user: CurrentUserPayload,
-    @Param('progressId') progressId: string,
+    @Param('moduleId') moduleId: string,
   ) {
-    return this.careService.getQuizResult(user, progressId);
+    return this.careService.getQuizResult(user, moduleId);
   }
 }

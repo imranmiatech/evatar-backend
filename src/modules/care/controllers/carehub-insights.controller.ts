@@ -16,7 +16,7 @@ import { CarehubInsightsService } from '../services/carehub-insights.service';
 @ApiTags('(Parent/Nanny) > Care Hub Insights')
 @Controller('care')
 export class CarehubInsightsController {
-  constructor(private readonly careService: CarehubInsightsService) {}
+  constructor(private readonly careService: CarehubInsightsService) { }
 
   @Get('children/:childId/insights')
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)

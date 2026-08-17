@@ -1,23 +1,23 @@
 model CareModule {
-  id                   String                 @id @default(uuid())
-  title                String
-  shortDescription     String?
-  moduleDescriptions   Json                   @default("[]")
-  coverImageUrl        String?
-  category             CareModuleCategory
-  completionPoints     Int                    @default(50)
-  isPublished          Boolean                @default(false)
-  createdByUserId      String?
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
-  ageGroup             String?
-  adminStatus          CareModuleAdminStatus  @default(DRAFT)
-  videoUrl             String?
-  keyTakeaway          String?
-  progresses           CareModuleProgress[]
-  saves                CareModuleSave[]
-  createdByUser        User?                  @relation("CareModulesCreatedBy", fields: [createdByUserId], references: [id])
-  questions            CareQuizQuestion[]
+  id                 String                @id @default(uuid())
+  title              String
+  shortDescription   String?
+  moduleDescriptions Json                  @default("[]")
+  coverImageUrl      String?
+  category           CareModuleCategory
+  completionPoints   Int                   @default(50)
+  isPublished        Boolean               @default(false)
+  createdByUserId    String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  ageGroup           String?
+  adminStatus        CareModuleAdminStatus @default(DRAFT)
+  videoUrl           String?
+  keyTakeaway        String?
+  progresses         CareModuleProgress[]
+  saves              CareModuleSave[]
+  createdByUser      User?                 @relation("CareModulesCreatedBy", fields: [createdByUserId], references: [id])
+  questions          CareQuizQuestion[]
 
   @@index([category, isPublished, createdAt])
   @@index([ageGroup, isPublished])
@@ -82,8 +82,10 @@ model CareModuleProgress {
   updatedAt       DateTime                 @updatedAt
   pointsEarned    Int                      @default(0)
   pointsAwardedAt DateTime?
+  assignedById    String?
   module          CareModule               @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   user            User                     @relation("CareModuleProgressesUser", fields: [userId], references: [id], onDelete: Cascade)
+  assignedBy      User?                    @relation("CareModuleProgressesAssignedBy", fields: [assignedById], references: [id])
   answers         CareQuizAnswer[]
 
   @@unique([moduleId, userId])
@@ -92,15 +94,15 @@ model CareModuleProgress {
 }
 
 model CareQuizAnswer {
-  id               String               @id @default(uuid())
-  progressId     String
+  id               String             @id @default(uuid())
+  progressId       String
   questionId       String
   selectedOptionId String
   isCorrect        Boolean
-  answeredAt       DateTime             @default(now())
+  answeredAt       DateTime           @default(now())
   progress         CareModuleProgress @relation(fields: [progressId], references: [id], onDelete: Cascade)
-  question         CareQuizQuestion     @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  selectedOption   CareQuizOption       @relation(fields: [selectedOptionId], references: [id])
+  question         CareQuizQuestion   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption   CareQuizOption     @relation(fields: [selectedOptionId], references: [id])
 
   @@unique([progressId, questionId])
   @@index([progressId])

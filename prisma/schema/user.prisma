@@ -46,6 +46,7 @@ model User {
   ticketMessages                TicketMessage[]
   authoredCareChildNotes        CareChildNote[]              @relation("CareChildNotesAuthored")
   careModuleProgresses          CareModuleProgress[]         @relation("CareModuleProgressesUser")
+  assignedCareModuleProgresses  CareModuleProgress[]         @relation("CareModuleProgressesAssignedBy")
   savedCareModules              CareModuleSave[]             @relation("CareModuleSaves")
   createdCareModules            CareModule[]                 @relation("CareModulesCreatedBy")
   childSchedules                ChildSchedule[]              @relation("UserChildSchedules")
