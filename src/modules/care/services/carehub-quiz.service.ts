@@ -33,10 +33,7 @@ import {
 import { CareMonthlyHighlightsQueryDto } from '../dto/care-monthly-highlights-query.dto';
 import { CreateCareChildNoteDto } from '../dto/create-care-child-note.dto';
 
-
 import { SubmitCareQuizDto } from '../dto/submit-care-quiz.dto';
-
-
 
 const moduleListSelect = {
   id: true,
@@ -153,8 +150,6 @@ type CareModuleSuggestedAgeRange = {
   suggestedMaxAgeYears?: number;
 };
 
-
-
 @Injectable()
 export class CarehubQuizService {
   private ageGroupForMonths(ageMonths: number) {
@@ -169,81 +164,7 @@ export class CarehubQuizService {
     private readonly prisma: PrismaService,
     private readonly rewardsService: RewardsService,
     private readonly storageService: StorageService,
-  ) { }
-
-  /* async deleteModule(user: CurrentUserPayload, id: string) {
-
-    this.ensureAdmin(user);
-
-    const existing = await this.prisma.careModule.findUnique({ where: { id } });
-    if (!existing) {
-      throw new NotFoundException('Care module not found');
-    }
-
-    await this.prisma.careModule.delete({ where: { id } });
-
-    return {
-      success: true,
-      message: 'Care module deleted successfully',
-    };
-  } */
-  /* async assignModule(user: CurrentUserPayload, dto: AssignCareModuleDto) {
-
-    const userId = this.currentUserId(user);
-    await this.assertCanAssignCare(userId, dto.childId);
-
-    const [module, nanny] = await Promise.all([
-      this.prisma.careModule.findFirst({
-        where: { id: dto.moduleId, isPublished: true },
-        select: { id: true },
-      }),
-      this.resolveProgressNanny(dto.userId, dto.childId),
-    ]);
-
-    if (!module) {
-      throw new NotFoundException('Published care module not found');
-    }
-
-    if (!nanny) {
-      throw new NotFoundException('Nanny user not found');
-    }
-
-    if (nanny.role !== UserRole.NANNY) {
-      throw new BadRequestException('Assigned user must be a nanny');
-    }
-
-    await this.assertNannyBelongsToChild(nanny.id, dto.childId);
-
-    const progress = await this.prisma.careModuleProgress.upsert({
-      where: {
-        moduleId_childId_userId: {
-          moduleId: dto.moduleId,
-          childId: dto.childId,
-          userId: nanny.id,
-        },
-      },
-      update: {
-        
-        status: CareModuleProgressStatus.IN_PROGRESS,
-        startedAt: new Date(),
-      },
-      create: {
-        moduleId: dto.moduleId,
-        childId: dto.childId,
-        userId: nanny.id,
-        
-        status: CareModuleProgressStatus.IN_PROGRESS,
-        startedAt: new Date(),
-      },
-      include: this.progressInclude(),
-    });
-
-    return {
-      success: true,
-      message: 'Care module assigned successfully',
-      data: this.formatProgress(progress as any),
-    };
-  } */
+  ) {}
 
   async startQuiz(user: CurrentUserPayload, moduleId: string) {
     const userId = this.currentUserId(user);
@@ -270,35 +191,44 @@ export class CarehubQuizService {
       throw new NotFoundException('Care module not found');
     }
 
-    let progress = await this.prisma.careModuleProgress.findUnique({
-      where: { moduleId_userId: { moduleId, userId } },
-    });
+    if (this.isNanny(user)) {
+      let progress = await this.prisma.careModuleProgress.findUnique({
+        where: { moduleId_userId: { moduleId, userId } },
+      });
 
-    if (!progress) {
-      progress = await this.prisma.careModuleProgress.create({
-        data: {
-          moduleId,
-          userId,
-          status: CareModuleProgressStatus.IN_PROGRESS,
-          startedAt: new Date(),
-        },
-      });
-    } else if (
-      progress.status === CareModuleProgressStatus.PENDING ||
-      (progress.status === CareModuleProgressStatus.IN_PROGRESS && !progress.startedAt)
-    ) {
-      progress = await this.prisma.careModuleProgress.update({
-        where: { id: progress.id },
-        data: {
-          status: CareModuleProgressStatus.IN_PROGRESS,
-          startedAt: new Date(),
-        },
-      });
+      if (!progress) {
+        progress = await this.prisma.careModuleProgress.create({
+          data: {
+            moduleId,
+            userId,
+            status: CareModuleProgressStatus.IN_PROGRESS,
+            startedAt: new Date(),
+            totalQuestions: module.questions.length,
+            correctAnswers: 0,
+          },
+        });
+      } else if (
+        progress.status === CareModuleProgressStatus.PENDING ||
+        (progress.status === CareModuleProgressStatus.IN_PROGRESS &&
+          !progress.startedAt)
+      ) {
+        progress = await this.prisma.careModuleProgress.update({
+          where: { id: progress.id },
+          data: {
+            status: CareModuleProgressStatus.IN_PROGRESS,
+            startedAt: new Date(),
+            totalQuestions: progress.totalQuestions ?? module.questions.length,
+            correctAnswers: progress.correctAnswers ?? 0,
+          },
+        });
+      }
     }
 
     return {
       success: true,
-      message: 'Quiz started successfully',
+      message: this.isNanny(user)
+        ? 'Quiz started successfully'
+        : 'Quiz questions fetched successfully',
       data: {
         moduleId: module.id,
         title: module.title,
@@ -383,7 +313,10 @@ export class CarehubQuizService {
     const totalQuestions = module.questions.length;
     const score = Math.round((correctAnswers / totalQuestions) * 100);
     const isPerfectScore = correctAnswers === totalQuestions;
-    const pointsEarned = isPerfectScore && !progress.pointsAwardedAt ? module.completionPoints : progress.pointsEarned;
+    const pointsEarned =
+      isPerfectScore && !progress.pointsAwardedAt
+        ? module.completionPoints
+        : progress.pointsEarned;
     const pointsAwardedAt =
       isPerfectScore && !progress.pointsAwardedAt
         ? new Date()
@@ -437,7 +370,7 @@ export class CarehubQuizService {
           completedByRole: user.role,
         },
       );
-      
+
       if (progress.assignedById && user.role === UserRole.NANNY) {
         await this.rewardsService.awardCareModuleCompletion(
           progress.assignedById,
@@ -459,10 +392,52 @@ export class CarehubQuizService {
     };
   }
 
-  async getQuizResult(user: CurrentUserPayload, moduleId: string) {
-    const userId = this.currentUserId(user);
+  async getQuizResult(
+    user: CurrentUserPayload,
+    moduleId: string,
+    nannyId?: string,
+  ) {
+    const currentUserId = this.currentUserId(user);
+
+    let targetUserId = currentUserId;
+
+    if (!this.isNanny(user)) {
+      if (!nannyId) {
+        throw new BadRequestException(
+          'nannyId is required for parents to view quiz results',
+        );
+      }
+
+      const children = await this.prisma.child.findMany({
+        where: { parentUserId: currentUserId },
+        select: { id: true },
+      });
+      const childIds = children.map((c) => c.id);
+
+      const [access, link] = await Promise.all([
+        this.prisma.caregiverAccess.findFirst({
+          where: {
+            childId: { in: childIds },
+            invitedUserId: nannyId,
+            status: CaregiverAccessStatus.ACCEPTED,
+          },
+        }),
+        this.prisma.nannyChildLink.findFirst({
+          where: { childId: { in: childIds }, nannyUserId: nannyId },
+        }),
+      ]);
+
+      if (!access && !link) {
+        throw new ForbiddenException(
+          "You do not have access to this nanny's results",
+        );
+      }
+
+      targetUserId = nannyId;
+    }
+
     const progress = await this.prisma.careModuleProgress.findUnique({
-      where: { moduleId_userId: { moduleId, userId } },
+      where: { moduleId_userId: { moduleId, userId: targetUserId } },
       include: this.progressInclude(),
     });
 
@@ -669,9 +644,13 @@ export class CarehubQuizService {
       ...(query.search && {
         OR: [
           { title: { contains: query.search, mode: 'insensitive' as const } },
-          { shortDescription: { contains: query.search, mode: "insensitive" as const } },
           {
+            shortDescription: {
+              contains: query.search,
+              mode: 'insensitive' as const,
+            },
           },
+          {},
           ...(searchCategories.length > 0
             ? [{ category: { in: searchCategories } }]
             : []),
@@ -732,8 +711,6 @@ export class CarehubQuizService {
       : await this.accessibleChildIds(userId);
 
     return {
-
-
       ...tabWhere,
     } satisfies Prisma.CareModuleProgressWhereInput;
   }
@@ -787,19 +764,12 @@ export class CarehubQuizService {
     const progresses = await this.prisma.careModuleProgress.findMany({
       where: {
         moduleId: { in: moduleIds },
-        ...(this.isNanny(user)
-          ? { userId: userId }
-          : {
-
-
-          }),
+        ...(this.isNanny(user) ? { userId: userId } : {}),
       },
       orderBy: { updatedAt: 'desc' },
     });
 
-    return new Map(
-      progresses.map((progress) => [progress.moduleId, progress]),
-    );
+    return new Map(progresses.map((progress) => [progress.moduleId, progress]));
   }
 
   private async savedModuleIds(
@@ -848,13 +818,10 @@ export class CarehubQuizService {
     const userId = this.currentUserId(user);
     if (this.isNanny(user)) {
       if (progress.userId !== userId) {
-        throw new ForbiddenException(
-          'This progress belongs to another nanny',
-        );
+        throw new ForbiddenException('This progress belongs to another nanny');
       }
       return progress;
     }
-
 
     return progress;
   }
@@ -888,10 +855,7 @@ export class CarehubQuizService {
     await this.assertCanViewCare(userId, childId);
   }
 
-  private async assertNannyCanViewChildCare(
-    userId: string,
-    childId: string,
-  ) {
+  private async assertNannyCanViewChildCare(userId: string, childId: string) {
     const [progress, nannyLink, caregiverAccess] = await Promise.all([
       this.prisma.careModuleProgress.findFirst({
         where: { userId },
@@ -954,42 +918,34 @@ export class CarehubQuizService {
   }
 
   private async accessibleChildIds(userId: string) {
-    const [children, accesses, nannyProgresss, nannyLinks] =
-      await Promise.all([
-        this.prisma.child.findMany({
-          where: { parentUserId: userId },
-          select: { id: true },
-        }),
-        this.prisma.caregiverAccess.findMany({
-          where: {
-            invitedUserId: userId,
-            status: CaregiverAccessStatus.ACCEPTED,
-            OR: [
-              { careLearningAccess: true },
-              { nannyDevelopment: true },
-              { manageCareTeam: true },
-            ],
-          },
-          select: { id: true },
-        }),
-        this.prisma.careModuleProgress.findMany({
-          where: { userId },
-          select: { id: true },
-        }),
-        this.prisma.nannyChildLink.findMany({
-          where: { nannyUserId: userId },
-          select: { id: true },
-        }),
-      ]);
+    const [children, accesses, nannyProgresss, nannyLinks] = await Promise.all([
+      this.prisma.child.findMany({
+        where: { parentUserId: userId },
+        select: { id: true },
+      }),
+      this.prisma.caregiverAccess.findMany({
+        where: {
+          invitedUserId: userId,
+          status: CaregiverAccessStatus.ACCEPTED,
+          OR: [
+            { careLearningAccess: true },
+            { nannyDevelopment: true },
+            { manageCareTeam: true },
+          ],
+        },
+        select: { id: true },
+      }),
+      this.prisma.careModuleProgress.findMany({
+        where: { userId },
+        select: { id: true },
+      }),
+      this.prisma.nannyChildLink.findMany({
+        where: { nannyUserId: userId },
+        select: { id: true },
+      }),
+    ]);
 
-    return [
-      ...new Set([
-        ...children.map((child) => child.id),
-
-
-
-      ]),
-    ];
+    return [...new Set([...children.map((child) => child.id)])];
   }
 
   private async resolveProgressNanny(
@@ -1032,10 +988,7 @@ export class CarehubQuizService {
     return access.invitedUser;
   }
 
-  private async assertNannyBelongsToChild(
-    userId: string,
-    childId: string,
-  ) {
+  private async assertNannyBelongsToChild(userId: string, childId: string) {
     const [caregiverAccess, nannyLink] = await Promise.all([
       this.prisma.caregiverAccess.findFirst({
         where: {
@@ -1075,11 +1028,11 @@ export class CarehubQuizService {
     options: {
       isSaved?: boolean;
       progress?:
-      | Prisma.CareModuleProgressGetPayload<{
-        include: ReturnType<CarehubQuizService['progressInclude']>;
-      }>
-      | Prisma.CareModuleProgressGetPayload<object>
-      | null;
+        | Prisma.CareModuleProgressGetPayload<{
+            include: ReturnType<CarehubQuizService['progressInclude']>;
+          }>
+        | Prisma.CareModuleProgressGetPayload<object>
+        | null;
     } = {},
   ) {
     return {
@@ -1127,7 +1080,6 @@ export class CarehubQuizService {
       coinReward: module.completionPoints,
       ageGroup: module.ageGroup,
 
-
       contentSections: module.moduleDescriptions,
       keyTakeaway: (module as any).keyTakeaway,
       isPublished: module.isPublished,
@@ -1162,7 +1114,6 @@ export class CarehubQuizService {
       module: progress.module,
 
       nanny: (progress as any).user,
-
     };
   }
 
@@ -1184,13 +1135,13 @@ export class CarehubQuizService {
       endTime: activity.endTime,
       feedback: activity.feedback
         ? {
-          enjoyment: activity.feedback.enjoyment,
-          childMood: activity.feedback.childMood,
-          completionRate: activity.feedback.completionRate,
-          note: activity.feedback.note,
-          submittedAt: activity.feedback.submittedAt,
-          submittedByUser: activity.feedback.submittedByUser,
-        }
+            enjoyment: activity.feedback.enjoyment,
+            childMood: activity.feedback.childMood,
+            completionRate: activity.feedback.completionRate,
+            note: activity.feedback.note,
+            submittedAt: activity.feedback.submittedAt,
+            submittedByUser: activity.feedback.submittedByUser,
+          }
         : null,
     };
   }
@@ -1301,8 +1252,8 @@ export class CarehubQuizService {
   private formatProgressSummary(
     progress:
       | Prisma.CareModuleProgressGetPayload<{
-        include: ReturnType<CarehubQuizService['progressInclude']>;
-      }>
+          include: ReturnType<CarehubQuizService['progressInclude']>;
+        }>
       | Prisma.CareModuleProgressGetPayload<object>,
   ) {
     const status = this.effectiveProgressStatus(progress);
@@ -1334,8 +1285,6 @@ export class CarehubQuizService {
   private effectiveProgressStatus(
     progress: Prisma.CareModuleProgressGetPayload<object>,
   ) {
-
-
     if (
       progress.status === CareModuleProgressStatus.COMPLETED &&
       (progress.score ?? 0) < 100

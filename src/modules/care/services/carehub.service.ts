@@ -33,9 +33,7 @@ import {
 import { CareMonthlyHighlightsQueryDto } from '../dto/care-monthly-highlights-query.dto';
 import { CreateCareChildNoteDto } from '../dto/create-care-child-note.dto';
 
-
 import { SubmitCareQuizDto } from '../dto/submit-care-quiz.dto';
-
 
 const moduleListSelect = {
   id: true,
@@ -152,8 +150,6 @@ type CareModuleSuggestedAgeRange = {
   suggestedMaxAgeYears?: number;
 };
 
-
-
 @Injectable()
 export class CarehubService {
   private ageGroupForMonths(ageMonths: number) {
@@ -164,30 +160,11 @@ export class CarehubService {
     return '4 years +';
   }
 
-
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly rewardsService: RewardsService,
     private readonly storageService: StorageService,
   ) {}
-
-  /* async deleteModule(user: CurrentUserPayload, id: string) {
-
-    this.ensureAdmin(user);
-
-    const existing = await this.prisma.careModule.findUnique({ where: { id } });
-    if (!existing) {
-      throw new NotFoundException('Care module not found');
-    }
-
-    await this.prisma.careModule.delete({ where: { id } });
-
-    return {
-      success: true,
-      message: 'Care module deleted successfully',
-    };
-  } */
 
   async getSuggestedModules(
     user: CurrentUserPayload,
@@ -215,16 +192,20 @@ export class CarehubService {
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
     const ageMonths = child.birthDate
-      ? Math.floor((new Date().getTime() - child.birthDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44))
+      ? Math.floor(
+          (new Date().getTime() - child.birthDate.getTime()) /
+            (1000 * 60 * 60 * 24 * 30.44),
+        )
       : null;
-      
-    const matchedAgeGroup = ageMonths !== null ? this.ageGroupForMonths(ageMonths) : null;
+
+    const matchedAgeGroup =
+      ageMonths !== null ? this.ageGroupForMonths(ageMonths) : null;
     const ageYears = ageMonths !== null ? Math.floor(ageMonths / 12) : null;
 
     const moduleWhere = {
       ...this.moduleWhere(query, user),
       ...(matchedAgeGroup !== null && {
-        ageGroup: matchedAgeGroup
+        ageGroup: matchedAgeGroup,
       }),
     } satisfies Prisma.CareModuleWhereInput;
 
@@ -254,7 +235,7 @@ export class CarehubService {
     const cards = modules.map((module) =>
       this.formatModuleCard(module, {
         isSaved: savedIds.has(module.id),
-        progress: progressByModuleId.get(module.id),
+        progresses: progressByModuleId.get(module.id) || [],
       }),
     );
 
@@ -291,9 +272,7 @@ export class CarehubService {
     if (
       topicId &&
       topicId !== 'ALL' &&
-      !Object.values(CareModuleCategory).includes(
-        topicId as CareModuleCategory,
-      )
+      !Object.values(CareModuleCategory).includes(topicId as CareModuleCategory)
     ) {
       throw new BadRequestException('Invalid topicId');
     }
@@ -424,34 +403,49 @@ export class CarehubService {
     };
   }
 
-  getCareHomeTopics() {
-    return {
-      success: true,
-      message: 'Care home topics fetched successfully',
-      data: CARE_HOME_TOPICS.map(({ id, label }) => ({ id, label })),
-    };
-  }
+
 
   async getMyCareChildren(user: CurrentUserPayload) {
     const userId = this.currentUserId(user);
-    const childIds = await this.accessibleChildIds(userId);
+    
+    let childIds: string[] = [];
+    if (this.isNanny(user)) {
+      const [accesses, links] = await Promise.all([
+        this.prisma.caregiverAccess.findMany({
+          where: {
+            invitedUserId: userId,
+            status: CaregiverAccessStatus.ACCEPTED,
+            role: CaregiverAccessRole.NANNY,
+          },
+          select: { childId: true },
+        }),
+        this.prisma.nannyChildLink.findMany({
+          where: { nannyUserId: userId },
+          select: { childId: true },
+        }),
+      ]);
+      const set = new Set<string>();
+      accesses.forEach(a => set.add(a.childId));
+      links.forEach(l => set.add(l.childId));
+      childIds = Array.from(set);
+    } else {
+      const children = await this.prisma.child.findMany({
+        where: { parentUserId: userId },
+        select: { id: true },
+      });
+      childIds = children.map(c => c.id);
+    }
+
+    if (childIds.length === 0) {
+      return {
+        success: true,
+        message: 'Care children fetched successfully',
+        data: [],
+      };
+    }
 
     const children = await this.prisma.child.findMany({
-      where: {
-        id: { in: childIds },
-        OR: [
-          { nannies: { some: {} } },
-          {
-            caregiverAccesses: {
-              some: {
-                role: CaregiverAccessRole.NANNY,
-                status: CaregiverAccessStatus.ACCEPTED,
-              },
-            },
-          },
-          
-        ],
-      },
+      where: { id: { in: childIds } },
       select: {
         id: true,
         name: true,
@@ -481,7 +475,10 @@ export class CarehubService {
     };
   }
 
-  async getModules(user: CurrentUserPayload, query: CareModuleQueryDto & { tab?: CareModuleTab }) {
+  async getModules(
+    user: CurrentUserPayload,
+    query: CareModuleQueryDto & { tab?: CareModuleTab },
+  ) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
@@ -528,17 +525,14 @@ export class CarehubService {
       );
     }
 
-    if (
-      tab === CareModuleTab.IN_PROGRESS ||
-      tab === CareModuleTab.COMPLETED
-    ) {
+    if (tab === CareModuleTab.IN_PROGRESS || tab === CareModuleTab.COMPLETED) {
       const where = await this.progressWhereForUser(user, query, tab);
       const [progresses, total] = await Promise.all([
         this.prisma.careModuleProgress.findMany({
           where: { ...where, module: moduleWhere },
           include: {
             module: { select: moduleListSelect },
-            
+
             user: {
               select: {
                 id: true,
@@ -566,7 +560,7 @@ export class CarehubService {
       return this.paginatedModules(
         progresses.map((progress) =>
           this.formatModuleCard(progress.module, {
-            progress,
+            progresses: [progress],
             isSaved: savedIds.has(progress.moduleId),
           }),
         ),
@@ -604,7 +598,7 @@ export class CarehubService {
       modules.map((module) =>
         this.formatModuleCard(module, {
           isSaved: savedIds.has(module.id),
-          progress: progressByModuleId.get(module.id),
+          progresses: progressByModuleId.get(module.id) || [],
         }),
       ),
       total,
@@ -613,10 +607,7 @@ export class CarehubService {
     );
   }
 
-  async getModuleDetail(
-    user: CurrentUserPayload,
-    moduleId: string,
-  ) {
+  async getModuleDetail(user: CurrentUserPayload, moduleId: string) {
     const userId = this.currentUserId(user);
     const module = await this.prisma.careModule.findFirst({
       where: {
@@ -630,26 +621,34 @@ export class CarehubService {
       throw new NotFoundException('Care module not found');
     }
 
-    const progress = await this.prisma.careModuleProgress.findFirst({
-      where: { moduleId, userId }
-    });
+    let progressWhere: Prisma.CareModuleProgressWhereInput = {
+      moduleId,
+      assignedById: userId,
+    };
 
-    if (
-      progress &&
-      progress.status === CareModuleProgressStatus.IN_PROGRESS
-    ) {
-      await this.prisma.careModuleProgress.update({
-        where: { id: progress.id },
-        data: {
-          status: CareModuleProgressStatus.IN_PROGRESS,
-          startedAt: new Date(),
-        },
-      });
-      progress.status = CareModuleProgressStatus.IN_PROGRESS;
-      progress.startedAt = new Date();
+    if (this.isNanny(user)) {
+      progressWhere = {
+        moduleId,
+        userId: userId,
+      };
+    } else {
+      const nannyUserIds = await this.findAllNannyUserIdsForParent(userId);
+      if (nannyUserIds.length > 0) {
+        progressWhere = {
+          moduleId,
+          userId: { in: nannyUserIds },
+        };
+      }
     }
 
-    
+    const progresses = await this.prisma.careModuleProgress.findMany({
+      where: progressWhere,
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        user: { select: { id: true, fullName: true } },
+      },
+    });
+
     const isSavedRecord = await this.prisma.careModuleSave.findUnique({
       where: {
         moduleId_userId: {
@@ -664,74 +663,13 @@ export class CarehubService {
       success: true,
       message: 'Care module fetched successfully',
       data: this.formatModuleDetail(module, {
-        progress,
         isSaved: Boolean(isSaved),
+        progresses,
       }),
     };
   }
 
-  /* async assignModule(user: CurrentUserPayload, dto: AssignCareModuleDto) {
-
-    const userId = this.currentUserId(user);
-    await this.assertCanAssignCare(userId, dto.childId);
-
-    const [module, nanny] = await Promise.all([
-      this.prisma.careModule.findFirst({
-        where: { id: dto.moduleId, isPublished: true },
-        select: { id: true },
-      }),
-      this.resolveProgressNanny(dto.userId, dto.childId),
-    ]);
-
-    if (!module) {
-      throw new NotFoundException('Published care module not found');
-    }
-
-    if (!nanny) {
-      throw new NotFoundException('Nanny user not found');
-    }
-
-    if (nanny.role !== UserRole.NANNY) {
-      throw new BadRequestException('Assigned user must be a nanny');
-    }
-
-    await this.assertNannyBelongsToChild(nanny.id, dto.childId);
-
-    const progress = await this.prisma.careModuleProgress.upsert({
-      where: {
-        moduleId_childId_userId: {
-          moduleId: dto.moduleId,
-          childId: dto.childId,
-          userId: nanny.id,
-        },
-      },
-      update: {
-        
-        status: CareModuleProgressStatus.IN_PROGRESS,
-        startedAt: new Date(),
-      },
-      create: {
-        moduleId: dto.moduleId,
-        childId: dto.childId,
-        userId: nanny.id,
-        
-        status: CareModuleProgressStatus.IN_PROGRESS,
-        startedAt: new Date(),
-      },
-      include: this.progressInclude(),
-    });
-
-    return {
-      success: true,
-      message: 'Care module assigned successfully',
-      data: this.formatProgress(progress as any),
-    };
-  } */
-
-  async saveModule(
-    user: CurrentUserPayload,
-    moduleId: string,
-  ) {
+  async saveModule(user: CurrentUserPayload, moduleId: string) {
     const userId = this.currentUserId(user);
     await this.assertPublishedModule(moduleId);
 
@@ -754,10 +692,7 @@ export class CarehubService {
     };
   }
 
-  async removeSavedModule(
-    user: CurrentUserPayload,
-    moduleId: string,
-  ) {
+  async removeSavedModule(user: CurrentUserPayload, moduleId: string) {
     const userId = this.currentUserId(user);
 
     const existingSave = await this.prisma.careModuleSave.findUnique({
@@ -788,11 +723,9 @@ export class CarehubService {
     }
     await this.assertPublishedModule(moduleId);
 
-    // Ensure the parent has access to this child
     const userId = this.currentUserId(user);
     await this.assertChildAccess(userId, childId, ['manageCareTeam']);
 
-    // Find all accepted nannies for this child
     const accesses = await this.prisma.caregiverAccess.findMany({
       where: {
         childId,
@@ -804,7 +737,7 @@ export class CarehubService {
 
     const nannyIds = accesses
       .map((a) => a.invitedUserId)
-      .filter((id) => id !== null) as string[];
+      .filter((id) => id !== null);
 
     if (nannyIds.length === 0) {
       throw new BadRequestException('No nannies found for this child');
@@ -969,12 +902,17 @@ export class CarehubService {
 
     return {
       ...(!isAdmin && { isPublished: true }),
-      
+
       ...(category && { category: category }),
       ...(query.search && {
         OR: [
           { title: { contains: query.search, mode: 'insensitive' as const } },
-          { shortDescription: { contains: query.search, mode: "insensitive" as const } },
+          {
+            shortDescription: {
+              contains: query.search,
+              mode: 'insensitive' as const,
+            },
+          },
           ...(searchCategories.length > 0
             ? [{ category: { in: searchCategories } }]
             : []),
@@ -1029,6 +967,24 @@ export class CarehubService {
       } satisfies Prisma.CareModuleProgressWhereInput;
     }
 
+    if (query.childId) {
+      const nannyUserId = await this.findNannyUserIdForChild(query.childId);
+      if (nannyUserId) {
+        return {
+          userId: nannyUserId,
+          ...tabWhere,
+        } satisfies Prisma.CareModuleProgressWhereInput;
+      }
+    } else {
+      const nannyUserIds = await this.findAllNannyUserIdsForParent(userId);
+      if (nannyUserIds.length > 0) {
+        return {
+          userId: { in: nannyUserIds },
+          ...tabWhere,
+        } satisfies Prisma.CareModuleProgressWhereInput;
+      }
+    }
+
     return {
       assignedById: userId,
       ...tabWhere,
@@ -1071,24 +1027,56 @@ export class CarehubService {
     moduleIds: string[],
   ) {
     if (moduleIds.length === 0) {
-      return new Map<string, Prisma.CareModuleProgressGetPayload<object>>();
+      return new Map<string, any[]>();
     }
 
     const userId = this.currentUserId(user);
 
-    const progresses = await this.prisma.careModuleProgress.findMany({
-      where: {
+    let progressWhere: Prisma.CareModuleProgressWhereInput = {
+      moduleId: { in: moduleIds },
+      assignedById: userId,
+    };
+
+    if (this.isNanny(user)) {
+      progressWhere = {
         moduleId: { in: moduleIds },
-        ...(this.isNanny(user)
-          ? { userId: userId }
-          : { assignedById: userId }),
+        userId: userId,
+      };
+    } else if (query.childId) {
+      const nannyUserId = await this.findNannyUserIdForChild(query.childId);
+      if (nannyUserId) {
+        progressWhere = {
+          moduleId: { in: moduleIds },
+          userId: nannyUserId,
+        };
+      }
+    } else {
+      const nannyUserIds = await this.findAllNannyUserIdsForParent(userId);
+      if (nannyUserIds.length > 0) {
+        progressWhere = {
+          moduleId: { in: moduleIds },
+          userId: { in: nannyUserIds },
+        };
+      }
+    }
+
+    const progresses = await this.prisma.careModuleProgress.findMany({
+      where: progressWhere,
+      include: {
+        user: { select: { id: true, fullName: true } },
       },
       orderBy: { updatedAt: 'desc' },
     });
 
-    return new Map(
-      progresses.map((progress) => [progress.moduleId, progress]),
-    );
+    const map = new Map<string, any[]>();
+    for (const progress of progresses) {
+      if (!map.has(progress.moduleId)) {
+        map.set(progress.moduleId, []);
+      }
+      map.get(progress.moduleId)!.push(progress);
+    }
+
+    return map;
   }
 
   private async savedModuleIds(
@@ -1137,30 +1125,42 @@ export class CarehubService {
     const userId = this.currentUserId(user);
     if (this.isNanny(user)) {
       if (progress.userId !== userId) {
-        throw new ForbiddenException(
-          'This progress belongs to another nanny',
-        );
+        throw new ForbiddenException('This progress belongs to another nanny');
       }
       return progress;
     }
 
-    
     return progress;
   }
 
   private async assertCanViewCare(userId: string, childId: string) {
-    await this.assertChildAccess(userId, childId, [
-      'careLearningAccess',
-      'nannyDevelopment',
-      'manageCareTeam',
-    ]);
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      select: { parentUserId: true },
+    });
+
+    if (!child) {
+      throw new NotFoundException('Child not found');
+    }
+
+    if (child.parentUserId !== userId) {
+      throw new ForbiddenException('You do not have access to this child');
+    }
   }
 
   private async assertCanAssignCare(userId: string, childId: string) {
-    await this.assertChildAccess(userId, childId, [
-      'manageCareTeam',
-      'nannyDevelopment',
-    ]);
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      select: { parentUserId: true },
+    });
+
+    if (!child) {
+      throw new NotFoundException('Child not found');
+    }
+
+    if (child.parentUserId !== userId) {
+      throw new ForbiddenException('You do not have access to this child');
+    }
   }
 
   private async assertCanSaveModuleForChild(
@@ -1177,14 +1177,8 @@ export class CarehubService {
     await this.assertCanViewCare(userId, childId);
   }
 
-  private async assertNannyCanViewChildCare(
-    userId: string,
-    childId: string,
-  ) {
-    const [progress, nannyLink, caregiverAccess] = await Promise.all([
-      this.prisma.careModuleProgress.findFirst({ where: { userId },
-        select: { id: true },
-      }),
+  private async assertNannyCanViewChildCare(userId: string, childId: string) {
+    const [nannyLink, caregiverAccess] = await Promise.all([
       this.prisma.nannyChildLink.findFirst({
         where: { childId, nannyUserId: userId },
         select: { id: true },
@@ -1201,9 +1195,9 @@ export class CarehubService {
       }),
     ]);
 
-    if (!progress && !nannyLink && !caregiverAccess) {
+    if (!nannyLink && !caregiverAccess) {
       throw new ForbiddenException(
-        'You do not have access to this care module',
+        "You do not have access to this child's care hub",
       );
     }
   }
@@ -1235,48 +1229,98 @@ export class CarehubService {
     });
 
     if (!access) {
-      throw new ForbiddenException(
-        'You do not have access to this care module',
-      );
+      throw new ForbiddenException('You do not have access to this child');
     }
   }
 
   private async accessibleChildIds(userId: string) {
-    const [children, accesses, nannyProgresss, nannyLinks] =
-      await Promise.all([
-        this.prisma.child.findMany({
-          where: { parentUserId: userId },
-          select: { id: true },
-        }),
-        this.prisma.caregiverAccess.findMany({
-          where: {
-            invitedUserId: userId,
-            status: CaregiverAccessStatus.ACCEPTED,
-            OR: [
-              { careLearningAccess: true },
-              { nannyDevelopment: true },
-              { manageCareTeam: true },
-            ],
-          },
-          select: { id: true },
-        }),
-        this.prisma.careModuleProgress.findMany({ where: { userId },
-          select: { id: true },
-        }),
-        this.prisma.nannyChildLink.findMany({
-          where: { nannyUserId: userId },
-          select: { id: true },
-        }),
-      ]);
+    const [children, accesses, nannyProgresss, nannyLinks] = await Promise.all([
+      this.prisma.child.findMany({
+        where: { parentUserId: userId },
+        select: { id: true },
+      }),
+      this.prisma.caregiverAccess.findMany({
+        where: {
+          invitedUserId: userId,
+          status: CaregiverAccessStatus.ACCEPTED,
+          OR: [
+            { careLearningAccess: true },
+            { nannyDevelopment: true },
+            { manageCareTeam: true },
+          ],
+        },
+        select: { id: true },
+      }),
+      this.prisma.careModuleProgress.findMany({
+        where: { userId },
+        select: { id: true },
+      }),
+      this.prisma.nannyChildLink.findMany({
+        where: { nannyUserId: userId },
+        select: { id: true },
+      }),
+    ]);
 
-    return [
-      ...new Set([
-        ...children.map((child) => child.id),
-        
-        
-        
-      ]),
-    ];
+    return [...new Set([...children.map((child) => child.id)])];
+  }
+
+  private async findAllNannyUserIdsForParent(
+    parentUserId: string,
+  ): Promise<string[]> {
+    const children = await this.prisma.child.findMany({
+      where: { parentUserId },
+      select: { id: true },
+    });
+    const childIds = children.map((c) => c.id);
+
+    if (childIds.length === 0) return [];
+
+    const [accesses, links] = await Promise.all([
+      this.prisma.caregiverAccess.findMany({
+        where: {
+          childId: { in: childIds },
+          role: CaregiverAccessRole.NANNY,
+          status: CaregiverAccessStatus.ACCEPTED,
+          invitedUserId: { not: null },
+        },
+        select: { invitedUserId: true },
+      }),
+      this.prisma.nannyChildLink.findMany({
+        where: { childId: { in: childIds } },
+        select: { nannyUserId: true },
+      }),
+    ]);
+
+    const nannyIds = new Set<string>();
+    accesses.forEach((a) => {
+      if (a.invitedUserId) nannyIds.add(a.invitedUserId);
+    });
+    links.forEach((l) => nannyIds.add(l.nannyUserId));
+
+    return Array.from(nannyIds);
+  }
+
+  private async findNannyUserIdForChild(
+    childId: string,
+  ): Promise<string | null> {
+    const access = await this.prisma.caregiverAccess.findFirst({
+      where: {
+        childId,
+        role: CaregiverAccessRole.NANNY,
+        status: CaregiverAccessStatus.ACCEPTED,
+        invitedUserId: { not: null },
+      },
+      select: { invitedUserId: true },
+    });
+
+    if (access?.invitedUserId) return access.invitedUserId;
+
+    const link = await this.prisma.nannyChildLink.findFirst({
+      where: { childId },
+      select: { nannyUserId: true },
+    });
+
+    return link?.nannyUserId ?? null;
   }
 
   private async resolveProgressNanny(
@@ -1319,10 +1363,7 @@ export class CarehubService {
     return access.invitedUser;
   }
 
-  private async assertNannyBelongsToChild(
-    userId: string,
-    childId: string,
-  ) {
+  private async assertNannyBelongsToChild(userId: string, childId: string) {
     const [caregiverAccess, nannyLink] = await Promise.all([
       this.prisma.caregiverAccess.findFirst({
         where: {
@@ -1361,24 +1402,22 @@ export class CarehubService {
     module: Prisma.CareModuleGetPayload<{ select: typeof moduleListSelect }>,
     options: {
       isSaved?: boolean;
-      progress?:
-        | Prisma.CareModuleProgressGetPayload<{
-            include: ReturnType<CarehubService['progressInclude']>;
-          }>
-        | Prisma.CareModuleProgressGetPayload<object>
-        | null;
+      progresses?: any[];
     } = {},
   ) {
-    let nannyProgress: { status: string; text: string } | null = null;
-    if (options.progress) {
-      nannyProgress = {
-        status: options.progress.status,
-        text: options.progress.status === CareModuleProgressStatus.PENDING 
-          ? 'Pending' 
-          : options.progress.totalQuestions 
-            ? `${options.progress.correctAnswers || 0} of ${options.progress.totalQuestions} answers were correct.`
-            : 'In progress'
-      };
+    let nannyProgresses: any[] | null = null;
+    if (options.progresses && options.progresses.length > 0) {
+      nannyProgresses = options.progresses.map((progress) => ({
+        nannyId: progress.user?.id || progress.userId,
+        nannyName: progress.user?.fullName || 'Unknown',
+        status: progress.status,
+        text:
+          progress.status === CareModuleProgressStatus.PENDING
+            ? 'Pending'
+            : progress.totalQuestions
+              ? `${progress.correctAnswers || 0} of ${progress.totalQuestions} answers were correct.`
+              : 'In progress',
+      }));
     }
 
     return {
@@ -1387,7 +1426,7 @@ export class CarehubService {
       coverImageUrl: module.coverImageUrl,
       coinReward: module.completionPoints,
       isSaved: Boolean(options.isSaved),
-      nannyProgress,
+      nannyProgresses,
     };
   }
 
@@ -1397,30 +1436,39 @@ export class CarehubService {
     }>,
     options: {
       isSaved?: boolean;
-      progress?: Prisma.CareModuleProgressGetPayload<object> | null;
+      progresses?: any[];
     } = {},
   ) {
+    let nannyProgresses: any[] | null = null;
+    if (options.progresses && options.progresses.length > 0) {
+      nannyProgresses = options.progresses.map((progress) => ({
+        nannyId: progress.user?.id || progress.userId,
+        nannyName: progress.user?.fullName || 'Unknown',
+        status: progress.status,
+        text:
+          progress.status === CareModuleProgressStatus.PENDING
+            ? 'Pending'
+            : progress.totalQuestions
+              ? `${progress.correctAnswers || 0} of ${progress.totalQuestions} answers were correct.`
+              : 'In progress',
+      }));
+    }
+
     return {
       id: module.id,
       title: module.title,
-      
       description: module.shortDescription ?? undefined,
       coverImageUrl: module.coverImageUrl,
       videoUrl: module.videoUrl,
       category: module.category,
-      
       coinReward: module.completionPoints,
       ageGroup: module.ageGroup,
-      
-      
       contentSections: module.moduleDescriptions,
       keyTakeaway: (module as any).keyTakeaway,
       isPublished: module.isPublished,
       adminStatus: module.adminStatus,
       isSaved: Boolean(options.isSaved),
-      progress: options.progress
-        ? this.formatProgressSummary(options.progress)
-        : null,
+      nannyProgresses,
       createdAt: module.createdAt,
       updatedAt: module.updatedAt,
     };
@@ -1434,9 +1482,8 @@ export class CarehubService {
     return {
       ...this.formatProgressSummary(progress),
       module: progress.module,
-      
+
       nanny: (progress as any).user,
-      
     };
   }
 
@@ -1584,9 +1631,9 @@ export class CarehubService {
     return {
       id: progress.id,
       moduleId: progress.moduleId,
-      
+
       userId: progress.userId,
-      
+
       status,
       score: progress.score,
       totalQuestions: progress.totalQuestions,
@@ -1608,8 +1655,6 @@ export class CarehubService {
   private effectiveProgressStatus(
     progress: Prisma.CareModuleProgressGetPayload<object>,
   ) {
-    
-
     if (
       progress.status === CareModuleProgressStatus.COMPLETED &&
       (progress.score ?? 0) < 100
@@ -1653,7 +1698,7 @@ export class CarehubService {
   private progressInclude() {
     return {
       module: { select: moduleListSelect },
-      
+
       user: {
         select: {
           id: true,

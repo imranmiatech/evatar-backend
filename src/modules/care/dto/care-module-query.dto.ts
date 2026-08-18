@@ -15,7 +15,6 @@ export enum CareModuleTab {
 }
 
 export class CareModuleQueryDto {
-
   @ApiPropertyOptional({ enum: CareModuleCategory })
   @IsEnum(CareModuleCategory)
   @IsOptional()
@@ -32,7 +31,6 @@ export class CareModuleQueryDto {
   @IsOptional()
   tab?: CareModuleTab = CareModuleTab.ALL;
 
-
   @ApiPropertyOptional({ description: 'Search by title/subtitle' })
   @IsString()
   @IsOptional()
@@ -42,7 +40,6 @@ export class CareModuleQueryDto {
   @IsString()
   @IsOptional()
   childId?: string;
-
 
   @ApiPropertyOptional({ default: 1 })
   @IsInt()
@@ -89,7 +86,6 @@ export class CareHomeQueryDto {
   @IsString()
   @IsOptional()
   childId?: string;
-
 
   @ApiPropertyOptional({ default: 1 })
   @IsInt()
