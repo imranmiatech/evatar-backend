@@ -1,12 +1,35 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
-import { CurrentUser, type CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type CurrentUserPayload,
+} from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 
-import { CareModuleQueryDto, CareModuleTab } from '../dto/care-module-query.dto';
+import {
+  CareModuleQueryDto,
+  CareModuleTab,
+} from '../dto/care-module-query.dto';
 import { AssignCareModuleDto } from '../dto/assign-module.dto';
 import { SubmitCareQuizDto } from '../dto/submit-care-quiz.dto';
 import { CarehubService } from '../services/carehub.service';
@@ -25,15 +48,13 @@ export class CarehubController {
     @CurrentUser() user: CurrentUserPayload,
     @Query() query: CareModuleQueryDto,
   ) {
-    return this.careService.getModules(user, { ...query, tab: CareModuleTab.ALL });
+    return this.careService.getModules(user, {
+      ...query,
+      tab: CareModuleTab.ALL,
+    });
   }
 
-  @Get('home/topics')
-  @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
-  @ApiOperation({ summary: 'Get Care Hub topic filters' })
-  getCareHomeTopics() {
-    return this.careService.getCareHomeTopics();
-  }
+
 
   @Get('children')
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
@@ -44,7 +65,9 @@ export class CarehubController {
 
   @Get('children/:childId/suggested-modules')
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
-  @ApiOperation({ summary: 'Get suggested modules for a child (Suggested for [Child] tab)' })
+  @ApiOperation({
+    summary: 'Get suggested modules for a child (Suggested for [Child] tab)',
+  })
   @ApiParam({ name: 'childId' })
   getSuggestedModules(
     @CurrentUser() user: CurrentUserPayload,
@@ -56,8 +79,14 @@ export class CarehubController {
 
   @Get('module-progress')
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
-  @ApiOperation({ summary: 'Get In Progress, Completed, or Saved modules for the user' })
-  @ApiQuery({ name: 'tab', enum: ['SAVED', 'IN_PROGRESS', 'COMPLETED'], required: true })
+  @ApiOperation({
+    summary: 'Get In Progress, Completed, or Saved modules for the user',
+  })
+  @ApiQuery({
+    name: 'tab',
+    enum: ['SAVED', 'IN_PROGRESS', 'COMPLETED'],
+    required: true,
+  })
   getModuleProgress(
     @CurrentUser() user: CurrentUserPayload,
     @Query('tab') tab: CareModuleTab,
@@ -76,7 +105,6 @@ export class CarehubController {
   ) {
     return this.careService.getModuleDetail(user, moduleId);
   }
-
 }
 
 @ApiBearerAuth()

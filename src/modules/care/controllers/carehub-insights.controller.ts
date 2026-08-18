@@ -1,7 +1,26 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
-import { CurrentUser, type CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type CurrentUserPayload,
+} from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
@@ -16,12 +35,13 @@ import { CarehubInsightsService } from '../services/carehub-insights.service';
 @ApiTags('(Parent/Nanny) > Care Hub Insights')
 @Controller('care')
 export class CarehubInsightsController {
-  constructor(private readonly careService: CarehubInsightsService) { }
+  constructor(private readonly careService: CarehubInsightsService) {}
 
   @Get('children/:childId/insights')
   @Roles(UserRole.ADMIN, UserRole.PARENT, UserRole.NANNY)
   @ApiOperation({
-    summary: 'Get favorite activities, favorite meals, and meta counts for a child',
+    summary:
+      'Get favorite activities, favorite meals, and meta counts for a child',
   })
   @ApiParam({ name: 'childId' })
   getChildInsights(
@@ -35,7 +55,8 @@ export class CarehubInsightsController {
   @Get('children/:childId/monthly-highlights')
   @Roles(UserRole.PARENT, UserRole.NANNY)
   @ApiOperation({
-    summary: 'Get monthly highlight proof images from activities the child enjoyed',
+    summary:
+      'Get monthly highlight proof images from activities the child enjoyed',
   })
   @ApiParam({ name: 'childId' })
   getMonthlyHighlights(

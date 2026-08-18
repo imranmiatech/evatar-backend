@@ -20,7 +20,7 @@ export class KitchenItemService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly kitchenAccess: KitchenAccessService,
-  ) {}
+  ) { }
 
   /**
    * Derives status from stock percentage:
