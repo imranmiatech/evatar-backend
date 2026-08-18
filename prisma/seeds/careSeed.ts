@@ -1,6 +1,6 @@
 import {
   CareModuleAdminStatus,
-  CareModuleAssignmentStatus,
+  CareModuleProgressStatus,
   CareModuleCategory,
   CareQuestionType,
   ActivityStatus,
@@ -27,10 +27,11 @@ type CareModuleSeed = {
   description: string;
   coverImageUrl: string;
   category: CareModuleCategory;
-  estimatedMinutes: number;
-  coinReward: number;
-  suggestedMinAgeYears: number;
-  suggestedMaxAgeYears: number;
+  ageGroup?: string;
+  estimatedMinutes?: number;
+  coinReward?: number;
+  suggestedMinAgeMonths?: number;
+  suggestedMaxAgeMonths?: number;
   keyTakeaway: string;
   contentSections: Prisma.InputJsonValue;
   questions: CareQuestionSeed[];
@@ -45,10 +46,11 @@ const careModules: CareModuleSeed[] = [
     coverImageUrl:
       'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=1200&auto=format&fit=crop',
     category: CareModuleCategory.CHILD_DEVELOPMENT,
+    ageGroup: '0-6 months',
     estimatedMinutes: 130,
     coinReward: 15,
-    suggestedMinAgeYears: 2,
-    suggestedMaxAgeYears: 6,
+    
+    
     keyTakeaway:
       'Behavior is communication. Respond to the need before correcting the action.',
     contentSections: [
@@ -128,10 +130,11 @@ const careModules: CareModuleSeed[] = [
     coverImageUrl:
       'https://images.unsplash.com/photo-1555252333-9f8e92e65df9?q=80&w=1200&auto=format&fit=crop',
     category: CareModuleCategory.NUTRITION_FEEDING,
+    ageGroup: '6-12 months',
     estimatedMinutes: 113,
     coinReward: 15,
-    suggestedMinAgeYears: 0,
-    suggestedMaxAgeYears: 3,
+    
+    
     keyTakeaway:
       'Responsive feeding follows the child cues while keeping safety and routine consistent.',
     contentSections: [
@@ -183,8 +186,8 @@ const careModules: CareModuleSeed[] = [
     category: CareModuleCategory.SLEEP_ROUTINES,
     estimatedMinutes: 75,
     coinReward: 10,
-    suggestedMinAgeYears: 0,
-    suggestedMaxAgeYears: 6,
+    
+    
     keyTakeaway:
       'Predictable routines help children know what comes next and settle more easily.',
     contentSections: [
@@ -215,10 +218,11 @@ const careModules: CareModuleSeed[] = [
     coverImageUrl:
       'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?q=80&w=1200&auto=format&fit=crop',
     category: CareModuleCategory.CHILD_SAFETY,
+    ageGroup: '2-4 years',
     estimatedMinutes: 60,
     coinReward: 10,
-    suggestedMinAgeYears: 0,
-    suggestedMaxAgeYears: 7,
+    
+    
     keyTakeaway:
       'Safe spaces are prepared before play starts, not only after risk appears.',
     contentSections: [
@@ -249,10 +253,11 @@ const careModules: CareModuleSeed[] = [
     coverImageUrl:
       'https://images.unsplash.com/photo-1584515933487-779824d29309?q=80&w=1200&auto=format&fit=crop',
     category: CareModuleCategory.FIRST_AID,
+    ageGroup: '4 years +',
     estimatedMinutes: 95,
     coinReward: 15,
-    suggestedMinAgeYears: 0,
-    suggestedMaxAgeYears: 8,
+    
+    
     keyTakeaway:
       'Prepared caregivers respond faster and escalate when symptoms are serious.',
     contentSections: [
@@ -285,8 +290,8 @@ const careModules: CareModuleSeed[] = [
     category: CareModuleCategory.PLAY_LEARNING,
     estimatedMinutes: 80,
     coinReward: 10,
-    suggestedMinAgeYears: 1,
-    suggestedMaxAgeYears: 6,
+    
+    
     keyTakeaway:
       'Simple shared play can build attention, communication, and confidence.',
     contentSections: [
@@ -317,10 +322,11 @@ const careModules: CareModuleSeed[] = [
     coverImageUrl:
       'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=1200&auto=format&fit=crop',
     category: CareModuleCategory.COMMUNICATION,
+    ageGroup: '6-12 months',
     estimatedMinutes: 55,
     coinReward: 10,
-    suggestedMinAgeYears: 0,
-    suggestedMaxAgeYears: 8,
+    
+    
     keyTakeaway:
       'Useful updates are specific, calm, timely, and focused on the child.',
     contentSections: [
@@ -351,10 +357,11 @@ const careModules: CareModuleSeed[] = [
     coverImageUrl:
       'https://images.unsplash.com/photo-1584744982491-665216d95f8b?q=80&w=1200&auto=format&fit=crop',
     category: CareModuleCategory.HEALTH_HYGIENE,
+    ageGroup: '12-24 months',
     estimatedMinutes: 65,
     coinReward: 10,
-    suggestedMinAgeYears: 0,
-    suggestedMaxAgeYears: 7,
+    
+    
     keyTakeaway:
       'Repeated hygiene routines become easier when they are predictable and calm.',
     contentSections: [
@@ -387,8 +394,8 @@ const careModules: CareModuleSeed[] = [
     category: CareModuleCategory.SLEEP_ROUTINES,
     estimatedMinutes: 45,
     coinReward: 8,
-    suggestedMinAgeYears: 1,
-    suggestedMaxAgeYears: 7,
+    
+    
     keyTakeaway:
       'A warm, predictable handoff can reduce stress for both child and caregiver.',
     contentSections: [
@@ -419,10 +426,11 @@ const careModules: CareModuleSeed[] = [
     coverImageUrl:
       'https://images.unsplash.com/photo-1478145046317-39f10e56b5e9?q=80&w=1200&auto=format&fit=crop',
     category: CareModuleCategory.NUTRITION_FEEDING,
+    ageGroup: '4 years +',
     estimatedMinutes: 70,
     coinReward: 10,
-    suggestedMinAgeYears: 1,
-    suggestedMaxAgeYears: 6,
+    
+    
     keyTakeaway:
       'Repeated low-pressure exposure works better than forcing bites.',
     contentSections: [
@@ -453,10 +461,11 @@ const careModules: CareModuleSeed[] = [
     coverImageUrl:
       'https://images.unsplash.com/photo-1596464716127-f2a82984de30?q=80&w=1200&auto=format&fit=crop',
     category: CareModuleCategory.CHILD_SAFETY,
+    ageGroup: '0-6 months',
     estimatedMinutes: 50,
     coinReward: 8,
-    suggestedMinAgeYears: 1,
-    suggestedMaxAgeYears: 8,
+    
+    
     keyTakeaway:
       'Outdoor safety starts with clear boundaries and active supervision.',
     contentSections: [
@@ -489,8 +498,8 @@ const careModules: CareModuleSeed[] = [
     category: CareModuleCategory.COMMUNICATION,
     estimatedMinutes: 60,
     coinReward: 10,
-    suggestedMinAgeYears: 0,
-    suggestedMaxAgeYears: 5,
+    
+    
     keyTakeaway:
       'Narrating care routines helps children connect words with real experiences.',
     contentSections: [
@@ -521,10 +530,11 @@ const careModules: CareModuleSeed[] = [
     coverImageUrl:
       'https://images.unsplash.com/photo-1595454038955-4d80d06358b2?q=80&w=1200&auto=format&fit=crop',
     category: CareModuleCategory.HEALTH_HYGIENE,
+    ageGroup: '12-24 months',
     estimatedMinutes: 65,
     coinReward: 10,
-    suggestedMinAgeYears: 2,
-    suggestedMaxAgeYears: 5,
+    
+    
     keyTakeaway:
       'Toileting progress is easier when caregivers follow readiness, not pressure.',
     contentSections: [
@@ -555,10 +565,11 @@ const careModules: CareModuleSeed[] = [
     coverImageUrl:
       'https://images.unsplash.com/photo-1521791136064-7986c2920216?q=80&w=1200&auto=format&fit=crop',
     category: CareModuleCategory.OTHER,
+    ageGroup: '2-4 years',
     estimatedMinutes: 50,
     coinReward: 8,
-    suggestedMinAgeYears: 0,
-    suggestedMaxAgeYears: 8,
+    
+    
     keyTakeaway:
       'Professional care is warm, reliable, respectful, and well-communicated.',
     contentSections: [
@@ -602,19 +613,25 @@ export async function seedCareModules(prisma: PrismaClient) {
     });
 
     const moduleData = {
-      subtitle: moduleSeed.subtitle,
-      description: moduleSeed.description,
+      shortDescription: moduleSeed.subtitle,
+      moduleDescriptions: [
+        {
+          title: 'Introduction',
+          description: moduleSeed.description || '',
+        }
+      ],
       coverImageUrl: moduleSeed.coverImageUrl,
+      videoUrl: null,
       category: moduleSeed.category,
-      estimatedMinutes: moduleSeed.estimatedMinutes,
-      coinReward: moduleSeed.coinReward,
-      contentTitle: moduleSeed.title,
-      contentSections: moduleSeed.contentSections,
+      completionPoints: moduleSeed.coinReward || 50,
+      ageGroup: moduleSeed.ageGroup || null,
+      
+      
       keyTakeaway: moduleSeed.keyTakeaway,
       isPublished: true,
       adminStatus: CareModuleAdminStatus.PUBLISHED,
-      suggestedMinAgeYears: moduleSeed.suggestedMinAgeYears,
-      suggestedMaxAgeYears: moduleSeed.suggestedMaxAgeYears,
+      
+      
     };
 
     const module = existingModule
@@ -739,20 +756,18 @@ async function seedSampleCareAssignments(
 
   await Promise.all(
     modules.map((module, index) =>
-      prisma.careModuleAssignment.upsert({
+      prisma.careModuleProgress.upsert({
         where: {
-          moduleId_childId_nannyUserId: {
+          moduleId_userId: {
             moduleId: module.id,
-            childId: eve.id,
-            nannyUserId: nanny.id,
+            userId: nanny.id,
           },
         },
-        update: assignmentData(parent.id, index),
+        update: assignmentData(index),
         create: {
           moduleId: module.id,
-          childId: eve.id,
-          nannyUserId: nanny.id,
-          ...assignmentData(parent.id, index),
+          userId: nanny.id,
+          ...assignmentData(index),
         },
       }),
     ),
@@ -762,32 +777,28 @@ async function seedSampleCareAssignments(
     modules.slice(0, 3).flatMap((module) => [
       prisma.careModuleSave.upsert({
         where: {
-          moduleId_userId_childId: {
+          moduleId_userId: {
             moduleId: module.id,
             userId: parent.id,
-            childId: eve.id,
           },
         },
         update: {},
         create: {
           moduleId: module.id,
           userId: parent.id,
-          childId: eve.id,
         },
       }),
       prisma.careModuleSave.upsert({
         where: {
-          moduleId_userId_childId: {
+          moduleId_userId: {
             moduleId: module.id,
             userId: nanny.id,
-            childId: eve.id,
           },
         },
         update: {},
         create: {
           moduleId: module.id,
           userId: nanny.id,
-          childId: eve.id,
         },
       }),
     ]),
@@ -1020,11 +1031,10 @@ async function seedCareInsightActivities(
   );
 }
 
-function assignmentData(assignedByUserId: string, index: number) {
+function assignmentData(index: number) {
   if (index >= 10) {
     return {
-      assignedByUserId,
-      status: CareModuleAssignmentStatus.COMPLETED,
+      status: CareModuleProgressStatus.COMPLETED,
       startedAt: new Date('2026-08-08T02:30:00.000Z'),
       completedAt: new Date('2026-08-08T03:00:00.000Z'),
       score: 100,
@@ -1036,8 +1046,7 @@ function assignmentData(assignedByUserId: string, index: number) {
   }
 
   return {
-    assignedByUserId,
-    status: CareModuleAssignmentStatus.IN_PROGRESS,
+    status: CareModuleProgressStatus.IN_PROGRESS,
     startedAt: new Date('2026-08-08T02:30:00.000Z'),
     completedAt: index < 2 ? new Date('2026-08-08T03:00:00.000Z') : null,
     score: index < 2 ? 60 : null,

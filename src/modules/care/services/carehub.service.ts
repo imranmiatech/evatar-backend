@@ -1,0 +1,1789 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  CareModuleCategory,
+  CareModuleAdminStatus,
+  CareModuleProgressStatus,
+  CareQuestionType,
+  ChildMood,
+  CaregiverAccessRole,
+  CaregiverAccessStatus,
+  MediaType,
+  Prisma,
+  TaskCompletionRate,
+  TaskEnjoymentLevel,
+  UserRole,
+} from '@prisma/client';
+import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { RewardsService } from '../../rewards/rewards.service';
+import { StorageService } from '../../../common/storage/storage.service';
+
+import { CareChildInsightsQueryDto } from '../dto/care-child-insights-query.dto';
+import {
+  CareHomeQueryDto,
+  CareHomeTabsQueryDto,
+  CareModuleQueryDto,
+  CareModuleTab,
+} from '../dto/care-module-query.dto';
+import { CareMonthlyHighlightsQueryDto } from '../dto/care-monthly-highlights-query.dto';
+import { CreateCareChildNoteDto } from '../dto/create-care-child-note.dto';
+
+import { SubmitCareQuizDto } from '../dto/submit-care-quiz.dto';
+
+const moduleListSelect = {
+  id: true,
+  title: true,
+  shortDescription: true,
+  coverImageUrl: true,
+  videoUrl: true,
+  category: true,
+  completionPoints: true,
+  ageGroup: true,
+  isPublished: true,
+  createdAt: true,
+  updatedAt: true,
+  questions: { select: { id: true } },
+} satisfies Prisma.CareModuleSelect;
+
+const moduleDetailInclude = {
+  questions: {
+    include: {
+      options: {
+        select: {
+          id: true,
+          label: true,
+          isCorrect: true,
+          sortOrder: true,
+        },
+        orderBy: { sortOrder: 'asc' },
+      },
+    },
+    orderBy: { sortOrder: 'asc' },
+  },
+} satisfies Prisma.CareModuleInclude;
+
+const QUIZ_PERFECT_SCORE_POINTS = 2;
+const QUIZ_RETAKE_COOLDOWN_MONTHS = 1;
+const FAVORITE_ENJOYMENT = [
+  TaskEnjoymentLevel.LOVE_IT,
+  TaskEnjoymentLevel.ENJOY_IT,
+] as const;
+const FAVORITE_MOODS = [ChildMood.EXCITED, ChildMood.HAPPY] as const;
+const FAVORITE_COMPLETION = TaskCompletionRate.FULL_PLATE;
+const MEAL_CATEGORY_KEYWORDS = [
+  'RECIPE',
+  'MEAL',
+  'BREAKFAST',
+  'LUNCH',
+  'DINNER',
+  'SNACK',
+  'FOOD',
+];
+const ACTIVITY_CATEGORY_KEYWORDS = [
+  'ACTIVITY',
+  'PLAY',
+  'STUDY',
+  'LEARNING',
+  'OUTDOOR',
+  'CREATIVE',
+  'ART',
+  'MUSIC',
+  'STORY',
+];
+
+const CARE_HOME_TOPICS = [
+  { id: 'ALL', label: 'All Topics', value: null },
+  {
+    id: CareModuleCategory.CHILD_SAFETY,
+    label: 'Child Safety',
+    value: CareModuleCategory.CHILD_SAFETY,
+  },
+  {
+    id: CareModuleCategory.NUTRITION_FEEDING,
+    label: 'Nutrition & Feeding',
+    value: CareModuleCategory.NUTRITION_FEEDING,
+  },
+  {
+    id: CareModuleCategory.SLEEP_ROUTINES,
+    label: 'Sleep & Routines',
+    value: CareModuleCategory.SLEEP_ROUTINES,
+  },
+  {
+    id: CareModuleCategory.CHILD_DEVELOPMENT,
+    label: 'Child Development',
+    value: CareModuleCategory.CHILD_DEVELOPMENT,
+  },
+  {
+    id: CareModuleCategory.FIRST_AID,
+    label: 'First Aid',
+    value: CareModuleCategory.FIRST_AID,
+  },
+  {
+    id: CareModuleCategory.PLAY_LEARNING,
+    label: 'Play & Learning',
+    value: CareModuleCategory.PLAY_LEARNING,
+  },
+  {
+    id: CareModuleCategory.COMMUNICATION,
+    label: 'Communication',
+    value: CareModuleCategory.COMMUNICATION,
+  },
+  {
+    id: CareModuleCategory.HEALTH_HYGIENE,
+    label: 'Health & Hygiene',
+    value: CareModuleCategory.HEALTH_HYGIENE,
+  },
+  {
+    id: CareModuleCategory.OTHER,
+    label: 'Other',
+    value: CareModuleCategory.OTHER,
+  },
+] as const;
+
+type CareModuleSuggestedAgeRange = {
+  suggestedMinAgeYears?: number;
+  suggestedMaxAgeYears?: number;
+};
+
+@Injectable()
+export class CarehubService {
+  private ageGroupForMonths(ageMonths: number) {
+    if (ageMonths <= 6) return '0-6 months';
+    if (ageMonths <= 12) return '6-12 months';
+    if (ageMonths <= 24) return '12-24 months';
+    if (ageMonths <= 48) return '2-4 years';
+    return '4 years +';
+  }
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rewardsService: RewardsService,
+    private readonly storageService: StorageService,
+  ) {}
+
+  async getSuggestedModules(
+    user: CurrentUserPayload,
+    childId: string,
+    query: CareModuleQueryDto,
+  ) {
+    const userId = this.currentUserId(user);
+
+    if (this.isNanny(user)) {
+      await this.assertNannyCanViewChildCare(userId, childId);
+    } else {
+      await this.assertCanViewCare(userId, childId);
+    }
+
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      select: { id: true, name: true, birthDate: true },
+    });
+
+    if (!child) {
+      throw new NotFoundException('Child not found');
+    }
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+    const ageMonths = child.birthDate
+      ? Math.floor(
+          (new Date().getTime() - child.birthDate.getTime()) /
+            (1000 * 60 * 60 * 24 * 30.44),
+        )
+      : null;
+
+    const matchedAgeGroup =
+      ageMonths !== null ? this.ageGroupForMonths(ageMonths) : null;
+    const ageYears = ageMonths !== null ? Math.floor(ageMonths / 12) : null;
+
+    const moduleWhere = {
+      ...this.moduleWhere(query, user),
+      ...(matchedAgeGroup !== null && {
+        ageGroup: matchedAgeGroup,
+      }),
+    } satisfies Prisma.CareModuleWhereInput;
+
+    const [modules, total] = await Promise.all([
+      this.prisma.careModule.findMany({
+        where: moduleWhere,
+        select: moduleListSelect,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.careModule.count({ where: moduleWhere }),
+    ]);
+
+    const [savedIds, progressByModuleId] = await Promise.all([
+      this.savedModuleIds(
+        userId,
+        modules.map((module) => module.id),
+        childId,
+      ),
+      this.progressMapForCards(
+        user,
+        { ...query, childId },
+        modules.map((module) => module.id),
+      ),
+    ]);
+    const cards = modules.map((module) =>
+      this.formatModuleCard(module, {
+        isSaved: savedIds.has(module.id),
+        progresses: progressByModuleId.get(module.id) || [],
+      }),
+    );
+
+    return {
+      success: true,
+      message: 'Suggested care modules fetched successfully',
+      data: {
+        child,
+        ageYears,
+        modules: cards,
+      },
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        ageMatched: ageYears !== null,
+        warning:
+          ageYears === null
+            ? 'Child birthDate is missing, so suggestions are not filtered by age.'
+            : undefined,
+      },
+    };
+  }
+
+  async getCareHome(user: CurrentUserPayload, query: CareHomeQueryDto) {
+    const userId = this.currentUserId(user);
+    const { adminStatus, ageGroup, category, topicId, ...baseHomeQuery } =
+      query;
+    const activeTab = baseHomeQuery.tab ?? CareModuleTab.ALL;
+    const canApplyTopic = activeTab === CareModuleTab.ALL;
+    const selectedTopicId =
+      canApplyTopic && topicId && topicId !== 'ALL' ? topicId : null;
+    if (
+      topicId &&
+      topicId !== 'ALL' &&
+      !Object.values(CareModuleCategory).includes(topicId as CareModuleCategory)
+    ) {
+      throw new BadRequestException('Invalid topicId');
+    }
+
+    const moduleQuery = {
+      ...baseHomeQuery,
+      ...(selectedTopicId && {
+        category: selectedTopicId as CareModuleCategory,
+      }),
+    };
+
+    const [account, careChildren] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          profilePictureUrl: true,
+          role: true,
+        },
+      }),
+      this.getMyCareChildren(user),
+    ]);
+
+    if (!account) {
+      throw new NotFoundException('User not found');
+    }
+
+    const children = careChildren.data;
+    const selectedChildId = moduleQuery.childId ?? children[0]?.id ?? null;
+    const homeQuery = {
+      ...moduleQuery,
+      ...(selectedChildId && { childId: selectedChildId }),
+    };
+    const moduleResponse = await this.getModules(user, homeQuery);
+
+    return {
+      success: true,
+      message: 'Care home fetched successfully',
+      data: {
+        user: {
+          id: account.id,
+          name: account.fullName,
+          email: account.email,
+          image: account.profilePictureUrl,
+          role: account.role,
+          greeting: this.timeGreeting(),
+        },
+        selectedChildId,
+        modules: moduleResponse.data,
+        caregivingHub: {
+          title: 'Explore Baby handling lesson',
+          subtitle:
+            "Assign care modules to your nanny based on your child's needs.",
+          selectedChildId,
+          modules: moduleResponse.data,
+        },
+        meta: {
+          ...moduleResponse.meta,
+          filters: {
+            childId: selectedChildId,
+            tab: activeTab,
+            topicId: selectedTopicId ?? 'ALL',
+            search: homeQuery.search ?? null,
+            userId: null,
+          },
+        },
+      },
+    };
+  }
+
+  async getCareHomeTabs(user: CurrentUserPayload, query: CareHomeTabsQueryDto) {
+    if (!query.childId) {
+      throw new BadRequestException('childId query parameter is required');
+    }
+
+    const userId = this.currentUserId(user);
+    if (this.isNanny(user)) {
+      await this.assertNannyCanViewChildCare(userId, query.childId);
+    } else {
+      await this.assertCanViewCare(userId, query.childId);
+    }
+
+    const homeQuery = {
+      childId: query.childId,
+      page: 1,
+      limit: 1,
+    };
+    const tabCounts = await this.careHomeTabCounts(user, homeQuery);
+
+    return {
+      success: true,
+      message: 'Care home tabs fetched successfully',
+      meta: {
+        childId: query.childId ?? null,
+      },
+      data: [
+        {
+          id: CareModuleTab.ALL,
+          key: CareModuleTab.ALL,
+          label: 'All Modules',
+          count: tabCounts.all,
+          isActive: true,
+        },
+        {
+          id: CareModuleTab.IN_PROGRESS,
+          key: CareModuleTab.IN_PROGRESS,
+          label: 'In progress',
+          count: tabCounts.inProgress,
+          isActive: false,
+        },
+        {
+          id: CareModuleTab.COMPLETED,
+          key: CareModuleTab.COMPLETED,
+          label: 'Completed',
+          count: tabCounts.completed,
+          isActive: false,
+        },
+        {
+          id: CareModuleTab.SAVED,
+          key: CareModuleTab.SAVED,
+          label: 'Saved',
+          count: tabCounts.saved,
+          isActive: false,
+        },
+      ],
+    };
+  }
+
+
+
+  async getMyCareChildren(user: CurrentUserPayload) {
+    const userId = this.currentUserId(user);
+    
+    let childIds: string[] = [];
+    if (this.isNanny(user)) {
+      const [accesses, links] = await Promise.all([
+        this.prisma.caregiverAccess.findMany({
+          where: {
+            invitedUserId: userId,
+            status: CaregiverAccessStatus.ACCEPTED,
+            role: CaregiverAccessRole.NANNY,
+          },
+          select: { childId: true },
+        }),
+        this.prisma.nannyChildLink.findMany({
+          where: { nannyUserId: userId },
+          select: { childId: true },
+        }),
+      ]);
+      const set = new Set<string>();
+      accesses.forEach(a => set.add(a.childId));
+      links.forEach(l => set.add(l.childId));
+      childIds = Array.from(set);
+    } else {
+      const children = await this.prisma.child.findMany({
+        where: { parentUserId: userId },
+        select: { id: true },
+      });
+      childIds = children.map(c => c.id);
+    }
+
+    if (childIds.length === 0) {
+      return {
+        success: true,
+        message: 'Care children fetched successfully',
+        data: [],
+      };
+    }
+
+    const children = await this.prisma.child.findMany({
+      where: { id: { in: childIds } },
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        gender: true,
+        birthDate: true,
+        parentUserId: true,
+        parentUser: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            profilePictureUrl: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return {
+      success: true,
+      message: 'Care children fetched successfully',
+      data: children.map((child) => ({
+        ...child,
+        ageYears: child.birthDate ? this.childAgeYears(child.birthDate) : null,
+      })),
+    };
+  }
+
+  async getModules(
+    user: CurrentUserPayload,
+    query: CareModuleQueryDto & { tab?: CareModuleTab },
+  ) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+    const userId = this.currentUserId(user);
+    const tab = query.tab ?? CareModuleTab.ALL;
+
+    if (query.childId) {
+      if (this.isNanny(user)) {
+        await this.assertNannyCanViewChildCare(userId, query.childId);
+      } else {
+        await this.assertCanViewCare(userId, query.childId);
+      }
+    }
+
+    const moduleWhere = this.moduleWhere(query, user);
+
+    if (tab === CareModuleTab.SAVED) {
+      const where = {
+        userId,
+        ...(query.childId && { childId: query.childId }),
+        module: moduleWhere,
+      } satisfies Prisma.CareModuleSaveWhereInput;
+
+      const [saves, total] = await Promise.all([
+        this.prisma.careModuleSave.findMany({
+          where,
+          include: { module: { select: moduleListSelect } },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        }),
+        this.prisma.careModuleSave.count({ where }),
+      ]);
+
+      return this.paginatedModules(
+        saves.map((save) =>
+          this.formatModuleCard(save.module, {
+            isSaved: true,
+          }),
+        ),
+        total,
+        page,
+        limit,
+      );
+    }
+
+    if (tab === CareModuleTab.IN_PROGRESS || tab === CareModuleTab.COMPLETED) {
+      const where = await this.progressWhereForUser(user, query, tab);
+      const [progresses, total] = await Promise.all([
+        this.prisma.careModuleProgress.findMany({
+          where: { ...where, module: moduleWhere },
+          include: {
+            module: { select: moduleListSelect },
+
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                profilePictureUrl: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        }),
+        this.prisma.careModuleProgress.count({
+          where: { ...where, module: moduleWhere },
+        }),
+      ]);
+
+      const savedIds = await this.savedModuleIds(
+        userId,
+        progresses.map((progress) => progress.moduleId),
+        query.childId,
+      );
+
+      return this.paginatedModules(
+        progresses.map((progress) =>
+          this.formatModuleCard(progress.module, {
+            progresses: [progress],
+            isSaved: savedIds.has(progress.moduleId),
+          }),
+        ),
+        total,
+        page,
+        limit,
+      );
+    }
+
+    const [modules, total] = await Promise.all([
+      this.prisma.careModule.findMany({
+        where: moduleWhere,
+        select: moduleListSelect,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.careModule.count({ where: moduleWhere }),
+    ]);
+
+    const [savedIds, progressByModuleId] = await Promise.all([
+      this.savedModuleIds(
+        userId,
+        modules.map((module) => module.id),
+        query.childId,
+      ),
+      this.progressMapForCards(
+        user,
+        query,
+        modules.map((module) => module.id),
+      ),
+    ]);
+
+    return this.paginatedModules(
+      modules.map((module) =>
+        this.formatModuleCard(module, {
+          isSaved: savedIds.has(module.id),
+          progresses: progressByModuleId.get(module.id) || [],
+        }),
+      ),
+      total,
+      page,
+      limit,
+    );
+  }
+
+  async getModuleDetail(user: CurrentUserPayload, moduleId: string) {
+    const userId = this.currentUserId(user);
+    const module = await this.prisma.careModule.findFirst({
+      where: {
+        id: moduleId,
+        ...(!this.isAdmin(user) && { isPublished: true }),
+      },
+      include: moduleDetailInclude,
+    });
+
+    if (!module) {
+      throw new NotFoundException('Care module not found');
+    }
+
+    let progressWhere: Prisma.CareModuleProgressWhereInput = {
+      moduleId,
+      assignedById: userId,
+    };
+
+    if (this.isNanny(user)) {
+      progressWhere = {
+        moduleId,
+        userId: userId,
+      };
+    } else {
+      const nannyUserIds = await this.findAllNannyUserIdsForParent(userId);
+      if (nannyUserIds.length > 0) {
+        progressWhere = {
+          moduleId,
+          userId: { in: nannyUserIds },
+        };
+      }
+    }
+
+    const progresses = await this.prisma.careModuleProgress.findMany({
+      where: progressWhere,
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        user: { select: { id: true, fullName: true } },
+      },
+    });
+
+    const isSavedRecord = await this.prisma.careModuleSave.findUnique({
+      where: {
+        moduleId_userId: {
+          moduleId,
+          userId,
+        },
+      },
+    });
+    const isSaved = !!isSavedRecord;
+
+    return {
+      success: true,
+      message: 'Care module fetched successfully',
+      data: this.formatModuleDetail(module, {
+        isSaved: Boolean(isSaved),
+        progresses,
+      }),
+    };
+  }
+
+  async saveModule(user: CurrentUserPayload, moduleId: string) {
+    const userId = this.currentUserId(user);
+    await this.assertPublishedModule(moduleId);
+
+    const existingSave = await this.prisma.careModuleSave.findUnique({
+      where: { moduleId_userId: { moduleId, userId } },
+    });
+
+    if (existingSave) {
+      throw new BadRequestException('Care module is already saved');
+    }
+
+    const save = await this.prisma.careModuleSave.create({
+      data: { moduleId, userId },
+    });
+
+    return {
+      success: true,
+      message: 'Care module saved successfully',
+      data: save,
+    };
+  }
+
+  async removeSavedModule(user: CurrentUserPayload, moduleId: string) {
+    const userId = this.currentUserId(user);
+
+    const existingSave = await this.prisma.careModuleSave.findUnique({
+      where: { moduleId_userId: { moduleId, userId } },
+    });
+
+    if (!existingSave) {
+      throw new NotFoundException('Care module is not in your saved list');
+    }
+
+    await this.prisma.careModuleSave.delete({
+      where: { moduleId_userId: { moduleId, userId } },
+    });
+
+    return {
+      success: true,
+      message: 'Care module removed from saved list',
+    };
+  }
+
+  async assignModuleToNannies(
+    user: CurrentUserPayload,
+    moduleId: string,
+    childId: string,
+  ) {
+    if (user.role !== 'PARENT') {
+      throw new ForbiddenException('Only parents can assign modules');
+    }
+    await this.assertPublishedModule(moduleId);
+
+    const userId = this.currentUserId(user);
+    await this.assertChildAccess(userId, childId, ['manageCareTeam']);
+
+    const accesses = await this.prisma.caregiverAccess.findMany({
+      where: {
+        childId,
+        status: CaregiverAccessStatus.ACCEPTED,
+        role: CaregiverAccessRole.NANNY,
+      },
+      select: { invitedUserId: true },
+    });
+
+    const nannyIds = accesses
+      .map((a) => a.invitedUserId)
+      .filter((id) => id !== null);
+
+    if (nannyIds.length === 0) {
+      throw new BadRequestException('No nannies found for this child');
+    }
+
+    let assignedCount = 0;
+
+    for (const nannyId of nannyIds) {
+      const existingProgress = await this.prisma.careModuleProgress.findUnique({
+        where: { moduleId_userId: { moduleId, userId: nannyId } },
+      });
+
+      if (!existingProgress) {
+        await this.prisma.careModuleProgress.create({
+          data: {
+            moduleId,
+            userId: nannyId,
+            assignedById: user.id,
+            status: CareModuleProgressStatus.PENDING,
+          },
+        });
+        assignedCount++;
+      }
+    }
+
+    return {
+      success: true,
+      message: `Module successfully assigned to ${assignedCount} nanny(ies)`,
+    };
+  }
+
+  private validateQuestions(questions: any) {
+    for (const question of questions) {
+      const correctCount = question.options.filter(
+        (option) => option.isCorrect,
+      ).length;
+
+      if (correctCount !== 1) {
+        throw new BadRequestException(
+          'Each quiz question must have exactly one correct option',
+        );
+      }
+
+      if (
+        question.type === CareQuestionType.TRUE_FALSE &&
+        question.options.length !== 2
+      ) {
+        throw new BadRequestException(
+          'True/false questions must have exactly two options',
+        );
+      }
+    }
+  }
+
+  private parseFormValue(val: any) {
+    if (typeof val === 'string') {
+      try {
+        return JSON.parse(val);
+      } catch {
+        return val;
+      }
+    }
+    return val;
+  }
+
+  private validateSuggestedAgeRange(dto: CareModuleSuggestedAgeRange) {
+    if (
+      dto.suggestedMinAgeYears !== undefined &&
+      dto.suggestedMaxAgeYears !== undefined &&
+      dto.suggestedMinAgeYears > dto.suggestedMaxAgeYears
+    ) {
+      throw new BadRequestException(
+        'suggestedMinAgeYears cannot be greater than suggestedMaxAgeYears',
+      );
+    }
+  }
+
+  private async careHomeTabCounts(
+    user: CurrentUserPayload,
+    query: CareModuleQueryDto,
+  ) {
+    const [all, inProgress, completed, saved] = await Promise.all([
+      this.countModulesForTab(user, query, CareModuleTab.ALL),
+      this.countModulesForTab(user, query, CareModuleTab.IN_PROGRESS),
+      this.countModulesForTab(user, query, CareModuleTab.COMPLETED),
+      this.countModulesForTab(user, query, CareModuleTab.SAVED),
+    ]);
+
+    return { all, inProgress, completed, saved };
+  }
+
+  private async countModulesForTab(
+    user: CurrentUserPayload,
+    query: CareModuleQueryDto,
+    tab: CareModuleTab,
+  ) {
+    const userId = this.currentUserId(user);
+    const countQuery = { ...query, tab };
+    const moduleWhere = this.moduleWhere(countQuery, user);
+
+    if (tab === CareModuleTab.SAVED) {
+      return this.prisma.careModuleSave.count({
+        where: {
+          userId,
+          ...(query.childId && { childId: query.childId }),
+          module: moduleWhere,
+        },
+      });
+    }
+
+    if (
+      tab === CareModuleTab.IN_PROGRESS ||
+      tab === CareModuleTab.COMPLETED ||
+      this.isNanny(user)
+    ) {
+      const progressWhere = await this.progressWhereForUser(
+        user,
+        countQuery,
+        tab,
+      );
+
+      return this.prisma.careModuleProgress.count({
+        where: {
+          ...progressWhere,
+          module: moduleWhere,
+        },
+      });
+    }
+
+    return this.prisma.careModule.count({ where: moduleWhere });
+  }
+
+  private timeGreeting() {
+    const hour = new Date().getHours();
+
+    if (hour >= 5 && hour < 12) return 'Good Morning';
+    if (hour >= 12 && hour < 17) return 'Good Afternoon';
+    if (hour >= 17 && hour < 21) return 'Good Evening';
+    return 'Good Night';
+  }
+
+  private childAgeYears(birthDate: Date) {
+    const today = new Date();
+    let ageYears = today.getUTCFullYear() - birthDate.getUTCFullYear();
+    const monthDelta = today.getUTCMonth() - birthDate.getUTCMonth();
+    const dayDelta = today.getUTCDate() - birthDate.getUTCDate();
+
+    if (monthDelta < 0 || (monthDelta === 0 && dayDelta < 0)) {
+      ageYears -= 1;
+    }
+
+    return Math.max(ageYears, 0);
+  }
+
+  private moduleWhere(query: CareModuleQueryDto, user?: CurrentUserPayload) {
+    const isAdmin = user && this.isAdmin(user);
+    const adminStatus = undefined;
+    const category = query.category;
+    const searchCategories = query.search
+      ? this.matchingCareCategories(query.search)
+      : [];
+
+    return {
+      ...(!isAdmin && { isPublished: true }),
+
+      ...(category && { category: category }),
+      ...(query.search && {
+        OR: [
+          { title: { contains: query.search, mode: 'insensitive' as const } },
+          {
+            shortDescription: {
+              contains: query.search,
+              mode: 'insensitive' as const,
+            },
+          },
+          ...(searchCategories.length > 0
+            ? [{ category: { in: searchCategories } }]
+            : []),
+        ],
+      }),
+    } satisfies Prisma.CareModuleWhereInput;
+  }
+
+  private matchingCareCategories(search: string): CareModuleCategory[] {
+    const normalizedSearch = search.toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+    const searchWords = normalizedSearch.split(' ').filter(Boolean);
+
+    if (searchWords.length === 0) {
+      return [];
+    }
+
+    return CARE_HOME_TOPICS.flatMap((topic) => {
+      if (!topic.value) {
+        return [];
+      }
+
+      const topicWords = `${topic.id} ${topic.label}`
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ');
+
+      return topicWords.includes(normalizedSearch.trim()) ||
+        searchWords.some((word) => topicWords.includes(word))
+        ? [topic.value]
+        : [];
+    });
+  }
+
+  private formatAgeRange(min?: number | null, max?: number | null): string {
+    if (min != null && max != null) return `${min}-${max} years`;
+    if (min != null) return `${min}+ years`;
+    if (max != null) return `Up to ${max} years`;
+    return 'All ages';
+  }
+
+  private async progressWhereForUser(
+    user: CurrentUserPayload,
+    query: CareModuleQueryDto,
+    tab: CareModuleTab,
+  ) {
+    const userId = this.currentUserId(user);
+    const tabWhere = this.progressTabWhere(tab);
+
+    if (this.isNanny(user)) {
+      return {
+        userId: userId,
+        ...tabWhere,
+      } satisfies Prisma.CareModuleProgressWhereInput;
+    }
+
+    if (query.childId) {
+      const nannyUserId = await this.findNannyUserIdForChild(query.childId);
+      if (nannyUserId) {
+        return {
+          userId: nannyUserId,
+          ...tabWhere,
+        } satisfies Prisma.CareModuleProgressWhereInput;
+      }
+    } else {
+      const nannyUserIds = await this.findAllNannyUserIdsForParent(userId);
+      if (nannyUserIds.length > 0) {
+        return {
+          userId: { in: nannyUserIds },
+          ...tabWhere,
+        } satisfies Prisma.CareModuleProgressWhereInput;
+      }
+    }
+
+    return {
+      assignedById: userId,
+      ...tabWhere,
+    } satisfies Prisma.CareModuleProgressWhereInput;
+  }
+
+  private progressTabWhere(tab: CareModuleTab) {
+    if (tab === CareModuleTab.IN_PROGRESS) {
+      return {
+        OR: [
+          {
+            status: {
+              in: [
+                CareModuleProgressStatus.IN_PROGRESS,
+                CareModuleProgressStatus.IN_PROGRESS,
+              ],
+            },
+          },
+          {
+            status: CareModuleProgressStatus.COMPLETED,
+            score: { lt: 100 },
+          },
+        ],
+      } satisfies Prisma.CareModuleProgressWhereInput;
+    }
+
+    if (tab === CareModuleTab.COMPLETED) {
+      return {
+        status: CareModuleProgressStatus.COMPLETED,
+        score: 100,
+      } satisfies Prisma.CareModuleProgressWhereInput;
+    }
+
+    return {};
+  }
+
+  private async progressMapForCards(
+    user: CurrentUserPayload,
+    query: CareModuleQueryDto,
+    moduleIds: string[],
+  ) {
+    if (moduleIds.length === 0) {
+      return new Map<string, any[]>();
+    }
+
+    const userId = this.currentUserId(user);
+
+    let progressWhere: Prisma.CareModuleProgressWhereInput = {
+      moduleId: { in: moduleIds },
+      assignedById: userId,
+    };
+
+    if (this.isNanny(user)) {
+      progressWhere = {
+        moduleId: { in: moduleIds },
+        userId: userId,
+      };
+    } else if (query.childId) {
+      const nannyUserId = await this.findNannyUserIdForChild(query.childId);
+      if (nannyUserId) {
+        progressWhere = {
+          moduleId: { in: moduleIds },
+          userId: nannyUserId,
+        };
+      }
+    } else {
+      const nannyUserIds = await this.findAllNannyUserIdsForParent(userId);
+      if (nannyUserIds.length > 0) {
+        progressWhere = {
+          moduleId: { in: moduleIds },
+          userId: { in: nannyUserIds },
+        };
+      }
+    }
+
+    const progresses = await this.prisma.careModuleProgress.findMany({
+      where: progressWhere,
+      include: {
+        user: { select: { id: true, fullName: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const map = new Map<string, any[]>();
+    for (const progress of progresses) {
+      if (!map.has(progress.moduleId)) {
+        map.set(progress.moduleId, []);
+      }
+      map.get(progress.moduleId)!.push(progress);
+    }
+
+    return map;
+  }
+
+  private async savedModuleIds(
+    userId: string,
+    moduleIds: string[],
+    childId?: string,
+  ) {
+    if (moduleIds.length === 0 || !childId) return new Set<string>();
+
+    const saves = await this.prisma.careModuleSave.findMany({
+      where: { userId, moduleId: { in: moduleIds } },
+      select: { moduleId: true },
+    });
+
+    return new Set(saves.map((save) => save.moduleId));
+  }
+
+  private async findRelevantProgress(
+    user: CurrentUserPayload,
+    moduleId: string,
+  ) {
+    if (!this.isNanny(user)) return null;
+
+    return this.prisma.careModuleProgress.findFirst({
+      where: {
+        moduleId,
+        userId: this.currentUserId(user),
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  private async getProgressForUser(
+    user: CurrentUserPayload,
+    progressId: string,
+  ) {
+    const progress = await this.prisma.careModuleProgress.findUnique({
+      where: { id: progressId },
+      include: this.progressInclude(),
+    });
+
+    if (!progress) {
+      throw new NotFoundException('Care progress not found');
+    }
+
+    const userId = this.currentUserId(user);
+    if (this.isNanny(user)) {
+      if (progress.userId !== userId) {
+        throw new ForbiddenException('This progress belongs to another nanny');
+      }
+      return progress;
+    }
+
+    return progress;
+  }
+
+  private async assertCanViewCare(userId: string, childId: string) {
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      select: { parentUserId: true },
+    });
+
+    if (!child) {
+      throw new NotFoundException('Child not found');
+    }
+
+    if (child.parentUserId !== userId) {
+      throw new ForbiddenException('You do not have access to this child');
+    }
+  }
+
+  private async assertCanAssignCare(userId: string, childId: string) {
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      select: { parentUserId: true },
+    });
+
+    if (!child) {
+      throw new NotFoundException('Child not found');
+    }
+
+    if (child.parentUserId !== userId) {
+      throw new ForbiddenException('You do not have access to this child');
+    }
+  }
+
+  private async assertCanSaveModuleForChild(
+    user: CurrentUserPayload,
+    childId: string,
+  ) {
+    const userId = this.currentUserId(user);
+
+    if (this.isNanny(user)) {
+      await this.assertNannyCanViewChildCare(userId, childId);
+      return;
+    }
+
+    await this.assertCanViewCare(userId, childId);
+  }
+
+  private async assertNannyCanViewChildCare(userId: string, childId: string) {
+    const [nannyLink, caregiverAccess] = await Promise.all([
+      this.prisma.nannyChildLink.findFirst({
+        where: { childId, nannyUserId: userId },
+        select: { id: true },
+      }),
+      this.prisma.caregiverAccess.findFirst({
+        where: {
+          childId,
+          invitedUserId: userId,
+          role: CaregiverAccessRole.NANNY,
+          status: CaregiverAccessStatus.ACCEPTED,
+          OR: [{ careLearningAccess: true }, { nannyDevelopment: true }],
+        },
+        select: { id: true },
+      }),
+    ]);
+
+    if (!nannyLink && !caregiverAccess) {
+      throw new ForbiddenException(
+        "You do not have access to this child's care hub",
+      );
+    }
+  }
+
+  private async assertChildAccess(
+    userId: string,
+    childId: string,
+    permissions: Array<keyof Prisma.CaregiverAccessWhereInput>,
+  ) {
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      select: { parentUserId: true },
+    });
+
+    if (!child) {
+      throw new NotFoundException('Child not found');
+    }
+
+    if (child.parentUserId === userId) return;
+
+    const access = await this.prisma.caregiverAccess.findFirst({
+      where: {
+        childId,
+        invitedUserId: userId,
+        status: CaregiverAccessStatus.ACCEPTED,
+        OR: permissions.map((permission) => ({ [permission]: true })),
+      },
+      select: { id: true },
+    });
+
+    if (!access) {
+      throw new ForbiddenException('You do not have access to this child');
+    }
+  }
+
+  private async accessibleChildIds(userId: string) {
+    const [children, accesses, nannyProgresss, nannyLinks] = await Promise.all([
+      this.prisma.child.findMany({
+        where: { parentUserId: userId },
+        select: { id: true },
+      }),
+      this.prisma.caregiverAccess.findMany({
+        where: {
+          invitedUserId: userId,
+          status: CaregiverAccessStatus.ACCEPTED,
+          OR: [
+            { careLearningAccess: true },
+            { nannyDevelopment: true },
+            { manageCareTeam: true },
+          ],
+        },
+        select: { id: true },
+      }),
+      this.prisma.careModuleProgress.findMany({
+        where: { userId },
+        select: { id: true },
+      }),
+      this.prisma.nannyChildLink.findMany({
+        where: { nannyUserId: userId },
+        select: { id: true },
+      }),
+    ]);
+
+    return [...new Set([...children.map((child) => child.id)])];
+  }
+
+  private async findAllNannyUserIdsForParent(
+    parentUserId: string,
+  ): Promise<string[]> {
+    const children = await this.prisma.child.findMany({
+      where: { parentUserId },
+      select: { id: true },
+    });
+    const childIds = children.map((c) => c.id);
+
+    if (childIds.length === 0) return [];
+
+    const [accesses, links] = await Promise.all([
+      this.prisma.caregiverAccess.findMany({
+        where: {
+          childId: { in: childIds },
+          role: CaregiverAccessRole.NANNY,
+          status: CaregiverAccessStatus.ACCEPTED,
+          invitedUserId: { not: null },
+        },
+        select: { invitedUserId: true },
+      }),
+      this.prisma.nannyChildLink.findMany({
+        where: { childId: { in: childIds } },
+        select: { nannyUserId: true },
+      }),
+    ]);
+
+    const nannyIds = new Set<string>();
+    accesses.forEach((a) => {
+      if (a.invitedUserId) nannyIds.add(a.invitedUserId);
+    });
+    links.forEach((l) => nannyIds.add(l.nannyUserId));
+
+    return Array.from(nannyIds);
+  }
+
+  private async findNannyUserIdForChild(
+    childId: string,
+  ): Promise<string | null> {
+    const access = await this.prisma.caregiverAccess.findFirst({
+      where: {
+        childId,
+        role: CaregiverAccessRole.NANNY,
+        status: CaregiverAccessStatus.ACCEPTED,
+        invitedUserId: { not: null },
+      },
+      select: { invitedUserId: true },
+    });
+
+    if (access?.invitedUserId) return access.invitedUserId;
+
+    const link = await this.prisma.nannyChildLink.findFirst({
+      where: { childId },
+      select: { nannyUserId: true },
+    });
+
+    return link?.nannyUserId ?? null;
+  }
+
+  private async resolveProgressNanny(
+    nannyUserIdOrAccessId: string,
+    childId: string,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: nannyUserIdOrAccessId },
+      select: { id: true, role: true, fullName: true },
+    });
+
+    if (user) {
+      return user;
+    }
+
+    const access = await this.prisma.caregiverAccess.findFirst({
+      where: {
+        id: nannyUserIdOrAccessId,
+        childId,
+        role: CaregiverAccessRole.NANNY,
+      },
+      select: {
+        invitedUserId: true,
+        invitedUser: {
+          select: { id: true, role: true, fullName: true },
+        },
+      },
+    });
+
+    if (!access) {
+      throw new NotFoundException('Nanny user or access record not found');
+    }
+
+    if (!access.invitedUserId || !access.invitedUser) {
+      throw new BadRequestException(
+        'Nanny invitation is not linked to a user yet',
+      );
+    }
+
+    return access.invitedUser;
+  }
+
+  private async assertNannyBelongsToChild(userId: string, childId: string) {
+    const [caregiverAccess, nannyLink] = await Promise.all([
+      this.prisma.caregiverAccess.findFirst({
+        where: {
+          childId,
+          invitedUserId: userId,
+          role: CaregiverAccessRole.NANNY,
+          status: {
+            in: [CaregiverAccessStatus.PENDING, CaregiverAccessStatus.ACCEPTED],
+          },
+        },
+        select: { id: true },
+      }),
+      this.prisma.nannyChildLink.findFirst({
+        where: { childId, nannyUserId: userId },
+        select: { id: true },
+      }),
+    ]);
+
+    if (!caregiverAccess && !nannyLink) {
+      throw new BadRequestException('Nanny is not assigned to this child');
+    }
+  }
+
+  private async assertPublishedModule(moduleId: string) {
+    const module = await this.prisma.careModule.findFirst({
+      where: { id: moduleId, isPublished: true },
+      select: { id: true },
+    });
+
+    if (!module) {
+      throw new NotFoundException('Published care module not found');
+    }
+  }
+
+  private formatModuleCard(
+    module: Prisma.CareModuleGetPayload<{ select: typeof moduleListSelect }>,
+    options: {
+      isSaved?: boolean;
+      progresses?: any[];
+    } = {},
+  ) {
+    let nannyProgresses: any[] | null = null;
+    if (options.progresses && options.progresses.length > 0) {
+      nannyProgresses = options.progresses.map((progress) => ({
+        nannyId: progress.user?.id || progress.userId,
+        nannyName: progress.user?.fullName || 'Unknown',
+        status: progress.status,
+        text:
+          progress.status === CareModuleProgressStatus.PENDING
+            ? 'Pending'
+            : progress.totalQuestions
+              ? `${progress.correctAnswers || 0} of ${progress.totalQuestions} answers were correct.`
+              : 'In progress',
+      }));
+    }
+
+    return {
+      id: module.id,
+      title: module.title,
+      coverImageUrl: module.coverImageUrl,
+      coinReward: module.completionPoints,
+      isSaved: Boolean(options.isSaved),
+      nannyProgresses,
+    };
+  }
+
+  private formatModuleDetail(
+    module: Prisma.CareModuleGetPayload<{
+      include: typeof moduleDetailInclude;
+    }>,
+    options: {
+      isSaved?: boolean;
+      progresses?: any[];
+    } = {},
+  ) {
+    let nannyProgresses: any[] | null = null;
+    if (options.progresses && options.progresses.length > 0) {
+      nannyProgresses = options.progresses.map((progress) => ({
+        nannyId: progress.user?.id || progress.userId,
+        nannyName: progress.user?.fullName || 'Unknown',
+        status: progress.status,
+        text:
+          progress.status === CareModuleProgressStatus.PENDING
+            ? 'Pending'
+            : progress.totalQuestions
+              ? `${progress.correctAnswers || 0} of ${progress.totalQuestions} answers were correct.`
+              : 'In progress',
+      }));
+    }
+
+    return {
+      id: module.id,
+      title: module.title,
+      description: module.shortDescription ?? undefined,
+      coverImageUrl: module.coverImageUrl,
+      videoUrl: module.videoUrl,
+      category: module.category,
+      coinReward: module.completionPoints,
+      ageGroup: module.ageGroup,
+      contentSections: module.moduleDescriptions,
+      keyTakeaway: (module as any).keyTakeaway,
+      isPublished: module.isPublished,
+      adminStatus: module.adminStatus,
+      isSaved: Boolean(options.isSaved),
+      nannyProgresses,
+      createdAt: module.createdAt,
+      updatedAt: module.updatedAt,
+    };
+  }
+
+  private formatProgress(
+    progress: Prisma.CareModuleProgressGetPayload<{
+      include: ReturnType<CarehubService['progressInclude']>;
+    }>,
+  ) {
+    return {
+      ...this.formatProgressSummary(progress),
+      module: progress.module,
+
+      nanny: (progress as any).user,
+    };
+  }
+
+  private formatInsightActivity(
+    activity: Prisma.DayActivityGetPayload<{
+      include: ReturnType<CarehubService['insightActivityInclude']>;
+    }>,
+  ) {
+    return {
+      id: activity.id,
+      dayPlanId: activity.dayPlanId,
+      date: activity.dayPlan.date,
+      category: activity.category,
+      title: activity.title,
+      description: activity.description,
+      imageUrl: activity.imageUrl,
+      status: activity.status,
+      startTime: activity.startTime,
+      endTime: activity.endTime,
+      feedback: activity.feedback
+        ? {
+            enjoyment: activity.feedback.enjoyment,
+            childMood: activity.feedback.childMood,
+            completionRate: activity.feedback.completionRate,
+            note: activity.feedback.note,
+            submittedAt: activity.feedback.submittedAt,
+            submittedByUser: activity.feedback.submittedByUser,
+          }
+        : null,
+    };
+  }
+
+  private formatChildNote(
+    note: Prisma.CareChildNoteGetPayload<{
+      include: ReturnType<CarehubService['childNoteInclude']>;
+    }>,
+    childId: string,
+  ) {
+    return {
+      id: note.id,
+      childId: note.childId,
+      note: note.note,
+      author: {
+        id: note.authorUser.id,
+        fullName: note.authorUser.fullName,
+        email: note.authorUser.email,
+        role: note.authorUser.role,
+        profilePictureUrl: note.authorUser.profilePictureUrl,
+        relationship: this.noteAuthorRelationship(note, childId),
+        displayName: `${note.authorUser.fullName} (${this.noteAuthorRelationship(
+          note,
+          childId,
+        )})`,
+      },
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt,
+    };
+  }
+
+  private noteAuthorRelationship(
+    note: Prisma.CareChildNoteGetPayload<{
+      include: ReturnType<CarehubService['childNoteInclude']>;
+    }>,
+    childId: string,
+  ) {
+    if (note.child.parentUserId === note.authorUserId) return 'Parent';
+    if (note.authorUser.role === UserRole.NANNY) return 'Nanny';
+
+    const access = note.authorUser.caregiverAccesses.find(
+      (item) => item.childId === childId,
+    );
+
+    return access?.relationship ?? access?.role ?? note.authorUser.role;
+  }
+
+  private resolveInsightsRange(query: CareChildInsightsQueryDto) {
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const month = query.month ?? now.getUTCMonth() + 1;
+    const startOfMonth = new Date(Date.UTC(year, month - 1, 1));
+    const startOfNextMonth = new Date(Date.UTC(year, month, 1));
+
+    if ((query.period ?? 'month') === 'week') {
+      const week = query.week ?? this.currentWeekOfMonth(now);
+      const start = new Date(startOfMonth);
+      start.setUTCDate(start.getUTCDate() + (week - 1) * 7);
+
+      const end = new Date(start);
+      end.setUTCDate(end.getUTCDate() + 7);
+
+      return {
+        month,
+        week,
+        start,
+        end: end > startOfNextMonth ? startOfNextMonth : end,
+      };
+    }
+
+    return {
+      month,
+      week: null,
+      start: startOfMonth,
+      end: startOfNextMonth,
+    };
+  }
+
+  private resolveMonthRange(month?: number) {
+    const now = new Date();
+    const selectedMonth = month ?? now.getUTCMonth() + 1;
+    const start = new Date(
+      Date.UTC(now.getUTCFullYear(), selectedMonth - 1, 1),
+    );
+    const end = new Date(Date.UTC(now.getUTCFullYear(), selectedMonth, 1));
+
+    return {
+      month: selectedMonth,
+      label: start.toLocaleString('en-US', {
+        month: 'long',
+        timeZone: 'UTC',
+      }),
+      start,
+      end,
+    };
+  }
+
+  private currentWeekOfMonth(date: Date) {
+    return Math.min(Math.ceil(date.getUTCDate() / 7), 5);
+  }
+
+  private categoryKeywordWhere(keywords: string[]) {
+    return keywords.map((keyword) => ({
+      category: { contains: keyword, mode: 'insensitive' as const },
+    }));
+  }
+
+  private formatProgressSummary(
+    progress:
+      | Prisma.CareModuleProgressGetPayload<{
+          include: ReturnType<CarehubService['progressInclude']>;
+        }>
+      | Prisma.CareModuleProgressGetPayload<object>,
+  ) {
+    const status = this.effectiveProgressStatus(progress);
+
+    return {
+      id: progress.id,
+      moduleId: progress.moduleId,
+
+      userId: progress.userId,
+
+      status,
+      score: progress.score,
+      totalQuestions: progress.totalQuestions,
+      correctAnswers: progress.correctAnswers,
+      pointsEarned: progress.pointsEarned,
+      pointsAwardedAt: progress.pointsAwardedAt,
+      canRetakeQuiz: !this.quizLockedUntil(progress),
+      quizLockedUntil: this.quizLockedUntil(progress),
+      startedAt: progress.startedAt,
+      completedAt:
+        status === CareModuleProgressStatus.COMPLETED
+          ? progress.completedAt
+          : null,
+      createdAt: progress.createdAt,
+      updatedAt: progress.updatedAt,
+    };
+  }
+
+  private effectiveProgressStatus(
+    progress: Prisma.CareModuleProgressGetPayload<object>,
+  ) {
+    if (
+      progress.status === CareModuleProgressStatus.COMPLETED &&
+      (progress.score ?? 0) < 100
+    ) {
+      return CareModuleProgressStatus.IN_PROGRESS;
+    }
+
+    return progress.status;
+  }
+
+  private quizLockedUntil(
+    progress: Prisma.CareModuleProgressGetPayload<object>,
+  ) {
+    if (!progress.pointsAwardedAt) return null;
+
+    const lockedUntil = new Date(progress.pointsAwardedAt);
+    lockedUntil.setMonth(lockedUntil.getMonth() + QUIZ_RETAKE_COOLDOWN_MONTHS);
+
+    return lockedUntil > new Date() ? lockedUntil : null;
+  }
+
+  private paginatedModules(
+    modules: ReturnType<CarehubService['formatModuleCard']>[],
+    total: number,
+    page: number,
+    limit: number,
+  ) {
+    return {
+      success: true,
+      message: 'Care modules fetched successfully',
+      data: modules,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  private progressInclude() {
+    return {
+      module: { select: moduleListSelect },
+
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          profilePictureUrl: true,
+        },
+      },
+    } satisfies Prisma.CareModuleProgressInclude;
+  }
+
+  private insightActivityInclude() {
+    return {
+      dayPlan: {
+        select: {
+          id: true,
+          date: true,
+        },
+      },
+      feedback: {
+        include: {
+          submittedByUser: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              profilePictureUrl: true,
+            },
+          },
+        },
+      },
+    } satisfies Prisma.DayActivityInclude;
+  }
+
+  private childNoteInclude() {
+    return {
+      child: { select: { id: true, parentUserId: true } },
+      authorUser: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          role: true,
+          profilePictureUrl: true,
+          caregiverAccesses: {
+            select: {
+              childId: true,
+              role: true,
+              relationship: true,
+            },
+          },
+        },
+      },
+    } satisfies Prisma.CareChildNoteInclude;
+  }
+
+  private async assertCanUseChildNotes(
+    user: CurrentUserPayload,
+    childId: string,
+  ) {
+    const userId = this.currentUserId(user);
+
+    if (this.isNanny(user)) {
+      await this.assertNannyCanViewChildCare(userId, childId);
+      return;
+    }
+
+    await this.assertCanViewCare(userId, childId);
+  }
+
+  private currentUserId(user: CurrentUserPayload) {
+    return user.userId ?? user.id;
+  }
+
+  private isAdmin(user: CurrentUserPayload) {
+    return user.role === UserRole.ADMIN;
+  }
+
+  private isNanny(user: CurrentUserPayload) {
+    return user.role === UserRole.NANNY;
+  }
+
+  private ensureAdmin(user: CurrentUserPayload) {
+    if (!this.isAdmin(user)) {
+      throw new ForbiddenException('Admin access required');
+    }
+  }
+}

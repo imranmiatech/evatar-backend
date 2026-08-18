@@ -70,6 +70,18 @@ export class CreateCareQuizQuestionDto {
   options!: CreateCareQuizOptionDto[];
 }
 
+export class ModuleDescriptionDto {
+  @ApiProperty({ example: 'Real-life situation' })
+  @IsString()
+  @IsNotEmpty()
+  title!: string;
+
+  @ApiProperty({ example: 'A child shouts or refuses a routine.' })
+  @IsString()
+  @IsNotEmpty()
+  description!: string;
+}
+
 export class CreateCareModuleDto {
   @ApiProperty({ example: 'Feeding & Mealtimes' })
   @IsString()
@@ -81,35 +93,16 @@ export class CreateCareModuleDto {
   })
   @IsString()
   @IsOptional()
-  subtitle?: string;
+  shortDescription?: string;
 
-  @ApiPropertyOptional({
-    example:
-      'Support caregivers with early childhood feeding habits and calm mealtime routines.',
-  })
-  @IsString()
+  @ApiPropertyOptional({ type: 'string', format: 'binary', description: 'Optional cover image file field for multipart/form-data' })
   @IsOptional()
-  description?: string;
+  coverImage?: any;
 
-  @ApiPropertyOptional({ example: 'https://example.com/feeding.png' })
-  @IsString()
-  @IsOptional()
-  coverImageUrl?: string;
 
-  @ApiPropertyOptional({ description: 'Optional cover image file field for multipart/form-data' })
-  @IsString()
+  @ApiPropertyOptional({ type: 'string', format: 'binary', description: 'Optional video file field for multipart/form-data' })
   @IsOptional()
-  coverImage?: string;
-
-  @ApiPropertyOptional({ example: 'https://example.com/video.mp4' })
-  @IsString()
-  @IsOptional()
-  videoUrl?: string;
-
-  @ApiPropertyOptional({ description: 'Optional video file field for multipart/form-data' })
-  @IsString()
-  @IsOptional()
-  video?: string;
+  video?: any;
 
   @ApiPropertyOptional({ example: 'Variability in appetite is normal in childhood...' })
   @IsString()
@@ -123,80 +116,54 @@ export class CreateCareModuleDto {
   @IsEnum(CareModuleCategory)
   category!: CareModuleCategory;
 
-  @ApiPropertyOptional({ example: 15 })
-  @IsInt()
-  @Min(1)
-  @Type(() => Number)
-  @IsOptional()
-  estimatedMinutes?: number;
-
-  @ApiPropertyOptional({ example: 5 })
+  @ApiPropertyOptional({ example: 50 })
   @IsInt()
   @Min(0)
   @Type(() => Number)
   @IsOptional()
-  coinReward?: number;
+  completionPoints?: number;
 
-  @ApiPropertyOptional({
-    description: 'Minimum child age in years for Suggested for Child section',
-    example: 4,
-  })
-  @IsInt()
-  @Min(0)
-  @Type(() => Number)
-  @IsOptional()
-  suggestedMinAgeYears?: number;
-
-  @ApiPropertyOptional({
-    description: 'Maximum child age in years for Suggested for Child section',
-    example: 5,
-  })
-  @IsInt()
-  @Min(0)
-  @Type(() => Number)
-  @IsOptional()
-  suggestedMaxAgeYears?: number;
-
-  @ApiPropertyOptional({ example: 'Feeding & Mealtimes' })
+  @ApiPropertyOptional({ example: '6-12 months' })
   @IsString()
   @IsOptional()
-  contentTitle?: string;
+  ageGroup?: string;
 
   @Transform(({ value }) => {
     if (typeof value === 'string') {
       try {
-        return JSON.parse(value);
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed)
+          ? parsed.map((item: any) => plainToInstance(ModuleDescriptionDto, item))
+          : parsed;
       } catch {
         return value;
       }
     }
+    if (Array.isArray(value)) {
+      return value.map((item: any) => plainToInstance(ModuleDescriptionDto, item));
+    }
     return value;
   })
   @ApiProperty({
-    description:
-      'Structured lesson content sections. Example keys: realLifeSituation, whatsHappening, whyItHappens, practicalSupport, keyTakeaway.',
+    type: [ModuleDescriptionDto],
+    description: 'Structured lesson content sections with title and description.',
+    example: [
+      {
+        title: 'Real-life situation',
+        description: 'A child shouts or refuses a routine.'
+      }
+    ]
   })
-  @IsObject()
-  contentSections!: Prisma.InputJsonValue;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ModuleDescriptionDto)
+  moduleDescriptions!: ModuleDescriptionDto[];
 
-  @Transform(({ value }) => {
-    if (typeof value === 'string') return value === 'true';
-    return value;
-  })
-  @ApiPropertyOptional({ example: true })
-  @IsBoolean()
-  @IsOptional()
-  isPublished?: boolean;
 
   @ApiPropertyOptional({ enum: CareModuleAdminStatus, example: CareModuleAdminStatus.PUBLISHED })
   @IsEnum(CareModuleAdminStatus)
   @IsOptional()
   adminStatus?: CareModuleAdminStatus;
-
-  @ApiPropertyOptional({ example: '1-3 years' })
-  @IsString()
-  @IsOptional()
-  ageGroup?: string;
 
   @Transform(({ value }) => {
     if (typeof value === 'string') {
@@ -214,7 +181,26 @@ export class CreateCareModuleDto {
     }
     return value;
   })
-  @ApiProperty({ type: [CreateCareQuizQuestionDto] })
+  @ApiProperty({ 
+    type: [CreateCareQuizQuestionDto],
+    example: [
+      {
+        question: 'What most influences children appetite?',
+        type: 'SINGLE_CHOICE',
+        explanation: 'Appetite is dynamic and shaped by developing internal signals, emotional state, and growth patterns.',
+        options: [
+          {
+            label: 'A mix of biology, emotion, and environment',
+            isCorrect: true
+          },
+          {
+            label: 'Only genetics',
+            isCorrect: false
+          }
+        ]
+      }
+    ]
+  })
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })

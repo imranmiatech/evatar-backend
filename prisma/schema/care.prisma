@@ -1,30 +1,26 @@
 model CareModule {
-  id                   String                 @id @default(uuid())
-  title                String
-  subtitle             String?
-  description          String?
-  coverImageUrl        String?
-  category             CareModuleCategory
-  estimatedMinutes     Int?
-  coinReward           Int                    @default(5)
-  contentTitle         String?
-  contentSections      Json
-  isPublished          Boolean                @default(false)
-  createdByUserId      String?
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
-  suggestedMinAgeYears Int?
-  suggestedMaxAgeYears Int?
-  adminStatus          CareModuleAdminStatus  @default(DRAFT)
-  videoUrl             String?
-  keyTakeaway          String?
-  assignments          CareModuleAssignment[]
-  saves                CareModuleSave[]
-  createdByUser        User?                  @relation("CareModulesCreatedBy", fields: [createdByUserId], references: [id])
-  questions            CareQuizQuestion[]
+  id                 String                @id @default(uuid())
+  title              String
+  shortDescription   String?
+  moduleDescriptions Json                  @default("[]")
+  coverImageUrl      String?
+  category           CareModuleCategory
+  completionPoints   Int                   @default(50)
+  isPublished        Boolean               @default(false)
+  createdByUserId    String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  ageGroup           String?
+  adminStatus        CareModuleAdminStatus @default(DRAFT)
+  videoUrl           String?
+  keyTakeaway        String?
+  progresses         CareModuleProgress[]
+  saves              CareModuleSave[]
+  createdByUser      User?                 @relation("CareModulesCreatedBy", fields: [createdByUserId], references: [id])
+  questions          CareQuizQuestion[]
 
   @@index([category, isPublished, createdAt])
-  @@index([suggestedMinAgeYears, suggestedMaxAgeYears, isPublished])
+  @@index([ageGroup, isPublished])
   @@index([isPublished, createdAt])
   @@map("care_modules")
 }
@@ -72,48 +68,44 @@ model CareQuizOption {
   @@map("care_quiz_options")
 }
 
-model CareModuleAssignment {
-  id               String                     @id @default(uuid())
-  moduleId         String
-  childId          String
-  nannyUserId      String
-  assignedByUserId String
-  status           CareModuleAssignmentStatus @default(ASSIGNED)
-  startedAt        DateTime?
-  completedAt      DateTime?
-  score            Int?
-  totalQuestions   Int?
-  correctAnswers   Int?
-  createdAt        DateTime                   @default(now())
-  updatedAt        DateTime                   @updatedAt
-  pointsEarned     Int                        @default(0)
-  pointsAwardedAt  DateTime?
-  assignedByUser   User                       @relation("CareAssignmentsAssignedBy", fields: [assignedByUserId], references: [id], onDelete: Cascade)
-  child            Child                      @relation(fields: [childId], references: [id], onDelete: Cascade)
-  module           CareModule                 @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  nannyUser        User                       @relation("CareAssignmentsForNanny", fields: [nannyUserId], references: [id], onDelete: Cascade)
-  answers          CareQuizAnswer[]
+model CareModuleProgress {
+  id              String                   @id @default(uuid())
+  moduleId        String
+  userId          String
+  status          CareModuleProgressStatus @default(IN_PROGRESS)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  score           Int?
+  totalQuestions  Int?
+  correctAnswers  Int?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  pointsEarned    Int                      @default(0)
+  pointsAwardedAt DateTime?
+  assignedById    String?
+  module          CareModule               @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  user            User                     @relation("CareModuleProgressesUser", fields: [userId], references: [id], onDelete: Cascade)
+  assignedBy      User?                    @relation("CareModuleProgressesAssignedBy", fields: [assignedById], references: [id])
+  answers         CareQuizAnswer[]
 
-  @@unique([moduleId, childId, nannyUserId])
-  @@index([nannyUserId, status, createdAt])
-  @@index([childId, status])
-  @@index([assignedByUserId, createdAt])
-  @@map("care_module_assignments")
+  @@unique([moduleId, userId])
+  @@index([userId, status, createdAt])
+  @@map("care_module_progress")
 }
 
 model CareQuizAnswer {
-  id               String               @id @default(uuid())
-  assignmentId     String
+  id               String             @id @default(uuid())
+  progressId       String
   questionId       String
   selectedOptionId String
   isCorrect        Boolean
-  answeredAt       DateTime             @default(now())
-  assignment       CareModuleAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  question         CareQuizQuestion     @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  selectedOption   CareQuizOption       @relation(fields: [selectedOptionId], references: [id])
+  answeredAt       DateTime           @default(now())
+  progress         CareModuleProgress @relation(fields: [progressId], references: [id], onDelete: Cascade)
+  question         CareQuizQuestion   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption   CareQuizOption     @relation(fields: [selectedOptionId], references: [id])
 
-  @@unique([assignmentId, questionId])
-  @@index([assignmentId])
+  @@unique([progressId, questionId])
+  @@index([progressId])
   @@index([questionId])
   @@map("care_quiz_answers")
 }
@@ -122,14 +114,11 @@ model CareModuleSave {
   id        String     @id @default(uuid())
   moduleId  String
   userId    String
-  childId   String?
   createdAt DateTime   @default(now())
-  child     Child?     @relation(fields: [childId], references: [id], onDelete: Cascade)
   module    CareModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   user      User       @relation("CareModuleSaves", fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([moduleId, userId, childId])
-  @@index([userId, childId, createdAt])
-  @@index([childId])
+  @@unique([moduleId, userId])
+  @@index([userId, createdAt])
   @@map("care_module_saves")
 }
