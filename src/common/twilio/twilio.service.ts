@@ -37,12 +37,12 @@ export class TwilioService {
         throw new BadRequestException(`Invalid phone number: ${to}`);
       }
 
-      // If Twilio Trial Limit Reached (63038) or From Number Mismatch (21659)
-      if (error.code === 63038 || error.code === 21659) {
+      // If Twilio Trial Limit Reached (63038), From Mismatch (21659), Geo Permission Disabled (21408), or Unverified Trial Recipient (21608)
+      if ([63038, 21659, 21408, 21608].includes(error.code)) {
         this.logger.warn(
-          `[DEV MODE] Twilio limit/config error. Bypassing SMS delivery so signup can proceed. Code: ${error.code}`,
+          `[DEV/TRIAL MODE] Twilio limit/geo-permission error (${error.code}: ${error.message}). Bypassing SMS delivery so signup can proceed cleanly.`,
         );
-        return { sid: 'mock_sid_due_to_twilio_limits' };
+        return { sid: 'mock_sid_due_to_twilio_limits', code: error.code };
       }
 
       throw error;

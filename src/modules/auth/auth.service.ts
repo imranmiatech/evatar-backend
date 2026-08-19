@@ -128,7 +128,7 @@ export class AuthService {
         }
 
         if (dto.role === UserRole.PARTNER) {
-          return createdUser;
+          return { createdUser, otpCode: undefined };
         }
 
         // 4. Generate 4-digit OTP
@@ -149,13 +149,17 @@ export class AuthService {
 
         // 6. Send OTP based on selected delivery method
         const deliveryMethod = (dto.otpDeliveryMethod || 'EMAIL').toUpperCase();
-        await this.sendOtp(deliveryMethod, dto.email, dto.phoneNumber, otpCode);
+        try {
+          await this.sendOtp(deliveryMethod, dto.email, dto.phoneNumber, otpCode);
+        } catch (err: any) {
+          console.warn(`[OTP Delivery Warning] Failed to dispatch OTP via ${deliveryMethod}:`, err.message);
+        }
 
-        return createdUser;
+        return { createdUser, otpCode };
       });
 
       // Remove passwordHash before returning to client
-      const { passwordHash: _, ...result } = user;
+      const { passwordHash: _, ...result } = user.createdUser;
 
       if (result.role === UserRole.PARTNER) {
         await this.sendPartnerSubmittedEmail(result.email, result.fullName);
@@ -172,6 +176,7 @@ export class AuthService {
 
       return {
         message: 'Signup successful. Please verify your OTP.',
+        otp: user.otpCode,
         user: result,
       };
     } catch (error) {

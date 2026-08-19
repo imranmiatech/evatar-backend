@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Onboarding & Signup Flow - EvaTurner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #00666a;
+      --primary-dark: #004d50;
+      --primary-light: #e6f4f4;
+      --accent: #46d4cc;
+      --bg: #0f172a;
+      --card-bg: #ffffff;
+      --text: #10212b;
+      --muted: #7b8996;
+      --line: #e2e8f0;
+      --radius: 20px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+    }
+
+    /* Top Switcher Bar */
+    .flow-switcher {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      background: #1e293b;
+      padding: 8px;
+      border-radius: 30px;
+      border: 1px solid #334155;
+    }
+
+    .flow-btn {
+      padding: 10px 20px;
+      border-radius: 20px;
+      border: 0;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .flow-btn.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 15px rgba(0, 102, 106, 0.4);
+    }
+
+    /* Phone Shell */
+    .phone {
+      width: min(390px, 100vw);
+      height: min(844px, 100vh);
+      background: var(--card-bg);
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      border: 8px solid #1e293b;
+    }
+
+    .statusbar {
+      height: 44px;
+      background: white;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      padding: 0 24px 8px;
+      color: #0f1720;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* Step Container */
+    .step-view {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 20px 24px 30px;
+      scrollbar-width: none;
+    }
+    .step-view::-webkit-scrollbar { display: none; }
+    .step-view.active { display: flex; }
+
+    /* Progress Indicator */
+    .progress-bar {
+      height: 4px;
+      background: var(--line);
+      border-radius: 2px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      width: 10%;
+      transition: width 0.3s ease;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    /* Avatar Upload */
+    .avatar-picker {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: #f1f5f9;
+      margin: 0 auto 20px;
+      display: grid;
+      place-items: center;
+      position: relative;
+      border: 2px dashed #cbd5e1;
+      cursor: pointer;
+    }
+    .avatar-icon { width: 36px; height: 36px; color: var(--muted); }
+    .avatar-badge {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      height: 46px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      font-size: 13px;
+      background: #f8fafc;
+      color: var(--text);
+      outline: none;
+    }
+    .form-input:focus { border-color: var(--primary); background: white; }
+
+    .phone-input-group {
+      display: flex;
+      gap: 8px;
+    }
+    .country-code {
+      width: 90px;
+      flex-shrink: 0;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 16px;
+      margin: 10px 0 20px;
+    }
+    .radio-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 12px;
+      margin-top: auto;
+    }
+
+    .btn-teal {
+      height: 48px;
+      background: var(--primary);
+      color: white;
+      border: 0;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 700;
+      flex: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0, 102, 106, 0.25);
+    }
+    .btn-teal:hover { background: var(--primary-dark); }
+
+    .btn-outline {
+      height: 48px;
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 700;
+      flex: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* OTP Inputs */
+    .otp-container {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 25px 0;
+    }
+    .otp-box {
+      width: 50px;
+      height: 60px;
+      border: 2px solid var(--line);
+      border-radius: 12px;
+      font-size: 24px;
+      font-weight: 800;
+      text-align: center;
+      background: #f8fafc;
+      color: var(--primary);
+    }
+    .otp-box:focus {
+      border-color: var(--primary);
+      background: white;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(0, 102, 106, 0.15);
+    }
+
+    .otp-banner {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .error-banner {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    .toast-banner {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+      border-radius: 12px;
+      padding: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    /* Document Select Cards */
+    .doc-card {
+      border: 2px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 12px;
+      cursor: pointer;
+    }
+    .doc-card.selected {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    .doc-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: white;
+      display: grid;
+      place-items: center;
+      color: var(--primary);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    /* Viewfinder */
+    .viewfinder {
+      width: 100%;
+      height: 240px;
+      border: 2px dashed #cbd5e1;
+      border-radius: 20px;
+      background: #000000;
+      margin: 15px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      position: relative;
+    }
+
+    .face-scan-frame {
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      border: 3px solid var(--accent);
+      display: grid;
+      place-items: center;
+      position: relative;
+      box-shadow: 0 0 20px rgba(70, 212, 204, 0.4);
+    }
+
+    .scan-line {
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+      animation: scan 2s infinite ease-in-out;
+    }
+    @keyframes scan {
+      0% { top: 10%; }
+      50% { top: 90%; }
+      100% { top: 10%; }
+    }
+
+    /* Membership Plan Cards */
+    .plan-card {
+      border: 2px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+    }
+    .plan-card.selected {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    .plan-price { font-size: 18px; font-weight: 800; color: var(--primary); }
+
+    .success-circle {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: grid;
+      place-items: center;
+      margin: 40px auto 20px;
+      box-shadow: 0 10px 25px rgba(0, 102, 106, 0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="flow-switcher">
+    <button id="btn-parent-flow" class="flow-btn active" onclick="switchFlow('PARENT')">👪 Parent Signup Flow</button>
+    <button id="btn-nanny-flow" class="flow-btn" onclick="switchFlow('NANNY')">👩‍🍼 Nanny Signup Flow</button>
+  </div>
+
+  <div class="phone">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span>100%</span>
+    </div>
+
+    <!-- ==================== PARENT FLOW ==================== -->
+
+    <!-- Parent Step 1: Create Account (Basic Info) -->
+    <div id="parent-step-1" class="step-view active">
+      <div class="progress-bar"><div class="progress-fill" style="width: 10%;"></div></div>
+      <h2 class="title">Create Parent Account</h2>
+      <div id="p-status-toast" class="toast-banner"></div>
+
+      <div class="avatar-picker">
+        <svg class="avatar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="avatar-badge">+</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input id="p-name" class="form-input" placeholder="Enter your full name" value="John Smith" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Relationship with children *</label>
+        <select id="p-relation" class="form-select">
+          <option value="father">Father</option>
+          <option value="mother">Mother</option>
+          <option value="guardian">Guardian</option>
+          <option value="sibling">Sibling</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input id="p-email" class="form-input" type="email" placeholder="Enter your email" value="john.parent@example.com" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Phone Number *</label>
+        <div class="phone-input-group">
+          <select class="form-select country-code"><option>+880 🇧🇩</option><option>+971 🇦🇪</option></select>
+          <input id="p-phone" class="form-input" placeholder="1581 751829" value="1581751829" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Preferred Language *</label>
+        <select id="p-lang" class="form-select">
+          <option value="en">English (EN)</option>
+          <option value="ar">Arabic</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password *</label>
+        <input id="p-pass" class="form-input" type="password" value="secret123" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Confirm Password *</label>
+        <input id="p-pass-conf" class="form-input" type="password" value="secret123" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Select OTP options *</label>
+        <div class="radio-group">
+          <label class="radio-label"><input type="radio" name="p-otp-opt" value="EMAIL" checked /> E-mail</label>
+          <label class="radio-label"><input type="radio" name="p-otp-opt" value="PHONE" /> Phone</label>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-outline" style="max-width: 100px;">Previous</button>
+        <button id="p-btn-next-1" class="btn-teal" onclick="submitParentSignup()">Next ›</button>
+      </div>
+    </div>
+
+    <!-- Parent Step 2: Enter The Code (OTP) -->
+    <div id="parent-step-2" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 20%;"></div></div>
+      <h2 class="title">Enter The Code</h2>
+      <p id="p-otp-subtitle" class="subtitle">Check your phone/email and enter the code below.</p>
+
+      <div id="p-otp-err" class="error-banner">Invalid verification code. Please check and try again.</div>
+
+      <div class="otp-banner">
+        <div>📩 A 4-digit code has been sent to your registered contact.</div>
+        <button id="btn-show-code-p" style="background:transparent; border:0; color:var(--primary); font-weight:700; font-size:11px; margin-top:6px; cursor:pointer;" onclick="toggleTestCode('p')">
+          [ 👁 Reveal Generated Code for Testing ]
+        </button>
+        <div id="test-code-box-p" style="display:none; font-weight:800; font-size:16px; color:var(--primary); margin-top:4px;"></div>
+      </div>
+
+      <!-- DYNAMIC EMPTY INPUT BOXES -->
+      <div class="otp-container">
+        <input id="po1" class="otp-box" type="text" inputmode="numeric" maxlength="1" oninput="autoTab(this, 'po2')" onkeydown="handleBackspace(event, this, '')" />
+        <input id="po2" class="otp-box" type="text" inputmode="numeric" maxlength="1" oninput="autoTab(this, 'po3')" onkeydown="handleBackspace(event, this, 'po1')" />
+        <input id="po3" class="otp-box" type="text" inputmode="numeric" maxlength="1" oninput="autoTab(this, 'po4')" onkeydown="handleBackspace(event, this, 'po2')" />
+        <input id="po4" class="otp-box" type="text" inputmode="numeric" maxlength="1" oninput="autoTab(this, '')" onkeydown="handleBackspace(event, this, 'po3')" />
+      </div>
+
+      <p style="text-align:center; font-size:12px; color: var(--muted); margin-bottom: 20px;">Resend code in 35s</p>
+
+      <div class="action-row">
+        <button class="btn-outline" onclick="nextStep('parent-step-2', 'parent-step-1')">‹ Previous</button>
+        <button class="btn-teal" onclick="verifyParentOTP()">Verify ›</button>
+      </div>
+    </div>
+
+    <!-- Parent Step 3: Address Info -->
+    <div id="parent-step-3" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 30%;"></div></div>
+      <h2 class="title">Create Parent Account</h2>
+      <p class="subtitle">Enter Address Information</p>
+
+      <div class="form-group">
+        <label class="form-label">Enter Address *</label>
+        <input id="p-addr" class="form-input" placeholder="e.g. 4517 Washington Ave. Kentucky" value="4517 Washington Ave. Kentucky 39495" />
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">Enter Street *</label>
+          <input id="p-street" class="form-input" placeholder="Dubai Street" value="Dubai Street" />
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">Postal Code *</label>
+          <input id="p-post" class="form-input" placeholder="1230" value="1230" />
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">Enter City *</label>
+          <input id="p-city" class="form-input" placeholder="Dubai" value="Dubai" />
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">Enter State *</label>
+          <input id="p-state" class="form-input" placeholder="Dubai" value="Dubai" />
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-outline" onclick="nextStep('parent-step-3', 'parent-step-2')">‹ Previous</button>
+        <button class="btn-teal" onclick="nextStep('parent-step-3', 'parent-step-4')">Next ›</button>
+      </div>
+    </div>
+
+    <!-- Parent Step 4: Membership Plans -->
+    <div id="parent-step-4" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 40%;"></div></div>
+      <h2 class="title">Choose which membership plan suits your family</h2>
+
+      <div class="plan-card selected">
+        <div style="font-size:14px; font-weight:800;">2 child Family Membership</div>
+        <div class="plan-price" style="margin:4px 0;">60 AED <span style="font-size:11px; font-weight:500; color:var(--muted);">/ month</span></div>
+        <ul style="font-size:11px; color:var(--muted); padding-left:16px; line-height:1.5;">
+          <li>Manage 2 child maximum at a time</li>
+          <li>Customized daily routines for every child</li>
+          <li>Nanny insights grounded in real-life</li>
+        </ul>
+        <button class="btn-teal" style="margin-top:10px; height:38px; font-size:12px;" onclick="nextStep('parent-step-4', 'parent-step-5')">Get 2 child Family Membership</button>
+      </div>
+
+      <div class="plan-card">
+        <div style="font-size:14px; font-weight:800;">4 child Family Membership</div>
+        <div class="plan-price" style="margin:4px 0;">120 AED <span style="font-size:11px; font-weight:500; color:var(--muted);">/ month</span></div>
+        <button class="btn-teal" style="margin-top:10px; height:38px; font-size:12px;" onclick="nextStep('parent-step-4', 'parent-step-5')">Get 4 child Family Membership</button>
+      </div>
+    </div>
+
+    <!-- Parent Step 5: Everything to know -->
+    <div id="parent-step-5" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 50%;"></div></div>
+      <h2 class="title" style="font-size:17px;">Everything you need to know before joining Alurei</h2>
+
+      <div style="background:#f8fafc; border:1px solid var(--line); border-radius:14px; padding:14px; font-size:12px; color:var(--muted); line-height:1.6; margin-bottom:15px;">
+        <strong style="color:var(--text);">Earn rewards while caring for your child</strong><br/>
+        As you use Alurei for daily routines, childcare, and family milestones, you earn points automatically.
+      </div>
+
+      <div class="action-row">
+        <button class="btn-teal" onclick="nextStep('parent-step-5', 'parent-step-6')">Continue Payment</button>
+      </div>
+    </div>
+
+    <!-- Parent Step 6: Submit Documents Select -->
+    <div id="parent-step-6" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 60%;"></div></div>
+      <h2 class="title">Submit Documents</h2>
+      <p class="subtitle">Choose how you want to verify</p>
+
+      <div class="doc-card selected" onclick="selectDoc(this)">
+        <div class="doc-icon">🛂</div>
+        <div>
+          <div style="font-size:14px; font-weight:700;">Passport</div>
+          <div style="font-size:11px; color: var(--muted);">You'll need to capture a photo of your passport.</div>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-outline" onclick="nextStep('parent-step-6', 'parent-step-7')">Remind me later</button>
+        <button class="btn-teal" onclick="nextStep('parent-step-6', 'parent-step-7')">Next ›</button>
+      </div>
+    </div>
+
+    <!-- Parent Step 7: Document Review & Face Verification -->
+    <div id="parent-step-7" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 80%;"></div></div>
+      <h2 class="title">Verify Identity</h2>
+      <p class="subtitle">Position your face within the frame and ensure optimal recognition.</p>
+
+      <div class="viewfinder" style="background:#0f172a;">
+        <div class="face-scan-frame"><div class="scan-line"></div></div>
+      </div>
+      <p style="text-align:center; font-size:11px; color:var(--accent); margin-bottom:14px;">✨ Liveness: Optimal</p>
+
+      <div class="action-row">
+        <button class="btn-teal" onclick="requestSumsubToken('PARENT')">Submit Verification</button>
+      </div>
+    </div>
+
+    <!-- Parent Step 8: Success -->
+    <div id="parent-step-8" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+      <div class="success-circle">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <h2 class="title">Verification Successful</h2>
+      <p class="subtitle">Your identity has been successfully verified. You can now continue using all platform features.</p>
+      <div class="action-row">
+        <button class="btn-teal" onclick="alert('Verification Complete! Welcome to Alurei.')">Continue</button>
+      </div>
+    </div>
+
+    <!-- ==================== NANNY FLOW ==================== -->
+
+    <!-- Nanny Step 1: Create Account -->
+    <div id="nanny-step-1" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 15%;"></div></div>
+      <h2 class="title">Create Nanny Account</h2>
+      <div id="n-status-toast" class="toast-banner"></div>
+
+      <div class="avatar-picker">
+        <svg class="avatar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="avatar-badge">+</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input id="n-name" class="form-input" placeholder="e.g. Sarah Jenkins" value="Sarah Jenkins" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input id="n-email" class="form-input" type="email" placeholder="e.g. sarah@example.com" value="sarah.nanny@example.com" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Phone Number *</label>
+        <div class="phone-input-group">
+          <select class="form-select country-code"><option>+971 🇦🇪</option><option>+880 🇧🇩</option></select>
+          <input id="n-phone" class="form-input" placeholder="50 123 4567" value="501234567" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password *</label>
+        <input id="n-pass" class="form-input" type="password" value="secret123" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Select OTP options *</label>
+        <div class="radio-group">
+          <label class="radio-label"><input type="radio" name="n-otp-opt" value="EMAIL" checked /> E-mail</label>
+          <label class="radio-label"><input type="radio" name="n-otp-opt" value="PHONE" /> Phone</label>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button id="n-btn-next-1" class="btn-teal" onclick="submitNannySignup()">Continue ›</button>
+      </div>
+    </div>
+
+    <!-- Nanny Step 2: Enter OTP -->
+    <div id="nanny-step-2" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 40%;"></div></div>
+      <h2 class="title">Enter The Code</h2>
+      <p id="n-otp-subtitle" class="subtitle">Check your phone/email and enter the code below.</p>
+
+      <div id="n-otp-err" class="error-banner">Invalid verification code. Please check and try again.</div>
+
+      <div class="otp-banner">
+        <div>📩 A 4-digit verification code has been dispatched.</div>
+        <button id="btn-show-code-n" style="background:transparent; border:0; color:var(--primary); font-weight:700; font-size:11px; margin-top:6px; cursor:pointer;" onclick="toggleTestCode('n')">
+          [ 👁 Reveal Generated Code for Testing ]
+        </button>
+        <div id="test-code-box-n" style="display:none; font-weight:800; font-size:16px; color:var(--primary); margin-top:4px;"></div>
+      </div>
+
+      <!-- DYNAMIC EMPTY INPUT BOXES -->
+      <div class="otp-container">
+        <input id="no1" class="otp-box" type="text" inputmode="numeric" maxlength="1" oninput="autoTab(this, 'no2')" onkeydown="handleBackspace(event, this, '')" />
+        <input id="no2" class="otp-box" type="text" inputmode="numeric" maxlength="1" oninput="autoTab(this, 'no3')" onkeydown="handleBackspace(event, this, 'no1')" />
+        <input id="no3" class="otp-box" type="text" inputmode="numeric" maxlength="1" oninput="autoTab(this, 'no4')" onkeydown="handleBackspace(event, this, 'no2')" />
+        <input id="no4" class="otp-box" type="text" inputmode="numeric" maxlength="1" oninput="autoTab(this, '')" onkeydown="handleBackspace(event, this, 'no3')" />
+      </div>
+
+      <div class="action-row">
+        <button class="btn-outline" onclick="nextStep('nanny-step-2', 'nanny-step-1')">‹ Previous</button>
+        <button class="btn-teal" onclick="verifyNannyOTP()">Confirm OTP ›</button>
+      </div>
+    </div>
+
+    <!-- Nanny Step 3: Face Identity Verification -->
+    <div id="nanny-step-3" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 80%;"></div></div>
+      <h2 class="title">Verify Identity</h2>
+      <p class="subtitle">Position your face within the frame for Nanny verification.</p>
+
+      <div class="viewfinder" style="background:#0f172a;">
+        <div class="face-scan-frame"><div class="scan-line"></div></div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-teal" onclick="requestSumsubToken('NANNY')">Submit Verification</button>
+      </div>
+    </div>
+
+    <!-- Nanny Step 4: Success -->
+    <div id="nanny-step-4" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+      <div class="success-circle">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <h2 class="title">Account Ready!</h2>
+      <p class="subtitle">Your nanny caregiver account has been created and verified successfully!</p>
+      <div class="action-row">
+        <button class="btn-teal" onclick="alert('Welcome Nanny Caregiver!')">Continue</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // DYNAMIC API BASE URL ROUTER: Detects if running on VS Code Live Server (port 5500) vs NestJS (port 5000)
+    const API_BASE_URL = (window.location.port === '5000' || window.location.origin.includes(':5000')) ? '' : 'http://localhost:5000';
+
+    let currentFlow = 'PARENT';
+    let userToken = '';
+    let parentGeneratedOtp = '';
+    let nannyGeneratedOtp = '';
+
+    function switchFlow(flow) {
+      currentFlow = flow;
+      document.getElementById('btn-parent-flow').classList.toggle('active', flow === 'PARENT');
+      document.getElementById('btn-nanny-flow').classList.toggle('active', flow === 'NANNY');
+
+      document.querySelectorAll('.step-view').forEach(s => s.classList.remove('active'));
+      if (flow === 'PARENT') {
+        document.getElementById('parent-step-1').classList.add('active');
+      } else {
+        document.getElementById('nanny-step-1').classList.add('active');
+      }
+    }
+
+    function nextStep(currentId, nextId) {
+      document.getElementById(currentId).classList.remove('active');
+      document.getElementById(nextId).classList.add('active');
+      if (nextId === 'parent-step-2') {
+        document.getElementById('po1').focus();
+      } else if (nextId === 'nanny-step-2') {
+        document.getElementById('no1').focus();
+      }
+    }
+
+    function selectDoc(card) {
+      document.querySelectorAll('.doc-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+    }
+
+    function autoTab(input, nextInputId) {
+      if (input.value.length >= 1 && nextInputId) {
+        document.getElementById(nextInputId).focus();
+      }
+    }
+
+    function handleBackspace(e, input, prevInputId) {
+      if (e.key === 'Backspace' && !input.value && prevInputId) {
+        document.getElementById(prevInputId).focus();
+      }
+    }
+
+    function toggleTestCode(type) {
+      const box = document.getElementById(type === 'p' ? 'test-code-box-p' : 'test-code-box-n');
+      box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function submitParentSignup() {
+      let email = document.getElementById('p-email').value.trim();
+      const password = document.getElementById('p-pass').value;
+      const fullName = document.getElementById('p-name').value;
+      let phoneNumber = '+880' + document.getElementById('p-phone').value.trim();
+      const relationType = document.getElementById('p-relation').value;
+      const preferredLanguage = document.getElementById('p-lang').value;
+      const otpDeliveryMethod = document.querySelector('input[name="p-otp-opt"]:checked')?.value || 'EMAIL';
+
+      const toast = document.getElementById('p-status-toast');
+      toast.style.display = 'block';
+      toast.innerText = 'Sending signup request to backend...';
+
+      // Clear previous inputs
+      document.getElementById('po1').value = '';
+      document.getElementById('po2').value = '';
+      document.getElementById('po3').value = '';
+      document.getElementById('po4').value = '';
+      document.getElementById('p-otp-err').style.display = 'none';
+
+      try {
+        let res = await fetch(API_BASE_URL + '/api/v1/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            role: 'PARENT',
+            email,
+            password,
+            fullName,
+            phoneNumber,
+            relationType,
+            preferredLanguage,
+            country: 'United Arab Emirates',
+            otpDeliveryMethod
+          })
+        });
+
+        let data = await res.json();
+
+        // Auto handle existing email during re-testing
+        if (!res.ok && (data.message || '').includes('already in use')) {
+          email = `parent.${Date.now()}@example.com`;
+          phoneNumber = '+8801581' + Math.floor(100000 + Math.random() * 900000);
+          document.getElementById('p-email').value = email;
+
+          res = await fetch(API_BASE_URL + '/api/v1/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              role: 'PARENT',
+              email,
+              password,
+              fullName,
+              phoneNumber,
+              relationType,
+              preferredLanguage,
+              country: 'United Arab Emirates',
+              otpDeliveryMethod
+            })
+          });
+          data = await res.json();
+        }
+
+        console.log('Backend Signup Response:', data);
+
+        if (data.otp) {
+          parentGeneratedOtp = data.otp;
+          document.getElementById('test-code-box-p').innerText = 'Generated Code: ' + data.otp;
+        }
+
+        document.getElementById('p-otp-subtitle').innerText = `Check your ${otpDeliveryMethod.toLowerCase()} (${otpDeliveryMethod === 'EMAIL' ? email : phoneNumber}) for the 4-digit code.`;
+        toast.style.display = 'none';
+        nextStep('parent-step-1', 'parent-step-2');
+      } catch (e) {
+        console.error('Signup error:', e);
+        toast.style.display = 'none';
+        nextStep('parent-step-1', 'parent-step-2');
+      }
+    }
+
+    async function verifyParentOTP() {
+      const email = document.getElementById('p-email').value;
+      const code = document.getElementById('po1').value + document.getElementById('po2').value + document.getElementById('po3').value + document.getElementById('po4').value;
+      const errBox = document.getElementById('p-otp-err');
+
+      if (code.length < 4) {
+        errBox.innerText = 'Please enter all 4 digits of the code.';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch(API_BASE_URL + '/api/v1/auth/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code, purpose: 'SIGNUP_VERIFICATION' })
+        });
+        const data = await res.json();
+        console.log('OTP Verify Response:', data);
+
+        if (!res.ok) {
+          errBox.innerText = data.message || 'Invalid verification code. Please check and try again.';
+          errBox.style.display = 'block';
+          return;
+        }
+
+        errBox.style.display = 'none';
+        if (data.accessToken) {
+          userToken = data.accessToken;
+        }
+        nextStep('parent-step-2', 'parent-step-3');
+      } catch (e) {
+        errBox.innerText = 'Verification failed. Please check your code.';
+        errBox.style.display = 'block';
+      }
+    }
+
+    async function submitNannySignup() {
+      let email = document.getElementById('n-email').value.trim();
+      const password = document.getElementById('n-pass').value;
+      const fullName = document.getElementById('n-name').value;
+      let phoneNumber = '+971' + document.getElementById('n-phone').value.trim();
+      const otpDeliveryMethod = document.querySelector('input[name="n-otp-opt"]:checked')?.value || 'EMAIL';
+
+      const toast = document.getElementById('n-status-toast');
+      toast.style.display = 'block';
+      toast.innerText = 'Submitting caregiver account...';
+
+      document.getElementById('no1').value = '';
+      document.getElementById('no2').value = '';
+      document.getElementById('no3').value = '';
+      document.getElementById('no4').value = '';
+      document.getElementById('n-otp-err').style.display = 'none';
+
+      try {
+        let res = await fetch(API_BASE_URL + '/api/v1/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'NANNY', email, password, fullName, phoneNumber, otpDeliveryMethod })
+        });
+        let data = await res.json();
+
+        if (!res.ok && (data.message || '').includes('already in use')) {
+          email = `nanny.${Date.now()}@example.com`;
+          phoneNumber = '+97150' + Math.floor(1000000 + Math.random() * 9000000);
+          document.getElementById('n-email').value = email;
+
+          res = await fetch(API_BASE_URL + '/api/v1/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'NANNY', email, password, fullName, phoneNumber, otpDeliveryMethod })
+          });
+          data = await res.json();
+        }
+
+        if (data.otp) {
+          nannyGeneratedOtp = data.otp;
+          document.getElementById('test-code-box-n').innerText = 'Generated Code: ' + data.otp;
+        }
+
+        document.getElementById('n-otp-subtitle').innerText = `Check your ${otpDeliveryMethod.toLowerCase()} (${otpDeliveryMethod === 'EMAIL' ? email : phoneNumber}) for the 4-digit code.`;
+        toast.style.display = 'none';
+        nextStep('nanny-step-1', 'nanny-step-2');
+      } catch (e) {
+        toast.style.display = 'none';
+        nextStep('nanny-step-1', 'nanny-step-2');
+      }
+    }
+
+    async function verifyNannyOTP() {
+      const email = document.getElementById('n-email').value;
+      const code = document.getElementById('no1').value + document.getElementById('no2').value + document.getElementById('no3').value + document.getElementById('no4').value;
+      const errBox = document.getElementById('n-otp-err');
+
+      if (code.length < 4) {
+        errBox.innerText = 'Please enter all 4 digits of the code.';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch(API_BASE_URL + '/api/v1/auth/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code, purpose: 'SIGNUP_VERIFICATION' })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errBox.innerText = data.message || 'Invalid code.';
+          errBox.style.display = 'block';
+          return;
+        }
+        errBox.style.display = 'none';
+        if (data.accessToken) userToken = data.accessToken;
+        nextStep('nanny-step-2', 'nanny-step-3');
+      } catch (e) {
+        errBox.innerText = 'Verification failed.';
+        errBox.style.display = 'block';
+      }
+    }
+
+    async function requestSumsubToken(role) {
+      if (!userToken) {
+        alert('Verification complete for ' + role);
+        nextStep(role === 'PARENT' ? 'parent-step-7' : 'nanny-step-3', role === 'PARENT' ? 'parent-step-8' : 'nanny-step-4');
+        return;
+      }
+
+      try {
+        const res = await fetch(API_BASE_URL + '/api/v1/kyc/sumsub/access-token', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + userToken,
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await res.json();
+        alert('Sumsub Access Token generated: ' + (data.token ? data.token.slice(0, 18) + '...' : 'Generated'));
+        nextStep(role === 'PARENT' ? 'parent-step-7' : 'nanny-step-3', role === 'PARENT' ? 'parent-step-8' : 'nanny-step-4');
+      } catch (e) {
+        nextStep(role === 'PARENT' ? 'parent-step-7' : 'nanny-step-3', role === 'PARENT' ? 'parent-step-8' : 'nanny-step-4');
+      }
+    }
+  </script>
+</body>
+</html>
