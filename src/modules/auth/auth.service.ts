@@ -98,14 +98,14 @@ export class AuthService {
               contactRole: dto.contactRole,
               contactEmail: dto.contactEmail || dto.email,
               contactPhone: dto.contactPhone || dto.phoneNumber,
-              stores: {
-                create: {
-                  name: dto.businessName!,
-                  description: dto.shortDescription,
-                  address: dto.businessAddress,
-                  city: dto.businessCity,
-                },
-              },
+            },
+          },
+          stores: {
+            create: {
+              name: dto.businessName!,
+              description: dto.shortDescription,
+              address: dto.businessAddress,
+              city: dto.businessCity,
             },
           },
         };
