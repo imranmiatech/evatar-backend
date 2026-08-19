@@ -57,25 +57,12 @@ export class AuthService {
 
     // 3. Create user (and Profile if parent) in a transaction
     try {
-      const user = await this.prisma.$transaction(async (tx) => {
-        const createdUser = await tx.user.create({
-          data: {
-            fullName:
-              dto.role === UserRole.PARTNER
-                ? dto.businessName!
-                : dto.fullName!,
-            email: dto.email,
-            phoneNumber: dto.phoneNumber,
-            passwordHash,
-            preferredLanguage: dto.preferredLanguage,
-            role: dto.role,
-          },
-        });
+      let profileRelation: any = undefined;
 
-        if (dto.role === UserRole.PARENT) {
-          await tx.parentProfile.create({
-            data: {
-              userId: createdUser.id,
+      if (dto.role === UserRole.PARENT) {
+        profileRelation = {
+          parentProfile: {
+            create: {
               relationship: this.relationshipType(dto.relationType),
               address: this.parentAddress(dto),
               street: dto.street ?? '',
@@ -85,22 +72,20 @@ export class AuthService {
               country: dto.country,
               membershipPlan: dto.membershipPlan,
             },
-          });
-        }
-
-        if (dto.role === UserRole.NANNY) {
-          await tx.nannyProfile.create({
-            data: {
-              userId: createdUser.id,
+          },
+        };
+      } else if (dto.role === UserRole.NANNY) {
+        profileRelation = {
+          nannyProfile: {
+            create: {
               languages: dto.preferredLanguage ? [dto.preferredLanguage] : [],
             },
-          });
-        }
-
-        if (dto.role === UserRole.PARTNER) {
-          await tx.partnerProfile.create({
-            data: {
-              userId: createdUser.id,
+          },
+        };
+      } else if (dto.role === UserRole.PARTNER) {
+        profileRelation = {
+          partnerProfile: {
+            create: {
               businessName: dto.businessName!,
               businessCategory: dto.businessCategory!,
               shortDescription: dto.shortDescription,
@@ -113,53 +98,35 @@ export class AuthService {
               contactRole: dto.contactRole,
               contactEmail: dto.contactEmail || dto.email,
               contactPhone: dto.contactPhone || dto.phoneNumber,
+              stores: {
+                create: {
+                  name: dto.businessName!,
+                  description: dto.shortDescription,
+                  address: dto.businessAddress,
+                  city: dto.businessCity,
+                },
+              },
             },
-          });
-
-          await tx.store.create({
-            data: {
-              userId: createdUser.id,
-              name: dto.businessName!,
-              description: dto.shortDescription,
-              address: dto.businessAddress,
-              city: dto.businessCity,
-            },
-          });
-        }
-
-        if (dto.role === UserRole.PARTNER) {
-          return { createdUser, otpCode: undefined };
-        }
-
-        // 4. Generate 4-digit OTP
-        const otpCode = Math.floor(1000 + Math.random() * 9000).toString(); // e.g., '4821'
-
-        // 5. Store OTP in database
-        const expiresAt = new Date();
-        expiresAt.setMinutes(expiresAt.getMinutes() + 10); // Valid for 10 minutes
-
-        await tx.otpCode.create({
-          data: {
-            userId: createdUser.id,
-            code: otpCode,
-            purpose: OtpPurpose.SIGNUP_VERIFICATION,
-            expiresAt,
           },
-        });
+        };
+      }
 
-        // 6. Send OTP based on selected delivery method
-        const deliveryMethod = (dto.otpDeliveryMethod || 'EMAIL').toUpperCase();
-        try {
-          await this.sendOtp(deliveryMethod, dto.email, dto.phoneNumber, otpCode);
-        } catch (err: any) {
-          console.warn(`[OTP Delivery Warning] Failed to dispatch OTP via ${deliveryMethod}:`, err.message);
-        }
-
-        return { createdUser, otpCode };
+      const createdUser = await this.prisma.user.create({
+        data: {
+          fullName:
+            dto.role === UserRole.PARTNER
+              ? dto.businessName!
+              : dto.fullName!,
+          email: dto.email,
+          phoneNumber: dto.phoneNumber,
+          passwordHash,
+          preferredLanguage: dto.preferredLanguage,
+          role: dto.role,
+          ...profileRelation,
+        },
       });
 
-      // Remove passwordHash before returning to client
-      const { passwordHash: _, ...result } = user.createdUser;
+      const { passwordHash: _, ...result } = createdUser;
 
       if (result.role === UserRole.PARTNER) {
         await this.sendPartnerSubmittedEmail(result.email, result.fullName);
@@ -172,11 +139,37 @@ export class AuthService {
         };
       }
 
+      // Generate 4-digit OTP
+      const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+      // Store OTP in database
+      await this.prisma.otpCode.create({
+        data: {
+          userId: createdUser.id,
+          code: otpCode,
+          purpose: OtpPurpose.SIGNUP_VERIFICATION,
+          expiresAt,
+        },
+      });
+
+      // Send OTP outside DB transaction
+      const deliveryMethod = (dto.otpDeliveryMethod || 'EMAIL').toUpperCase();
+      try {
+        await this.sendOtp(deliveryMethod, dto.email, dto.phoneNumber, otpCode);
+      } catch (err: any) {
+        console.warn(
+          `[OTP Delivery Warning] Failed to dispatch OTP via ${deliveryMethod}:`,
+          err.message,
+        );
+      }
+
       await this.notifyAdminsOfSignup(result);
 
       return {
         message: 'Signup successful. Please verify your OTP.',
-        otp: user.otpCode,
+        otp: otpCode,
         user: result,
       };
     } catch (error) {
@@ -184,7 +177,9 @@ export class AuthService {
       if (error instanceof HttpException) {
         throw error;
       }
-      throw new InternalServerErrorException('Failed to create account');
+      throw new InternalServerErrorException(
+        error instanceof Error ? error.message : 'Failed to create account',
+      );
     }
   }
   
