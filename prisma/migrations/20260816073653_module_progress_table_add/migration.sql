@@ -8,41 +8,36 @@
 
 */
 -- CreateEnum
-CREATE TYPE "CareModuleProgressStatus" AS ENUM ('IN_PROGRESS', 'COMPLETED');
+DO $$ BEGIN
+    CREATE TYPE "CareModuleProgressStatus" AS ENUM ('IN_PROGRESS', 'COMPLETED');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
 -- DropForeignKey
-ALTER TABLE "care_module_assignments" DROP CONSTRAINT "care_module_assignments_assignedByUserId_fkey";
-
--- DropForeignKey
-ALTER TABLE "care_module_assignments" DROP CONSTRAINT "care_module_assignments_childId_fkey";
-
--- DropForeignKey
-ALTER TABLE "care_module_assignments" DROP CONSTRAINT "care_module_assignments_moduleId_fkey";
-
--- DropForeignKey
-ALTER TABLE "care_module_assignments" DROP CONSTRAINT "care_module_assignments_nannyUserId_fkey";
-
--- DropForeignKey
-ALTER TABLE "care_quiz_answers" DROP CONSTRAINT "care_quiz_answers_assignmentId_fkey";
+ALTER TABLE IF EXISTS "care_module_assignments" DROP CONSTRAINT IF EXISTS "care_module_assignments_assignedByUserId_fkey";
+ALTER TABLE IF EXISTS "care_module_assignments" DROP CONSTRAINT IF EXISTS "care_module_assignments_childId_fkey";
+ALTER TABLE IF EXISTS "care_module_assignments" DROP CONSTRAINT IF EXISTS "care_module_assignments_moduleId_fkey";
+ALTER TABLE IF EXISTS "care_module_assignments" DROP CONSTRAINT IF EXISTS "care_module_assignments_nannyUserId_fkey";
+ALTER TABLE IF EXISTS "care_quiz_answers" DROP CONSTRAINT IF EXISTS "care_quiz_answers_assignmentId_fkey";
 
 -- DropIndex
-DROP INDEX "care_quiz_answers_assignmentId_idx";
-
--- DropIndex
-DROP INDEX "care_quiz_answers_assignmentId_questionId_key";
+DROP INDEX IF EXISTS "care_quiz_answers_assignmentId_idx";
+DROP INDEX IF EXISTS "care_quiz_answers_assignmentId_questionId_key";
 
 -- AlterTable
-ALTER TABLE "care_quiz_answers" DROP COLUMN "assignmentId",
-ADD COLUMN     "progressId" TEXT NOT NULL;
+DELETE FROM "care_quiz_answers";
+ALTER TABLE "care_quiz_answers" DROP COLUMN IF EXISTS "assignmentId";
+ALTER TABLE "care_quiz_answers" ADD COLUMN IF NOT EXISTS "progressId" TEXT NOT NULL;
 
 -- DropTable
-DROP TABLE "care_module_assignments";
+DROP TABLE IF EXISTS "care_module_assignments";
 
 -- DropEnum
-DROP TYPE "CareModuleAssignmentStatus";
+DROP TYPE IF EXISTS "CareModuleAssignmentStatus";
 
 -- CreateTable
-CREATE TABLE "care_module_progress" (
+CREATE TABLE IF NOT EXISTS "care_module_progress" (
     "id" TEXT NOT NULL,
     "moduleId" TEXT NOT NULL,
     "childId" TEXT NOT NULL,
@@ -62,28 +57,21 @@ CREATE TABLE "care_module_progress" (
 );
 
 -- CreateIndex
-CREATE INDEX "care_module_progress_userId_status_createdAt_idx" ON "care_module_progress"("userId", "status", "createdAt");
-
--- CreateIndex
-CREATE INDEX "care_module_progress_childId_status_idx" ON "care_module_progress"("childId", "status");
-
--- CreateIndex
-CREATE UNIQUE INDEX "care_module_progress_moduleId_childId_userId_key" ON "care_module_progress"("moduleId", "childId", "userId");
-
--- CreateIndex
-CREATE INDEX "care_quiz_answers_progressId_idx" ON "care_quiz_answers"("progressId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "care_quiz_answers_progressId_questionId_key" ON "care_quiz_answers"("progressId", "questionId");
+CREATE INDEX IF NOT EXISTS "care_module_progress_userId_status_createdAt_idx" ON "care_module_progress"("userId", "status", "createdAt");
+CREATE INDEX IF NOT EXISTS "care_module_progress_childId_status_idx" ON "care_module_progress"("childId", "status");
+CREATE UNIQUE INDEX IF NOT EXISTS "care_module_progress_moduleId_childId_userId_key" ON "care_module_progress"("moduleId", "childId", "userId");
+CREATE INDEX IF NOT EXISTS "care_quiz_answers_progressId_idx" ON "care_quiz_answers"("progressId");
+CREATE UNIQUE INDEX IF NOT EXISTS "care_quiz_answers_progressId_questionId_key" ON "care_quiz_answers"("progressId", "questionId");
 
 -- AddForeignKey
+ALTER TABLE "care_module_progress" DROP CONSTRAINT IF EXISTS "care_module_progress_childId_fkey";
 ALTER TABLE "care_module_progress" ADD CONSTRAINT "care_module_progress_childId_fkey" FOREIGN KEY ("childId") REFERENCES "Child"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
+ALTER TABLE "care_module_progress" DROP CONSTRAINT IF EXISTS "care_module_progress_moduleId_fkey";
 ALTER TABLE "care_module_progress" ADD CONSTRAINT "care_module_progress_moduleId_fkey" FOREIGN KEY ("moduleId") REFERENCES "care_modules"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
+ALTER TABLE "care_module_progress" DROP CONSTRAINT IF EXISTS "care_module_progress_userId_fkey";
 ALTER TABLE "care_module_progress" ADD CONSTRAINT "care_module_progress_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
+ALTER TABLE "care_quiz_answers" DROP CONSTRAINT IF EXISTS "care_quiz_answers_progressId_fkey";
 ALTER TABLE "care_quiz_answers" ADD CONSTRAINT "care_quiz_answers_progressId_fkey" FOREIGN KEY ("progressId") REFERENCES "care_module_progress"("id") ON DELETE CASCADE ON UPDATE CASCADE;

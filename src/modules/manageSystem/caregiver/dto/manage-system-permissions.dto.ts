@@ -1,95 +1,74 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
 import { IsBoolean, IsOptional } from 'class-validator';
-
-const optionalBoolean = ({ value }: { value: unknown }) => {
-  if (value === true || value === 'true') return true;
-  if (value === false || value === 'false') return false;
-  return undefined;
-};
 
 export class ManageSystemPermissionsDto {
   @ApiPropertyOptional()
-  @Transform(optionalBoolean)
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   dailyActivitiesRecipes?: boolean;
 
   @ApiPropertyOptional()
-  @Transform(optionalBoolean)
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   manageDailyPlans?: boolean;
 
   @ApiPropertyOptional()
-  @Transform(optionalBoolean)
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   viewGroceryLists?: boolean;
 
   @ApiPropertyOptional()
-  @Transform(optionalBoolean)
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   manageGroceryLists?: boolean;
 
   @ApiPropertyOptional()
-  @Transform(optionalBoolean)
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   editChildProfile?: boolean;
 
   @ApiPropertyOptional()
-  @Transform(optionalBoolean)
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   accessChildInsights?: boolean;
 
   @ApiPropertyOptional()
-  @Transform(optionalBoolean)
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   addRemoveChildren?: boolean;
 
   @ApiPropertyOptional()
-  @Transform(optionalBoolean)
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   manageBilling?: boolean;
 
   @ApiPropertyOptional()
-  @Transform(optionalBoolean)
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   manageCareTeam?: boolean;
 
   @ApiPropertyOptional()
-  @Transform(optionalBoolean)
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   manageGroceryOrders?: boolean;
 
   @ApiPropertyOptional()
-  @Transform(optionalBoolean)
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   groceryOrdering?: boolean;
 
   @ApiPropertyOptional()
-  @Transform(optionalBoolean)
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   careLearningAccess?: boolean;
 
   @ApiPropertyOptional()
-  @Transform(optionalBoolean)
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   nannyDevelopment?: boolean;
 
   @ApiPropertyOptional()
-  @Transform(optionalBoolean)
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   memoriesStories?: boolean;
 }

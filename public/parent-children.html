@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EvaTurner – Parent Children & Profile Dashboard Tester</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #00a896;
+      --primary-dark: #0f5b64;
+      --primary-hover: #008072;
+      --primary-light: rgba(0, 168, 150, 0.12);
+      --bg: #070a11;
+      --panel: #0f172a;
+      --panel-hover: #1e293b;
+      --border: rgba(255, 255, 255, 0.08);
+      --input-bg: #162032;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --label: #cbd5e1;
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.15);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.15);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+    }
+
+    [data-theme="light"] {
+      --bg: #f1f5f9;
+      --panel: #ffffff;
+      --panel-hover: #f8fafc;
+      --border: #e2e8f0;
+      --input-bg: #f8fafc;
+      --text: #0f172a;
+      --muted: #64748b;
+      --label: #334155;
+      --primary-light: rgba(0, 168, 150, 0.1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+
+    /* TOAST NOTIFICATION */
+    #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+    .toast { pointer-events: auto; min-width: 300px; max-width: 400px; background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: var(--radius-sm); padding: 12px 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: var(--text); animation: slideIn 0.3s ease; }
+    .toast-success { border-left-color: var(--success); }
+    .toast-error { border-left-color: var(--danger); }
+    .toast-warning { border-left-color: var(--warning); }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* TOPBAR */
+    .topbar { width: 100%; max-width: 1240px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .topbar-brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--primary), #0f5b64); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; color: #fff; }
+    .brand-title { font-size: 16px; font-weight: 800; color: var(--text); }
+    .brand-sub { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; color: #fff; }
+    .badge-success { background: var(--success); }
+    .badge-warning { background: var(--warning); }
+    .badge-danger { background: var(--danger); }
+
+    .btn { padding: 8px 16px; border-radius: var(--radius-sm); font-weight: 700; font-size: 13px; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--panel-hover); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-sm { padding: 5px 10px; font-size: 11px; border-radius: 6px; }
+
+    .token-bar { width: 100%; max-width: 1240px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .token-bar label { font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+    .token-input-wrap { flex: 1; position: relative; min-width: 240px; }
+    .token-input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 8px 12px; outline: none; }
+    .token-input:focus { border-color: var(--primary); }
+
+    /* LAYOUT WORKSPACE */
+    .workspace { display: flex; gap: 24px; width: 100%; max-width: 1240px; align-items: flex-start; flex-wrap: wrap; }
+
+    /* LEFT PANE - MOBILE PHONE MOCKUP */
+    .phone-container { width: 400px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+    .phone-frame { width: 380px; height: 810px; background: #FFFFFF; border-radius: 44px; border: 12px solid #1E293B; box-shadow: 0 0 0 2px #334155, 0 30px 60px rgba(0,0,0,0.6); display: flex; flex-direction: column; overflow: hidden; position: relative; color: #0F172A; }
+    
+    /* PHONE SCREEN TOPBAR */
+    .ph-notch { height: 26px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; font-size: 11px; font-weight: 700; color: #0f172a; flex-shrink: 0; }
+    .ph-nav { background: #fff; border-bottom: 1px solid #f1f5f9; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .ph-nav-title { font-size: 16px; font-weight: 800; color: #0f172a; }
+    .ph-nav-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--primary-dark); font-weight: 800; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .ph-nav-btn:hover { background: #f1f5f9; }
+
+    /* PHONE SCREENS */
+    .ph-screen { flex: 1; overflow-y: auto; background: #ffffff; color: #0f172a; display: flex; flex-direction: column; position: relative; }
+    .screen-page { position: absolute; inset: 0; background: #ffffff; overflow-y: auto; display: flex; flex-direction: column; transition: transform 0.25s ease; }
+    .screen-page.hidden { transform: translateX(100%); pointer-events: none; }
+
+    /* MY CHILDREN SCREEN */
+    .children-list { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+    .child-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px; display: flex; gap: 12px; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+    .child-card:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
+    .child-avatar { width: 54px; height: 54px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); flex-shrink: 0; background: #e2e8f0; }
+    .child-info { flex: 1; min-width: 0; }
+    .child-name { font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 2px; }
+    .child-sub { font-size: 11px; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .child-nanny-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: #0f5b64; background: #e6f2f3; padding: 2px 8px; border-radius: 10px; margin-top: 6px; }
+
+    /* FIGMA EXACT CHILD PROFILE HEADER */
+    .figma-prof-header { background: #fff; padding: 16px 16px 8px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+    .figma-prof-avatar { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 3px solid #00a896; margin-bottom: 8px; background: #e2e8f0; }
+    .figma-prof-name { font-size: 18px; font-weight: 800; color: #0f172a; }
+    .figma-prof-age { font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 12px; }
+
+    /* MANAGE CAREGIVERS BUTTON */
+    .btn-manage-caregivers { width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 700; color: #0f5b64; cursor: pointer; transition: background 0.2s; margin-bottom: 12px; }
+    .btn-manage-caregivers:hover { background: #f1f5f9; }
+    .caregiver-icon-box { display: flex; align-items: center; gap: 8px; }
+    .cg-badge { width: 28px; height: 28px; border-radius: 8px; background: #e6f2f3; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+
+    /* FIGMA STATS ROW (12 Memories | 12 Stories) */
+    .figma-stats-row { display: flex; gap: 12px; margin-bottom: 12px; }
+    .figma-stat-card { flex: 1; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 10px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+    .figma-stat-num { font-size: 16px; font-weight: 800; color: #0f5b64; }
+    .figma-stat-label { font-size: 10px; font-weight: 700; color: #64748b; margin-top: 2px; }
+
+    /* FIGMA TAB BAR (Grid | Book | Sliders) */
+    .figma-tab-bar { display: flex; background: #fff; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10; }
+    .figma-tab-item { flex: 1; text-align: center; padding: 12px 0; font-size: 18px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    .figma-tab-item.active { color: #00a896; border-bottom-color: #00a896; }
+
+    /* TAB CONTENT PANELS */
+    .tab-panel-content { padding: 14px; display: flex; flex-direction: column; gap: 16px; }
+
+    /* FIGMA MEMORIES GRID (3 COLUMNS) */
+    .figma-memories-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .figma-memory-cell { aspect-ratio: 1; border-radius: 12px; overflow: hidden; position: relative; background: #e2e8f0; cursor: pointer; }
+    .figma-memory-cell img { width: 100%; height: 100%; object-fit: cover; }
+    .figma-memory-del { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; background: rgba(239,68,68,0.9); color: #fff; border: none; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+    /* FIGMA SEARCH BAR */
+    .figma-search-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #94a3b8; }
+    .figma-search-input { border: none; background: transparent; outline: none; width: 100%; font-size: 12px; color: #0f172a; }
+
+    /* FIGMA STORIES CARDS */
+    .figma-story-card { height: 240px; border-radius: 20px; overflow: hidden; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 12px; }
+    .figma-story-card img.bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+    .figma-story-card .overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 20%, rgba(0,0,0,0.85) 100%); z-index: 2; }
+    .figma-story-content { position: relative; z-index: 3; color: #ffffff; }
+    .figma-story-date { font-size: 10px; font-weight: 600; opacity: 0.85; margin-bottom: 2px; }
+    .figma-story-title { font-size: 15px; font-weight: 800; margin-bottom: 10px; line-height: 1.3; }
+    .btn-visit-story { background: #ffffff; color: #0f172a; border: none; border-radius: 20px; padding: 8px 16px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+
+    /* FIGMA PREFERENCES & TAGS (Image 2) */
+    .figma-section-title { font-size: 13px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
+    .figma-tags-wrap { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .tag-pill-grey { background: #f1f5f9; color: #334155; font-size: 11px; font-weight: 600; padding: 6px 14px; border-radius: 12px; border: 1px solid #e2e8f0; }
+    .tag-pill-white { background: #ffffff; color: #334155; font-size: 11px; font-weight: 600; padding: 6px 14px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+
+    /* FIGMA PERSONALITY SNAPSHOT CARD (Dark Teal) */
+    .personality-card { background: #044e54; border-radius: 18px; padding: 20px 16px; text-align: center; color: #ffffff; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 6px 16px rgba(4,78,84,0.3); }
+    .personality-icon { font-size: 20px; margin-bottom: 2px; }
+    .personality-title { font-size: 15px; font-weight: 800; }
+    .personality-body { font-size: 11px; line-height: 1.5; color: #e6f2f3; font-style: italic; }
+
+    /* FIGMA BEDTIME STORY DETAIL SCREEN (Image 1) */
+    .story-hero-banner { height: 240px; border-radius: 20px; overflow: hidden; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; margin-bottom: 16px; }
+    .story-hero-banner img.bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+    .story-hero-banner .overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 20%, rgba(0,0,0,0.85) 100%); z-index: 2; }
+    .story-hero-content { position: relative; z-index: 3; color: #ffffff; }
+    .story-hero-title { font-size: 16px; font-weight: 800; line-height: 1.3; margin-bottom: 4px; }
+    .story-hero-date { font-size: 10px; opacity: 0.85; margin-bottom: 8px; }
+    .story-hero-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.25); backdrop-filter: blur(4px); padding: 4px 10px; border-radius: 14px; font-size: 10px; font-weight: 700; color: #fff; }
+
+    /* TEAL AUDIO PLAYER CARD */
+    .audio-player-card { background: #006d77; border-radius: 16px; padding: 16px; color: #ffffff; display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; position: relative; }
+    .audio-card-head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 700; }
+    .audio-controls-row { display: flex; align-items: center; gap: 12px; }
+    .btn-play-circle { width: 38px; height: 38px; border-radius: 50%; background: #ffffff; color: #006d77; border: none; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .audio-progress-wrap { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .audio-progress-bar { width: 100%; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; position: relative; }
+    .audio-progress-fill { width: 40%; height: 100%; background: #ffffff; border-radius: 2px; position: relative; }
+    .audio-progress-fill::after { content: ''; position: absolute; right: -4px; top: -3px; width: 10px; height: 10px; border-radius: 50%; background: #ffffff; }
+    .audio-time-row { display: flex; justify-content: space-between; font-size: 9px; font-weight: 700; opacity: 0.85; }
+
+    /* TRANSCRIPT ACCORDION */
+    .transcript-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; margin-bottom: 16px; }
+    .transcript-header { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 700; color: #334155; cursor: pointer; }
+    .transcript-body { margin-top: 10px; font-size: 11px; font-style: italic; color: #475569; line-height: 1.6; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+
+    /* FULL TEAL INSIGHT BUTTON */
+    .btn-teal-insight { width: 100%; background: #00a896; color: #ffffff; border: none; border-radius: 12px; padding: 12px; font-size: 13px; font-weight: 800; cursor: pointer; text-align: center; transition: background 0.2s; box-shadow: 0 4px 10px rgba(0,168,150,0.3); }
+    .btn-teal-insight:hover { background: #008072; }
+
+    /* PHONE MODALS */
+    .ph-modal-overlay { position: absolute; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .ph-modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .ph-modal { width: 100%; max-height: 85%; background: #fff; border-radius: 24px 24px 0 0; padding: 18px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; animation: slideUp 0.25s ease; color: #0f172a; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    .ph-modal-title { font-size: 16px; font-weight: 800; color: #0f172a; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; text-align: left; }
+    .form-group label { font-size: 11px; font-weight: 700; color: #475569; }
+    .form-input { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 12px; outline: none; background: #f8fafc; color: #0f172a; }
+    .form-input:focus { border-color: var(--primary); background: #fff; }
+
+    /* RIGHT PANE - API TESTING CONSOLE */
+    .console-pane { flex: 1; min-width: 480px; display: flex; flex-direction: column; gap: 16px; }
+    .console-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+    .console-title { font-size: 15px; font-weight: 800; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
+
+    /* ENDPOINT BUTTONS GRID */
+    .ep-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .ep-btn { background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; text-align: left; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; gap: 4px; }
+    .ep-btn:hover { background: var(--panel-hover); border-color: var(--primary); }
+    .ep-btn.active { background: var(--primary-light); border-color: var(--primary); }
+    .ep-method { font-size: 10px; font-weight: 800; border-radius: 4px; padding: 2px 6px; display: inline-block; width: fit-content; text-transform: uppercase; }
+    .method-get { background: rgba(16,185,129,0.2); color: var(--success); }
+    .method-post { background: rgba(0,168,150,0.2); color: var(--primary); }
+    .method-patch { background: rgba(245,158,11,0.2); color: var(--warning); }
+    .method-delete { background: rgba(239,68,68,0.2); color: var(--danger); }
+    .ep-path { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--text); }
+    .ep-desc { font-size: 10px; color: var(--muted); font-weight: 500; }
+
+    /* REQUEST FORM */
+    .req-box { background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .req-header { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--label); }
+    .req-url-bar { display: flex; gap: 8px; }
+    .req-method-select { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--primary); font-weight: 800; font-size: 12px; padding: 6px 10px; outline: none; }
+    .req-url-input { flex: 1; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 6px 10px; outline: none; }
+
+    .req-json-input { width: 100%; height: 150px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); color: #388bfd; font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 10px; outline: none; resize: vertical; }
+
+    /* RESPONSE BOX */
+    .res-box { background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; display: flex; flex-direction: column; gap: 10px; min-height: 220px; }
+    .res-meta { display: flex; align-items: center; justify-content: space-between; }
+    .res-status { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 6px; }
+    .res-status-2xx { background: var(--success-bg); color: var(--success); }
+    .res-status-4xx, .res-status-5xx { background: var(--danger-bg); color: var(--danger); }
+    .res-time { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+    .res-body { width: 100%; height: 240px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; color: #a5d6ff; font-family: 'JetBrains Mono', monospace; font-size: 11px; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+
+    /* LOGIN MODAL OVERLAY */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); z-index: 999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal-card { width: 100%; max-width: 400px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+    .modal-title { font-size: 18px; font-weight: 800; color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toastContainer"></div>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="brand-icon">E</div>
+      <div>
+        <div class="brand-title">EvaTurner API Console</div>
+        <div class="brand-sub">Parent Children & Profile Management Dashboard</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span id="authBadge" class="badge badge-danger">Logged Out</span>
+      <button class="btn btn-primary" onclick="openLoginModal()">Login Parent</button>
+      <button class="btn btn-outline" onclick="toggleTheme()">🌓 Theme</button>
+    </div>
+  </header>
+
+  <!-- AUTO-SAVED TOKEN BAR -->
+  <div class="token-bar">
+    <label>Backend Host:</label>
+    <input type="text" id="apiBaseUrlInput" class="token-input" style="max-width:190px;" value="http://localhost:5000" placeholder="http://localhost:5000">
+    <label>JWT Bearer Token:</label>
+    <div class="token-input-wrap">
+      <input type="text" id="tokenInput" class="token-input" placeholder="Paste your JWT token here or login below..." onchange="onTokenManualChange(this.value)">
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="copyToken()">📋 Copy</button>
+    <button class="btn btn-danger btn-sm" onclick="clearToken()">Logout</button>
+  </div>
+
+  <!-- MAIN WORKSPACE -->
+  <div class="workspace">
+
+    <!-- LEFT PANE: MOBILE PHONE MOCKUP -->
+    <div class="phone-container">
+      <div class="phone-frame">
+        <!-- NOTCH -->
+        <div class="ph-notch">
+          <span>9:41</span>
+          <span>📶 🔋</span>
+        </div>
+
+        <!-- PHONE NAVBAR -->
+        <div class="ph-nav">
+          <button class="ph-nav-btn" onclick="handleNavBack()">‹</button>
+          <span class="ph-nav-title" id="phTitle">Eve's profile</span>
+          <button class="ph-nav-btn" onclick="openEditChildModal()">📝</button>
+        </div>
+
+        <!-- SCREEN CONTAINER -->
+        <div class="ph-screen">
+          
+          <!-- SCREEN 1: CHILDREN LIST -->
+          <div id="screenList" class="screen-page hidden">
+            <div class="children-list" id="childrenListContainer">
+              <div style="text-align:center; padding: 40px 20px; color:#64748b;">
+                <p style="font-size:13px; font-weight:700;">No children loaded yet.</p>
+                <p style="font-size:11px; margin-top:4px;">Click "Fetch Children" or Login to load your children profile data.</p>
+                <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="fetchChildren()">Fetch Children List</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SCREEN 2: CHILD PROFILE DASHBOARD (MATCHING FIGMA SCREENSHOTS 2, 3, 4) -->
+          <div id="screenProfile" class="screen-page">
+            
+            <!-- HEADER INFO -->
+            <div class="figma-prof-header">
+              <img id="profAvatar" class="figma-prof-avatar" src="https://images.unsplash.com/photo-1544717305-2782549b5136?w=150" alt="Avatar"/>
+              <div id="profName" class="figma-prof-name">Eve Ahmed</div>
+              <div id="profAge" class="figma-prof-age">2 years 2 months 16 days</div>
+              
+              <div class="btn-manage-caregivers" onclick="showToast('Manage Caregivers feature', 'info')">
+                <div class="caregiver-icon-box">
+                  <div class="cg-badge">👥</div>
+                  <span>Manage Caregivers</span>
+                </div>
+                <span>›</span>
+              </div>
+
+              <!-- STATS ROW (12 Memories | 12 Stories) -->
+              <div class="figma-stats-row">
+                <div class="figma-stat-card" onclick="switchFigmaTab('tabMemories', 0)">
+                  <div class="figma-stat-num" id="statMemoriesCount">12</div>
+                  <div class="figma-stat-label">Memories</div>
+                </div>
+                <div class="figma-stat-card" onclick="switchFigmaTab('tabStories', 1)">
+                  <div class="figma-stat-num" id="statStoriesCount">12</div>
+                  <div class="figma-stat-label">Stories</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB BAR (Grid ▦ | Book 📖 | Sliders 🎛️) -->
+            <div class="figma-tab-bar">
+              <div class="figma-tab-item active" id="tabBtnMemories" onclick="switchFigmaTab('tabMemories', 0)" title="Memories Grid">▦</div>
+              <div class="figma-tab-item" id="tabBtnStories" onclick="switchFigmaTab('tabStories', 1)" title="Stories List">📖</div>
+              <div class="figma-tab-item" id="tabBtnPreferences" onclick="switchFigmaTab('tabPreferences', 2)" title="Preferences & Snapshot">🎛️</div>
+            </div>
+
+            <!-- TAB 1: MEMORIES GRID (Image 4) -->
+            <div id="tabMemories" class="tab-panel-content">
+              <div class="figma-memories-grid" id="memoriesGrid">
+                <!-- 12 Sample / Dynamic photos -->
+              </div>
+            </div>
+
+            <!-- TAB 2: STORIES LIST (Image 3) -->
+            <div id="tabStories" class="tab-panel-content" style="display:none;">
+              <div class="figma-search-box">
+                <div style="display:flex; align-items:center; gap:8px; width:100%;">
+                  <span>🔍</span>
+                  <input type="text" class="figma-search-input" placeholder="Search stories..."/>
+                </div>
+                <span>📅</span>
+              </div>
+
+              <!-- STORIES CARDS -->
+              <div class="figma-story-card">
+                <img class="bg" src="https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400" alt="Story"/>
+                <div class="overlay"></div>
+                <div class="figma-story-content">
+                  <div class="figma-story-date">Generated May 12</div>
+                  <div class="figma-story-title">The Brave Little Elephant</div>
+                  <button class="btn-visit-story" onclick="openStoryDetailScreen('The Brave Little Elephant', 'Generated May 12')">
+                    ▶ Visit story
+                  </button>
+                </div>
+              </div>
+
+              <div class="figma-story-card">
+                <img class="bg" src="https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=400" alt="Story"/>
+                <div class="overlay"></div>
+                <div class="figma-story-content">
+                  <div class="figma-story-date">Generated May 12</div>
+                  <div class="figma-story-title">Eve's Magical Forest Adventure</div>
+                  <button class="btn-visit-story" onclick="openStoryDetailScreen('Eve\'s Magical Forest Adventure', 'Generated May 12')">
+                    ▶ Visit story
+                  </button>
+                </div>
+              </div>
+
+              <div class="figma-story-card">
+                <img class="bg" src="https://images.unsplash.com/photo-1566004100631-35d015d6a491?w=400" alt="Story"/>
+                <div class="overlay"></div>
+                <div class="figma-story-content">
+                  <div class="figma-story-date">Generated May 12</div>
+                  <div class="figma-story-title">The Starry Night Lullaby</div>
+                  <button class="btn-visit-story" onclick="openStoryDetailScreen('The Starry Night Lullaby', 'Generated May 12')">
+                    ▶ Visit story
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 3: PREFERENCES & PERSONALITY SNAPSHOT (Image 2) -->
+            <div id="tabPreferences" class="tab-panel-content" style="display:none;">
+              
+              <div>
+                <div class="figma-section-title">Favorite Foods</div>
+                <div class="figma-tags-wrap" id="tagFavFoods">
+                  <span class="tag-pill-grey">Banana</span>
+                  <span class="tag-pill-grey">Milk</span>
+                  <span class="tag-pill-grey">Pancakes</span>
+                  <span class="tag-pill-grey">Eggs</span>
+                  <span class="tag-pill-grey">Strawberries</span>
+                </div>
+              </div>
+
+              <div>
+                <div class="figma-section-title">Frequently Declined</div>
+                <div class="figma-tags-wrap" id="tagDeclinedFoods">
+                  <span class="tag-pill-grey">Banana</span>
+                  <span class="tag-pill-grey">Milk</span>
+                  <span class="tag-pill-grey">Pancakes</span>
+                  <span class="tag-pill-grey">Eggs</span>
+                  <span class="tag-pill-grey">Strawberries</span>
+                </div>
+              </div>
+
+              <div>
+                <div class="figma-section-title">Favorite Activities</div>
+                <div class="figma-tags-wrap" id="tagFavActivities">
+                  <span class="tag-pill-white">Drawing</span>
+                  <span class="tag-pill-white">Story Time</span>
+                  <span class="tag-pill-white">Bubble Play</span>
+                  <span class="tag-pill-white">Outdoor Exploration</span>
+                  <span class="tag-pill-white">Music & Dance</span>
+                </div>
+              </div>
+
+              <div>
+                <div class="figma-section-title">Low Engagement</div>
+                <div class="figma-tags-wrap" id="tagLowEngagement">
+                  <span class="tag-pill-white">Drawing</span>
+                  <span class="tag-pill-white">Story Time</span>
+                  <span class="tag-pill-white">Bubble Play</span>
+                  <span class="tag-pill-white">Outdoor Exploration</span>
+                  <span class="tag-pill-white">Music & Dance</span>
+                </div>
+              </div>
+
+              <!-- PERSONALITY SNAPSHOT CARD (Dark Teal) -->
+              <div class="personality-card">
+                <div class="personality-icon">✨</div>
+                <div class="personality-title">Personality Snapshot</div>
+                <div class="personality-body" id="personalityText">
+                  “Eve enjoys creative activities, responds positively to outdoor exploration, and shows strong interest in storytelling and imaginative play.”
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- SCREEN 5: TODAY'S BEDTIME STORY DETAIL (MATCHING FIGMA SCREENSHOT 1) -->
+          <div id="screenStoryDetail" class="screen-page hidden">
+            <div style="padding:14px; display:flex; flex-direction:column; gap:12px;">
+              
+              <!-- HERO BANNER -->
+              <div class="story-hero-banner">
+                <img class="bg" src="https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=500" alt="Hero Story"/>
+                <div class="overlay"></div>
+                <div class="story-hero-content">
+                  <div class="story-hero-title" id="storyDetailTitle">Eve story inspired by today's adventures.</div>
+                  <div class="story-hero-date" id="storyDetailDate">21 June 2026</div>
+                  <div class="story-hero-badge">★ Hero: Eve</div>
+                </div>
+              </div>
+
+              <!-- ALUREI BEDTIME STORIES SECTION -->
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:14px; font-weight:800; color:#0f172a;">Alurei Bedtime Stories</span>
+                <span style="font-size:16px; cursor:pointer;" title="Bookmark">🔖</span>
+              </div>
+
+              <!-- TEAL AUDIO PLAYER CARD -->
+              <div class="audio-player-card">
+                <div class="audio-card-head">
+                  <span>Listen to the story</span>
+                  <span>🎵</span>
+                </div>
+                <div class="audio-controls-row">
+                  <button class="btn-play-circle" onclick="togglePlayAudio(this)">▶</button>
+                  <div class="audio-progress-wrap">
+                    <div class="audio-progress-bar">
+                      <div class="audio-progress-fill"></div>
+                    </div>
+                    <div class="audio-time-row">
+                      <span>2:45</span>
+                      <span>8:00</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- VIEW TRANSCRIPT PREVIEW ACCORDION -->
+              <div class="transcript-box">
+                <div class="transcript-header" onclick="toggleTranscript()">
+                  <span>📄 View Transcript Preview</span>
+                  <span id="transcriptChevron">⌄</span>
+                </div>
+                <div class="transcript-body" id="transcriptBody">
+                  Today Eve awoke excited for a new adventure. After enjoying her delicious honey-drizzled banana oat pancakes, she grabbed her trusty imaginary magnifying glass and discovered a magical forest filled with colorful, glowing treasures just past the play garden.<br/><br/>
+                  The warm sun danced through the leafy canopies as Eve danced to sweet acoustic lullabies. For every peaceful spin and leap, a small golden firefly would appear, whispering stories of ancient trees and playful woodland squirrels who loved to hide acorns.<br/><br/>
+                  Now, soft silver moonbeams wrap the magical forest in a peaceful slumber. The stars shine like warm nightlights, Eve drifts into beautiful dreams, deeply loved and safe.
+                </div>
+              </div>
+
+              <!-- FAMILY BEDTIME STORIES SECTION -->
+              <div style="font-size:14px; font-weight:800; color:#0f172a; margin-top:4px;">
+                Family Bedtime Stories
+              </div>
+
+              <div class="audio-player-card" style="background:#0f5b64;">
+                <div class="audio-card-head">
+                  <span>Dad's Story</span>
+                  <span style="cursor:pointer;" onclick="showToast('Delete Dad\'s story', 'warning')">🗑️</span>
+                </div>
+                <div class="audio-controls-row">
+                  <button class="btn-play-circle" style="color:#0f5b64;" onclick="togglePlayAudio(this)">▶</button>
+                  <div class="audio-progress-wrap">
+                    <div class="audio-progress-bar">
+                      <div class="audio-progress-fill"></div>
+                    </div>
+                    <div class="audio-time-row">
+                      <span>2:45</span>
+                      <span>8:00</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="audio-player-card" style="background:#0f5b64;">
+                <div class="audio-card-head">
+                  <span>Grandma's Story</span>
+                  <span>🎵</span>
+                </div>
+                <div class="audio-controls-row">
+                  <button class="btn-play-circle" style="color:#0f5b64;" onclick="togglePlayAudio(this)">▶</button>
+                  <div class="audio-progress-wrap">
+                    <div class="audio-progress-bar">
+                      <div class="audio-progress-fill"></div>
+                    </div>
+                    <div class="audio-time-row">
+                      <span>2:45</span>
+                      <span>8:00</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- BOTTOM TEAL BUTTON -->
+              <button class="btn-teal-insight" onclick="fetchDailyTimeline()">
+                View insight
+              </button>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- PHONE MODALS -->
+        <!-- ADD / EDIT CHILD MODAL -->
+        <div id="phFormModal" class="ph-modal-overlay">
+          <div class="ph-modal">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="ph-modal-title" id="formModalTitle">Add Child</div>
+              <button style="background:none; border:none; font-size:18px; cursor:pointer;" onclick="closeFormModal()">✕</button>
+            </div>
+            
+            <form id="childForm" onsubmit="handleChildFormSubmit(event)">
+              <div class="form-group">
+                <label>Child Name *</label>
+                <input type="text" id="inputName" class="form-input" required placeholder="e.g. Eve Ahmed"/>
+              </div>
+
+              <div class="form-group">
+                <label>Gender</label>
+                <select id="inputGender" class="form-input">
+                  <option value="GIRL">Girl</option>
+                  <option value="BOY">Boy</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Birth Date</label>
+                <input type="date" id="inputBirthDate" class="form-input"/>
+              </div>
+
+              <div class="form-group">
+                <label>Weight (e.g. '12 kg')</label>
+                <input type="text" id="inputWeight" class="form-input" placeholder="12 kg"/>
+              </div>
+
+              <div style="display:flex; gap:8px;">
+                <div class="form-group" style="flex:1;">
+                  <label>Wake Up Time</label>
+                  <input type="time" id="inputWakeUp" class="form-input" value="07:00"/>
+                </div>
+                <div class="form-group" style="flex:1;">
+                  <label>Bed Time</label>
+                  <input type="time" id="inputBedTime" class="form-input" value="20:00"/>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Has Food Allergies?</label>
+                <select id="inputHasAllergy" class="form-input">
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Favorite Foods</label>
+                <input type="text" id="inputFavFood" class="form-input" placeholder="Banana, Milk, Pancakes, Eggs, Strawberries"/>
+              </div>
+
+              <div class="form-group">
+                <label>Favorite Activities</label>
+                <input type="text" id="inputFavActivities" class="form-input" placeholder="Drawing, Story Time, Bubble Play, Outdoor Exploration"/>
+              </div>
+
+              <div class="form-group">
+                <label>Current Challenges</label>
+                <input type="text" id="inputChallenges" class="form-input" placeholder="Bedtime routine, picky eating"/>
+              </div>
+
+              <div class="form-group">
+                <label>Extra Notes</label>
+                <input type="text" id="inputExtraNote" class="form-input" placeholder="Needs gentle transition reminders"/>
+              </div>
+
+              <div class="form-group">
+                <label>Profile Picture (Optional)</label>
+                <input type="file" id="inputProfilePic" class="form-input" accept="image/*"/>
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px;" id="formSubmitBtn">
+                Save Child
+              </button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT PANE: API TESTING CONSOLE & RESPONSE INSPECTOR -->
+    <div class="console-pane">
+
+      <!-- ENDPOINTS SELECTOR CARD -->
+      <div class="console-card">
+        <div class="console-title">
+          <span>Parent Children API Endpoints (8)</span>
+          <span style="font-size:11px; color:var(--muted);">Click to test any endpoint</span>
+        </div>
+        <div class="ep-grid">
+          
+          <div class="ep-btn" onclick="selectEndpoint('POST', '/api/v1/parent/children', 'Add Child')">
+            <div><span class="ep-method method-post">POST</span></div>
+            <div class="ep-path">/api/v1/parent/children</div>
+            <div class="ep-desc">Add a new child for logged-in parent</div>
+          </div>
+
+          <div class="ep-btn" onclick="selectEndpoint('GET', '/api/v1/parent/children', 'Get Children')">
+            <div><span class="ep-method method-get">GET</span></div>
+            <div class="ep-path">/api/v1/parent/children</div>
+            <div class="ep-desc">Get all children of logged-in parent</div>
+          </div>
+
+          <div class="ep-btn" onclick="selectEndpoint('GET', '/api/v1/parent/children/{childId}/profile', 'Child Profile')">
+            <div><span class="ep-method method-get">GET</span></div>
+            <div class="ep-path">/api/v1/parent/children/{childId}/profile</div>
+            <div class="ep-desc">Get complete child profile dashboard</div>
+          </div>
+
+          <div class="ep-btn" onclick="selectEndpoint('GET', '/api/v1/parent/children/{childId}', 'Get Child By ID')">
+            <div><span class="ep-method method-get">GET</span></div>
+            <div class="ep-path">/api/v1/parent/children/{childId}</div>
+            <div class="ep-desc">Get a specific child by ID</div>
+          </div>
+
+          <div class="ep-btn" onclick="selectEndpoint('PATCH', '/api/v1/parent/children/{childId}', 'Update Child')">
+            <div><span class="ep-method method-patch">PATCH</span></div>
+            <div class="ep-path">/api/v1/parent/children/{childId}</div>
+            <div class="ep-desc">Update a specific child by ID</div>
+          </div>
+
+          <div class="ep-btn" onclick="selectEndpoint('DELETE', '/api/v1/parent/children/{childId}', 'Delete Child')">
+            <div><span class="ep-method method-delete">DELETE</span></div>
+            <div class="ep-path">/api/v1/parent/children/{childId}</div>
+            <div class="ep-desc">Delete a specific child by ID</div>
+          </div>
+
+          <div class="ep-btn" onclick="selectEndpoint('DELETE', '/api/v1/parent/children/{childId}/memories/{memoryId}', 'Delete Memory')">
+            <div><span class="ep-method method-delete">DELETE</span></div>
+            <div class="ep-path">.../memories/{memoryId}</div>
+            <div class="ep-desc">Delete a child profile photo/memory</div>
+          </div>
+
+          <div class="ep-btn" onclick="selectEndpoint('GET', '/api/v1/parent/children/{childId}/daily-timeline', 'Daily Timeline')">
+            <div><span class="ep-method method-get">GET</span></div>
+            <div class="ep-path">.../daily-timeline</div>
+            <div class="ep-desc">Get child's daily timeline</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- REQUEST BUILDER CARD -->
+      <div class="console-card">
+        <div class="console-title">
+          <span>Request Inspector</span>
+          <button class="btn btn-primary btn-sm" onclick="executeCurrentRequest()">🚀 Send Request</button>
+        </div>
+
+        <div class="req-box">
+          <div class="req-header">
+            <span>HTTP Request Endpoint</span>
+          </div>
+          <div class="req-url-bar">
+            <select id="reqMethod" class="req-method-select">
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PATCH">PATCH</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+            <input type="text" id="reqUrl" class="req-url-input" value="/api/v1/parent/children"/>
+          </div>
+
+          <div style="display:flex; gap:10px; margin-top:4px;">
+            <div style="flex:1;">
+              <label style="font-size:11px; font-weight:700; color:var(--muted);">Select Target Child:</label>
+              <select id="childIdSelect" class="form-input" style="background:var(--panel); color:var(--text); border-color:var(--border);" onchange="onChildSelectChanged()">
+                <option value="">-- Choose Child --</option>
+              </select>
+            </div>
+            <div style="flex:1;" id="memoryIdWrap">
+              <label style="font-size:11px; font-weight:700; color:var(--muted);">Memory ID (optional):</label>
+              <input type="text" id="memoryIdInput" class="form-input" style="background:var(--panel); color:var(--text); border-color:var(--border);" placeholder="memory-uuid-123"/>
+            </div>
+          </div>
+
+          <div id="jsonBodySection" style="margin-top:6px;">
+            <div class="req-header" style="margin-bottom:4px;">
+              <span>JSON Payload (for POST/PATCH):</span>
+            </div>
+            <textarea id="reqJsonBody" class="req-json-input" placeholder='{\n  "name": "Eve Ahmed",\n  "gender": "GIRL",\n  "birthDate": "2022-05-16"\n}'></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESPONSE INSPECTOR CARD -->
+      <div class="console-card">
+        <div class="console-title">
+          <span>Live Response Viewer</span>
+          <button class="btn btn-outline btn-sm" onclick="copyResponse()">📋 Copy Response</button>
+        </div>
+
+        <div class="res-box">
+          <div class="res-meta">
+            <span id="resStatus" class="res-status res-status-2xx">200 OK</span>
+            <span id="resTime" class="res-time">0 ms</span>
+          </div>
+          <pre id="resBody" class="res-body">// Response JSON output will be displayed here...</pre>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- LOGIN MODAL DIALOG -->
+  <div id="loginModal" class="modal-overlay">
+    <div class="modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="modal-title">Parent Login</div>
+        <button style="background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer;" onclick="closeLoginModal()">✕</button>
+      </div>
+      <p style="font-size:12px; color:var(--muted);">
+        Enter your parent account credentials to automatically obtain and save JWT token.
+      </p>
+      
+      <form onsubmit="handleLoginSubmit(event)">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label>Email Address</label>
+          <input type="email" id="loginEmail" class="form-input" style="background:var(--input-bg); color:var(--text);" required placeholder="parent@example.com" value="parent@example.com"/>
+        </div>
+
+        <div class="form-group" style="margin-bottom:16px;">
+          <label>Password</label>
+          <input type="password" id="loginPassword" class="form-input" style="background:var(--input-bg); color:var(--text);" required placeholder="••••••••" value="Password123!"/>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%;">
+          🔑 Sign In & Auto-Save Token
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // GLOBAL STATE & AUTO TOKEN SYSTEM
+    let currentToken = localStorage.getItem('parent_auth_token') || '';
+    let childrenData = [];
+    let selectedChild = null;
+    let isEditing = false;
+    let activeScreen = 'screenProfile'; // Default to profile screen matching Figma
+
+    // SAMPLE MEMORY IMAGES FOR FIGMA MATCHING
+    const sampleMemories = [
+      'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200',
+      'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=200',
+      'https://images.unsplash.com/photo-1566004100631-35d015d6a491?w=200',
+      'https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=200',
+      'https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=200',
+      'https://images.unsplash.com/photo-1485546246426-74dc88dec4d9?w=200',
+      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200',
+      'https://images.unsplash.com/photo-1596464716127-f2a82984de30?w=200',
+      'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=200',
+      'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=200',
+      'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=200',
+      'https://images.unsplash.com/photo-1502781252888-9143ba7f074e?w=200'
+    ];
+
+    // INITIALIZE ON LOAD
+    window.addEventListener('DOMContentLoaded', () => {
+      renderSampleMemories();
+      if (currentToken) {
+        document.getElementById('tokenInput').value = currentToken;
+        updateAuthBadge(true);
+        fetchChildren();
+      } else {
+        updateAuthBadge(false);
+      }
+    });
+
+    // TOAST SYSTEM
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span> <div>${msg}</div>`;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    // AUTH BADGE UPDATE
+    function updateAuthBadge(isLoggedIn) {
+      const badge = document.getElementById('authBadge');
+      if (isLoggedIn) {
+        badge.className = 'badge badge-success';
+        badge.innerText = 'Token Active';
+      } else {
+        badge.className = 'badge badge-danger';
+        badge.innerText = 'Logged Out';
+      }
+    }
+
+    // TOKEN MANAGEMENT
+    function onTokenManualChange(token) {
+      currentToken = token.trim();
+      if (currentToken) {
+        localStorage.setItem('parent_auth_token', currentToken);
+        updateAuthBadge(true);
+        showToast('Token saved to localStorage');
+        fetchChildren();
+      } else {
+        clearToken();
+      }
+    }
+
+    function clearToken() {
+      currentToken = '';
+      localStorage.removeItem('parent_auth_token');
+      document.getElementById('tokenInput').value = '';
+      updateAuthBadge(false);
+      childrenData = [];
+      renderChildrenList();
+      showToast('Logged out and token cleared', 'warning');
+    }
+
+    function copyToken() {
+      if (!currentToken) return showToast('No token to copy', 'warning');
+      navigator.clipboard.writeText(currentToken);
+      showToast('Token copied to clipboard');
+    }
+
+    // LOGIN MODAL
+    function openLoginModal() { document.getElementById('loginModal').classList.add('active'); }
+    function closeLoginModal() { document.getElementById('loginModal').classList.remove('active'); }
+
+    // HOST RESOLUTION UTILITY
+    function getApiUrl(path) {
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        return path;
+      }
+      const hostInput = document.getElementById('apiBaseUrlInput')?.value?.trim();
+      let baseUrl = hostInput || (window.location.origin.includes('5500') ? 'http://localhost:5000' : window.location.origin);
+      const cleanBase = baseUrl.replace(/\/$/, '');
+      const cleanPath = path.startsWith('/') ? path : '/' + path;
+      return cleanBase + cleanPath;
+    }
+
+    // API REQUEST UTILITY
+    async function makeApiCall(method, url, body = null) {
+      const targetUrl = getApiUrl(url);
+      const startTime = performance.now();
+      const headers = {};
+      if (currentToken) headers['Authorization'] = `Bearer ${currentToken}`;
+      if (body && !(body instanceof FormData)) headers['Content-Type'] = 'application/json';
+
+      const options = { method, headers };
+      if (body) {
+        options.body = (body instanceof FormData) ? body : JSON.stringify(body);
+      }
+
+      try {
+        const res = await fetch(targetUrl, options);
+        const endTime = performance.now();
+        const duration = Math.round(endTime - startTime);
+
+        let data;
+        const text = await res.text();
+        try { data = JSON.parse(text); } catch { data = text; }
+
+        displayResponse(res.status, res.statusText, duration, data);
+        return { ok: res.ok, status: res.status, data };
+      } catch (err) {
+        const endTime = performance.now();
+        displayResponse(500, 'Network Error', Math.round(endTime - startTime), { error: err.message });
+        return { ok: false, status: 500, data: null };
+      }
+    }
+
+    function displayResponse(status, statusText, duration, data) {
+      const statusEl = document.getElementById('resStatus');
+      statusEl.innerText = `${status} ${statusText}`;
+      statusEl.className = `res-status ${status >= 200 && status < 300 ? 'res-status-2xx' : 'res-status-4xx'}`;
+      document.getElementById('resTime').innerText = `${duration} ms`;
+      document.getElementById('resBody').innerText = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+    }
+
+    function copyResponse() {
+      const bodyText = document.getElementById('resBody').innerText;
+      navigator.clipboard.writeText(bodyText);
+      showToast('Response copied');
+    }
+
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+
+      try {
+        const res = await makeApiCall('POST', '/api/v1/auth/login', { email, password });
+        const data = res.data;
+        const token = data?.data?.accessToken || data?.accessToken || data?.data?.token || data?.token;
+
+        if (res.ok && token) {
+          currentToken = token;
+          localStorage.setItem('parent_auth_token', currentToken);
+          document.getElementById('tokenInput').value = currentToken;
+          updateAuthBadge(true);
+          closeLoginModal();
+          showToast('Login successful! Token saved.');
+          fetchChildren();
+        } else {
+          showToast(data?.message || (typeof data === 'string' ? data : 'Login failed'), 'error');
+        }
+      } catch (err) {
+        showToast('Login request error: ' + err.message, 'error');
+      }
+    }
+
+    // SCREEN NAVIGATION & BACK BUTTON
+    function handleNavBack() {
+      if (activeScreen === 'screenStoryDetail') {
+        showScreen('screenProfile');
+      } else if (activeScreen === 'screenProfile') {
+        showScreen('screenList');
+      } else {
+        showScreen('screenList');
+      }
+    }
+
+    function showScreen(screenId) {
+      activeScreen = screenId;
+      document.querySelectorAll('.screen-page').forEach(page => page.classList.add('hidden'));
+      document.getElementById(screenId).classList.remove('hidden');
+
+      if (screenId === 'screenList') document.getElementById('phTitle').innerText = 'My Children';
+      else if (screenId === 'screenProfile') document.getElementById('phTitle').innerText = selectedChild ? selectedChild.name + "'s profile" : "Eve's profile";
+      else if (screenId === 'screenStoryDetail') document.getElementById('phTitle').innerText = "Today's Bedtime Story";
+    }
+
+    // FIGMA TAB SWITCHER (Grid ▦ | Book 📖 | Sliders 🎛️)
+    function switchFigmaTab(tabId, index) {
+      document.querySelectorAll('.figma-tab-item').forEach(t => t.classList.remove('active'));
+      const tabs = ['tabBtnMemories', 'tabBtnStories', 'tabBtnPreferences'];
+      document.getElementById(tabs[index]).classList.add('active');
+
+      ['tabMemories', 'tabStories', 'tabPreferences'].forEach(id => {
+        document.getElementById(id).style.display = (id === tabId) ? 'flex' : 'none';
+      });
+    }
+
+    // SAMPLE MEMORIES RENDER (Image 4)
+    function renderSampleMemories(memories = []) {
+      const grid = document.getElementById('memoriesGrid');
+      grid.innerHTML = '';
+      const list = (memories && memories.length) ? memories : sampleMemories.map((url, i) => ({ id: `mem-${i}`, url }));
+      
+      document.getElementById('statMemoriesCount').innerText = list.length;
+      document.getElementById('statStoriesCount').innerText = '12';
+
+      list.forEach((mem, index) => {
+        const cell = document.createElement('div');
+        cell.className = 'figma-memory-cell';
+        cell.innerHTML = `
+          <img src="${mem.url || mem.photoUrl || sampleMemories[index % sampleMemories.length]}" alt="Memory"/>
+          <button class="figma-memory-del" onclick="deleteMemory('${mem.id}')" title="Delete Photo">✕</button>
+        `;
+        grid.appendChild(cell);
+      });
+    }
+
+    // BEDTIME STORY DETAIL SCREEN OPENER (Image 1)
+    function openStoryDetailScreen(title, dateStr, storyText, coverUrl) {
+      if (title) document.getElementById('storyDetailTitle').innerText = title;
+      if (dateStr) document.getElementById('storyDetailDate').innerText = dateStr;
+      if (storyText) document.getElementById('transcriptBody').innerText = storyText;
+      if (coverUrl) {
+        const bannerImg = document.querySelector('.story-hero-banner img.bg');
+        if (bannerImg) bannerImg.src = coverUrl;
+      }
+      showScreen('screenStoryDetail');
+    }
+
+    function renderProfileScreen(profPayload) {
+      const p = profPayload.data || profPayload;
+      const child = p.child || p;
+      const stats = p.stats || {};
+      const insights = p.insights || {};
+
+      document.getElementById('profName').innerText = child.name || selectedChild?.name || 'Eve Ahmed';
+      document.getElementById('profAge').innerText = child.age || calculateAgeText(child.birthDate);
+      if (child.avatar || child.image || child.profilePicture) {
+        document.getElementById('profAvatar').src = child.avatar || child.image || child.profilePicture;
+      }
+
+      // Real Stats Counter
+      if (stats.memories !== undefined) document.getElementById('statMemoriesCount').innerText = stats.memories;
+      if (stats.stories !== undefined) document.getElementById('statStoriesCount').innerText = stats.stories;
+
+      // Real Insights & Preferences Tags
+      const favFoods = insights.favoriteFoods || (child.favfood ? child.favfood.split(',') : ['Banana', 'Milk', 'Pancakes', 'Eggs', 'Strawberries']);
+      const declFoods = insights.frequentlyDeclinedFoods || ['Banana', 'Milk', 'Pancakes', 'Eggs', 'Strawberries'];
+      const favActs = insights.favoriteActivities || (child.favActivites ? child.favActivites.split(',') : ['Drawing', 'Story Time', 'Bubble Play', 'Outdoor Exploration', 'Music & Dance']);
+      const lowActs = insights.lowEngagementActivities || ['Drawing', 'Story Time', 'Bubble Play', 'Outdoor Exploration', 'Music & Dance'];
+
+      document.getElementById('tagFavFoods').innerHTML = favFoods.map(s => `<span class="tag-pill-grey">${String(s).trim()}</span>`).join('');
+      document.getElementById('tagDeclinedFoods').innerHTML = declFoods.map(s => `<span class="tag-pill-grey">${String(s).trim()}</span>`).join('');
+      document.getElementById('tagFavActivities').innerHTML = favActs.map(s => `<span class="tag-pill-white">${String(s).trim()}</span>`).join('');
+      document.getElementById('tagLowEngagement').innerHTML = lowActs.map(s => `<span class="tag-pill-white">${String(s).trim()}</span>`).join('');
+
+      if (insights.personalitySnapshot || child.extraNote || child.currentChallenges) {
+        document.getElementById('personalityText').innerText = `“${insights.personalitySnapshot || child.extraNote || child.currentChallenges}”`;
+      }
+
+      // Real Memories Grid
+      const realMemories = p.memories || child.memories || [];
+      if (realMemories.length > 0) {
+        renderSampleMemories(realMemories.map(m => ({ id: m.id, url: m.imageUrl || m.url || m.media?.url })));
+      }
+
+      // Real Stories List
+      const realStories = p.stories || child.stories || [];
+      if (realStories.length > 0) {
+        renderRealStoriesFeed(realStories);
+      }
+    }
+
+    function renderRealStoriesFeed(stories) {
+      const container = document.getElementById('tabStories');
+      const searchBoxHtml = `
+        <div class="figma-search-box">
+          <div style="display:flex; align-items:center; gap:8px; width:100%;">
+            <span>🔍</span>
+            <input type="text" class="figma-search-input" placeholder="Search stories..."/>
+          </div>
+          <span>📅</span>
+        </div>`;
+
+      let cardsHtml = '';
+      stories.forEach(story => {
+        const cover = story.coverImageUrl || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400';
+        const dateStr = story.date ? new Date(story.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Generated Story';
+        const safeTitle = (story.title || '').replace(/'/g, "\\'");
+        const safeExcerpt = (story.storyText || story.excerpt || '').replace(/'/g, "\\'");
+        const safeCover = (story.coverImageUrl || '').replace(/'/g, "\\'");
+
+        cardsHtml += `
+          <div class="figma-story-card">
+            <img class="bg" src="${cover}" alt="${story.title}"/>
+            <div class="overlay"></div>
+            <div class="figma-story-content">
+              <div class="figma-story-date">Generated ${dateStr}</div>
+              <div class="figma-story-title">${story.title || 'Bedtime Story'}</div>
+              <button class="btn-visit-story" onclick="openStoryDetailScreen('${safeTitle}', 'Generated ${dateStr}', '${safeExcerpt}', '${safeCover}')">
+                ▶ Visit story
+              </button>
+            </div>
+          </div>`;
+      });
+
+      container.innerHTML = searchBoxHtml + cardsHtml;
+    }
+
+    // 3. DELETE MEMORY (DELETE /api/v1/parent/children/{childId}/memories/{memoryId})
+    async function deleteMemory(memoryId) {
+      if (!selectedChild) return;
+      if (!confirm('Are you sure you want to delete this memory photo?')) return;
+
+      const url = `/api/v1/parent/children/${selectedChild.id}/memories/${memoryId}`;
+      selectEndpoint('DELETE', '/api/v1/parent/children/{childId}/memories/{memoryId}');
+      document.getElementById('memoryIdInput').value = memoryId;
+
+      const res = await makeApiCall('DELETE', url);
+      if (res.ok) {
+        showToast('Memory photo deleted successfully');
+        fetchChildProfile();
+      } else {
+        showToast('Failed to delete memory photo', 'error');
+      }
+    }
+
+    // 4. GET DAILY TIMELINE (GET /api/v1/parent/children/{childId}/daily-timeline)
+    async function fetchDailyTimeline() {
+      if (!selectedChild) {
+        if (childrenData.length) selectedChild = childrenData[0];
+        else return showToast('Please select a child first', 'warning');
+      }
+
+      const date = new Date().toISOString().split('T')[0];
+      const url = `/api/v1/parent/children/${selectedChild.id}/daily-timeline?date=${date}`;
+      selectEndpoint('GET', '/api/v1/parent/children/{childId}/daily-timeline');
+
+      const res = await makeApiCall('GET', url);
+      if (res.ok) {
+        showToast('Loaded daily timeline insight');
+      }
+    }
+
+    // 5. ADD / EDIT CHILD MODAL HANDLERS
+    function openAddChildModal() {
+      isEditing = false;
+      document.getElementById('formModalTitle').innerText = 'Add New Child';
+      document.getElementById('childForm').reset();
+      document.getElementById('phFormModal').classList.add('active');
+    }
+
+    function openEditChildModal() {
+      if (!selectedChild) return showToast('No child selected', 'warning');
+      isEditing = true;
+      document.getElementById('formModalTitle').innerText = 'Edit Child Profile';
+      
+      document.getElementById('inputName').value = selectedChild.name || 'Eve Ahmed';
+      document.getElementById('inputGender').value = selectedChild.gender || 'GIRL';
+      document.getElementById('inputBirthDate').value = selectedChild.birthDate ? selectedChild.birthDate.split('T')[0] : '';
+      document.getElementById('inputWeight').value = selectedChild.weight || '12 kg';
+      document.getElementById('inputWakeUp').value = selectedChild.wakeUpTime || '07:00';
+      document.getElementById('inputBedTime').value = selectedChild.bedTime || '20:00';
+      document.getElementById('inputHasAllergy').value = selectedChild.hasAllergy ? 'true' : 'false';
+      document.getElementById('inputFavFood').value = selectedChild.favfood || 'Banana, Milk, Pancakes, Eggs, Strawberries';
+      document.getElementById('inputFavActivities').value = selectedChild.favActivites || 'Drawing, Story Time, Bubble Play, Outdoor Exploration';
+      document.getElementById('inputChallenges').value = selectedChild.currentChallenges || 'Bedtime routine and picky eating';
+      document.getElementById('inputExtraNote').value = selectedChild.extraNote || 'Needs gentle reminders during transitions';
+
+      document.getElementById('phFormModal').classList.add('active');
+    }
+
+    function closeFormModal() {
+      document.getElementById('phFormModal').classList.remove('active');
+    }
+
+    async function handleChildFormSubmit(e) {
+      e.preventDefault();
+      
+      const payload = {
+        name: document.getElementById('inputName').value,
+        gender: document.getElementById('inputGender').value,
+        birthDate: document.getElementById('inputBirthDate').value || undefined,
+        weight: document.getElementById('inputWeight').value || undefined,
+        wakeUpTime: document.getElementById('inputWakeUp').value || undefined,
+        bedTime: document.getElementById('inputBedTime').value || undefined,
+        hasAllergy: document.getElementById('inputHasAllergy').value === 'true',
+        favfood: document.getElementById('inputFavFood').value || undefined,
+        favActivites: document.getElementById('inputFavActivities').value || undefined,
+        currentChallenges: document.getElementById('inputChallenges').value || undefined,
+        extraNote: document.getElementById('inputExtraNote').value || undefined,
+      };
+
+      const fileInput = document.getElementById('inputProfilePic');
+      let bodyData = payload;
+
+      if (fileInput.files && fileInput.files[0]) {
+        const formData = new FormData();
+        Object.keys(payload).forEach(key => {
+          if (payload[key] !== undefined) formData.append(key, payload[key]);
+        });
+        formData.append('profilePicture', fileInput.files[0]);
+        bodyData = formData;
+      }
+
+      let url = '/api/v1/parent/children';
+      let method = 'POST';
+
+      if (isEditing && selectedChild) {
+        url = `/api/v1/parent/children/${selectedChild.id}`;
+        method = 'PATCH';
+        selectEndpoint('PATCH', '/api/v1/parent/children/{childId}');
+      } else {
+        selectEndpoint('POST', '/api/v1/parent/children');
+      }
+
+      const res = await makeApiCall(method, url, bodyData);
+      if (res.ok) {
+        closeFormModal();
+        showToast(isEditing ? 'Child profile updated successfully' : 'Child added successfully');
+        await fetchChildren();
+        if (selectedChild) openChildProfile(selectedChild.id);
+      } else {
+        showToast('Operation failed', 'error');
+      }
+    }
+
+    // EXECUTE CUSTOM REQUEST FROM CONSOLE
+    async function executeCurrentRequest() {
+      const method = document.getElementById('reqMethod').value;
+      const url = document.getElementById('reqUrl').value;
+      let jsonBody = null;
+
+      if (['POST', 'PATCH', 'PUT'].includes(method)) {
+        const rawJson = document.getElementById('reqJsonBody').value;
+        if (rawJson.trim()) {
+          try { jsonBody = JSON.parse(rawJson); } catch (err) {
+            return showToast('Invalid JSON in payload box: ' + err.message, 'error');
+          }
+        }
+      }
+
+      const res = await makeApiCall(method, url, jsonBody);
+      if (res.ok) {
+        showToast(`Request ${method} ${url} succeeded`);
+        if (url.includes('/parent/children') && method === 'GET') {
+          fetchChildren();
+        }
+      }
+    }
+
+    // THEME TOGGLE
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    }
+  </script>
+</body>
+</html>

@@ -259,6 +259,22 @@ async function bootstrap() {
     res.sendFile(targetPath);
   });
 
+  expressApp.get(
+    ['/parent-children-ui', '/children-ui', '/parent-children', '/public/parent-children.html'],
+    (req: any, res: any) => {
+      const fs = require('fs');
+      const path = require('path');
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'public/parent-children.html'),
+        path.resolve(__dirname, '../public/parent-children.html'),
+        path.resolve(__dirname, '../../public/parent-children.html'),
+      ];
+      const targetPath =
+        possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+      res.sendFile(targetPath);
+    },
+  );
+
   expressApp.get('/', (req: any, res: any) => {
     res.redirect('/admin-dashboard');
   });
