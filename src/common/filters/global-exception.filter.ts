@@ -142,12 +142,19 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       },
     };
 
-    const mapped = prismaErrorMap[exception.code] ?? {
+    const mapped = prismaErrorMap[exception.code];
+    if (mapped) {
+      this.logger.error(`Prisma Error: ${exception.code}`, exception.meta);
+      return { success: false, ...mapped, timestamp, path };
+    }
+
+    return {
+      success: false,
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       message: 'Database error occurred',
       error: ExceptionCode.DATABASE_ERROR,
+      timestamp,
+      path,
     };
-
-    return { success: false, ...mapped, timestamp, path };
   }
 }

@@ -8,6 +8,7 @@ import { AdminPartnerModule } from './adminPartner/admin-partner.module';
 import { AdminRewardModule } from './adminreward/admin-reward.module';
 import { AdminUsersController } from './users/admin-users.controller';
 import { AdminUsersService } from './users/admin-users.service';
+import { CareManageModule } from './care-manage/care-manage.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AdminUsersService } from './users/admin-users.service';
     AdminActivityModule,
     AdminPartnerModule,
     AdminRewardModule,
+    CareManageModule,
   ],
   controllers: [DashboardController, AdminUsersController],
   providers: [DashboardService, AdminUsersService],

@@ -25,9 +25,8 @@ model Child {
   recurringActivities      RecurringActivity[]
   schoolSchedule           SchoolSchedule?
   careChildNotes           CareChildNote[]
-  careAssignments          CareModuleAssignment[]
-  savedCareModules         CareModuleSave[]
-  childSchedules           ChildSchedule[]
+
+  childSchedules ChildSchedule[]
 
   @@index([parentUserId])
 }

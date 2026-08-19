@@ -15,11 +15,6 @@ export enum CareModuleTab {
 }
 
 export class CareModuleQueryDto {
-  @ApiPropertyOptional({ enum: CareModuleAdminStatus })
-  @IsEnum(CareModuleAdminStatus)
-  @IsOptional()
-  adminStatus?: CareModuleAdminStatus;
-
   @ApiPropertyOptional({ enum: CareModuleCategory })
   @IsEnum(CareModuleCategory)
   @IsOptional()
@@ -31,8 +26,7 @@ export class CareModuleQueryDto {
   @IsString()
   @IsOptional()
   ageGroup?: string;
-
-  @ApiPropertyOptional({ enum: CareModuleTab, default: CareModuleTab.ALL })
+  @ApiHideProperty()
   @IsEnum(CareModuleTab)
   @IsOptional()
   tab?: CareModuleTab = CareModuleTab.ALL;
@@ -46,11 +40,6 @@ export class CareModuleQueryDto {
   @IsString()
   @IsOptional()
   childId?: string;
-
-  @ApiPropertyOptional({ description: 'Filter assignments by nanny user id' })
-  @IsString()
-  @IsOptional()
-  nannyUserId?: string;
 
   @ApiPropertyOptional({ default: 1 })
   @IsInt()
@@ -97,11 +86,6 @@ export class CareHomeQueryDto {
   @IsString()
   @IsOptional()
   childId?: string;
-
-  @ApiPropertyOptional({ description: 'Filter assignments by nanny user id' })
-  @IsString()
-  @IsOptional()
-  nannyUserId?: string;
 
   @ApiPropertyOptional({ default: 1 })
   @IsInt()
