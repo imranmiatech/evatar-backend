@@ -4,13 +4,14 @@ import { NotificationService } from './notification.service';
 import { NotificationQueryDto } from './dto/notification-query.dto';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { RegisterDeviceTokenDto } from './dto/register-device-token.dto';
+import { BroadcastNotificationDto } from './dto/broadcast-notification.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 
-@ApiTags('Mobile Notifications')
+@ApiTags('Notifications (Mobile & Web)')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('notifications')
@@ -78,6 +79,19 @@ export class NotificationController {
   ) {
     const userId = user.userId || user.id!;
     return this.notificationService.removeDeviceToken(userId, fcmToken);
+  }
+
+  @Post('broadcast')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN', 'PARTNER')
+  @ApiOperation({ summary: 'Web Admin & Partner Panel: Broadcast role-based notification to PARENT, NANNY, PARTNER, or ADMIN users' })
+  @ApiResponse({ status: 201, description: 'Role-based notification broadcasted.' })
+  async broadcastNotification(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: BroadcastNotificationDto,
+  ) {
+    const userId = user.userId || user.id!;
+    return this.notificationService.broadcastNotification(userId, dto);
   }
 
   @Post('send-test')

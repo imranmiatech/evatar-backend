@@ -22,12 +22,14 @@ import { NannyFeedbackModule } from './modules/nannyfeedback/nannyfeedback.modul
 import { CareModule } from './modules/care/care.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { RewardsModule } from './modules/rewards/rewards.module';
-import { SubscriptionModule } from './modules/subscription/subscription.module';
+import { MembershipModule } from './modules/membership/membership.module';
 import { ScheduleModule } from './modules/parent/schedule/schedule.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { PartnerModule } from './modules/partner/partner.module';
 import { ManageSystemModule } from './modules/manageSystem/manage-system.module';
 import { MyOfferModule } from './modules/myoffer/my-offer.module';
+import { DocumentModule } from './modules/document/document.module';
+import { PaymentModule } from './modules/payment/payment.module';
 
 @Module({
   imports: [
@@ -56,8 +58,10 @@ import { MyOfferModule } from './modules/myoffer/my-offer.module';
     CareModule,
     ProfileModule,
     RewardsModule,
-    SubscriptionModule,
+    MembershipModule,
     NotificationModule,
+    DocumentModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,8 +1,19 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
-export class AddSubscriptionPaymentMethodDto {
-  @ApiProperty({ example: 'Mastercard', description: 'Card brand (e.g. Mastercard, Visa)' })
+export class AddMembershipPaymentMethodDto {
+  @ApiProperty({
+    example: 'Mastercard',
+    description: 'Card brand (e.g. Mastercard, Visa)',
+  })
   @IsString()
   @IsNotEmpty()
   brand: string;
@@ -23,7 +34,10 @@ export class AddSubscriptionPaymentMethodDto {
   @Min(2024)
   expYear: number;
 
-  @ApiPropertyOptional({ example: 'John Doe', description: 'Cardholder name as on card' })
+  @ApiPropertyOptional({
+    example: 'John Doe',
+    description: 'Cardholder name as on card',
+  })
   @IsString()
   @IsOptional()
   cardholderName?: string;

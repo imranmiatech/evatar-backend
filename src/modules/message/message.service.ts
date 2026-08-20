@@ -32,6 +32,10 @@ const messageInclude = {
   },
 } satisfies Prisma.ChatMessageInclude;
 
+type ChatMessageWithSender = Prisma.ChatMessageGetPayload<{
+  include: typeof messageInclude;
+}>;
+
 type ConversationWithLatestMessage = Prisma.ConversationGetPayload<{
   include: ReturnType<MessageService['conversationInclude']>;
 }>;
@@ -155,12 +159,6 @@ export class MessageService {
   async getMessages(userId: string, conversationId: string) {
     await this.assertParticipant(userId, conversationId);
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { preferredLanguage: true },
-    });
-    const recipientLang = user?.preferredLanguage || 'en';
-
     const messages = await this.prisma.chatMessage.findMany({
       where: { conversationId },
       include: messageInclude,
@@ -170,19 +168,7 @@ export class MessageService {
     await this.markAsRead(userId, conversationId);
 
     const messagesWithTranslation = await Promise.all(
-      messages.map(async (msg) => {
-        let translatedMessage = msg.message;
-        if (msg.message) {
-          translatedMessage = (await this.languageService.translateAsync(
-            msg.message,
-            recipientLang as any,
-          )) as string;
-        }
-        return {
-          ...msg,
-          translatedMessage: translatedMessage ?? msg.message,
-        };
-      }),
+      messages.map((msg) => this.formatMessageForUser(userId, msg)),
     );
 
     return { success: true, data: messagesWithTranslation };
@@ -263,6 +249,35 @@ export class MessageService {
     return { success: true, message: 'Conversation marked as read' };
   }
 
+  async formatMessageForUser(
+    userId: string,
+    message: ChatMessageWithSender,
+    language?: string | null,
+  ) {
+    const resolvedLanguage = language ?? (await this.userPreferredLanguage(userId));
+    return this.formatMessageForLanguage(message, resolvedLanguage);
+  }
+
+  async formatMessageForLanguage(
+    message: ChatMessageWithSender,
+    language?: string | null,
+  ) {
+    const normalizedLanguage = this.languageService.normalizeLanguage(language);
+    let translatedMessage = message.message;
+
+    if (message.message) {
+      translatedMessage = (await this.languageService.translateAsync(
+        message.message,
+        normalizedLanguage,
+      )) as string;
+    }
+
+    return {
+      ...message,
+      translatedMessage: translatedMessage ?? message.message,
+    };
+  }
+
   async getParticipantUserIds(conversationId: string) {
     const participants = await this.prisma.conversationParticipant.findMany({
       where: { conversationId },
@@ -341,20 +356,10 @@ export class MessageService {
     let formattedLatestMessage: any = latestMessage ?? null;
 
     if (latestMessage?.message) {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { preferredLanguage: true },
-      });
-      const recipientLang = user?.preferredLanguage || 'en';
-      const translated = (await this.languageService.translateAsync(
-        latestMessage.message,
-        recipientLang as any,
-      )) as string;
-
-      formattedLatestMessage = {
-        ...latestMessage,
-        translatedMessage: translated ?? latestMessage.message,
-      };
+      formattedLatestMessage = await this.formatMessageForUser(
+        userId,
+        latestMessage,
+      );
     }
 
     return {
@@ -362,5 +367,14 @@ export class MessageService {
       latestMessage: formattedLatestMessage,
       unreadCount,
     };
+  }
+
+  private async userPreferredLanguage(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferredLanguage: true },
+    });
+
+    return user?.preferredLanguage;
   }
 }

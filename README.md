@@ -87,6 +87,62 @@ check these items first:
 
 The Cloudinary provider intentionally does not log API keys or API secrets. Startup only logs the configured cloud name.
 
+## Translation
+
+The backend can automatically translate JSON API responses for these supported
+languages:
+
+- `en` English
+- `ar` Arabic
+- `fil` Filipino
+- `si` Sinhala
+
+Recommended production provider: Google Cloud Translation API.
+
+Set this environment variable in the backend:
+
+```bash
+GOOGLE_TRANSLATE_API_KEY=
+```
+
+Language selection order for each request:
+
+- `x-language` header
+- authenticated user's `preferredLanguage`
+- default `en`
+
+Notes:
+
+- Default language remains English.
+- The backend now uses `GOOGLE_TRANSLATE_API_KEY` as the official translation
+  provider path.
+- If `GOOGLE_TRANSLATE_API_KEY` is missing, translation is skipped and the
+  original text is returned.
+
+## Notifications
+
+For real FCM push notifications, configure one of these official Firebase Admin
+credential paths:
+
+```bash
+FIREBASE_SERVICE_ACCOUNT_JSON=
+FIREBASE_PROJECT_ID=
+```
+
+Or:
+
+```bash
+GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
+FIREBASE_PROJECT_ID=
+```
+
+Notes:
+
+- Socket connections for `/notifications` now require a valid JWT token.
+- Socket clients can send their selected language during connection and later
+  update it with a `setLanguage` socket event.
+- Invalid FCM device tokens are automatically removed after push failures.
+
 ## Messages
 
 Parent, nanny, and family member chat is handled by the separate `MessageModule`.

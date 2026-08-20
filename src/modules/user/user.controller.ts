@@ -29,24 +29,6 @@ export class UserController {
     return this.userService.getUserById(user.userId);
   }
 
-  @Get('me/document')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Get current logged-in user documents (NID/Passport)' })
-  @ApiResponse({ status: 200, description: 'Return the current user documents.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  getDocuments(@CurrentUser() user: CurrentUserPayload) {
-    return this.userService.getUserDocuments(user.userId);
-  }
-
-  @Get('nannies-documents')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Get documents of all nannies assigned to the logged-in parent\'s children' })
-  @ApiResponse({ status: 200, description: 'Return grouped documents of assigned nannies.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  getAssignedNanniesDocuments(@CurrentUser() user: CurrentUserPayload) {
-    return this.userService.getAssignedNanniesDocuments(user.userId);
-  }
-
   @Patch('me')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update current user profile' })

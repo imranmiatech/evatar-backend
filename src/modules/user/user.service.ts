@@ -147,79 +147,17 @@ export class UserService {
 
   async deleteUser(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    
+
     return this.prisma.user.delete({
       where: { id },
       select: {
         id: true,
         email: true,
-      }
-    });
-  }
-
-  async getUserDocuments(userId: string) {
-    const documents = await this.prisma.kycDocument.findMany({
-      where: {
-        kycVerification: {
-          userId,
-        },
       },
     });
-    return {
-      success: true,
-      data: documents,
-    };
-  }
-
-  async getAssignedNanniesDocuments(parentId: string) {
-    // Find all unique nannies linked to children of this parent
-    const links = await this.prisma.nannyChildLink.findMany({
-      where: {
-        child: {
-          parentUserId: parentId,
-        },
-      },
-      select: {
-        nannyUserId: true,
-      },
-    });
-
-    const uniqueNannyIds = [...new Set(links.map(link => link.nannyUserId))];
-
-    if (uniqueNannyIds.length === 0) {
-      return { success: true, data: [] };
-    }
-
-    // Fetch nannies and their KYC documents
-    const nannies = await this.prisma.user.findMany({
-      where: {
-        id: { in: uniqueNannyIds },
-      },
-      select: {
-        id: true,
-        fullName: true,
-        profilePictureUrl: true,
-        kycVerifications: {
-          include: {
-            documents: true,
-          },
-        },
-      },
-    });
-
-    return {
-      success: true,
-      data: nannies.map(nanny => ({
-        nannyId: nanny.id,
-        nannyName: nanny.fullName,
-        nannyProfilePicture: nanny.profilePictureUrl,
-        documents: nanny.kycVerifications.flatMap(
-          (verification) => verification.documents,
-        ),
-      })),
-    };
   }
 }

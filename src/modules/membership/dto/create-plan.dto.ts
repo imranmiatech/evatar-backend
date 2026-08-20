@@ -1,14 +1,29 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { SubscriptionInterval } from '@prisma/client';
+import {
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
-export class CreateSubscriptionPlanDto {
-  @ApiProperty({ example: '2 child Family Membership', description: 'Name of the subscription plan' })
+export class CreateMembershipPlanDto {
+  @ApiProperty({
+    example: '2 child Family Membership',
+    description: 'Name of the membership plan',
+  })
   @IsString()
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ example: 2, description: 'Maximum number of children covered' })
+  @ApiProperty({
+    example: 2,
+    description: 'Maximum number of children covered',
+  })
   @IsInt()
   @Min(1)
   maxChildren: number;
@@ -23,24 +38,28 @@ export class CreateSubscriptionPlanDto {
   @IsOptional()
   currency?: string;
 
-  @ApiProperty({ enum: SubscriptionInterval, default: SubscriptionInterval.MONTHLY })
+  @ApiProperty({
+    enum: SubscriptionInterval,
+    default: SubscriptionInterval.MONTHLY,
+  })
   @IsEnum(SubscriptionInterval)
   @IsOptional()
   interval?: SubscriptionInterval;
 
-  @ApiPropertyOptional({ example: 'Save AUD 19 by choosing annual billing.' })
+  @ApiPropertyOptional({
+    example: 'Save AED 798 by choosing annual billing.',
+  })
   @IsString()
   @IsOptional()
   savingsText?: string;
 
   @ApiProperty({
+    isArray: true,
     example: [
       'Manage 2 child maximum at a time',
       'Customized daily routines for every child',
       'Nanny insights grounded in real-life experiences',
-      'Unique bedtime stories crafted from their daily adventures',
     ],
-    isArray: true,
   })
   @IsArray()
   @IsString({ each: true })

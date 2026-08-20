@@ -70,6 +70,8 @@ model User {
   userSubscription              UserSubscription?
   notifications                 Notification[]
   deviceTokens                  UserDeviceToken[]
+  sentNannyTips                 NannyTip[]                  @relation("SentNannyTips")
+  receivedNannyTips             NannyTip[]                  @relation("ReceivedNannyTips")
 
   @@index([role])
   @@index([verificationStatus])

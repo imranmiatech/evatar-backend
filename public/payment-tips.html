@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nanny Appreciation & Tips — Evaturner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #f4f6f8;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --primary: #007a78;
+      --primary-hover: #006361;
+      --border-color: #e2e8f0;
+      --pill-border: #cbd5e1;
+      --pill-active-bg: #e6f4f4;
+      --pill-active-border: #007a78;
+      --modal-overlay: rgba(15, 23, 42, 0.6);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
+    body { background: var(--bg-color); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+
+    .mobile-frame {
+      width: 100%; max-width: 410px; background: var(--card-bg); border-radius: 28px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.08); overflow: hidden; display: flex; flex-direction: column;
+      border: 1px solid var(--border-color); position: relative; min-height: 760px;
+    }
+
+    .status-bar {
+      padding: 14px 20px 8px; display: flex; justify-content: space-between; align-items: center;
+      font-size: 13px; font-weight: 600; color: var(--text-main);
+    }
+
+    .app-header {
+      padding: 12px 20px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .app-header-title { font-size: 17px; font-weight: 700; color: var(--text-main); }
+    .close-icon { cursor: pointer; color: var(--text-muted); width: 22px; height: 22px; }
+
+    .auth-banner {
+      background: #f8fafc; padding: 10px 16px; font-size: 12px; border-bottom: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .status-badge {
+      background: #e2e8f0; color: #475569; padding: 3px 8px; border-radius: 12px; font-weight: 600; font-size: 11px;
+    }
+    .status-badge.connected { background: #dcfce7; color: #166534; }
+
+    .content-container { padding: 20px; flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+
+    .celebrate-card {
+      background: #ffffff; border-radius: 20px; padding: 20px; border: 1px solid #edf2f7;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.03); margin-bottom: 20px;
+    }
+
+    .celebrate-title { font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; }
+    .celebrate-text { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px; }
+
+    .nanny-profile-box {
+      display: flex; align-items: center; gap: 12px; background: #f8fafc; padding: 12px 14px;
+      border-radius: 14px; margin-bottom: 20px; border: 1px solid var(--border-color);
+    }
+    .nanny-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: #007a78; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
+    .nanny-info-name { font-size: 14px; font-weight: 700; color: var(--text-main); }
+    .nanny-info-role { font-size: 12px; color: var(--text-muted); }
+
+    .section-label { font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 12px; }
+
+    .pills-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 24px; }
+    .pill-btn {
+      padding: 12px 6px; border-radius: 24px; border: 1px solid var(--border-color); background: #ffffff;
+      font-size: 13px; font-weight: 600; color: var(--text-main); text-align: center; cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .pill-btn:hover { border-color: var(--primary); }
+    .pill-btn.active { background: var(--pill-active-bg); border-color: var(--primary); color: var(--primary); font-weight: 700; }
+
+    .btn-main {
+      width: 100%; padding: 15px; background: var(--primary); color: #ffffff; border: none;
+      border-radius: 28px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.2s;
+      display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 12px;
+    }
+    .btn-main:hover { background: var(--primary-hover); }
+
+    .btn-secondary {
+      width: 100%; padding: 12px; background: transparent; color: var(--text-muted); border: none;
+      font-size: 14px; font-weight: 600; cursor: pointer; text-align: center;
+    }
+
+    .result-box {
+      background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; padding: 14px; margin-top: 16px;
+      font-size: 12px; color: #166534; display: none; word-break: break-all;
+    }
+
+    /* Modal for Custom Amount */
+    .modal-overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--modal-overlay);
+      display: none; justify-content: center; align-items: center; padding: 20px; z-index: 100;
+    }
+    .modal-card {
+      background: #ffffff; border-radius: 24px; padding: 24px; width: 100%; max-width: 350px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: popIn 0.2s ease-out; position: relative;
+    }
+    @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .modal-title { font-size: 18px; font-weight: 700; color: var(--text-main); }
+    .modal-close { cursor: pointer; font-size: 18px; color: var(--text-muted); font-weight: 700; }
+
+    .input-field {
+      width: 100%; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--primary);
+      font-size: 15px; color: var(--text-main); margin-bottom: 20px; outline: none; background: #f8fafc;
+    }
+
+    .modal-actions { display: flex; gap: 12px; }
+    .btn-modal-cancel {
+      flex: 1; padding: 12px; border-radius: 24px; border: 1px solid var(--border-color); background: #ffffff;
+      font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; text-align: center;
+    }
+    .btn-modal-submit {
+      flex: 1.5; padding: 12px; border-radius: 24px; border: none; background: var(--primary);
+      font-size: 14px; font-weight: 700; color: #ffffff; cursor: pointer; text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-frame">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>📶 🔋</span>
+    </div>
+
+    <div class="app-header">
+      <span class="app-header-title">Send Appreciation</span>
+      <span class="close-icon" onclick="alert('Closed')">✕</span>
+    </div>
+
+    <div class="auth-banner">
+      <span id="authStatusText">Checking Auth...</span>
+      <span id="authStatusBadge" class="status-badge">Connecting</span>
+    </div>
+
+    <div class="content-container">
+
+      <!-- Login Box with Auto Token Save -->
+      <div class="celebrate-card" style="margin-bottom:16px; padding:16px; background:#f8fafc;">
+        <div style="font-size:13px; font-weight:700; color:var(--text-main); margin-bottom:10px;">🔐 Sign In to Auto-Save Token</div>
+        <form onsubmit="event.preventDefault(); handleLogin();" style="display:flex; flex-direction:column; gap:8px;">
+          <input type="email" id="loginEmail" autocomplete="email" placeholder="Email" value="p@e.com" style="width:100%; padding:10px; border-radius:10px; border:1px solid var(--border-color); font-size:13px; outline:none;">
+          <input type="password" id="loginPassword" autocomplete="current-password" placeholder="Password" value="123456" style="width:100%; padding:10px; border-radius:10px; border:1px solid var(--border-color); font-size:13px; outline:none;">
+          <button type="submit" style="padding:10px; background:var(--primary); color:#fff; border:none; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer;">
+            Sign In & Save Token
+          </button>
+        </form>
+        <div id="tokenDisplay" style="margin-top:8px; font-size:11px; color:var(--text-muted); word-break:break-all;"></div>
+      </div>
+
+      <!-- Figma Screen 1: Celebrate a Great Week Card -->
+      <div class="celebrate-card">
+        <h2 class="celebrate-title">Celebrate a great week!</h2>
+        <p class="celebrate-text">
+          <span id="nannyNameSpan">Deepa</span> maintained a Care Score above 90% this week and successfully completed two care modules. Would you like to send a small token of appreciation for her dedication?
+        </p>
+
+        <div class="nanny-profile-box">
+          <div class="nanny-avatar" id="nannyAvatarBox">D</div>
+          <div>
+            <div class="nanny-info-name" id="nannyFullName">Deepa Kumari</div>
+            <div class="nanny-info-role">Assigned Nanny</div>
+          </div>
+        </div>
+
+        <div class="section-label">Want to send a thank you?</div>
+
+        <div class="pills-row">
+          <div class="pill-btn" onclick="selectPill(20, this)">20 AED</div>
+          <div class="pill-btn" onclick="selectPill(25, this)">25 AED</div>
+          <div class="pill-btn active" onclick="selectPill(30, this)">30 AED</div>
+          <div class="pill-btn" onclick="openCustomModal(this)">Custom</div>
+        </div>
+
+        <button class="btn-main" onclick="submitTipIntent()">
+          Send appreciation
+        </button>
+
+        <button class="btn-secondary" onclick="alert('Maybe later clicked')">
+          Maybe later
+        </button>
+
+        <div id="resultBox" class="result-box"></div>
+      </div>
+    </div>
+
+    <!-- Modal for Custom Amount (Figma Screen 2) -->
+    <div id="customModal" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span class="modal-title">Input amount</span>
+          <span class="modal-close" onclick="closeCustomModal()">✕</span>
+        </div>
+
+        <input type="number" id="customAmountInput" class="input-field" placeholder="e:g: 50 AED" min="1" step="1" value="50">
+
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" onclick="closeCustomModal()">Cancel</button>
+          <button class="btn-modal-submit" onclick="confirmCustomAmount()">Send appreciation</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const isLiveServer = ['5500', '5501', '8080', '3000'].includes(window.location.port);
+    const API_BASE = isLiveServer
+      ? 'http://localhost:5000/api/v1'
+      : `${window.location.protocol}//${window.location.host}/api/v1`;
+    let selectedAmount = 30;
+    let selectedNannyId = 'nanny-1';
+    let currentPillElement = null;
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      await handleLogin();
+    });
+
+    async function handleLogin() {
+      let email = document.getElementById('loginEmail').value.trim() || 'p@e.com';
+      let password = document.getElementById('loginPassword').value.trim() || '123456';
+
+      try {
+        let res = await fetch(`${API_BASE}/auth/signin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        let json = await res.json();
+        let token = json.data?.accessToken || json.accessToken;
+
+        if (token) {
+          localStorage.setItem('accessToken', token);
+          document.getElementById('authStatusBadge').innerText = 'Connected';
+          document.getElementById('authStatusBadge').className = 'status-badge connected';
+          document.getElementById('authStatusText').innerText = '🟢 Token Saved (' + email + ')';
+          document.getElementById('tokenDisplay').innerText = 'JWT Token: ' + token.substring(0, 35) + '...';
+          await loadNanniesForTips();
+        } else {
+          document.getElementById('tokenDisplay').innerText = 'Login Failed: ' + (json.message || 'Check credentials');
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        document.getElementById('tokenDisplay').innerText = 'Login error. Ensure dev server is running.';
+      }
+    }
+
+    function getHeaders() {
+      const token = localStorage.getItem('accessToken') || '';
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+    }
+
+    async function loadNanniesForTips() {
+      try {
+        const res = await fetch(`${API_BASE}/payment/tips/nannies`, { headers: getHeaders() });
+        const json = await res.json();
+        if (json.data && json.data.nannies && json.data.nannies.length > 0) {
+          const nanny = json.data.nannies[0];
+          selectedNannyId = nanny.nannyUserId;
+          document.getElementById('nannyFullName').innerText = nanny.nannyName;
+          document.getElementById('nannyNameSpan').innerText = nanny.nannyName.split(' ')[0];
+          document.getElementById('nannyAvatarBox').innerText = nanny.nannyName.charAt(0);
+        }
+      } catch (err) {
+        console.error('Failed to load nannies for tips:', err);
+      }
+    }
+
+    function selectPill(amount, el) {
+      selectedAmount = amount;
+      document.querySelectorAll('.pill-btn').forEach(p => p.classList.remove('active'));
+      if (el) el.classList.add('active');
+    }
+
+    function openCustomModal(el) {
+      currentPillElement = el;
+      document.getElementById('customModal').style.display = 'flex';
+    }
+
+    function closeCustomModal() {
+      document.getElementById('customModal').style.display = 'none';
+    }
+
+    function confirmCustomAmount() {
+      const val = parseFloat(document.getElementById('customAmountInput').value);
+      if (!val || val < 1) {
+        alert('Please enter a valid amount (at least 1 AED)');
+        return;
+      }
+      selectedAmount = val;
+      if (currentPillElement) {
+        document.querySelectorAll('.pill-btn').forEach(p => p.classList.remove('active'));
+        currentPillElement.classList.add('active');
+        currentPillElement.innerText = `${val} AED`;
+      }
+      closeCustomModal();
+      submitTipIntent();
+    }
+
+    async function submitTipIntent() {
+      const resultBox = document.getElementById('resultBox');
+      resultBox.style.display = 'block';
+      resultBox.innerHTML = '⏳ Creating Stripe PaymentIntent...';
+
+      try {
+        const res = await fetch(`${API_BASE}/payment/tips/create-intent`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({
+            nannyUserId: selectedNannyId,
+            amount: selectedAmount,
+            currency: 'AED',
+            note: 'Appreciation tip from parent'
+          })
+        });
+
+        const json = await res.json();
+        if (json.success) {
+          resultBox.className = 'result-box';
+          resultBox.innerHTML = `
+            <strong>🎉 Stripe PaymentIntent Created!</strong><br>
+            • <strong>Amount:</strong> ${json.data.amount} ${json.data.currency}<br>
+            • <strong>Nanny:</strong> ${json.data.nannyName}<br>
+            • <strong>PaymentIntent ID:</strong> <code>${json.data.paymentIntentId}</code><br>
+            • <strong>Client Secret:</strong> <code>${json.data.clientSecret.substring(0, 25)}...</code><br><br>
+            <button style="padding:8px 14px; background:#007a78; color:#fff; border:none; border-radius:12px; cursor:pointer; font-weight:700;" onclick="confirmPayment('${json.data.tipId}')">
+              Simulate Successful Payment & Notify Nanny
+            </button>
+          `;
+        } else {
+          resultBox.innerHTML = `<span style="color:#dc2626">❌ Error: ${json.message}</span>`;
+        }
+      } catch (err) {
+        resultBox.innerHTML = `<span style="color:#dc2626">❌ Server error: ${err.message}</span>`;
+      }
+    }
+
+    async function confirmPayment(tipId) {
+      const resultBox = document.getElementById('resultBox');
+      resultBox.innerHTML = '⏳ Confirming payment & notifying nanny...';
+
+      try {
+        const res = await fetch(`${API_BASE}/payment/tips/${tipId}/confirm`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ paymentIntentId: `pi_test_${Date.now()}` })
+        });
+
+        const json = await res.json();
+        if (json.success) {
+          resultBox.innerHTML = `
+            <strong>✅ Tip Payment Completed & Nanny Notified!</strong><br>
+            • <strong>Tip ID:</strong> ${json.data.id}<br>
+            • <strong>Status:</strong> ${json.data.status}<br>
+            • Real-time notification sent to Nanny screen!
+          `;
+        }
+      } catch (err) {
+        resultBox.innerHTML = `<span style="color:#dc2626">❌ Confirmation failed: ${err.message}</span>`;
+      }
+    }
+  </script>
+</body>
+</html>

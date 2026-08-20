@@ -25,6 +25,7 @@ model Child {
   recurringActivities      RecurringActivity[]
   schoolSchedule           SchoolSchedule?
   careChildNotes           CareChildNote[]
+  nannyTips                NannyTip[]
 
   childSchedules ChildSchedule[]
 

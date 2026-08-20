@@ -28,12 +28,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         userId: payload.sub,
         role: payload.role,
         status: payload.status ?? null,
+        preferredLanguage:
+          typeof payload.preferredLanguage === 'string'
+            ? payload.preferredLanguage
+            : null,
       };
     }
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, role: true, status: true },
+      select: {
+        id: true,
+        role: true,
+        status: true,
+        preferredLanguage: true,
+      },
     });
     if (!user) {
       throw new UnauthorizedException();
@@ -43,6 +52,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       userId: user.id,
       role: user.role,
       status: user.status,
+      preferredLanguage: user.preferredLanguage,
     };
   }
 }

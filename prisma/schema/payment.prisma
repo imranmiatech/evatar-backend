@@ -1,0 +1,22 @@
+model NannyTip {
+  id              String            @id @default(uuid())
+  senderUserId    String
+  nannyUserId     String
+  childId         String?
+  amount          Float
+  currency        String            @default("AED")
+  paymentIntentId String?           @unique
+  status          TransactionStatus @default(PENDING)
+  note            String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  sender User   @relation("SentNannyTips", fields: [senderUserId], references: [id], onDelete: Cascade)
+  nanny  User   @relation("ReceivedNannyTips", fields: [nannyUserId], references: [id], onDelete: Cascade)
+  child  Child? @relation(fields: [childId], references: [id], onDelete: SetNull)
+
+  @@index([senderUserId])
+  @@index([nannyUserId])
+  @@index([status])
+  @@map("nanny_tips")
+}

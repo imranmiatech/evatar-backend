@@ -113,6 +113,22 @@ async function bootstrap() {
     res.sendFile(targetPath);
   });
 
+  expressApp.get(
+    ['/notification-test-ui', '/notification-lab', '/public/notification-test.html'],
+    (req: any, res: any) => {
+      const fs = require('fs');
+      const path = require('path');
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'public/notification-test.html'),
+        path.resolve(__dirname, '../public/notification-test.html'),
+        path.resolve(__dirname, '../../public/notification-test.html'),
+      ];
+      const targetPath =
+        possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+      res.sendFile(targetPath);
+    },
+  );
+
   expressApp.get('/messages-ui', (req: any, res: any) => {
     const fs = require('fs');
     const path = require('path');
@@ -268,6 +284,38 @@ async function bootstrap() {
         path.resolve(process.cwd(), 'public/parent-children.html'),
         path.resolve(__dirname, '../public/parent-children.html'),
         path.resolve(__dirname, '../../public/parent-children.html'),
+      ];
+      const targetPath =
+        possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+      res.sendFile(targetPath);
+    },
+  );
+
+  expressApp.get(
+    ['/documents-ui', '/documents', '/public/documents.html'],
+    (req: any, res: any) => {
+      const fs = require('fs');
+      const path = require('path');
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'public/documents.html'),
+        path.resolve(__dirname, '../public/documents.html'),
+        path.resolve(__dirname, '../../public/documents.html'),
+      ];
+      const targetPath =
+        possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+      res.sendFile(targetPath);
+    },
+  );
+
+  expressApp.get(
+    ['/payment-tips-ui', '/payment-tips', '/public/payment-tips.html'],
+    (req: any, res: any) => {
+      const fs = require('fs');
+      const path = require('path');
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'public/payment-tips.html'),
+        path.resolve(__dirname, '../public/payment-tips.html'),
+        path.resolve(__dirname, '../../public/payment-tips.html'),
       ];
       const targetPath =
         possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];

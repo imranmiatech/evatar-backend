@@ -9,5 +9,6 @@ import { SumsubService } from './sumsub.service';
   imports: [PrismaModule, StorageModule],
   controllers: [KycController],
   providers: [KycService, SumsubService],
+  exports: [KycService, SumsubService],
 })
 export class KycModule {}

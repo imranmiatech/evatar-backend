@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationQueryDto, NotificationGroupFilter } from './dto/notification-query.dto';
 import { CreateNotificationDto } from './dto/create-notification.dto';
@@ -6,6 +7,10 @@ import { RegisterDeviceTokenDto } from './dto/register-device-token.dto';
 import { groupNotifications } from './utils/notification-grouping.util';
 import { NotificationGateway } from './gateways/notification.gateway';
 import { FirebaseFcmService } from './services/firebase-fcm.service';
+import { LanguageService } from '../language/language.service';
+import { BroadcastNotificationDto } from './dto/broadcast-notification.dto';
+
+type StoredNotification = Prisma.NotificationGetPayload<Record<string, never>>;
 
 @Injectable()
 export class NotificationService {
@@ -13,6 +18,7 @@ export class NotificationService {
     private readonly prisma: PrismaService,
     private readonly notificationGateway: NotificationGateway,
     private readonly firebaseFcmService: FirebaseFcmService,
+    private readonly languageService: LanguageService,
   ) {}
 
   /**
@@ -75,7 +81,10 @@ export class NotificationService {
    * Create System Notification, push via Socket.io & FCM Push
    */
   async createNotification(dto: CreateNotificationDto) {
-    const user = await this.prisma.user.findUnique({ where: { id: dto.userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: dto.userId },
+      select: { id: true, preferredLanguage: true },
+    });
     if (!user) {
       throw new NotFoundException('Target user not found.');
     }
@@ -98,11 +107,9 @@ export class NotificationService {
       where: { userId: dto.userId, isRead: false },
     });
 
-    // 1. Emit Socket.io event for real-time in-app UI update
-    this.notificationGateway.emitNotificationToUser(dto.userId, notification);
+    await this.emitLocalizedNotification(dto.userId, notification);
     this.notificationGateway.emitUnreadCountToUser(dto.userId, unreadCount);
 
-    // 2. Dispatch FCM Push Notification to user device tokens
     const deviceTokens = await this.prisma.userDeviceToken.findMany({
       where: { userId: dto.userId },
       select: { fcmToken: true },
@@ -110,16 +117,26 @@ export class NotificationService {
 
     if (deviceTokens.length > 0) {
       const tokens = deviceTokens.map((t) => t.fcmToken);
-      await this.firebaseFcmService.sendPushNotification({
+      const localizedNotification = await this.formatNotificationForLanguage(
+        notification,
+        user.preferredLanguage,
+      );
+      const pushResult = await this.firebaseFcmService.sendPushNotification({
         tokens,
-        title: dto.title,
-        body: dto.message,
+        title: localizedNotification.title,
+        body: localizedNotification.message,
         data: {
           notificationId: notification.id,
           type: dto.type,
           actionUrl: dto.actionUrl || '',
         },
       });
+
+      if (pushResult.invalidTokens.length > 0) {
+        await this.prisma.userDeviceToken.deleteMany({
+          where: { fcmToken: { in: pushResult.invalidTokens } },
+        });
+      }
     }
 
     return notification;
@@ -147,6 +164,7 @@ export class NotificationService {
     });
 
     this.notificationGateway.emitUnreadCountToUser(userId, unreadCount);
+    this.notificationGateway.emitNotificationReadToUser(userId, notificationId);
 
     return {
       message: 'Notification marked as read',
@@ -165,6 +183,7 @@ export class NotificationService {
     });
 
     this.notificationGateway.emitUnreadCountToUser(userId, 0);
+    this.notificationGateway.emitAllNotificationsReadToUser(userId);
 
     return {
       message: 'All notifications marked as read',
@@ -193,6 +212,7 @@ export class NotificationService {
     });
 
     this.notificationGateway.emitUnreadCountToUser(userId, unreadCount);
+    this.notificationGateway.emitNotificationDeletedToUser(userId, notificationId);
 
     return {
       message: 'Notification deleted successfully',
@@ -240,6 +260,132 @@ export class NotificationService {
 
     return {
       message: 'Device token removed successfully',
+    };
+  }
+
+  /**
+   * Role-based Broadcast Notification for Web Admin & Partner Panel
+   */
+  async broadcastNotification(
+    senderUserId: string,
+    dto: BroadcastNotificationDto,
+  ) {
+    const sender = await this.prisma.user.findUnique({
+      where: { id: senderUserId },
+      select: { id: true, role: true, fullName: true },
+    });
+
+    const targetRoles = dto.targetRoles?.length
+      ? dto.targetRoles
+      : [
+          UserRole.PARENT,
+          UserRole.NANNY,
+          UserRole.PARTNER,
+          UserRole.ADMIN,
+        ];
+
+    const targetUsers = await this.prisma.user.findMany({
+      where: {
+        role: { in: targetRoles },
+        status: 'ACTIVE',
+      },
+      select: { id: true },
+    });
+
+    const notifications = await Promise.all(
+      targetUsers.map((user) =>
+        this.createNotification({
+          userId: user.id,
+          type: dto.type,
+          title: dto.title,
+          message: dto.message,
+          iconType: dto.iconType ?? 'BELL',
+          avatarUrl: dto.avatarUrl,
+          actionText: dto.actionText,
+          actionUrl: dto.actionUrl,
+          metadata: {
+            sentByUserId: senderUserId,
+            sentByRole: sender?.role,
+            sentByName: sender?.fullName,
+          },
+        }),
+      ),
+    );
+
+    return {
+      success: true,
+      message: `Notification broadcasted to ${notifications.length} users across targeted roles`,
+      recipientCount: notifications.length,
+      targetRoles,
+    };
+  }
+
+  private async emitLocalizedNotification(
+    userId: string,
+    notification: StoredNotification,
+  ) {
+    const sockets = await this.notificationGateway.fetchUserSockets(userId);
+
+    if (sockets.length === 0) {
+      return;
+    }
+
+    const fallbackNotification = await this.formatNotificationForUser(
+      userId,
+      notification,
+    );
+
+    await Promise.all(
+      sockets.map(async (socket) => {
+        const socketLanguage = this.notificationGateway.socketLanguage(socket);
+        const localizedNotification = socketLanguage
+          ? await this.formatNotificationForLanguage(notification, socketLanguage)
+          : fallbackNotification;
+
+        this.notificationGateway.server
+          .to(socket.id)
+          .emit('notification:new', localizedNotification);
+      }),
+    );
+  }
+
+  private async formatNotificationForUser(
+    userId: string,
+    notification: StoredNotification,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferredLanguage: true },
+    });
+
+    return this.formatNotificationForLanguage(
+      notification,
+      user?.preferredLanguage,
+    );
+  }
+
+  private async formatNotificationForLanguage(
+    notification: StoredNotification,
+    language?: string | null,
+  ) {
+    const normalizedLanguage = this.languageService.normalizeLanguage(language);
+
+    return {
+      ...notification,
+      title: (await this.languageService.translateAsync(
+        notification.title,
+        normalizedLanguage,
+      )) as string,
+      message: (await this.languageService.translateAsync(
+        notification.message,
+        normalizedLanguage,
+      )) as string,
+      actionText: notification.actionText
+        ? ((await this.languageService.translateAsync(
+            notification.actionText,
+            normalizedLanguage,
+          )) as string)
+        : notification.actionText,
     };
   }
 }

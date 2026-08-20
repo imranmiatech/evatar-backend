@@ -9,21 +9,25 @@ import {
 } from '@nestjs/websockets';
 import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
+import { LanguageService } from '../language/language.service';
 import { MessageService } from './message.service';
 
 type MessageSocket = Socket & {
   data: {
     userId?: string;
+    language?: string;
   };
 };
 
 type JoinUserPayload = {
   userId: string;
+  language?: string;
 };
 
 type JoinConversationPayload = {
   conversationId: string;
   userId: string;
+  language?: string;
 };
 
 type SendMessagePayload = {
@@ -32,6 +36,10 @@ type SendMessagePayload = {
   message?: string;
   attachmentUrl?: string;
   attachmentType?: string;
+};
+
+type SetLanguagePayload = {
+  language: string;
 };
 
 @WebSocketGateway({ cors: true, namespace: '/messages' })
@@ -44,6 +52,7 @@ export class MessageGateway
   constructor(
     private readonly messageService: MessageService,
     private readonly jwtService: JwtService,
+    private readonly languageService: LanguageService,
   ) {}
 
   async handleConnection(client: MessageSocket) {
@@ -54,11 +63,19 @@ export class MessageGateway
           await this.jwtService.verifyAsync<Record<string, unknown>>(token);
         const userId = this.jwtUserId(payload);
         this.setSocketUserId(client, userId);
+        this.setSocketLanguage(
+          client,
+          typeof payload.preferredLanguage === 'string'
+            ? payload.preferredLanguage
+            : this.socketHandshakeLanguage(client),
+        );
         void client.join(`user:${userId}`);
       } catch {
         client.disconnect(true);
         return;
       }
+    } else {
+      this.setSocketLanguage(client, this.socketHandshakeLanguage(client));
     }
 
     console.log(`Client connected to messages: ${client.id}`);
@@ -75,8 +92,12 @@ export class MessageGateway
   ) {
     const payload = this.joinUserPayload(data);
     const userId = this.socketUserId(client, payload.userId);
+    this.setSocketLanguage(client, payload.language ?? this.socketLanguage(client));
     void client.join(`user:${userId}`);
-    return { event: 'joinedUser', data: { userId } };
+    return {
+      event: 'joinedUser',
+      data: { userId, language: this.socketLanguage(client) },
+    };
   }
 
   @SubscribeMessage('joinConversation')
@@ -87,6 +108,7 @@ export class MessageGateway
     try {
       const payload = this.joinConversationPayload(data);
       const userId = this.socketUserId(client, payload.userId);
+      this.setSocketLanguage(client, payload.language ?? this.socketLanguage(client));
       await this.messageService.assertParticipant(
         userId,
         payload.conversationId,
@@ -94,11 +116,27 @@ export class MessageGateway
       void client.join(payload.conversationId);
       return {
         event: 'joinedConversation',
-        data: { conversationId: payload.conversationId },
+        data: {
+          conversationId: payload.conversationId,
+          language: this.socketLanguage(client),
+        },
       };
     } catch (error) {
       return { event: 'error', data: { message: this.errorMessage(error) } };
     }
+  }
+
+  @SubscribeMessage('setLanguage')
+  handleSetLanguage(
+    @MessageBody() data: unknown,
+    @ConnectedSocket() client: MessageSocket,
+  ) {
+    const payload = this.setLanguagePayload(data);
+    this.setSocketLanguage(client, payload.language);
+    return {
+      event: 'languageUpdated',
+      data: { language: this.socketLanguage(client) },
+    };
   }
 
   @SubscribeMessage('sendMessage')
@@ -120,21 +158,47 @@ export class MessageGateway
       );
 
       void client.join(payload.conversationId);
-      this.server
-        .to(payload.conversationId)
-        .emit('receiveMessage', response.data);
-
       const participantUserIds =
         await this.messageService.getParticipantUserIds(payload.conversationId);
+      const senderLanguage = this.socketLanguage(client);
+      const senderMessage = await this.messageService.formatMessageForUser(
+        senderId,
+        response.data,
+        senderLanguage,
+      );
 
-      participantUserIds.forEach((userId) => {
-        this.server.to(`user:${userId}`).emit('conversationUpdated', {
-          conversationId: payload.conversationId,
-          latestMessage: response.data,
-        });
-      });
+      await Promise.all(
+        participantUserIds.map(async (userId) => {
+          const sockets = await this.server.in(`user:${userId}`).fetchSockets();
+          const fallbackMessage = await this.messageService.formatMessageForUser(
+            userId,
+            response.data,
+          );
 
-      return { event: 'messageSent', data: response.data };
+          await Promise.all(
+            sockets.map(async (socket) => {
+              const socketLanguage = this.remoteSocketLanguage(socket);
+              const localizedMessage = socketLanguage
+                ? await this.messageService.formatMessageForLanguage(
+                    response.data,
+                    socketLanguage,
+                  )
+                : fallbackMessage;
+
+              if (socket.rooms.has(payload.conversationId)) {
+                this.server.to(socket.id).emit('receiveMessage', localizedMessage);
+              }
+
+              this.server.to(socket.id).emit('conversationUpdated', {
+                conversationId: payload.conversationId,
+                latestMessage: localizedMessage,
+              });
+            }),
+          );
+        }),
+      );
+
+      return { event: 'messageSent', data: senderMessage };
     } catch (error) {
       return { event: 'error', data: { message: this.errorMessage(error) } };
     }
@@ -145,8 +209,15 @@ export class MessageGateway
   }
 
   private socketToken(client: MessageSocket) {
-    const auth = client.handshake.auth as { token?: unknown } | undefined;
+    const auth = client.handshake.auth as
+      | { token?: unknown; language?: unknown }
+      | undefined;
     return typeof auth?.token === 'string' ? auth.token : undefined;
+  }
+
+  private socketHandshakeLanguage(client: MessageSocket) {
+    const auth = client.handshake.auth as { language?: unknown } | undefined;
+    return typeof auth?.language === 'string' ? auth.language : undefined;
   }
 
   private socketUserId(client: MessageSocket, fallbackUserId?: string) {
@@ -164,6 +235,22 @@ export class MessageGateway
   private setSocketUserId(client: MessageSocket, userId: string) {
     const data = client.data as { userId?: string };
     data.userId = userId;
+  }
+
+  private socketLanguage(client: MessageSocket) {
+    const data = client.data as { language?: unknown };
+    return typeof data.language === 'string' ? data.language : undefined;
+  }
+
+  private setSocketLanguage(client: MessageSocket, language?: string) {
+    const data = client.data as { language?: string };
+    data.language = this.languageService.normalizeLanguage(language);
+  }
+
+  private remoteSocketLanguage(socket: { data: { language?: unknown } }) {
+    return typeof socket.data.language === 'string'
+      ? socket.data.language
+      : undefined;
   }
 
   private jwtUserId(payload: unknown) {
@@ -186,7 +273,13 @@ export class MessageGateway
       'userId' in payload &&
       typeof payload.userId === 'string'
     ) {
-      return { userId: payload.userId };
+      return {
+        userId: payload.userId,
+        language:
+          'language' in payload && typeof payload.language === 'string'
+            ? payload.language
+            : undefined,
+      };
     }
 
     throw new Error('userId is required');
@@ -204,6 +297,10 @@ export class MessageGateway
       return {
         conversationId: payload.conversationId,
         userId: payload.userId,
+        language:
+          'language' in payload && typeof payload.language === 'string'
+            ? payload.language
+            : undefined,
       };
     }
 
@@ -240,5 +337,18 @@ export class MessageGateway
     }
 
     throw new Error('conversationId and senderId are required');
+  }
+
+  private setLanguagePayload(payload: unknown): SetLanguagePayload {
+    if (
+      payload &&
+      typeof payload === 'object' &&
+      'language' in payload &&
+      typeof payload.language === 'string'
+    ) {
+      return { language: payload.language };
+    }
+
+    throw new Error('language is required');
   }
 }

@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notification Test Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    :root {
+      --bg: #f6f3ed;
+      --ink: #182226;
+      --muted: #6d7a80;
+      --panel: #fffdf9;
+      --line: #d8d2c4;
+      --accent: #0d6a73;
+      --accent-2: #d96c3f;
+      --ok: #1f8f58;
+      --warn: #c97709;
+      --bad: #bb2d3b;
+      --shadow: 0 18px 45px rgba(24, 34, 38, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(13, 106, 115, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(217, 108, 63, 0.16), transparent 22%),
+        linear-gradient(180deg, #fcfaf5 0%, #f2eee5 100%);
+      min-height: 100vh;
+    }
+
+    .shell {
+      width: min(1400px, calc(100% - 32px));
+      margin: 24px auto;
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr) 360px;
+      gap: 18px;
+    }
+
+    .panel {
+      background: rgba(255, 253, 249, 0.96);
+      border: 1px solid rgba(216, 210, 196, 0.95);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid rgba(216, 210, 196, 0.8);
+      background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(246,243,237,0.8));
+    }
+
+    .panel-header h2,
+    .panel-header h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .panel-header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .panel-body {
+      padding: 18px 20px 20px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .center-panel {
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      min-height: 86vh;
+    }
+
+    .hero {
+      padding: 24px 24px 12px;
+      border-bottom: 1px solid rgba(216, 210, 196, 0.8);
+      background:
+        linear-gradient(135deg, rgba(13, 106, 115, 0.12), rgba(255,255,255,0) 50%),
+        linear-gradient(160deg, rgba(217, 108, 63, 0.10), rgba(255,255,255,0) 55%);
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 30px;
+      letter-spacing: -0.04em;
+    }
+
+    .hero p {
+      margin: 10px 0 0;
+      max-width: 720px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #f3eee4;
+      border: 1px solid #ddd6c7;
+    }
+
+    .chip.ok {
+      color: var(--ok);
+      background: rgba(31, 143, 88, 0.10);
+      border-color: rgba(31, 143, 88, 0.18);
+    }
+
+    .chip.warn {
+      color: var(--warn);
+      background: rgba(201, 119, 9, 0.10);
+      border-color: rgba(201, 119, 9, 0.2);
+    }
+
+    .chip.bad {
+      color: var(--bad);
+      background: rgba(187, 45, 59, 0.10);
+      border-color: rgba(187, 45, 59, 0.15);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #425056;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid #d7cfbe;
+      background: #fff;
+      border-radius: 14px;
+      padding: 12px 13px;
+      font: inherit;
+      color: var(--ink);
+      outline: none;
+    }
+
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(13, 106, 115, 0.12);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    button.secondary {
+      background: #ece6d9;
+      color: var(--ink);
+    }
+
+    button.alert {
+      background: var(--accent-2);
+      color: #fff;
+    }
+
+    button.ghost {
+      background: transparent;
+      border: 1px solid #d7cfbe;
+      color: var(--ink);
+    }
+
+    .subpanel {
+      border: 1px solid rgba(216, 210, 196, 0.95);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.78);
+      padding: 16px;
+    }
+
+    .subpanel h4 {
+      margin: 0 0 12px;
+      font-size: 15px;
+    }
+
+    .role-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .role-pill {
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: #f3eee4;
+      border: 1px solid #ddd6c7;
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .role-pill.active {
+      background: rgba(13, 106, 115, 0.14);
+      border-color: rgba(13, 106, 115, 0.25);
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .feed {
+      overflow: auto;
+      min-height: 300px;
+      max-height: 100%;
+      padding: 0 24px 24px;
+      display: grid;
+      grid-template-columns: 1.4fr 0.9fr;
+      gap: 18px;
+      align-content: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .notification-card,
+    .log-card {
+      border: 1px solid rgba(216, 210, 196, 0.95);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.82);
+      padding: 16px;
+    }
+
+    .notification-card.unread {
+      border-left: 5px solid var(--accent);
+      background: rgba(13, 106, 115, 0.06);
+    }
+
+    .notification-card h4 {
+      margin: 0 0 6px;
+      font-size: 16px;
+    }
+
+    .notification-card p {
+      margin: 0 0 10px;
+      color: #425056;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+
+    .tiny-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tiny-actions button {
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+
+    .log-stream {
+      display: grid;
+      gap: 10px;
+      max-height: 70vh;
+      overflow: auto;
+      align-content: start;
+    }
+
+    .log-card {
+      background: #fffdfa;
+    }
+
+    .log-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .log-card pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #304047;
+    }
+
+    .empty {
+      border: 1px dashed #cabfa9;
+      border-radius: 18px;
+      padding: 22px;
+      text-align: center;
+      color: var(--muted);
+      background: rgba(255,255,255,0.7);
+    }
+
+    @media (max-width: 1200px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .center-panel {
+        min-height: auto;
+      }
+
+      .feed {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .shell {
+        width: min(100% - 18px, 100%);
+        margin: 9px auto;
+      }
+
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .feed,
+      .hero,
+      .panel-body,
+      .panel-header {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Login & Socket</h2>
+        <p>Different role-এ login করে same page থেকেই notification API আর realtime test করো.</p>
+      </div>
+      <div class="panel-body">
+        <div>
+          <label for="apiBase">API Base</label>
+          <input id="apiBase" value="" />
+        </div>
+        <div>
+          <label for="email">Email</label>
+          <input id="email" placeholder="parent@example.com" />
+        </div>
+        <div>
+          <label for="password">Password</label>
+          <input id="password" type="password" placeholder="Password123!" />
+        </div>
+        <div class="grid-2">
+          <div>
+            <label for="language">Selected Language</label>
+            <select id="language">
+              <option value="en">English</option>
+              <option value="ar">Arabic</option>
+              <option value="fil">Filipino</option>
+              <option value="si">Sinhala</option>
+            </select>
+          </div>
+          <div>
+            <label for="deviceType">Device Type</label>
+            <select id="deviceType">
+              <option value="WEB">WEB</option>
+              <option value="ANDROID">ANDROID</option>
+              <option value="IOS">IOS</option>
+            </select>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" id="loginBtn">Login</button>
+          <button class="secondary" id="meBtn">Load Me</button>
+          <button class="ghost" id="connectSocketBtn">Reconnect Socket</button>
+          <button class="ghost" id="changeLanguageBtn">Push Language To Socket</button>
+          <button class="alert" id="logoutBtn">Logout</button>
+        </div>
+        <div class="subpanel">
+          <h4>Current Session</h4>
+          <div class="grid-2">
+            <div><strong>Role:</strong> <span id="currentRole">-</span></div>
+            <div><strong>User ID:</strong> <span id="currentUserId">-</span></div>
+            <div><strong>Socket:</strong> <span id="socketState">disconnected</span></div>
+            <div><strong>Unread:</strong> <span id="unreadCount">0</span></div>
+          </div>
+        </div>
+        <div class="subpanel">
+          <h4>Device Token Test</h4>
+          <label for="fcmToken">FCM Token</label>
+          <textarea id="fcmToken" placeholder="Paste a real FCM token here if you want to test mobile push."></textarea>
+          <div class="actions">
+            <button class="secondary" id="registerDeviceBtn">Register Device Token</button>
+            <button class="ghost" id="removeDeviceBtn">Remove Device Token</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel center-panel">
+      <div class="hero">
+        <h1>Notification Test Lab</h1>
+        <p>
+          Admin/Partner web দিয়ে broadcast বা direct test notification পাঠাও, আর Parent/Nanny
+          flow verify করো live socket + REST + translation সহ।
+        </p>
+        <div class="status-row">
+          <span class="chip" id="loginStatusChip">Not logged in</span>
+          <span class="chip warn" id="socketStatusChip">Socket offline</span>
+          <span class="chip" id="languageStatusChip">Language: en</span>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="subpanel">
+          <h4>Quick Actions</h4>
+          <div class="actions">
+            <button class="primary" id="fetchNotificationsBtn">Fetch Notifications</button>
+            <button class="secondary" id="markAllReadBtn">Mark All Read</button>
+            <button class="ghost" id="clearLogsBtn">Clear Logs</button>
+            <button class="ghost" id="clearFeedBtn">Clear Feed</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="subpanel">
+            <h4>Admin Test Notification</h4>
+            <label for="targetUserId">Target User ID</label>
+            <input id="targetUserId" placeholder="Parent or nanny user id" />
+            <div class="grid-2" style="margin-top: 12px;">
+              <div>
+                <label for="testType">Type</label>
+                <select id="testType">
+                  <option value="NEW_MESSAGE">NEW_MESSAGE</option>
+                  <option value="ACTIVITY_COMPLETED">ACTIVITY_COMPLETED</option>
+                  <option value="PARTNER_OFFER">PARTNER_OFFER</option>
+                  <option value="WEEKLY_INSIGHT">WEEKLY_INSIGHT</option>
+                </select>
+              </div>
+              <div>
+                <label for="testIcon">Icon</label>
+                <input id="testIcon" value="CHAT" />
+              </div>
+            </div>
+            <label for="testTitle" style="margin-top: 12px;">Title</label>
+            <input id="testTitle" value="Test Notification" />
+            <label for="testMessage" style="margin-top: 12px;">Message</label>
+            <textarea id="testMessage">This is a real-time notification test from the HTML lab.</textarea>
+            <div class="grid-2">
+              <div>
+                <label for="testActionText">Action Text</label>
+                <input id="testActionText" value="Open Test" />
+              </div>
+              <div>
+                <label for="testActionUrl">Action URL</label>
+                <input id="testActionUrl" value="/mobile-messages.html?conversationId=test" />
+              </div>
+            </div>
+            <div class="actions" style="margin-top: 12px;">
+              <button class="alert" id="sendTestBtn">Send Test Notification</button>
+            </div>
+          </div>
+
+          <div class="subpanel">
+            <h4>Broadcast</h4>
+            <p style="margin: 0 0 12px; color: var(--muted); font-size: 13px;">
+              Admin অথবা Partner role হলে broadcast test করতে পারবা।
+            </p>
+            <div class="role-pills" id="broadcastRoles">
+              <span class="role-pill active" data-role="PARENT">PARENT</span>
+              <span class="role-pill active" data-role="NANNY">NANNY</span>
+              <span class="role-pill" data-role="PARTNER">PARTNER</span>
+              <span class="role-pill" data-role="ADMIN">ADMIN</span>
+            </div>
+            <div class="grid-2" style="margin-top: 12px;">
+              <div>
+                <label for="broadcastType">Type</label>
+                <select id="broadcastType">
+                  <option value="PARTNER_OFFER">PARTNER_OFFER</option>
+                  <option value="NEW_MESSAGE">NEW_MESSAGE</option>
+                  <option value="WEEKLY_INSIGHT">WEEKLY_INSIGHT</option>
+                </select>
+              </div>
+              <div>
+                <label for="broadcastIcon">Icon</label>
+                <input id="broadcastIcon" value="GIFT" />
+              </div>
+            </div>
+            <label for="broadcastTitle" style="margin-top: 12px;">Title</label>
+            <input id="broadcastTitle" value="Broadcast Test" />
+            <label for="broadcastMessage" style="margin-top: 12px;">Message</label>
+            <textarea id="broadcastMessage">Broadcast notification from the notification test lab.</textarea>
+            <div class="grid-2">
+              <div>
+                <label for="broadcastActionText">Action Text</label>
+                <input id="broadcastActionText" value="View Offer" />
+              </div>
+              <div>
+                <label for="broadcastActionUrl">Action URL</label>
+                <input id="broadcastActionUrl" value="/offers/test" />
+              </div>
+            </div>
+            <div class="actions" style="margin-top: 12px;">
+              <button class="alert" id="broadcastBtn">Broadcast Notification</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feed">
+        <div class="stack">
+          <div class="subpanel">
+            <h4>Notifications Feed</h4>
+            <p style="margin: 0; color: var(--muted); font-size: 13px;">
+              REST fetch আর realtime socket notifications নিচে দেখাবে।
+            </p>
+          </div>
+          <div id="notificationsFeed" class="stack">
+            <div class="empty">No notifications loaded yet.</div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="subpanel">
+            <h4>Event Log</h4>
+            <p style="margin: 0; color: var(--muted); font-size: 13px;">
+              API responses, socket events, errors সব এখানে জমবে।
+            </p>
+          </div>
+          <div id="eventLog" class="log-stream">
+            <div class="empty">No events yet.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h3>How To Test</h3>
+        <p>Quick reference so তুমি role change করে fast verify করতে পারো.</p>
+      </div>
+      <div class="panel-body">
+        <div class="subpanel">
+          <h4>Parent / Nanny</h4>
+          <ol style="margin: 0; padding-left: 18px; color: #425056; line-height: 1.7; font-size: 14px;">
+            <li>Login করো</li>
+            <li>Language select করো</li>
+            <li>Socket connected কিনা দেখো</li>
+            <li>Fetch Notifications চাপো</li>
+            <li>Admin/Partner থেকে notification পাঠিয়ে live event দেখো</li>
+          </ol>
+        </div>
+        <div class="subpanel">
+          <h4>Admin / Partner</h4>
+          <ol style="margin: 0; padding-left: 18px; color: #425056; line-height: 1.7; font-size: 14px;">
+            <li>Login করো</li>
+            <li>Target user id বসাও</li>
+            <li><code>Send Test Notification</code> চালাও</li>
+            <li>Role pills বেছে <code>Broadcast</code> test করো</li>
+          </ol>
+        </div>
+        <div class="subpanel">
+          <h4>Realtime Language</h4>
+          <p style="margin: 0; color: #425056; line-height: 1.7; font-size: 14px;">
+            Language dropdown change করে <strong>Push Language To Socket</strong> চাপো, তারপর
+            আরেকটা notification পাঠাও। নতুন socket event selected language-এ আসা উচিত।
+          </p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const state = {
+      token: '',
+      refreshToken: '',
+      user: null,
+      socket: null,
+      notifications: [],
+      logs: [],
+      unreadCount: 0,
+    };
+
+    const els = {
+      apiBase: document.getElementById('apiBase'),
+      email: document.getElementById('email'),
+      password: document.getElementById('password'),
+      language: document.getElementById('language'),
+      deviceType: document.getElementById('deviceType'),
+      fcmToken: document.getElementById('fcmToken'),
+      currentRole: document.getElementById('currentRole'),
+      currentUserId: document.getElementById('currentUserId'),
+      socketState: document.getElementById('socketState'),
+      unreadCount: document.getElementById('unreadCount'),
+      loginStatusChip: document.getElementById('loginStatusChip'),
+      socketStatusChip: document.getElementById('socketStatusChip'),
+      languageStatusChip: document.getElementById('languageStatusChip'),
+      notificationsFeed: document.getElementById('notificationsFeed'),
+      eventLog: document.getElementById('eventLog'),
+      targetUserId: document.getElementById('targetUserId'),
+      testType: document.getElementById('testType'),
+      testIcon: document.getElementById('testIcon'),
+      testTitle: document.getElementById('testTitle'),
+      testMessage: document.getElementById('testMessage'),
+      testActionText: document.getElementById('testActionText'),
+      testActionUrl: document.getElementById('testActionUrl'),
+      broadcastType: document.getElementById('broadcastType'),
+      broadcastIcon: document.getElementById('broadcastIcon'),
+      broadcastTitle: document.getElementById('broadcastTitle'),
+      broadcastMessage: document.getElementById('broadcastMessage'),
+      broadcastActionText: document.getElementById('broadcastActionText'),
+      broadcastActionUrl: document.getElementById('broadcastActionUrl'),
+    };
+
+    function boot() {
+      els.apiBase.value = defaultApiBase();
+      hydrateFromStorage();
+      wireActions();
+      updateLanguageChip();
+      renderNotifications();
+      renderLogs();
+      if (state.token) {
+        connectSocket();
+        loadMe();
+      }
+    }
+
+    function wireActions() {
+      document.getElementById('loginBtn').addEventListener('click', login);
+      document.getElementById('logoutBtn').addEventListener('click', logout);
+      document.getElementById('meBtn').addEventListener('click', loadMe);
+      document.getElementById('connectSocketBtn').addEventListener('click', connectSocket);
+      document.getElementById('changeLanguageBtn').addEventListener('click', pushLanguageToSocket);
+      document.getElementById('fetchNotificationsBtn').addEventListener('click', fetchNotifications);
+      document.getElementById('markAllReadBtn').addEventListener('click', markAllRead);
+      document.getElementById('sendTestBtn').addEventListener('click', sendTestNotification);
+      document.getElementById('broadcastBtn').addEventListener('click', broadcastNotification);
+      document.getElementById('registerDeviceBtn').addEventListener('click', registerDeviceToken);
+      document.getElementById('removeDeviceBtn').addEventListener('click', removeDeviceToken);
+      document.getElementById('clearLogsBtn').addEventListener('click', () => {
+        state.logs = [];
+        renderLogs();
+      });
+      document.getElementById('clearFeedBtn').addEventListener('click', () => {
+        state.notifications = [];
+        renderNotifications();
+      });
+      els.language.addEventListener('change', updateLanguageChip);
+      document.querySelectorAll('.role-pill').forEach((pill) => {
+        pill.addEventListener('click', () => pill.classList.toggle('active'));
+      });
+    }
+
+    function hydrateFromStorage() {
+      const token = localStorage.getItem('notificationLab.token');
+      const refreshToken = localStorage.getItem('notificationLab.refreshToken');
+      const user = localStorage.getItem('notificationLab.user');
+      const language = localStorage.getItem('notificationLab.language');
+
+      if (token) state.token = token;
+      if (refreshToken) state.refreshToken = refreshToken;
+      if (user) {
+        try {
+          state.user = JSON.parse(user);
+        } catch {}
+      }
+      if (language) {
+        els.language.value = language;
+      }
+
+      syncSessionUi();
+    }
+
+    function saveSession() {
+      if (state.token) {
+        localStorage.setItem('notificationLab.token', state.token);
+      } else {
+        localStorage.removeItem('notificationLab.token');
+      }
+
+      if (state.refreshToken) {
+        localStorage.setItem('notificationLab.refreshToken', state.refreshToken);
+      } else {
+        localStorage.removeItem('notificationLab.refreshToken');
+      }
+
+      if (state.user) {
+        localStorage.setItem('notificationLab.user', JSON.stringify(state.user));
+      } else {
+        localStorage.removeItem('notificationLab.user');
+      }
+
+      localStorage.setItem('notificationLab.language', els.language.value);
+      syncSessionUi();
+    }
+
+    function apiBase() {
+      return els.apiBase.value.replace(/\/+$/, '');
+    }
+
+    function defaultApiBase() {
+      const { protocol, hostname, port, origin } = window.location;
+      if (port === '5500') {
+        return `${protocol}//${hostname}:3000/api/v1`;
+      }
+
+      return `${origin}/api/v1`;
+    }
+
+    function authHeaders(extra = {}) {
+      return {
+        'Content-Type': 'application/json',
+        ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}),
+        'x-language': els.language.value,
+        ...extra,
+      };
+    }
+
+    function addLog(kind, title, payload) {
+      state.logs.unshift({
+        kind,
+        title,
+        at: new Date().toLocaleTimeString(),
+        payload,
+      });
+      state.logs = state.logs.slice(0, 80);
+      renderLogs();
+    }
+
+    function renderLogs() {
+      if (!state.logs.length) {
+        els.eventLog.innerHTML = '<div class="empty">No events yet.</div>';
+        return;
+      }
+
+      els.eventLog.innerHTML = state.logs.map((entry) => `
+        <article class="log-card">
+          <div class="log-head">
+            <strong>${escapeHtml(entry.title)}</strong>
+            <span>${escapeHtml(entry.kind)} • ${escapeHtml(entry.at)}</span>
+          </div>
+          <pre>${escapeHtml(typeof entry.payload === 'string' ? entry.payload : JSON.stringify(entry.payload, null, 2))}</pre>
+        </article>
+      `).join('');
+    }
+
+    function renderNotifications() {
+      if (!state.notifications.length) {
+        els.notificationsFeed.innerHTML = '<div class="empty">No notifications loaded yet.</div>';
+        return;
+      }
+
+      els.notificationsFeed.innerHTML = state.notifications.map((item) => {
+        const translatedTitle = item.title || '-';
+        const translatedMessage = item.message || '-';
+        return `
+          <article class="notification-card ${item.isRead ? '' : 'unread'}">
+            <h4>${escapeHtml(translatedTitle)}</h4>
+            <div class="meta">
+              <span>${escapeHtml(item.type || '-')}</span>
+              <span>${escapeHtml(item.createdAt || '-')}</span>
+              <span>${item.isRead ? 'READ' : 'UNREAD'}</span>
+            </div>
+            <p>${escapeHtml(translatedMessage)}</p>
+            <div class="meta">
+              <span>Action: ${escapeHtml(item.actionText || '-')}</span>
+              <span>Route: ${escapeHtml(item.actionUrl || '-')}</span>
+            </div>
+            <div class="tiny-actions">
+              <button class="secondary" onclick="markSingleRead('${item.id}')">Mark Read</button>
+              <button class="ghost" onclick="deleteNotification('${item.id}')">Delete</button>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function updateLanguageChip() {
+      els.languageStatusChip.textContent = `Language: ${els.language.value}`;
+      saveSession();
+    }
+
+    function syncSessionUi() {
+      els.currentRole.textContent = state.user?.role || '-';
+      els.currentUserId.textContent = state.user?.id || state.user?.userId || '-';
+      els.unreadCount.textContent = String(state.unreadCount || 0);
+      els.loginStatusChip.textContent = state.user
+        ? `Logged in as ${state.user.role}`
+        : 'Not logged in';
+      els.loginStatusChip.className = `chip ${state.user ? 'ok' : ''}`.trim();
+    }
+
+    function setSocketState(connected) {
+      els.socketState.textContent = connected ? 'connected' : 'disconnected';
+      els.socketStatusChip.textContent = connected ? 'Socket online' : 'Socket offline';
+      els.socketStatusChip.className = `chip ${connected ? 'ok' : 'warn'}`;
+    }
+
+    async function login() {
+      try {
+        const res = await fetch(`${apiBase()}/auth/signin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: els.email.value.trim(),
+            password: els.password.value,
+          }),
+        });
+        const body = await res.json();
+        if (!res.ok) {
+          throw new Error(body.message || 'Login failed');
+        }
+
+        state.token = body.data?.accessToken || body.accessToken || '';
+        state.refreshToken = body.data?.refreshToken || body.refreshToken || '';
+        state.user = body.data?.user || body.user || null;
+        saveSession();
+        addLog('auth', 'Login Success', body);
+        connectSocket();
+        await loadMe();
+      } catch (error) {
+        addLog('error', 'Login Failed', error.message || String(error));
+        alert(error.message || 'Login failed');
+      }
+    }
+
+    async function loadMe() {
+      if (!state.token) {
+        alert('Login first');
+        return;
+      }
+      try {
+        const res = await fetch(`${apiBase()}/auth/me`, {
+          headers: authHeaders(),
+        });
+        const body = await res.json();
+        if (!res.ok) {
+          throw new Error(body.message || 'Failed to load profile');
+        }
+        state.user = body.data || body;
+        if (state.user?.preferredLanguage) {
+          els.language.value = state.user.preferredLanguage;
+        }
+        saveSession();
+        addLog('auth', 'Loaded Me', body);
+      } catch (error) {
+        addLog('error', 'Load Me Failed', error.message || String(error));
+      }
+    }
+
+    function logout() {
+      if (state.socket) {
+        state.socket.disconnect();
+      }
+      state.token = '';
+      state.refreshToken = '';
+      state.user = null;
+      state.notifications = [];
+      state.unreadCount = 0;
+      saveSession();
+      setSocketState(false);
+      renderNotifications();
+      addLog('auth', 'Logout', 'Session cleared');
+    }
+
+    function connectSocket() {
+      if (!state.token) {
+        alert('Login first');
+        return;
+      }
+
+      if (state.socket) {
+        state.socket.disconnect();
+      }
+
+      const socketOrigin = apiBase().replace(/\/api\/v1$/, '');
+      const socket = io(`${socketOrigin}/notifications`, {
+        auth: {
+          token: state.token,
+          language: els.language.value,
+        },
+        transports: ['websocket'],
+      });
+
+      state.socket = socket;
+      setSocketState(false);
+
+      socket.on('connect', () => {
+        setSocketState(true);
+        addLog('socket', 'Socket Connected', { id: socket.id });
+        if (state.user?.id || state.user?.userId) {
+          socket.emit('register_user', {
+            userId: state.user.id || state.user.userId,
+            language: els.language.value,
+          });
+        }
+      });
+
+      socket.on('disconnect', (reason) => {
+        setSocketState(false);
+        addLog('socket', 'Socket Disconnected', reason);
+      });
+
+      socket.on('notification:new', (payload) => {
+        state.notifications.unshift(payload);
+        state.unreadCount += payload.isRead ? 0 : 1;
+        syncSessionUi();
+        renderNotifications();
+        addLog('socket', 'notification:new', payload);
+      });
+
+      socket.on('notification:unread_count', (payload) => {
+        state.unreadCount = payload.unreadCount || 0;
+        syncSessionUi();
+        addLog('socket', 'notification:unread_count', payload);
+      });
+
+      socket.on('notification:read', ({ notificationId }) => {
+        state.notifications = state.notifications.map((item) =>
+          item.id === notificationId ? { ...item, isRead: true } : item,
+        );
+        renderNotifications();
+        addLog('socket', 'notification:read', { notificationId });
+      });
+
+      socket.on('notification:read_all', () => {
+        state.notifications = state.notifications.map((item) => ({ ...item, isRead: true }));
+        renderNotifications();
+        addLog('socket', 'notification:read_all', 'All notifications marked read');
+      });
+
+      socket.on('notification:deleted', ({ notificationId }) => {
+        state.notifications = state.notifications.filter((item) => item.id !== notificationId);
+        renderNotifications();
+        addLog('socket', 'notification:deleted', { notificationId });
+      });
+
+      socket.on('connect_error', (error) => {
+        setSocketState(false);
+        addLog('error', 'Socket Connect Error', error.message || String(error));
+      });
+    }
+
+    function pushLanguageToSocket() {
+      if (!state.socket || !state.socket.connected) {
+        alert('Socket is not connected');
+        return;
+      }
+      state.socket.emit('setLanguage', { language: els.language.value });
+      addLog('socket', 'setLanguage sent', { language: els.language.value });
+    }
+
+    async function fetchNotifications() {
+      try {
+        const res = await fetch(`${apiBase()}/notifications?page=1&limit=50`, {
+          headers: authHeaders(),
+        });
+        const body = await res.json();
+        if (!res.ok) {
+          throw new Error(body.message || 'Failed to fetch notifications');
+        }
+
+        const data = body.data || body;
+        state.notifications = data.items || [];
+        state.unreadCount = data.unreadCount || 0;
+        syncSessionUi();
+        renderNotifications();
+        addLog('api', 'Fetched Notifications', data);
+      } catch (error) {
+        addLog('error', 'Fetch Notifications Failed', error.message || String(error));
+      }
+    }
+
+    async function markAllRead() {
+      try {
+        const res = await fetch(`${apiBase()}/notifications/read-all`, {
+          method: 'PATCH',
+          headers: authHeaders(),
+        });
+        const body = await res.json();
+        if (!res.ok) {
+          throw new Error(body.message || 'Failed to mark all read');
+        }
+        addLog('api', 'Mark All Read', body);
+        await fetchNotifications();
+      } catch (error) {
+        addLog('error', 'Mark All Read Failed', error.message || String(error));
+      }
+    }
+
+    async function markSingleRead(notificationId) {
+      try {
+        const res = await fetch(`${apiBase()}/notifications/${notificationId}/read`, {
+          method: 'PATCH',
+          headers: authHeaders(),
+        });
+        const body = await res.json();
+        if (!res.ok) {
+          throw new Error(body.message || 'Failed to mark read');
+        }
+        addLog('api', 'Mark Single Read', body);
+        await fetchNotifications();
+      } catch (error) {
+        addLog('error', 'Mark Single Read Failed', error.message || String(error));
+      }
+    }
+
+    async function deleteNotification(notificationId) {
+      try {
+        const res = await fetch(`${apiBase()}/notifications/${notificationId}`, {
+          method: 'DELETE',
+          headers: authHeaders(),
+        });
+        const body = await res.json();
+        if (!res.ok) {
+          throw new Error(body.message || 'Failed to delete notification');
+        }
+        addLog('api', 'Delete Notification', body);
+        await fetchNotifications();
+      } catch (error) {
+        addLog('error', 'Delete Notification Failed', error.message || String(error));
+      }
+    }
+
+    async function sendTestNotification() {
+      try {
+        const payload = {
+          userId: els.targetUserId.value.trim(),
+          type: els.testType.value,
+          title: els.testTitle.value.trim(),
+          message: els.testMessage.value.trim(),
+          iconType: els.testIcon.value.trim() || undefined,
+          actionText: els.testActionText.value.trim() || undefined,
+          actionUrl: els.testActionUrl.value.trim() || undefined,
+        };
+
+        const res = await fetch(`${apiBase()}/notifications/send-test`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify(payload),
+        });
+        const body = await res.json();
+        if (!res.ok) {
+          throw new Error(body.message || 'Failed to send test notification');
+        }
+        addLog('api', 'Send Test Notification', body);
+      } catch (error) {
+        addLog('error', 'Send Test Failed', error.message || String(error));
+      }
+    }
+
+    async function broadcastNotification() {
+      try {
+        const targetRoles = [...document.querySelectorAll('.role-pill.active')].map((pill) =>
+          pill.getAttribute('data-role'),
+        );
+        const payload = {
+          targetRoles,
+          type: els.broadcastType.value,
+          title: els.broadcastTitle.value.trim(),
+          message: els.broadcastMessage.value.trim(),
+          iconType: els.broadcastIcon.value.trim() || undefined,
+          actionText: els.broadcastActionText.value.trim() || undefined,
+          actionUrl: els.broadcastActionUrl.value.trim() || undefined,
+        };
+
+        const res = await fetch(`${apiBase()}/notifications/broadcast`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify(payload),
+        });
+        const body = await res.json();
+        if (!res.ok) {
+          throw new Error(body.message || 'Broadcast failed');
+        }
+        addLog('api', 'Broadcast Notification', body);
+      } catch (error) {
+        addLog('error', 'Broadcast Failed', error.message || String(error));
+      }
+    }
+
+    async function registerDeviceToken() {
+      try {
+        const payload = {
+          fcmToken: els.fcmToken.value.trim(),
+          deviceType: els.deviceType.value,
+        };
+        const res = await fetch(`${apiBase()}/notifications/device-token`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify(payload),
+        });
+        const body = await res.json();
+        if (!res.ok) {
+          throw new Error(body.message || 'Register device token failed');
+        }
+        addLog('api', 'Register Device Token', body);
+      } catch (error) {
+        addLog('error', 'Register Device Token Failed', error.message || String(error));
+      }
+    }
+
+    async function removeDeviceToken() {
+      try {
+        const payload = {
+          fcmToken: els.fcmToken.value.trim(),
+        };
+        const res = await fetch(`${apiBase()}/notifications/device-token`, {
+          method: 'DELETE',
+          headers: authHeaders(),
+          body: JSON.stringify(payload),
+        });
+        const body = await res.json();
+        if (!res.ok) {
+          throw new Error(body.message || 'Remove device token failed');
+        }
+        addLog('api', 'Remove Device Token', body);
+      } catch (error) {
+        addLog('error', 'Remove Device Token Failed', error.message || String(error));
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    boot();
+    window.markSingleRead = markSingleRead;
+    window.deleteNotification = deleteNotification;
+  </script>
+</body>
+</html>

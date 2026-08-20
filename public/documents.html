@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alurei - Documents Mobile UI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-canvas: #eef2f5;
+      --mobile-bg: #f8fafb;
+      --primary: #0a5c5a;
+      --primary-dark: #06403e;
+      --primary-light: #e6f3f3;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+      --border-color: #cbd5e1;
+      --card-bg: #ffffff;
+      --badge-verified-bg: #f0fdf4;
+      --badge-verified-text: #166534;
+      --icon-bg: #f1f5f9;
+      --dark-modal-bg: #0b1318;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* Auth & Login Card */
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: #ffffff;
+      padding: 16px 20px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    }
+    .auth-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .auth-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .status-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: #f1f5f9;
+      color: #64748b;
+    }
+    .status-badge.connected {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .form-row {
+      display: flex;
+      gap: 8px;
+    }
+    .form-input {
+      flex: 1;
+      padding: 9px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus {
+      border-color: var(--primary);
+    }
+    .btn-login {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+    .btn-login:hover {
+      background: var(--primary-dark);
+    }
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #334155;
+      border: none;
+      padding: 9px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-secondary:hover {
+      background: #cbd5e1;
+    }
+
+    .token-display {
+      font-size: 11px;
+      color: #64748b;
+      word-break: break-all;
+      background: #f8fafc;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px dashed #cbd5e1;
+      margin-top: 4px;
+    }
+
+    /* Mobile Device Frame */
+    .mobile-frame {
+      width: 390px;
+      height: 800px;
+      background: var(--mobile-bg);
+      border-radius: 44px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 10px solid #ffffff;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      height: 44px;
+      padding: 12px 24px 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      z-index: 10;
+    }
+    .status-icons {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    /* Top Nav Header */
+    .app-header {
+      height: 48px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    .back-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+    }
+    .header-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* Main Tabs (My Documents / Nanny's Documents) */
+    .main-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+      background: #ffffff;
+      margin-top: 4px;
+    }
+    .tab-btn {
+      flex: 1;
+      text-align: center;
+      padding: 14px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s;
+    }
+    .tab-btn.active {
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 20%;
+      width: 60%;
+      height: 3px;
+      background-color: var(--primary);
+      border-radius: 3px 3px 0 0;
+    }
+
+    /* Scrollable Container */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    /* Sub-tabs for Nannies */
+    .nanny-subtabs {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #edf2f7;
+    }
+    .nanny-subtab {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      padding-bottom: 6px;
+      position: relative;
+    }
+    .nanny-subtab.active {
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .nanny-subtab.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background-color: var(--primary);
+    }
+
+    /* Document Card Wrapper */
+    .doc-card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    }
+
+    .doc-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .doc-icon-badge {
+      width: 40px;
+      height: 40px;
+      background: var(--primary);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+    }
+
+    .doc-card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* Document Item Row */
+    .doc-item {
+      background: #ffffff;
+      border: 1px solid #f1f5f9;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: box-shadow 0.2s;
+    }
+    .doc-item:last-child {
+      margin-bottom: 0;
+    }
+    .doc-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .doc-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .doc-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .doc-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-circle-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.2s;
+    }
+    .action-circle-btn:hover {
+      transform: scale(1.05);
+      background: var(--primary-dark);
+    }
+
+    /* Hidden File Input for Upload */
+    #fileUploadInput {
+      display: none;
+    }
+
+    /* Fullscreen Preview Modal (Screen 3) */
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--dark-modal-bg);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      padding: 20px;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      height: 44px;
+      margin-bottom: 20px;
+    }
+    .modal-back-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      color: #ffffff;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-preview-body {
+      flex: 1;
+      background: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .modal-preview-img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .modal-preview-doc {
+      width: 100%;
+      height: 100%;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #334155;
+      overflow-y: auto;
+      padding: 16px;
+      background: #ffffff;
+    }
+
+    .modal-footer {
+      padding-top: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .btn-download-modal {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(10, 92, 90, 0.4);
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn-download-modal:hover {
+      background: #0d7370;
+      transform: translateY(-2px);
+    }
+
+    /* Loader */
+    .loading-spinner {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    /* SVG Icons */
+    .icon {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Auth & Login Panel -->
+  <div class="auth-card">
+    <div class="auth-header">
+      <span class="auth-title">🔑 Account Login (Auto Token Save)</span>
+      <span id="authStatusBadge" class="status-badge">Not Logged In</span>
+    </div>
+    <form class="auth-form" onsubmit="event.preventDefault(); handleLogin();">
+      <div class="form-row">
+        <input type="email" id="loginEmail" class="form-input" placeholder="Email" value="p@e.com" autocomplete="username" />
+        <input type="password" id="loginPassword" class="form-input" placeholder="Password" value="123456" autocomplete="current-password" />
+      </div>
+      <div class="form-row">
+        <button type="submit" class="btn-login">Sign In & Save Token</button>
+        <button type="button" class="btn-secondary" onclick="clearSavedToken()">Clear Token</button>
+      </div>
+      <div class="token-display" id="tokenDisplay">
+        Token Status: No active token saved.
+      </div>
+    </form>
+  </div>
+
+  <!-- Mobile Screen Shell -->
+  <div class="mobile-frame">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span>9:41</span>
+      <div class="status-icons">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 18.35A.996.996 0 105.76 19.76l.74-.74C8.04 20.26 9.98 21 12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4z"/></svg>
+      </div>
+    </div>
+
+    <!-- App Header -->
+    <div class="app-header">
+      <button class="back-btn">←</button>
+      <span class="header-title">Documents</span>
+    </div>
+
+    <!-- Main Navigation Tabs -->
+    <div class="main-tabs">
+      <div class="tab-btn active" id="tabMyDocs" onclick="switchMainTab('MY')">My Documents</div>
+      <div class="tab-btn" id="tabNannyDocs" onclick="switchMainTab('NANNY')">Nanny's Documents</div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="content-area" id="contentArea">
+      <div class="loading-spinner">Loading documents...</div>
+    </div>
+
+    <!-- Screen 3: Fullscreen Dark Document Preview Modal -->
+    <div class="modal-overlay" id="documentModal">
+      <div class="modal-header">
+        <button class="modal-back-btn" onclick="closeDocModal()">←</button>
+      </div>
+      <div class="modal-preview-body" id="modalPreviewContent">
+        <!-- Render document preview -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-download-modal" onclick="downloadActiveModalDoc()">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          Download Document
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden File Input for Upload -->
+  <input type="file" id="fileUploadInput" onchange="handleFileSelected(event)" />
+
+  <script>
+    const API_BASE = window.location.origin.includes('5000')
+      ? '/api/v1'
+      : 'http://localhost:5000/api/v1';
+    let currentTab = 'MY';
+    let activeNannyId = null;
+    let loadedNannies = [];
+    let activeModalDocUrl = null;
+
+    // Initialize & Auto Restore Token
+    window.addEventListener('DOMContentLoaded', async () => {
+      const savedToken = localStorage.getItem('accessToken');
+      if (savedToken) {
+        updateAuthUI(savedToken);
+        await loadDocuments();
+      } else {
+        // Attempt automatic background login for seamless experience
+        await handleLogin();
+      }
+    });
+
+    function getHeaders() {
+      const token = localStorage.getItem('accessToken') || '';
+      return {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+    }
+
+    async function handleLogin() {
+      let email = document.getElementById('loginEmail').value.trim() || 'p@e.com';
+      let password = document.getElementById('loginPassword').value.trim() || '123456';
+
+      try {
+        let res = await fetch(`${API_BASE}/auth/signin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        let json = await res.json();
+        let token = json.data?.accessToken || json.accessToken;
+        let refreshToken = json.data?.refreshToken || json.refreshToken;
+
+        if (!token && email !== 'p@e.com') {
+          // Retry with default seeded active parent
+          email = 'p@e.com';
+          password = '123456';
+          document.getElementById('loginEmail').value = 'p@e.com';
+          document.getElementById('loginPassword').value = '123456';
+
+          res = await fetch(`${API_BASE}/auth/signin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+          json = await res.json();
+          token = json.data?.accessToken || json.accessToken;
+          refreshToken = json.data?.refreshToken || json.refreshToken;
+        }
+
+        if (token) {
+          localStorage.setItem('accessToken', token);
+          if (refreshToken) {
+            localStorage.setItem('refreshToken', refreshToken);
+          }
+          updateAuthUI(token);
+          await loadDocuments();
+        } else {
+          document.getElementById('authStatusBadge').innerText = 'Login Failed';
+          document.getElementById('authStatusBadge').className = 'status-badge';
+          document.getElementById('tokenDisplay').innerText = 'Login failed: ' + (json.message || 'Check credentials');
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        document.getElementById('authStatusBadge').innerText = 'Error';
+        document.getElementById('tokenDisplay').innerText = 'Server connection error. Ensure dev server is running.';
+      }
+    }
+
+    function updateAuthUI(token) {
+      const badge = document.getElementById('authStatusBadge');
+      badge.innerText = 'Connected & Token Saved';
+      badge.className = 'status-badge connected';
+
+      const shortToken = token.substring(0, 18) + '...' + token.substring(token.length - 8);
+      document.getElementById('tokenDisplay').innerText = `Active Token (Saved in localStorage): ${shortToken}`;
+    }
+
+    function clearSavedToken() {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      document.getElementById('authStatusBadge').innerText = 'Not Logged In';
+      document.getElementById('authStatusBadge').className = 'status-badge';
+      document.getElementById('tokenDisplay').innerText = 'Token cleared from localStorage.';
+      document.getElementById('contentArea').innerHTML = '<div class="loading-spinner">Token cleared. Please login again.</div>';
+    }
+
+    function switchMainTab(tab) {
+      currentTab = tab;
+      document.getElementById('tabMyDocs').classList.toggle('active', tab === 'MY');
+      document.getElementById('tabNannyDocs').classList.toggle('active', tab === 'NANNY');
+      loadDocuments();
+    }
+
+    async function loadDocuments() {
+      const content = document.getElementById('contentArea');
+      content.innerHTML = '<div class="loading-spinner">Loading documents...</div>';
+
+      try {
+        let endpoint = currentTab === 'MY' ? `${API_BASE}/documents/my` : `${API_BASE}/documents/nannies`;
+        let res = await fetch(endpoint, { headers: getHeaders() });
+
+        if (res.status === 401) {
+          // Token expired or missing, auto-authenticate and retry
+          await handleLogin();
+          res = await fetch(endpoint, { headers: getHeaders() });
+        }
+
+        const json = await res.json();
+        if (currentTab === 'MY') {
+          renderMyDocuments(json.data);
+        } else {
+          renderNannyDocuments(json.data);
+        }
+      } catch (err) {
+        console.error('Error loading documents:', err);
+        content.innerHTML = '<div class="loading-spinner" style="color:#ef4444">Failed to load documents. Ensure you are logged in.</div>';
+      }
+    }
+
+    function renderMyDocuments(data) {
+      const content = document.getElementById('contentArea');
+      const docs = data?.documents || [];
+
+      let html = `
+        <div class="doc-card">
+          <div class="doc-card-header">
+            <div class="doc-icon-badge">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>
+            </div>
+            <span class="doc-card-title">My documents</span>
+          </div>
+      `;
+
+      docs.forEach(doc => {
+        const isUploadState = doc.canUpload;
+        html += `
+          <div class="doc-item">
+            <div class="doc-info">
+              <div class="doc-name">${doc.label}</div>
+              <div class="doc-meta">${doc.status} • ${doc.formattedDate}</div>
+            </div>
+            <div class="doc-actions">
+              <button class="action-circle-btn" title="View Document Preview" onclick="openDocModal('${doc.fileUrl || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'}', '${doc.label}')">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+              </button>
+              ${doc.canUpload ? `
+                <button class="action-circle-btn" title="Upload Document" onclick="triggerUploadOrDownload('', '${doc.docType}')">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+                </button>
+              ` : ''}
+              ${doc.canDownload ? `
+                <button class="action-circle-btn" title="Download Document" onclick="window.open('${doc.fileUrl}', '_blank')">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      content.innerHTML = html;
+    }
+
+    let loadedChildren = [];
+
+    function renderNannyDocuments(data) {
+      const content = document.getElementById('contentArea');
+      loadedNannies = data?.nannies || [];
+      if (data?.children) {
+        loadedChildren = data.children;
+      }
+
+      if (loadedNannies.length === 0) {
+        content.innerHTML = `
+          <div class="doc-card">
+            <div class="doc-card-header">
+              <div class="doc-icon-badge">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+              </div>
+              <span class="doc-card-title">Nanny's documents</span>
+            </div>
+            <div class="loading-spinner">No assigned nannies found for this parent's children.</div>
+          </div>
+        `;
+        return;
+      }
+
+      if (!activeNannyId && loadedNannies[0]) {
+        activeNannyId = loadedNannies[0].nannyUserId;
+      }
+
+      const activeNanny = loadedNannies.find(n => n.nannyUserId === activeNannyId) || loadedNannies[0];
+
+      let selectedChildId = window.activeChildFilterId || 'ALL';
+      let html = '';
+
+      if (loadedChildren.length > 0) {
+        html += `
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; overflow-x:auto; padding-bottom:4px;">
+            <span style="font-size:12px; font-weight:700; color:var(--primary); white-space:nowrap;">👶 Child:</span>
+            <div style="display:flex; gap:6px;">
+              <span class="status-badge ${selectedChildId === 'ALL' ? 'connected' : ''}" style="cursor:pointer;" onclick="filterNanniesByChild('ALL')">All</span>
+              ${loadedChildren.map(c => `
+                <span class="status-badge ${selectedChildId === c.childId ? 'connected' : ''}" style="cursor:pointer;" onclick="filterNanniesByChild('${c.childId}')">
+                  ${c.childName}
+                </span>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      html += `
+        <div class="nanny-subtabs">
+      `;
+
+      loadedNannies.forEach(n => {
+        const isActive = n.nannyUserId === activeNanny.nannyUserId;
+        html += `
+          <div class="nanny-subtab ${isActive ? 'active' : ''}" onclick="selectNanny('${n.nannyUserId}')">
+            ${n.nannyName}
+          </div>
+        `;
+      });
+
+      html += `
+        </div>
+        <div class="doc-card">
+          <div class="doc-card-header">
+            <div class="doc-icon-badge">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>
+            </div>
+            <span class="doc-card-title">${activeNanny.nannyName.split(' ')[0]}'s documents</span>
+          </div>
+      `;
+
+      (activeNanny.documents || []).forEach(doc => {
+        html += `
+          <div class="doc-item">
+            <div class="doc-info">
+              <div class="doc-name">${doc.label}</div>
+              <div class="doc-meta">${doc.status} • ${doc.formattedDate}</div>
+            </div>
+            <div class="doc-actions">
+              ${doc.canView ? `
+                <button class="action-circle-btn" title="View Document" onclick="openDocModal('${doc.fileUrl}', '${doc.label}')">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                </button>
+              ` : ''}
+              ${doc.canDownload ? `
+                <button class="action-circle-btn" title="Download Document" onclick="window.open('${doc.fileUrl}', '_blank')">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      content.innerHTML = html;
+    }
+
+    function selectNanny(nannyId) {
+      activeNannyId = nannyId;
+      renderNannyDocuments({ nannies: loadedNannies, children: loadedChildren });
+    }
+
+    async function filterNanniesByChild(childId) {
+      window.activeChildFilterId = childId;
+      const content = document.getElementById('contentArea');
+      content.innerHTML = '<div class="loading-spinner">Filtering nannies by child...</div>';
+      try {
+        const url = childId === 'ALL'
+          ? `${API_BASE}/documents/nannies`
+          : `${API_BASE}/documents/nannies?childId=${childId}`;
+        const res = await fetch(url, { headers: getHeaders() });
+        const json = await res.json();
+        activeNannyId = null;
+        renderNannyDocuments(json.data);
+      } catch (err) {
+        console.error('Filter error:', err);
+        renderNannyDocuments({ nannies: loadedNannies, children: loadedChildren });
+      }
+    }
+
+    function triggerUploadOrDownload(url, docType) {
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        document.getElementById('fileUploadInput').setAttribute('data-doctype', docType);
+        document.getElementById('fileUploadInput').click();
+      }
+    }
+
+    async function handleFileSelected(event) {
+      const file = event.target.files[0];
+      const docType = event.target.getAttribute('data-doctype') || 'PASSPORT';
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('docType', docType);
+      if (docType === 'PASSPORT') {
+        formData.append('passport', file);
+      } else {
+        formData.append('nidFront', file);
+      }
+
+      const token = localStorage.getItem('accessToken') || '';
+
+      try {
+        const res = await fetch(`${API_BASE}/documents/my`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        const json = await res.json();
+        if (json.success) {
+          alert('Document uploaded successfully!');
+          loadDocuments();
+        } else {
+          alert('Upload failed: ' + (json.message || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error('Upload error:', err);
+        alert('Upload error. Please try again.');
+      }
+    }
+
+    function openDocModal(url, title) {
+      activeModalDocUrl = url;
+      const modal = document.getElementById('documentModal');
+      const body = document.getElementById('modalPreviewContent');
+
+      if (!url || url.includes('example.com')) {
+        body.innerHTML = `
+          <div class="modal-preview-doc">
+            <h3 style="color:#0a5c5a; margin-bottom:12px; font-size:16px;">Information for field staff and refugee parents</h3>
+            <p style="margin-bottom:12px;">The following document was produced in accordance with information from the Ministry of Education, Research and Religious Affairs in order to ensure better communication with refugee parents and children residing in Greece.</p>
+            <h4 style="color:#0a5c5a; margin-bottom:8px; font-size:14px;">Who is eligible?</h4>
+            <p style="margin-bottom:12px;">All children have the right to access school education in Greece, without distinction. The unique condition for children to attend school is to be vaccinated, which falls under the responsibility of the Ministry of Health.</p>
+            <p>Children aged between 4-15 years will be eligible to attend additional kindergarten facilities, which will be established within the open temporary sites.</p>
+          </div>
+        `;
+      } else {
+        body.innerHTML = `<img src="${url}" class="modal-preview-img" alt="${title}" />`;
+      }
+
+      modal.classList.add('active');
+    }
+
+    function closeDocModal() {
+      document.getElementById('documentModal').classList.remove('active');
+    }
+
+    function downloadActiveModalDoc() {
+      if (activeModalDocUrl) {
+        window.open(activeModalDocUrl, '_blank');
+      } else {
+        alert('Downloading sample document PDF...');
+      }
+    }
+  </script>
+</body>
+</html>

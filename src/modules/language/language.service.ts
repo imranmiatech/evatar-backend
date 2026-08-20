@@ -10,6 +10,9 @@ import {
 @Injectable()
 export class LanguageService {
   private readonly translationCache = new Map<string, string>();
+  private readonly googleTranslateApiUrl =
+    'https://translation.googleapis.com/language/translate/v2';
+  private hasLoggedMissingGoogleApiKey = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -101,7 +104,7 @@ export class LanguageService {
   }
 
   normalizeLanguage(language?: string | null): SupportedLanguageCode {
-    const code = language?.trim().toLowerCase();
+    const code = language?.trim().toLowerCase().split('-')[0];
     const found = SUPPORTED_LANGUAGES.find((item) => item.code === code);
     if (!found) {
       return DEFAULT_LANGUAGE;
@@ -248,19 +251,22 @@ export class LanguageService {
     value: string,
     language: SupportedLanguageCode,
   ) {
-    const targetLanguage = this.providerLanguageCode(language);
-    const customUrl = this.configService.get<string>('TRANSLATION_API_URL');
+    const googleApiKey = this.configService.get<string>(
+      'GOOGLE_TRANSLATE_API_KEY',
+    );
 
     try {
-      if (customUrl) {
-        return await this.translateWithLibreTranslate(
-          customUrl,
-          value,
-          targetLanguage,
-        );
+      if (!googleApiKey) {
+        if (!this.hasLoggedMissingGoogleApiKey) {
+          this.hasLoggedMissingGoogleApiKey = true;
+          console.warn(
+            'GOOGLE_TRANSLATE_API_KEY is not configured; translation is disabled.',
+          );
+        }
+        return value;
       }
 
-      return await this.translateWithGoogle(value, targetLanguage);
+      return await this.translateWithGoogleCloud(value, language, googleApiKey);
     } catch (error) {
       console.error('Translation provider failed:', error);
       return value;
@@ -268,56 +274,38 @@ export class LanguageService {
   }
 
   private providerLanguageCode(language: SupportedLanguageCode) {
-    if (language === 'fil') {
-      return 'tl';
-    }
-
     return language;
   }
 
-  private async translateWithGoogle(value: string, targetLanguage: string) {
-    const url = new URL('https://translate.googleapis.com/translate_a/single');
-    url.searchParams.set('client', 'gtx');
-    url.searchParams.set('sl', 'auto');
-    url.searchParams.set('tl', targetLanguage);
-    url.searchParams.set('dt', 't');
-    url.searchParams.set('q', value);
-
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Google translate failed with HTTP ${response.status}`);
-    }
-
-    const payload = (await response.json()) as any[];
-    const translated = payload?.[0]
-      ?.map((item: unknown[]) => item?.[0])
-      .filter(Boolean)
-      .join('');
-
-    return translated || value;
-  }
-
-  private async translateWithLibreTranslate(
-    apiUrl: string,
+  private async translateWithGoogleCloud(
     value: string,
-    targetLanguage: string,
+    language: SupportedLanguageCode,
+    apiKey: string,
   ) {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        q: value,
-        source: 'auto',
-        target: targetLanguage,
-        format: 'text',
-      }),
-    });
+    const response = await fetch(
+      `${this.googleTranslateApiUrl}?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          q: value,
+          target: this.providerLanguageCode(language),
+          format: 'text',
+        }),
+        signal: AbortSignal.timeout(10000),
+      },
+    );
 
     if (!response.ok) {
-      throw new Error(`Translation API failed with HTTP ${response.status}`);
+      throw new Error(
+        `Google Cloud translate failed with HTTP ${response.status}`,
+      );
     }
 
-    const payload = (await response.json()) as { translatedText?: string };
-    return payload.translatedText || value;
+    const payload = (await response.json()) as {
+      data?: { translations?: Array<{ translatedText?: string }> };
+    };
+
+    return payload.data?.translations?.[0]?.translatedText || value;
   }
 }

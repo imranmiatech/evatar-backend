@@ -29,7 +29,7 @@ export interface IApiResponse<T = any> {
   success: boolean;
   statusCode: number;
   message: string;
-  data?: T;
+  data?: T | Buffer;
   meta?: IPaginationMeta;
   timestamp: string;
   path: string;
@@ -49,6 +49,10 @@ export class ResponseInterceptor<T> implements NestInterceptor<
     context: ExecutionContext,
     next: CallHandler<T>,
   ): Observable<IApiResponse<T>> {
+    if (context.getType<'http'>() !== 'http') {
+      return next.handle() as Observable<IApiResponse<T>>;
+    }
+
     const request = context.switchToHttp().getRequest<Request>();
 
     const httpCode = this.reflector.get<number>(
@@ -60,13 +64,17 @@ export class ResponseInterceptor<T> implements NestInterceptor<
       mergeMap((data: any) =>
         from(
           (async () => {
-        const statusCode = data?.statusCode ?? httpCode ?? 200;
-        const language = this.responseLanguage(request);
-        const responseData = data?.data !== undefined ? data.data : data;
+            if (Buffer.isBuffer(data)) {
+              return data;
+            }
 
-        return {
-          success: true,
-          statusCode,
+            const statusCode = data?.statusCode ?? httpCode ?? 200;
+            const language = this.responseLanguage(request);
+            const responseData = data?.data !== undefined ? data.data : data;
+
+            return {
+              success: true,
+              statusCode,
               message: await this.languageService.translateAsync(
                 data?.message ?? 'Success',
                 language,
@@ -81,9 +89,9 @@ export class ResponseInterceptor<T> implements NestInterceptor<
                   language,
                 ),
               }),
-          timestamp: new Date().toISOString(),
-          path: request.url,
-        };
+              timestamp: new Date().toISOString(),
+              path: request.url,
+            };
           })(),
         ),
       ),
@@ -100,7 +108,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<
       (typeof user?.preferredLanguage === 'string'
         ? user.preferredLanguage
         : undefined);
-    const normalized = language?.trim().toLowerCase();
+    const normalized = language?.trim().toLowerCase().split('-')[0];
     const found = SUPPORTED_LANGUAGES.find((item) => item.code === normalized);
 
     return found?.code ?? DEFAULT_LANGUAGE;
@@ -113,5 +121,4 @@ export class ResponseInterceptor<T> implements NestInterceptor<
 
     return typeof value === 'string' ? value : undefined;
   }
-
 }

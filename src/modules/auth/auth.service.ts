@@ -233,7 +233,11 @@ export class AuthService {
     // Remove passwordHash before returning to client
     const { passwordHash: _, ...result } = user;
     
-    const tokens = await this.generateTokens(user.id, user.role);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.role,
+      user.preferredLanguage,
+    );
 
     return {
       message: 'Signin successful',
@@ -496,7 +500,11 @@ Alurei Partners Team`,
     ]);
 
     const { passwordHash: _, ...result } = updatedUser;
-    const tokens = await this.generateTokens(updatedUser.id, updatedUser.role);
+    const tokens = await this.generateTokens(
+      updatedUser.id,
+      updatedUser.role,
+      updatedUser.preferredLanguage,
+    );
 
     return {
       message: 'Signup verified successfully',
@@ -566,8 +574,12 @@ Alurei Partners Team`,
     };
   }
 
-  async generateTokens(userId: string, role: string) {
-    const payload = { sub: userId, role };
+  async generateTokens(
+    userId: string,
+    role: string,
+    preferredLanguage?: string | null,
+  ) {
+    const payload = { sub: userId, role, preferredLanguage };
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: this.configService.get<string>('JWT_SECRET'),
