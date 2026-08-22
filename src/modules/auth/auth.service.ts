@@ -230,6 +230,22 @@ export class AuthService {
       throw new BadRequestException('Account is not active. Please contact support.');
     }
 
+    if (
+      (user.role === UserRole.PARENT || user.role === UserRole.NANNY) &&
+      user.verificationStatus !== VerificationStatus.APPROVED
+    ) {
+      if (user.verificationStatus === VerificationStatus.REJECTED) {
+        throw new BadRequestException(
+          user.rejectionReason ||
+            'Your identity verification was rejected. Please contact support or resubmit verification.',
+        );
+      }
+
+      throw new BadRequestException(
+        'Complete and pass identity verification before signing in.',
+      );
+    }
+
     // Remove passwordHash before returning to client
     const { passwordHash: _, ...result } = user;
     
@@ -489,8 +505,14 @@ Alurei Partners Team`,
         data: {
           isEmailVerified: Boolean(dto.email) || user.isEmailVerified,
           isPhoneVerified: Boolean(dto.phoneNumber) || user.isPhoneVerified,
-          status: UserStatus.ACTIVE,
-          verificationStatus: user.verificationStatus,
+          status:
+            user.role === UserRole.PARENT || user.role === UserRole.NANNY
+              ? UserStatus.PENDING
+              : UserStatus.ACTIVE,
+          verificationStatus:
+            user.role === UserRole.PARENT || user.role === UserRole.NANNY
+              ? VerificationStatus.PENDING
+              : user.verificationStatus,
         },
       }),
       this.prisma.otpCode.update({
@@ -507,7 +529,10 @@ Alurei Partners Team`,
     );
 
     return {
-      message: 'Signup verified successfully',
+      message:
+        updatedUser.role === UserRole.PARENT || updatedUser.role === UserRole.NANNY
+          ? 'Signup verified successfully. Complete Sumsub identity verification before signing in.'
+          : 'Signup verified successfully',
       user: result,
       ...tokens,
     };

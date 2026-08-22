@@ -1,0 +1,6 @@
+ALTER TABLE "subscription_plans"
+ADD COLUMN "description" TEXT,
+ADD COLUMN "badgeText" TEXT,
+ADD COLUMN "additionalChildPrice" DOUBLE PRECISION NOT NULL DEFAULT 35,
+ADD COLUMN "additionalChildCurrency" TEXT NOT NULL DEFAULT 'AED',
+ADD COLUMN "sortOrder" INTEGER NOT NULL DEFAULT 0;

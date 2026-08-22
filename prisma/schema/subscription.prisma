@@ -1,16 +1,21 @@
 model SubscriptionPlan {
-  id            String               @id @default(uuid())
-  name          String
-  maxChildren   Int
-  price         Float
-  currency      String               @default("AED")
-  interval      SubscriptionInterval @default(MONTHLY)
-  savingsText   String?
-  features      String[]
-  isActive      Boolean              @default(true)
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
-  subscriptions UserSubscription[]
+  id                     String               @id @default(uuid())
+  name                   String
+  maxChildren            Int
+  price                  Float
+  currency               String               @default("AED")
+  interval               SubscriptionInterval @default(MONTHLY)
+  savingsText            String?
+  description            String?
+  badgeText              String?
+  additionalChildPrice   Float                @default(35)
+  additionalChildCurrency String              @default("AED")
+  sortOrder              Int                  @default(0)
+  features               String[]
+  isActive               Boolean              @default(true)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  subscriptions          UserSubscription[]
 
   @@map("subscription_plans")
 }

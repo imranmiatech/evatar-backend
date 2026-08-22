@@ -160,6 +160,22 @@ async function bootstrap() {
   );
 
   expressApp.get(
+    ['/signup-ui', '/signup', '/public/signup.html'],
+    (req: any, res: any) => {
+      const fs = require('fs');
+      const path = require('path');
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'public/signup.html'),
+        path.resolve(__dirname, '../public/signup.html'),
+        path.resolve(__dirname, '../../public/signup.html'),
+      ];
+      const targetPath =
+        possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+      res.sendFile(targetPath);
+    },
+  );
+
+  expressApp.get(
     ['/partner-auth', '/partner-auth-ui'],
     (req: any, res: any) => {
       const fs = require('fs');

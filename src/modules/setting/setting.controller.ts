@@ -1,6 +1,11 @@
-import { Controller, Patch, Post, Get, Body, UseGuards, Param } from '@nestjs/common';
+import { Controller, Patch, Post, Get, Body, UseGuards, Param, Query } from '@nestjs/common';
 import { SettingService } from './setting.service';
-import { ChangePasswordDto, DeleteAccountDto } from './dto/setting.dto';
+import {
+  ChangePasswordDto,
+  DeleteAccountDto,
+  SavePayoutMethodDto,
+  UpdateMembershipRoutingDto,
+} from './dto/setting.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -57,5 +62,71 @@ export class SettingController {
   @ApiResponse({ status: 404, description: 'Deleted account record not found.' })
   async getDeletedAccountById(@Param('id') id: string) {
     return this.settingService.getDeletedAccountById(id);
+  }
+
+  @Get('payout-methods/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get my payout/receiving methods' })
+  async getMyPayoutMethods(@CurrentUser() user: any) {
+    return this.settingService.getMyPayoutMethods(user.id);
+  }
+
+  @Post('payout-methods/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Save my payout/receiving method for nanny/admin/partner payments' })
+  async saveMyPayoutMethod(
+    @CurrentUser() user: any,
+    @Body() dto: SavePayoutMethodDto,
+  ) {
+    return this.settingService.saveMyPayoutMethod(user.id, dto);
+  }
+
+  @Patch('payout-methods/:id/default')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Set one payout method as default for incoming payments' })
+  async setDefaultPayoutMethod(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    return this.settingService.setDefaultPayoutMethod(user.id, id);
+  }
+
+  @Patch('payout-methods/:id/remove-default')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Remove default marker from a payout method' })
+  async removeDefaultPayoutMethod(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    return this.settingService.removeDefaultPayoutMethod(user.id, id);
+  }
+
+  @Get('payment-routing')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get payment routing summary for nanny tips, membership, and partner products' })
+  async getPaymentRoutingOverview() {
+    return this.settingService.getPaymentRoutingOverview();
+  }
+
+  @Patch('payment-routing/membership-subscription')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Choose which admin account receives membership subscription payments' })
+  async updateMembershipRouting(@Body() dto: UpdateMembershipRoutingDto) {
+    return this.settingService.updateMembershipRouting(dto);
+  }
+
+  @Get('payment-routing/resolve')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Resolve who should receive a payment for a specific context' })
+  async resolvePaymentRouting(
+    @Query('context') context: string,
+    @Query('nannyUserId') nannyUserId?: string,
+    @Query('productId') productId?: string,
+  ) {
+    return this.settingService.resolvePaymentRecipient(context, {
+      nannyUserId,
+      productId,
+    });
   }
 }

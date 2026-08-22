@@ -42,4 +42,12 @@ export class CreateNannyTipDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @ApiPropertyOptional({
+    description: 'Optional saved payer payment method ID to use for this tip',
+    example: 'payment-method-123',
+  })
+  @IsOptional()
+  @IsString()
+  paymentMethodId?: string;
 }

@@ -4,7 +4,8 @@ import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class UploadDocumentDto {
   @ApiProperty({
-    description: 'Document type: PASSPORT or NATIONAL_ID',
+    description:
+      'High-level document category for the current KYC upload flow.',
     enum: IdentityDocType,
     example: IdentityDocType.PASSPORT,
   })
@@ -13,7 +14,8 @@ export class UploadDocumentDto {
   docType!: IdentityDocType;
 
   @ApiProperty({
-    description: 'Passport Image / PDF File (Required when docType is PASSPORT)',
+    description:
+      'Single-file upload, typically used for passports in the legacy document screen.',
     type: 'string',
     format: 'binary',
     required: false,
@@ -22,7 +24,8 @@ export class UploadDocumentDto {
   passport?: any;
 
   @ApiProperty({
-    description: 'National ID Front Image / PDF File (Required when docType is NATIONAL_ID)',
+    description:
+      'Front-side upload for multi-side identity documents in the legacy document screen.',
     type: 'string',
     format: 'binary',
     required: false,
@@ -31,7 +34,8 @@ export class UploadDocumentDto {
   nidFront?: any;
 
   @ApiProperty({
-    description: 'National ID Back Image / PDF File (Optional for NATIONAL_ID)',
+    description:
+      'Back-side upload for multi-side identity documents in the legacy document screen.',
     type: 'string',
     format: 'binary',
     required: false,

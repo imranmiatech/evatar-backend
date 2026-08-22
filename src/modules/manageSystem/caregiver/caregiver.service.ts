@@ -172,8 +172,11 @@ export class CaregiverService {
   /**
    * Screen 1: Get Account Owner & Categorized Caregiver List
    */
-  async getManageCaregivers(userId: string) {
-    const accessibleChildIds = await this.getAccessibleChildIds(
+  async getManageCaregivers(userId: string, childId?: string) {
+    const accessibleChildIds = childId
+      ? [(await this.getChildAccessContext(userId, childId)).childId]
+      : await this.getAccessibleChildIds(userId);
+    const manageableChildIds = await this.getAccessibleChildIds(
       userId,
       'manageCareTeam',
     );
@@ -205,7 +208,7 @@ export class CaregiverService {
       orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
     });
 
-    const ownerUser = children[0]?.parentUser;
+    const ownerUser = children[0]?.parentUser ?? accesses[0]?.child?.parentUser;
     const accountOwner = ownerUser
       ? {
           id: ownerUser.id,
@@ -214,11 +217,17 @@ export class CaregiverService {
           image: ownerUser.profilePictureUrl,
           childIds: children.map((child) => child.id),
           childNames: children.map((child) => child.name),
+          canManageCareTeam: children.some((child) =>
+            manageableChildIds.includes(child.id),
+          ),
         }
       : null;
 
     const caregivers = accesses.map((access) =>
-      this.formatManageCaregiver(access),
+      this.formatManageCaregiver(
+        access,
+        manageableChildIds.includes(access.childId),
+      ),
     );
 
     return {
@@ -429,14 +438,86 @@ export class CaregiverService {
     return { isOwner: false, permissions: this.pickPermissions(access) };
   }
 
-  formatAccess(access: LoadedAccess) {
+  async getChildAccessContext(userId: string, childId: string) {
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      select: {
+        id: true,
+        name: true,
+        parentUserId: true,
+        parentUser: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            profilePictureUrl: true,
+          },
+        },
+      },
+    });
+
+    if (!child) {
+      throw new NotFoundException('Child not found');
+    }
+
+    if (child.parentUserId === userId) {
+      const permissions = this.fullPermissions();
+      return {
+        childId: child.id,
+        childName: child.name,
+        isOwner: true,
+        accessRole: 'ACCOUNT_OWNER',
+        permissions,
+        permissionItems: this.permissionItemsFromMap(permissions),
+        accountOwner: {
+          id: child.parentUser.id,
+          name: child.parentUser.fullName,
+          email: child.parentUser.email,
+          image: child.parentUser.profilePictureUrl,
+        },
+      };
+    }
+
+    const access = await this.prisma.caregiverAccess.findFirst({
+      where: {
+        childId,
+        invitedUserId: userId,
+        status: CaregiverAccessStatus.ACCEPTED,
+      },
+      include: accessInclude,
+    });
+
+    if (!access) {
+      throw new ForbiddenException('You do not have access to this child');
+    }
+
+    const permissions = this.pickPermissions(access);
+    return {
+      childId: child.id,
+      childName: child.name,
+      isOwner: false,
+      accessRole: access.role,
+      relationship: access.relationship,
+      permissions,
+      permissionItems: this.permissionItemsFromMap(permissions),
+      accountOwner: {
+        id: child.parentUser.id,
+        name: child.parentUser.fullName,
+        email: child.parentUser.email,
+        image: child.parentUser.profilePictureUrl,
+      },
+    };
+  }
+
+  formatAccess(access: LoadedAccess, canManageCareTeam = false) {
     const caregiverUser = access.invitedUser;
-    const name =
+    const baseName =
       caregiverUser?.fullName ??
       access.invitedName ??
       access.invitedEmail ??
       access.invitedPhone ??
       'Invited Caregiver';
+    const name = caregiverUser ? baseName : `${baseName} (Invited Member)`;
 
     return {
       id: access.id,
@@ -451,13 +532,14 @@ export class CaregiverService {
       phone: caregiverUser?.phoneNumber ?? access.invitedPhone ?? null,
       image: caregiverUser?.profilePictureUrl ?? null,
       isAccountOwner: false,
+      canManageCareTeam,
       permissions: this.formatAccessPermissions(access),
       createdAt: access.createdAt,
     };
   }
 
-  formatManageCaregiver(access: LoadedAccess) {
-    return this.formatAccess(access);
+  formatManageCaregiver(access: LoadedAccess, canManageCareTeam = false) {
+    return this.formatAccess(access, canManageCareTeam);
   }
 
   caregiverSections(accountOwner: any, caregivers: any[]) {
@@ -506,6 +588,15 @@ export class CaregiverService {
       },
       items,
     };
+  }
+
+  permissionItemsFromMap(permissions: PermissionMap) {
+    return PERMISSION_KEYS.map((key) => ({
+      key,
+      label: PERMISSION_LABELS[key],
+      description: PERMISSION_DESCRIPTIONS[key],
+      isEnabled: Boolean(permissions[key]),
+    }));
   }
 
   fullPermissions(): PermissionMap {

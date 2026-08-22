@@ -4,19 +4,13 @@ import {
   Controller,
   Get,
   Headers,
-  Param,
-  Patch,
   Post,
   Req,
-  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import {
-  FileFieldsInterceptor,
-  FileInterceptor,
-} from '@nestjs/platform-express';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import type {} from 'multer';
 import {
   ApiBearerAuth,
@@ -28,14 +22,17 @@ import {
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { SubmitDocumentsDto } from './dto/submit-documents.dto';
+import {
+  SUMSUB_KYC_ALLOWED_MIME_TYPES,
+  SUMSUB_KYC_MAX_FILE_BYTES,
+} from './constants/sumsub-kyc.constants';
 import { KycService } from './kyc.service';
 import { SumsubService } from './sumsub.service';
+import { CreateKycSessionDto } from './dto/create-kyc-session.dto';
+import { CreateLivenessActionDto } from './dto/create-liveness-action.dto';
+import { SubmitDocumentsDto } from './dto/submit-documents.dto';
 
-const KYC_DOCUMENT_MAX_BYTES = 25 * 1024 * 1024;
-const KYC_DOCUMENT_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-
-@ApiTags('KYC Documents')
+@ApiTags('KYC')
 @Controller('kyc')
 export class KycController {
   constructor(
@@ -43,72 +40,90 @@ export class KycController {
     private readonly sumsubService: SumsubService,
   ) {}
 
+  @Get('flow-config')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get KYC flow capabilities for custom UI and required SDK steps',
+  })
+  getFlowConfig() {
+    return this.kycService.getFlowConfiguration();
+  }
+
+  @Post('session')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Create or resume a Sumsub KYC applicant session',
+  })
+  createSession(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: CreateKycSessionDto,
+  ) {
+    return this.kycService.createVerificationSession(user.userId, dto);
+  }
+
   @Post('sumsub/access-token')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Generate Sumsub SDK access token for identity verification',
+    summary: 'Generate Sumsub SDK access token for the standard applicant flow',
   })
-  generateSumsubAccessToken(@CurrentUser() user: CurrentUserPayload) {
-    return this.sumsubService.generateSdkAccessToken(user.userId);
-  }
-
-  @Post('sumsub/webhook')
-  @ApiOperation({
-    summary: 'Public Sumsub webhook endpoint for verification status updates',
-  })
-  handleSumsubWebhook(
-    @Req() req: any,
-    @Body() payload: any,
-    @Headers('x-payload-digest') digest?: string,
-    @Headers('x-payload-digest-alg') digestAlg?: string,
+  generateSumsubAccessToken(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: CreateKycSessionDto,
   ) {
-    const rawBody = req.rawBody instanceof Buffer
-      ? req.rawBody
-      : Buffer.from(JSON.stringify(payload || {}));
-
-    return this.sumsubService.handleWebhook(payload, rawBody, digest, digestAlg);
+    return this.sumsubService.generateSdkAccessToken(user.userId, {
+      lang: dto?.lang,
+    });
   }
 
   @Post('documents')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'passport', maxCount: 1 },
-      { name: 'nidFront', maxCount: 1 },
-      { name: 'nidBack', maxCount: 1 },
-    ]),
-  )
+  @UseInterceptors(AnyFilesInterceptor())
   @ApiOperation({
-    summary:
-      'Save parent Passport or National ID document images after account/OTP flow',
+    summary: 'Upload identity documents through your custom UI via Sumsub REST API',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['docType'],
+      required: ['docType', 'countryCode'],
       properties: {
         docType: {
           type: 'string',
-          enum: ['PASSPORT', 'NATIONAL_ID'],
-          example: 'NATIONAL_ID',
+          enum: [
+            'PASSPORT',
+            'NATIONAL_ID',
+            'ID_CARD',
+            'DRIVERS_LICENSE',
+            'RESIDENCE_PERMIT',
+            'OTHER',
+          ],
         },
-        passport: {
+        countryCode: {
+          type: 'string',
+          example: 'USA',
+        },
+        sumsubIdDocType: {
+          type: 'string',
+          example: 'DRIVERS',
+        },
+        document: {
           type: 'string',
           format: 'binary',
-          description: 'Required when docType is PASSPORT.',
+          description: 'Single-file document upload such as a passport.',
         },
-        nidFront: {
+        front: {
           type: 'string',
           format: 'binary',
-          description: 'Required when docType is NATIONAL_ID.',
+          description: 'Front side of a multi-side document.',
         },
-        nidBack: {
+        back: {
           type: 'string',
           format: 'binary',
-          description: 'Required when docType is NATIONAL_ID.',
+          description: 'Back side of a multi-side document when required.',
         },
       },
     },
@@ -116,143 +131,99 @@ export class KycController {
   submitDocuments(
     @CurrentUser() user: CurrentUserPayload,
     @Body() dto: SubmitDocumentsDto,
-    @UploadedFiles()
-    files: {
-      passport?: Express.Multer.File[];
-      nidFront?: Express.Multer.File[];
-      nidBack?: Express.Multer.File[];
-    },
+    @UploadedFiles() uploadedFiles: Express.Multer.File[],
   ) {
-    KycController.validateFiles(files);
-    return this.kycService.submitDocuments(user.userId, dto.docType, files);
+    const files = KycController.groupFilesByField(uploadedFiles);
+    KycController.validateFiles(uploadedFiles);
+    return this.kycService.submitDocumentsWithCustomUi(user.userId, dto, files);
   }
 
-  @Patch('documents/:id')
+  @Post('review')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'passport', maxCount: 1 },
-      { name: 'nidFront', maxCount: 1 },
-      { name: 'nidBack', maxCount: 1 },
-    ]),
-  )
   @ApiOperation({
-    summary: 'Update parent Passport or National ID document images',
+    summary: 'Request Sumsub review after custom document upload is complete',
   })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['docType'],
-      properties: {
-        docType: {
-          type: 'string',
-          enum: ['PASSPORT', 'NATIONAL_ID'],
-          example: 'NATIONAL_ID',
-        },
-        passport: {
-          type: 'string',
-          format: 'binary',
-          description: 'Required when docType is PASSPORT.',
-        },
-        nidFront: {
-          type: 'string',
-          format: 'binary',
-          description: 'Required when docType is NATIONAL_ID.',
-        },
-        nidBack: {
-          type: 'string',
-          format: 'binary',
-          description: 'Required when docType is NATIONAL_ID.',
-        },
-      },
-    },
-  })
-  updateDocuments(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id') id: string,
-    @Body() dto: SubmitDocumentsDto,
-    @UploadedFiles()
-    files: {
-      passport?: Express.Multer.File[];
-      nidFront?: Express.Multer.File[];
-      nidBack?: Express.Multer.File[];
-    },
-  ) {
-    KycController.validateFiles(files);
-    return this.kycService.updateDocuments(
-      user.userId,
-      id,
-      dto.docType,
-      files,
-    );
+  requestReview(@CurrentUser() user: CurrentUserPayload) {
+    return this.kycService.requestVerificationReview(user.userId);
   }
 
-  @Post('face-check')
+  @Post('liveness-action')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @UseInterceptors(FileInterceptor('selfie'))
   @ApiOperation({
-    summary: 'Save live selfie image after document upload for identity check',
+    summary: 'Create the Sumsub liveness and face-match action for SDK handoff',
   })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['selfie'],
-      properties: {
-        selfie: {
-          type: 'string',
-          format: 'binary',
-          description: 'Captured live selfie frame from the identity screen.',
-        },
-      },
-    },
-  })
-  submitFaceCheck(
+  createLivenessAction(
     @CurrentUser() user: CurrentUserPayload,
-    @UploadedFile() selfie: Express.Multer.File,
+    @Body() dto: CreateLivenessActionDto,
   ) {
-    KycController.validateFile(selfie);
-    return this.kycService.submitFaceCheck(user.userId, selfie);
+    return this.kycService.createLivenessAction(user.userId, dto);
   }
 
-  @Get('documents')
+  @Get('status')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get my saved KYC document submissions' })
-  getDocuments(@CurrentUser() user: CurrentUserPayload) {
-    return this.kycService.getMyDocuments(user.userId);
+  @ApiOperation({
+    summary: 'Get local KYC state plus the latest Sumsub applicant status',
+  })
+  getStatus(@CurrentUser() user: CurrentUserPayload) {
+    return this.kycService.getMyVerificationStatus(user.userId);
   }
 
-  private static validateFiles(files: {
-    passport?: Express.Multer.File[];
-    nidFront?: Express.Multer.File[];
-    nidBack?: Express.Multer.File[];
-  }) {
-    const uploadedFiles = [
-      ...(files.passport ?? []),
-      ...(files.nidFront ?? []),
-      ...(files.nidBack ?? []),
-    ];
+  @Post('sumsub/webhook')
+  @ApiOperation({
+    summary: 'Public Sumsub webhook endpoint for applicant and action updates',
+  })
+  handleSumsubWebhook(
+    @Req() req: any,
+    @Body() payload: any,
+    @Headers('x-payload-digest') digest?: string,
+    @Headers('x-payload-digest-alg') digestAlg?: string,
+  ) {
+    const rawBody =
+      req.rawBody instanceof Buffer
+        ? req.rawBody
+        : Buffer.from(JSON.stringify(payload || {}));
 
-    uploadedFiles.forEach((file) => KycController.validateFile(file));
+    return this.sumsubService.handleWebhook(payload, rawBody, digest, digestAlg);
   }
 
-  private static validateFile(file?: Express.Multer.File) {
-    if (!file) {
-      throw new BadRequestException('Document image is required');
+  private static groupFilesByField(uploadedFiles: Express.Multer.File[]) {
+    const grouped: {
+      document?: Express.Multer.File[];
+      front?: Express.Multer.File[];
+      back?: Express.Multer.File[];
+    } = {};
+
+    for (const file of uploadedFiles || []) {
+      if (
+        file.fieldname !== 'document' &&
+        file.fieldname !== 'front' &&
+        file.fieldname !== 'back'
+      ) {
+        throw new BadRequestException(
+          `Unsupported file field "${file.fieldname}". Use document, front, or back.`,
+        );
+      }
+
+      grouped[file.fieldname] = [...(grouped[file.fieldname] || []), file];
     }
 
-    if (file.size > KYC_DOCUMENT_MAX_BYTES) {
-      throw new BadRequestException('Document image must be 25MB or less');
-    }
+    return grouped;
+  }
 
-    if (!KYC_DOCUMENT_MIME_TYPES.includes(file.mimetype)) {
-      throw new BadRequestException(
-        'Document image must be jpeg, png, or webp',
-      );
+  private static validateFiles(files: Express.Multer.File[]) {
+    for (const file of files || []) {
+      if (file.size > SUMSUB_KYC_MAX_FILE_BYTES) {
+        throw new BadRequestException('Document file must be 50MB or less');
+      }
+
+      if (!SUMSUB_KYC_ALLOWED_MIME_TYPES.includes(file.mimetype as never)) {
+        throw new BadRequestException(
+          `Document file must be one of: ${SUMSUB_KYC_ALLOWED_MIME_TYPES.join(', ')}`,
+        );
+      }
     }
   }
 }

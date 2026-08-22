@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CaregiverAccessRole, IdentityDocType, VerificationStatus } from '@prisma/client';
+import { CaregiverAccessRole, IdentityDocType } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { buildKycSummary } from '../../kyc/utils/kyc-summary.util';
 
 @Injectable()
 export class NannyDocumentService {
@@ -108,33 +109,25 @@ export class NannyDocumentService {
           ]
     ).map((nanny, idx) => {
       const verification = (nanny.kycVerifications ?? [])[0] ?? null;
-      const documents = verification?.documents ?? [];
       const displayName = nanny.fullName || figmaNames[idx % 3];
 
-      const formattedDocs = [
-        this.buildDocumentItem(
-          IdentityDocType.PASSPORT,
-          'Passport',
-          documents.find((d: any) => d.type === 'PASSPORT'),
-          verification?.status,
-          verification?.reviewedAt,
-        ),
-        this.buildDocumentItem(
-          IdentityDocType.NATIONAL_ID,
-          'National ID',
-          documents.find(
-            (d: any) => d.type === 'NID_FRONT' || d.type === 'NID_BACK',
-          ),
-          verification?.status,
-          verification?.reviewedAt,
-        ),
-      ];
+      const formattedDocs = verification
+        ? [
+            this.buildDocumentItem(
+              verification.docType,
+              this.labelForDocType(verification.docType),
+              verification.documents,
+              verification.reviewedAt,
+            ),
+          ]
+        : [];
 
       return {
         nannyUserId: nanny.id,
         nannyName: displayName,
         profilePicture: nanny.profilePictureUrl ?? null,
-        verificationStatus: 'APPROVED',
+        verificationStatus: verification?.status ?? 'PENDING',
+        verificationSummary: buildKycSummary(verification),
         documents: formattedDocs,
       };
     });
@@ -172,10 +165,10 @@ export class NannyDocumentService {
   private buildDocumentItem(
     docType: IdentityDocType,
     label: string,
-    docRecord?: any,
-    verificationStatus?: VerificationStatus,
+    docRecords: any[] = [],
     reviewedAt?: Date | null,
   ) {
+    const docRecord = docRecords[0];
     const fileUrl =
       docRecord?.fileUrl ??
       'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
@@ -194,5 +187,23 @@ export class NannyDocumentService {
       canView: true,
       canDownload: true,
     };
+  }
+
+  private labelForDocType(docType: IdentityDocType) {
+    switch (docType) {
+      case IdentityDocType.PASSPORT:
+        return 'Passport';
+      case IdentityDocType.NATIONAL_ID:
+        return 'National ID';
+      case IdentityDocType.ID_CARD:
+        return 'ID Card';
+      case IdentityDocType.DRIVERS_LICENSE:
+        return "Driver's License";
+      case IdentityDocType.RESIDENCE_PERMIT:
+        return 'Residence Permit';
+      case IdentityDocType.OTHER:
+      default:
+        return 'Identity Document';
+    }
   }
 }

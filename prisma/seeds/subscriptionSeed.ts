@@ -14,46 +14,94 @@ const defaultFeatures = [
 
 const defaultPlans = [
   {
-    name: '2 child Family Membership',
+    name: 'Global',
     maxChildren: 2,
-    price: 60.0,
-    currency: 'AED',
+    price: 49.0,
+    currency: 'USD',
     interval: SubscriptionInterval.MONTHLY,
-    features: ['Manage 2 child maximum at a time', ...defaultFeatures],
+    description: 'Flexible monthly billing. Cancel anytime.',
+    badgeText: null,
+    additionalChildPrice: 10,
+    additionalChildCurrency: 'USD',
+    sortOrder: 1,
+    features: [
+      'Up to 2 children',
+      'Full AI Daily Planning',
+      'Up to 3 carers',
+      'Bedtime Stories',
+      'Full weekly insights',
+      'Caregiver Learning',
+      'Priority support',
+    ],
   },
   {
-    name: '4 child Family Membership',
-    maxChildren: 4,
-    price: 120.0,
+    name: 'Monthly',
+    maxChildren: 2,
+    price: 399.0,
     currency: 'AED',
     interval: SubscriptionInterval.MONTHLY,
-    features: ['Manage 4 child maximum at a time', ...defaultFeatures],
+    description: 'The complete Alurei experience for growing families.',
+    badgeText: null,
+    additionalChildPrice: 35,
+    additionalChildCurrency: 'AED',
+    sortOrder: 2,
+    features: [
+      'Up to 2 children',
+      'Full AI Daily Planning',
+      'Up to 3 carers',
+      'Bedtime Stories',
+      'Full weekly insights',
+      'Unlimited Alurei rewards',
+      'Priority support',
+    ],
   },
   {
-    name: '10 child Family Membership',
-    maxChildren: 10,
-    price: 300.0,
-    currency: 'AED',
-    interval: SubscriptionInterval.MONTHLY,
-    features: ['Manage 10 child maximum at a time', ...defaultFeatures],
-  },
-  {
-    name: 'Family Plus',
-    maxChildren: 10,
-    price: 499.0,
+    name: 'Yearly',
+    maxChildren: 2,
+    price: 3990.0,
     currency: 'AED',
     interval: SubscriptionInterval.ANNUALLY,
-    savingsText: 'Save AUD 19 by choosing annual billing.',
+    description: 'Save 2 months with annual billing.',
+    badgeText: 'Save 2 Months',
+    additionalChildPrice: 35,
+    additionalChildCurrency: 'AED',
+    sortOrder: 3,
+    savingsText: 'Save 2 months with annual billing.',
     features: [
-      'Save AUD 19 by choosing annual billing.',
-      'Priority 24/7 Concierge Support',
-      'Manage up to 10 children',
-      ...defaultFeatures,
+      'Up to 2 children',
+      'Full AI Daily Planning',
+      'Up to 3 carers',
+      'Bedtime Stories',
+      'Full weekly insights',
+      'Unlimited Alurei rewards',
+      'Priority support',
     ],
   },
 ];
 
 export async function seedSubscriptionPlans(prisma: PrismaClient) {
+  await prisma.subscriptionPlan.deleteMany({
+    where: {
+      name: {
+        in: ['4 child Family Membership', '10 child Family Membership'],
+      },
+      subscriptions: {
+        none: {},
+      },
+    },
+  });
+
+  await prisma.subscriptionPlan.updateMany({
+    where: {
+      name: {
+        in: ['4 child Family Membership', '10 child Family Membership'],
+      },
+    },
+    data: {
+      isActive: false,
+    },
+  });
+
   for (const plan of defaultPlans) {
     const existing = await prisma.subscriptionPlan.findFirst({
       where: { name: plan.name },
@@ -67,6 +115,24 @@ export async function seedSubscriptionPlans(prisma: PrismaClient) {
       });
     } else {
       await prisma.subscriptionPlan.create({ data: plan });
+    }
+
+    const canonical = await prisma.subscriptionPlan.findFirst({
+      where: { name: plan.name },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+
+    if (canonical) {
+      await prisma.subscriptionPlan.updateMany({
+        where: {
+          name: plan.name,
+          id: { not: canonical.id },
+        },
+        data: {
+          isActive: false,
+        },
+      });
     }
   }
 

@@ -65,6 +65,20 @@ export class MembershipBillingController {
     );
   }
 
+  @Patch('payment-methods/:id/remove-default')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remove default marker from a saved payment method' })
+  removeDefaultPaymentMethod(
+    @CurrentUser() user: any,
+    @Param('id') paymentMethodId: string,
+  ) {
+    return this.membershipPaymentMethodService.removeDefaultPaymentMethod(
+      extractMembershipUserId(user),
+      paymentMethodId,
+    );
+  }
+
   @Delete('payment-methods/:id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

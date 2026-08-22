@@ -2,6 +2,14 @@ model KycVerification {
   id              String             @id @default(uuid())
   userId          String
   docType         IdentityDocType
+  countryCode     String?
+  sumsubIdDocType String?
+  levelName       String?
+  applicantId     String?
+  actionId        String?
+  actionType      String?
+  reviewStatus    String?
+  reviewAnswer    String?
   status          VerificationStatus @default(PENDING)
   rejectionReason String?
   faceMatchScore  Float?
@@ -21,7 +29,9 @@ model KycVerification {
 model KycDocument {
   id                String          @id @default(uuid())
   type              DocumentType
+  side              String?
   s3Key             String
+  vendorImageId     String?
   extractedData     Json?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt

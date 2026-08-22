@@ -13,6 +13,7 @@ import {
   ApiBody,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import {
@@ -37,8 +38,17 @@ export class CaregiverController {
     description:
       'Returns Account Owner and list of invited members grouped into sections: Account Owner, Nanny, Parent, Family Member.',
   })
-  getManageCaregivers(@CurrentUser() user: CurrentUserPayload) {
-    return this.caregiverService.getManageCaregivers(user.userId);
+  @ApiQuery({
+    name: 'childId',
+    required: false,
+    description:
+      'Optional child filter. When passed, returns caregiver data only for the selected accessible child.',
+  })
+  getManageCaregivers(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query('childId') childId?: string,
+  ) {
+    return this.caregiverService.getManageCaregivers(user.userId, childId);
   }
 
   @Get('search-user')

@@ -38,6 +38,48 @@ export class CreateMembershipPlanDto {
   @IsOptional()
   currency?: string;
 
+  @ApiPropertyOptional({
+    example: 'Flexible monthly billing. Cancel anytime.',
+    description: 'Short supporting description shown on the plan card',
+  })
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiPropertyOptional({
+    example: 'Save 2 Months',
+    description: 'Optional compact badge text shown on the plan card',
+  })
+  @IsString()
+  @IsOptional()
+  badgeText?: string;
+
+  @ApiPropertyOptional({
+    example: 10,
+    description: 'Recurring amount charged for each child above the included limit',
+  })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  additionalChildPrice?: number;
+
+  @ApiPropertyOptional({
+    example: 'USD',
+    description: 'Currency used for the additional child charge',
+  })
+  @IsString()
+  @IsOptional()
+  additionalChildCurrency?: string;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Lower numbers are shown first in the plan list',
+  })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  sortOrder?: number;
+
   @ApiProperty({
     enum: SubscriptionInterval,
     default: SubscriptionInterval.MONTHLY,

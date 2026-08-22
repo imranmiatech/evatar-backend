@@ -10,19 +10,26 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CancelMembershipFeedbackDto } from '../dto/cancel-feedback.dto';
+import { CancelMembershipDto } from '../dto/cancel-membership.dto';
 import { PauseMembershipDto } from '../dto/pause-membership.dto';
 import { SimulateMembershipPaymentFailureDto } from '../dto/simulate-payment-failure.dto';
 import { SubscribeMembershipPlanDto } from '../dto/subscribe-plan.dto';
 import { MembershipStripeService } from './membership-stripe.service';
+import { PaymentAccountService } from '../../payment/payment-account.service';
+import { computeMembershipPricing } from '../utils/membership-pricing.util';
+
+const COMPLIMENTARY_TRIAL_DAYS = 14;
 
 @Injectable()
 export class MembershipSubscriptionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly membershipStripeService: MembershipStripeService,
+    private readonly paymentAccountService: PaymentAccountService,
   ) {}
 
   async getMyMembership(userId: string) {
+    const childCount = await this.getChildCount(userId);
     let subscription = await this.prisma.userSubscription.findUnique({
       where: { userId },
       include: { plan: true },
@@ -31,7 +38,9 @@ export class MembershipSubscriptionService {
     if (!subscription) {
       const defaultPlan = await this.findDefaultTrialPlan();
       const now = new Date();
-      const trialEnds = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const trialEnds = new Date(
+        now.getTime() + COMPLIMENTARY_TRIAL_DAYS * 24 * 60 * 60 * 1000,
+      );
 
       subscription = await this.prisma.userSubscription.create({
         data: {
@@ -69,12 +78,26 @@ export class MembershipSubscriptionService {
 
     const isPaymentFailed =
       !!latestFailedInvoice && subscription.status === SubscriptionStatus.PAUSED;
+    const isTrialActive =
+      subscription.status === SubscriptionStatus.FREE_TRIAL &&
+      !!subscription.trialEndsAt &&
+      subscription.trialEndsAt > new Date();
+    const pricing = computeMembershipPricing(subscription.plan, childCount);
 
     return {
       id: subscription.id,
       userId: subscription.userId,
       status: subscription.status,
       plan: subscription.plan,
+      currentPlan: isTrialActive ? 'Free Trial' : subscription.plan.name,
+      displayPrice: isTrialActive ? 0 : pricing.totalAmount,
+      displayCurrency: isTrialActive ? 'AED' : pricing.totalCurrency,
+      displayPeriod: pricing.periodLabel,
+      childCount,
+      pricing,
+      trialDescription: isTrialActive
+        ? `Free trial active. The ${pricing.trialPlanLabel} will start automatically when your trial ends.`
+        : null,
       trialEndsAt: subscription.trialEndsAt,
       trialDaysRemaining,
       currentPeriodStart: subscription.currentPeriodStart,
@@ -101,8 +124,19 @@ export class MembershipSubscriptionService {
       throw new NotFoundException('Membership plan not found.');
     }
 
+    const childCount = await this.getChildCount(userId);
+    const pricing = computeMembershipPricing(plan, childCount);
     let paymentMethod = await this.resolvePaymentMethod(userId, dto);
     let stripePaymentIntentId: string | null = dto.paymentIntentId || null;
+    const stripeChargeSource =
+      await this.paymentAccountService.getStripeChargeSource(
+        userId,
+        dto.paymentMethodId,
+      );
+    const billingRecipient =
+      await this.paymentAccountService.resolvePaymentRecipient(
+        'MEMBERSHIP_SUBSCRIPTION',
+      );
 
     try {
       if (this.membershipStripeService.isConfigured()) {
@@ -111,6 +145,25 @@ export class MembershipSubscriptionService {
             userId,
             plan,
             stripePaymentIntentId,
+            stripeChargeSource,
+            billingRecipient
+              ? {
+                  recipientUserId: billingRecipient.targetUserId,
+                  recipientRole: billingRecipient.targetRole,
+                }
+              : undefined,
+            {
+              amount: pricing.totalAmount,
+              currency: pricing.totalCurrency,
+              description: `${plan.name} membership for ${Math.max(
+                childCount,
+                1,
+              )} child${Math.max(childCount, 1) > 1 ? 'ren' : ''}`,
+              metadata: {
+                childCount: String(childCount),
+                additionalChildren: String(pricing.additionalChildren),
+              },
+            },
           );
       }
     } catch (error) {
@@ -121,8 +174,8 @@ export class MembershipSubscriptionService {
         data: {
           userId,
           planName: plan.name,
-          amount: plan.price,
-          currency: plan.currency,
+          amount: pricing.totalAmount,
+          currency: pricing.totalCurrency,
           status: TransactionStatus.FAILED,
           failureReason: message,
           invoiceDate: new Date(),
@@ -175,8 +228,8 @@ export class MembershipSubscriptionService {
       data: {
         userId,
         planName: plan.name,
-        amount: plan.price,
-        currency: plan.currency,
+        amount: pricing.totalAmount,
+        currency: pricing.totalCurrency,
         status: TransactionStatus.SUCCESS,
         invoiceDate: now,
       },
@@ -187,6 +240,8 @@ export class MembershipSubscriptionService {
       stripePaymentIntentId,
       subscription,
       invoice,
+      pricing,
+      billingRecipient,
       chargedPaymentMethod: paymentMethod
         ? {
             id: paymentMethod.id,
@@ -207,7 +262,9 @@ export class MembershipSubscriptionService {
     }
 
     const now = new Date();
-    const trialEnds = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const trialEnds = new Date(
+      now.getTime() + COMPLIMENTARY_TRIAL_DAYS * 24 * 60 * 60 * 1000,
+    );
 
     const subscription = await this.prisma.userSubscription.upsert({
       where: { userId },
@@ -242,9 +299,11 @@ export class MembershipSubscriptionService {
 
     return {
       message:
-        'Successfully claimed your 7-Day Complimentary Family Membership Trial!',
-      trialDaysRemaining: 7,
+        'Successfully claimed your 14-Day Complimentary Family Membership Trial!',
+      trialDaysRemaining: COMPLIMENTARY_TRIAL_DAYS,
       subscription,
+      currentPlan: 'Free Trial',
+      childCount: await this.getChildCount(userId),
     };
   }
 
@@ -336,6 +395,22 @@ export class MembershipSubscriptionService {
     return {
       message: 'Cancellation feedback submitted successfully.',
       feedback,
+    };
+  }
+
+  async cancelMembership(userId: string, dto?: CancelMembershipDto) {
+    if (dto?.reason) {
+      await this.submitCancelFeedback(userId, {
+        reason: dto.reason,
+        detailNote: dto.detailNote,
+      });
+    }
+
+    const result = await this.confirmCancelMembership(userId);
+
+    return {
+      ...result,
+      feedbackSaved: !!dto?.reason,
     };
   }
 
@@ -453,8 +528,8 @@ export class MembershipSubscriptionService {
 
   private async findDefaultTrialPlan() {
     const defaultPlan = await this.prisma.subscriptionPlan.findFirst({
-      where: { maxChildren: 2, isActive: true },
-      orderBy: [{ interval: 'asc' }, { price: 'asc' }],
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { interval: 'asc' }, { price: 'asc' }],
     });
 
     if (!defaultPlan) {
@@ -468,30 +543,18 @@ export class MembershipSubscriptionService {
     userId: string,
     dto: SubscribeMembershipPlanDto,
   ) {
-    let paymentMethod: any = null;
-
-    if (dto.paymentMethodId) {
-      paymentMethod = await this.prisma.paymentMethod.findFirst({
-        where: { id: dto.paymentMethodId, userId },
-      });
-    }
-
-    if (!paymentMethod) {
-      paymentMethod = await this.prisma.paymentMethod.findFirst({
-        where: { userId, isDefault: true },
-      });
-    }
+    let paymentMethod = await this.paymentAccountService.resolveSelectedPaymentMethod(
+      userId,
+      dto.paymentMethodId,
+    );
 
     if (!paymentMethod && dto.cardBrand && dto.cardLast4) {
-      paymentMethod = await this.prisma.paymentMethod.create({
-        data: {
-          userId,
-          brand: dto.cardBrand,
-          last4: dto.cardLast4,
-          expMonth: 12,
-          expYear: 2028,
-          isDefault: true,
-        },
+      paymentMethod = await this.paymentAccountService.addPaymentMethod(userId, {
+        brand: dto.cardBrand,
+        last4: dto.cardLast4,
+        expMonth: 12,
+        expYear: 2028,
+        isDefault: true,
       });
     }
 
@@ -507,5 +570,11 @@ export class MembershipSubscriptionService {
     }
 
     return next;
+  }
+
+  private getChildCount(userId: string) {
+    return this.prisma.child.count({
+      where: { parentUserId: userId },
+    });
   }
 }

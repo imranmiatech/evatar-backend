@@ -15,3 +15,40 @@ model PaymentMethod {
 
   @@map("payment_methods")
 }
+
+model PayoutMethod {
+  id                  String   @id @default(uuid())
+  userId              String
+  label               String?
+  methodType          String   @default("CARD")
+  providerName        String?
+  accountHolderName   String?
+  cardBrand           String?
+  cardLast4           String?
+  accountNumberMasked String?
+  routingNumberMasked String?
+  ibanMasked          String?
+  expiryMonth         Int?
+  expiryYear          Int?
+  isDefault           Boolean  @default(false)
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation("UserPayoutMethods", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isDefault])
+  @@map("payout_methods")
+}
+
+model PaymentRoutingSetting {
+  id            String   @id @default(uuid())
+  paymentContext String  @unique
+  targetUserId  String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  targetUser    User?    @relation("PaymentRoutingTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([targetUserId])
+  @@map("payment_routing_settings")
+}

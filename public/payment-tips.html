@@ -265,6 +265,12 @@
       };
     }
 
+    function getCheckoutPayload(json) {
+      if (json?.data?.result?.data) return json.data.result.data;
+      if (json?.data) return json.data;
+      return null;
+    }
+
     async function loadNanniesForTips() {
       try {
         const res = await fetch(`${API_BASE}/payment/tips/nannies`, { headers: getHeaders() });
@@ -315,13 +321,14 @@
     async function submitTipIntent() {
       const resultBox = document.getElementById('resultBox');
       resultBox.style.display = 'block';
-      resultBox.innerHTML = '⏳ Creating Stripe PaymentIntent...';
+      resultBox.innerHTML = '⏳ Preparing Stripe tip checkout...';
 
       try {
-        const res = await fetch(`${API_BASE}/payment/tips/create-intent`, {
+        const res = await fetch(`${API_BASE}/payment/checkout`, {
           method: 'POST',
           headers: getHeaders(),
           body: JSON.stringify({
+            paymentType: 'NANNY_TIP',
             nannyUserId: selectedNannyId,
             amount: selectedAmount,
             currency: 'AED',
@@ -330,48 +337,36 @@
         });
 
         const json = await res.json();
-        if (json.success) {
+        const payload = getCheckoutPayload(json);
+        if (res.ok && json.success && payload) {
+          if (payload.checkoutUrl) {
+            resultBox.className = 'result-box';
+            resultBox.innerHTML = `
+              <strong>↗ Redirecting to Stripe Checkout...</strong><br>
+              • <strong>Amount:</strong> ${payload.amount} ${payload.currency}<br>
+              • <strong>Nanny:</strong> ${payload.nannyName}<br>
+              • <strong>Session ID:</strong> <code>${payload.checkoutSessionId || 'pending'}</code><br><br>
+              Opening secure Stripe payment page...
+            `;
+            window.location.href = payload.checkoutUrl;
+            return;
+          }
+
           resultBox.className = 'result-box';
           resultBox.innerHTML = `
             <strong>🎉 Stripe PaymentIntent Created!</strong><br>
-            • <strong>Amount:</strong> ${json.data.amount} ${json.data.currency}<br>
-            • <strong>Nanny:</strong> ${json.data.nannyName}<br>
-            • <strong>PaymentIntent ID:</strong> <code>${json.data.paymentIntentId}</code><br>
-            • <strong>Client Secret:</strong> <code>${json.data.clientSecret.substring(0, 25)}...</code><br><br>
-            <button style="padding:8px 14px; background:#007a78; color:#fff; border:none; border-radius:12px; cursor:pointer; font-weight:700;" onclick="confirmPayment('${json.data.tipId}')">
-              Simulate Successful Payment & Notify Nanny
-            </button>
+            • <strong>Amount:</strong> ${payload.amount} ${payload.currency}<br>
+            • <strong>Nanny:</strong> ${payload.nannyName}<br>
+            • <strong>PaymentIntent ID:</strong> <code>${payload.paymentIntentId}</code><br>
+            • <strong>Client Secret:</strong> <code>${(payload.clientSecret || '').substring(0, 25)}...</code><br>
+            • <strong>Status:</strong> ${payload.status}<br><br>
+            Nanny notification will be sent automatically after payment success.
           `;
         } else {
-          resultBox.innerHTML = `<span style="color:#dc2626">❌ Error: ${json.message}</span>`;
+          resultBox.innerHTML = `<span style="color:#dc2626">❌ Error: ${json.message || 'Checkout failed'}</span>`;
         }
       } catch (err) {
         resultBox.innerHTML = `<span style="color:#dc2626">❌ Server error: ${err.message}</span>`;
-      }
-    }
-
-    async function confirmPayment(tipId) {
-      const resultBox = document.getElementById('resultBox');
-      resultBox.innerHTML = '⏳ Confirming payment & notifying nanny...';
-
-      try {
-        const res = await fetch(`${API_BASE}/payment/tips/${tipId}/confirm`, {
-          method: 'POST',
-          headers: getHeaders(),
-          body: JSON.stringify({ paymentIntentId: `pi_test_${Date.now()}` })
-        });
-
-        const json = await res.json();
-        if (json.success) {
-          resultBox.innerHTML = `
-            <strong>✅ Tip Payment Completed & Nanny Notified!</strong><br>
-            • <strong>Tip ID:</strong> ${json.data.id}<br>
-            • <strong>Status:</strong> ${json.data.status}<br>
-            • Real-time notification sent to Nanny screen!
-          `;
-        }
-      } catch (err) {
-        resultBox.innerHTML = `<span style="color:#dc2626">❌ Confirmation failed: ${err.message}</span>`;
       }
     }
   </script>

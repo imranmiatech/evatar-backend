@@ -39,11 +39,21 @@ export class ChildService {
             orderBy: [{ createdAt: 'desc' }, { name: 'asc' }],
           });
 
+    const accessContexts = await Promise.all(
+      children.map((child) =>
+        this.caregiverService.getChildAccessContext(userId, child.id),
+      ),
+    );
+    const accessByChildId = new Map(
+      accessContexts.map((access) => [access.childId, access]),
+    );
+
     return {
       success: true,
       message: 'Children fetched successfully',
       data: children.map((child) => {
         const age = this.formatChildPickerAge(child.birthDate);
+        const access = accessByChildId.get(child.id);
 
         return {
           id: child.id,
@@ -60,8 +70,25 @@ export class ChildService {
             email: child.parentUser.email,
             image: child.parentUser.profilePictureUrl,
           },
+          permissions: access?.permissions,
+          permissionItems: access?.permissionItems,
+          accessRole: access?.accessRole,
+          relationship: access?.relationship,
         };
       }),
+    };
+  }
+
+  async getMyChildPermissions(userId: string, childId: string) {
+    const access = await this.caregiverService.getChildAccessContext(
+      userId,
+      childId,
+    );
+
+    return {
+      success: true,
+      message: 'Child access fetched successfully',
+      data: access,
     };
   }
 

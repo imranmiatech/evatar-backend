@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { IdentityDocType, VerificationStatus } from '@prisma/client';
+import { IdentityDocType } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { StorageService } from '../../../common/storage/storage.service';
 import { KycService } from '../../kyc/kyc.service';
+import { buildKycSummary } from '../../kyc/utils/kyc-summary.util';
 
 @Injectable()
 export class MyDocumentService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly storageService: StorageService,
     private readonly kycService: KycService,
   ) {}
 
@@ -25,26 +24,16 @@ export class MyDocumentService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const documents = verification?.documents ?? [];
-
-    const formattedDocs = [
-      this.buildDocumentItem(
-        IdentityDocType.PASSPORT,
-        'Passport',
-        documents.find((d) => d.type === 'PASSPORT'),
-        verification?.status,
-        verification?.reviewedAt,
-      ),
-      this.buildDocumentItem(
-        IdentityDocType.NATIONAL_ID,
-        'National ID',
-        documents.find(
-          (d) => d.type === 'NID_FRONT' || d.type === 'NID_BACK',
-        ),
-        verification?.status,
-        verification?.reviewedAt,
-      ),
-    ];
+    const formattedDocs = verification
+      ? [
+          this.buildDocumentItem(
+            verification.docType,
+            this.labelForDocType(verification.docType),
+            verification.documents,
+            verification.reviewedAt,
+          ),
+        ]
+      : [];
 
     return {
       success: true,
@@ -52,7 +41,8 @@ export class MyDocumentService {
       data: {
         title: 'My documents',
         accountOwnerUserId: ownerUserId,
-        verificationStatus: 'APPROVED',
+        verificationStatus: verification?.status ?? 'PENDING',
+        verificationSummary: buildKycSummary(verification),
         documents: formattedDocs,
       },
     };
@@ -104,6 +94,7 @@ export class MyDocumentService {
           fileSize: doc.fileSize || 124500,
           createdAt: doc.createdAt,
           verificationStatus: doc.kycVerification.status,
+          verificationSummary: buildKycSummary(doc.kycVerification),
         },
       };
     }
@@ -118,7 +109,7 @@ export class MyDocumentService {
         mimeType: 'application/pdf',
         fileSize: 124500,
         createdAt: new Date('2026-05-12'),
-        verificationStatus: 'APPROVED',
+        verificationStatus: 'PENDING',
       },
     };
   }
@@ -144,7 +135,7 @@ export class MyDocumentService {
         data: {
           docType: docType || IdentityDocType.PASSPORT,
           fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-          status: 'APPROVED',
+          status: 'PENDING',
         },
       };
     }
@@ -155,20 +146,19 @@ export class MyDocumentService {
   private buildDocumentItem(
     docType: IdentityDocType,
     label: string,
-    docRecord?: any,
-    verificationStatus?: VerificationStatus,
+    docRecords: any[] = [],
     reviewedAt?: Date | null,
   ) {
-    const hasFile = Boolean(docRecord?.fileUrl);
-    const dateToUse = reviewedAt ?? docRecord?.createdAt ?? new Date('2026-05-12');
+    const primaryDocument = docRecords[0];
+    const hasFile = docRecords.length > 0;
+    const dateToUse =
+      reviewedAt ?? primaryDocument?.createdAt ?? new Date('2026-05-12');
     const fileUrl =
-      docRecord?.fileUrl ??
+      primaryDocument?.fileUrl ??
       'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
 
-    const isPassport = docType === IdentityDocType.PASSPORT;
-
     return {
-      id: docRecord?.id ?? `doc-${docType.toLowerCase()}`,
+      id: primaryDocument?.id ?? `doc-${docType.toLowerCase()}`,
       docType,
       label,
       status: hasFile ? 'Verified' : 'Not Uploaded',
@@ -176,12 +166,30 @@ export class MyDocumentService {
       verifiedAt: dateToUse,
       formattedDate: this.formatDate(dateToUse),
       fileUrl: hasFile ? fileUrl : null,
-      mimeType: docRecord?.mimeType ?? 'application/pdf',
-      fileSize: docRecord?.fileSize ?? 124500,
+      mimeType: primaryDocument?.mimeType ?? 'application/pdf',
+      fileSize: primaryDocument?.fileSize ?? 124500,
       canView: true,
       canDownload: hasFile,
       canUpload: !hasFile,
     };
+  }
+
+  private labelForDocType(docType: IdentityDocType) {
+    switch (docType) {
+      case IdentityDocType.PASSPORT:
+        return 'Passport';
+      case IdentityDocType.NATIONAL_ID:
+        return 'National ID';
+      case IdentityDocType.ID_CARD:
+        return 'ID Card';
+      case IdentityDocType.DRIVERS_LICENSE:
+        return "Driver's License";
+      case IdentityDocType.RESIDENCE_PERMIT:
+        return 'Residence Permit';
+      case IdentityDocType.OTHER:
+      default:
+        return 'Identity Document';
+    }
   }
 
   private formatDate(date: Date): string {

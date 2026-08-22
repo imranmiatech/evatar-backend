@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Flow Test</title>
+  <link
+    rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230f6674'/%3E%3Cpath d='M16 24h32v18H16z' fill='white'/%3E%3Cpath d='M16 31h32' stroke='%230f6674' stroke-width='4'/%3E%3C/svg%3E"
+  />
+  <style>
+    :root {
+      --bg: #eef3f4;
+      --card: #ffffff;
+      --ink: #22303a;
+      --muted: #60717d;
+      --line: #d7e7ec;
+      --brand: #0f6674;
+      --brand-dark: #0a4d57;
+      --accent: #e57e19;
+      --soft: #f7fafb;
+      --ok: #dff5e6;
+      --warn: #fff3d8;
+      --shadow: 0 22px 48px rgba(22, 46, 61, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(180deg, #f7f9fa 0%, #eaf0f2 100%);
+      color: var(--ink);
+      padding: 24px 12px 48px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      margin-bottom: 18px;
+      padding: 24px;
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at top right, rgba(229, 126, 25, 0.18), transparent 28%),
+        linear-gradient(135deg, #0f6674 0%, #114956 100%);
+      color: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    .hero p {
+      margin: 0;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.86);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid #e6edf0;
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(20, 42, 57, 0.06);
+    }
+
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    input, select, textarea, button {
+      font: inherit;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 14px;
+      padding: 12px 14px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--brand);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--brand-dark);
+    }
+
+    .btn-secondary {
+      background: #fff;
+      color: var(--brand);
+      border: 1px solid var(--line);
+    }
+
+    .btn-accent {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .status {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--soft);
+      border: 1px dashed var(--line);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .status.ok {
+      background: var(--ok);
+      border-style: solid;
+    }
+
+    .status.warn {
+      background: var(--warn);
+      border-style: solid;
+    }
+
+    .cards {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .card-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .card-copy {
+      min-width: 0;
+    }
+
+    .card-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      background: var(--brand);
+    }
+
+    .pill.orange {
+      background: var(--accent);
+    }
+
+    .json {
+      background: #081318;
+      color: #c7f1ff;
+      border-radius: 18px;
+      padding: 16px;
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 320px;
+      margin: 0;
+      overflow: auto;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: #fff;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    .membership-shell {
+      display: grid;
+      gap: 18px;
+    }
+
+    .membership-current {
+      border: 1px solid #d6e5ea;
+      border-radius: 22px;
+      background: #ffffff;
+      overflow: hidden;
+    }
+
+    .trial-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      background: #f8b22e;
+      color: #1f2b36;
+      font-weight: 700;
+    }
+
+    .trial-clock {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      background: rgba(255, 248, 229, 0.7);
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .membership-current-body {
+      padding: 18px;
+    }
+
+    .eyebrow {
+      font-size: 13px;
+      color: #7a8790;
+      margin-bottom: 8px;
+    }
+
+    .current-plan-title {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .current-plan-price {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 18px;
+      color: #0f6674;
+    }
+
+    .current-plan-price strong {
+      font-size: 46px;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    .current-plan-copy {
+      border-top: 1px solid #e5ecef;
+      padding-top: 18px;
+      color: #51616d;
+      line-height: 1.5;
+      font-size: 15px;
+    }
+
+    .membership-current-actions {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .membership-card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .membership-card {
+      position: relative;
+      border-radius: 28px;
+      padding: 24px 22px 20px;
+      min-height: 100%;
+      border: 2px solid transparent;
+      display: grid;
+      gap: 16px;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+
+    .membership-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 36px rgba(20, 42, 57, 0.1);
+    }
+
+    .membership-card.selected {
+      border-color: #0f6674;
+      box-shadow: 0 18px 36px rgba(15, 102, 116, 0.18);
+    }
+
+    .membership-card.global,
+    .membership-card.yearly {
+      background: #edf3f4;
+      color: #21303c;
+    }
+
+    .membership-card.monthly {
+      background: #073942;
+      color: #f2fbfd;
+    }
+
+    .membership-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .membership-card-name {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .membership-card-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: #0f6674;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .membership-card-price {
+      display: flex;
+      align-items: baseline;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .membership-card-price strong {
+      font-size: 34px;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    .membership-card-copy {
+      font-size: 15px;
+      line-height: 1.45;
+      min-height: 42px;
+      color: inherit;
+      opacity: 0.9;
+    }
+
+    .membership-feature-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 12px;
+    }
+
+    .membership-feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.45;
+    }
+
+    .membership-feature-list li::before {
+      content: "○";
+      font-weight: 700;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    .membership-additional {
+      border-radius: 18px;
+      padding: 14px 16px;
+      font-size: 14px;
+      line-height: 1.45;
+      border: 1px solid rgba(15, 102, 116, 0.26);
+      background: rgba(255, 255, 255, 0.56);
+    }
+
+    .membership-card.monthly .membership-additional {
+      background: rgba(4, 26, 31, 0.16);
+      border-color: rgba(146, 208, 221, 0.35);
+    }
+
+    .membership-card-cta {
+      margin-top: auto;
+      border: 0;
+      border-radius: 18px;
+      padding: 16px 18px;
+      font-weight: 800;
+      cursor: pointer;
+      background: #0f6674;
+      color: #fff;
+    }
+
+    .membership-card.monthly .membership-card-cta {
+      background: #ffffff;
+      color: #0f6674;
+    }
+
+    .membership-manage {
+      display: grid;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .hidden-plan-select {
+      display: none;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(14, 23, 31, 0.62);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 50;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 420px;
+      background: #fff;
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .modal h3 {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+
+    .modal p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .membership-card-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="hero">
+      <h1>Payment Flow Test Console</h1>
+      <p>
+        Login, save payer cards, and test membership subscription, nanny tip, and
+        partner product payment flows from one HTML page.
+      </p>
+    </div>
+
+    <div class="layout">
+      <div class="stack">
+        <div class="panel">
+          <h2>Session</h2>
+          <form id="loginForm">
+            <div class="field">
+              <label for="baseUrl">Base URL</label>
+              <input id="baseUrl" placeholder="http://127.0.0.1:5000" />
+            </div>
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email" placeholder="parent@example.com" />
+            </div>
+            <div class="field">
+              <label for="password">Password</label>
+              <input id="password" type="password" placeholder="Password123!" autocomplete="current-password" />
+            </div>
+            <div class="actions">
+              <button class="btn btn-primary" type="submit">Login</button>
+              <button class="btn btn-secondary" id="logoutBtn" type="button">Logout</button>
+            </div>
+          </form>
+          <div class="status" id="authStatus">Not logged in.</div>
+        </div>
+
+        <div class="panel">
+          <h2>Saved Cards</h2>
+          <div class="hint">
+            Card save করলে full card Stripe-এ যাবে, আর backend শুধু token/reference,
+            brand, last 4, expiry month/year save করবে. CVV কখনও stored হবে না.
+          </div>
+          <div class="hint">
+            Supported Stripe test cards: `4242 4242 4242 4242` (Visa), `5555 5555 5555 4444`
+            (Mastercard), `3782 822463 10005` (Amex), `6011 1111 1111 1117` (Discover).
+          </div>
+          <form id="saveCardForm">
+            <div class="field">
+              <label for="cardholderName">Cardholder Name</label>
+              <input id="cardholderName" value="Test User" autocomplete="cc-name" />
+            </div>
+            <div class="field">
+              <label for="cardNumber">Card Number</label>
+              <input id="cardNumber" value="4242 4242 4242 4242" inputmode="numeric" autocomplete="cc-number" />
+            </div>
+            <div class="row-2">
+              <div class="field">
+                <label for="expMonth">Expiry Month</label>
+                <input id="expMonth" type="number" value="12" min="1" max="12" autocomplete="cc-exp-month" />
+              </div>
+              <div class="field">
+                <label for="expYear">Expiry Year</label>
+                <input id="expYear" type="number" value="2028" min="2024" autocomplete="cc-exp-year" />
+              </div>
+            </div>
+            <div class="row-2">
+              <div class="field">
+                <label for="cvv">CVV</label>
+                <input id="cvv" value="123" inputmode="numeric" maxlength="4" autocomplete="cc-csc" />
+              </div>
+              <div class="field">
+                <label for="saveAsDefault">Save As Default</label>
+                <select id="saveAsDefault">
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-primary" id="saveCardBtn" type="submit">Save Card</button>
+              <button class="btn btn-secondary" id="refreshCardsBtn" type="button">Refresh</button>
+            </div>
+          </form>
+          <div class="status" id="cardSaveStatus">No card saved in this session yet.</div>
+          <div class="cards" id="savedCards"></div>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="panel">
+          <div class="tabs">
+            <button class="tab active" data-tab="membership">Membership</button>
+            <button class="tab" data-tab="tips">Nanny Tip</button>
+            <button class="tab" data-tab="product">Partner Product</button>
+          </div>
+
+          <div class="section active" data-section="membership">
+            <h2>Membership</h2>
+            <div class="hint">Uses `GET /membership/plans`, `GET /membership/me`, `POST /membership/claim-trial`, and unified `POST /payment/checkout`.</div>
+            <div class="membership-shell">
+              <div class="membership-current" id="membershipCurrentCard">
+                <div class="trial-banner" id="trialBanner">
+                  <span id="trialBannerText">Free trial</span>
+                  <span class="trial-clock" id="trialCountdown">--:--:--</span>
+                </div>
+                <div class="membership-current-body">
+                  <div class="eyebrow">Current Plan</div>
+                  <div class="current-plan-title" id="currentMembershipTitle">Free Trial</div>
+                  <div class="current-plan-price">
+                    <strong id="currentMembershipAmount">0</strong>
+                    <span id="currentMembershipCurrency">AED / month</span>
+                  </div>
+                  <div class="current-plan-copy" id="currentMembershipCopy">
+                    Free trial active. The 1 Child Subscription Plan will start automatically when your trial ends.
+                  </div>
+                  <div class="membership-current-actions">
+                    <button class="btn btn-primary" id="membershipUpgradeBtn" type="button">Upgrade Plan</button>
+                    <button class="btn btn-secondary" id="membershipCancelBtn" type="button">Cancel Subscription</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="membership-card-grid" id="membershipPlansGrid">
+                <div class="hint">Loading membership plans...</div>
+              </div>
+            </div>
+
+            <div class="field hidden-plan-select">
+              <label for="membershipPlan">Plan</label>
+              <select id="membershipPlan"></select>
+            </div>
+            <div class="field">
+              <label for="membershipCard">Pay With Card</label>
+              <select id="membershipCard"></select>
+            </div>
+            <div class="actions">
+              <button class="btn btn-secondary" id="loadPlansBtn" type="button">Refresh Plans</button>
+              <button class="btn btn-primary" id="membershipSubscribeBtn" type="button">Pay Selected Plan</button>
+            </div>
+          </div>
+
+          <div class="section" data-section="tips">
+            <h2>Nanny Tip</h2>
+            <div class="hint">Any logged-in user can pay. Receiver is resolved from the chosen nanny.</div>
+            <div class="hint">If no nanny shows here, paste a real nanny user ID manually and test the tip flow anyway.</div>
+            <div class="field">
+              <label for="nannySelect">Nanny</label>
+              <select id="nannySelect"></select>
+            </div>
+            <div class="field">
+              <label for="manualNannyUserId">Manual Nanny User ID</label>
+              <input id="manualNannyUserId" placeholder="Paste nanny user id if list is empty" />
+            </div>
+            <div class="status" id="nannyStatus">Load nannies to test tip payment.</div>
+            <div class="row-2">
+              <div class="field">
+                <label for="tipAmount">Amount</label>
+                <input id="tipAmount" type="number" value="30" min="1" />
+              </div>
+              <div class="field">
+                <label for="tipCard">Pay With Card</label>
+                <select id="tipCard"></select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="tipNote">Note</label>
+              <textarea id="tipNote">Thank you for taking care of our child this week.</textarea>
+            </div>
+            <div class="actions">
+              <button class="btn btn-secondary" id="loadNanniesBtn" type="button">Load Nannies</button>
+              <button class="btn btn-primary" id="createTipBtn" type="button">Create Tip Payment</button>
+            </div>
+          </div>
+
+          <div class="section" data-section="product">
+            <h2>Partner Product Pay</h2>
+            <div class="hint">Use this if parent or nanny wants to buy a partner product.</div>
+            <div class="field">
+              <label for="productId">Partner Product ID</label>
+              <input id="productId" placeholder="Paste partner product id" />
+            </div>
+            <div class="row-2">
+              <div class="field">
+                <label for="productAmount">Amount</label>
+                <input id="productAmount" type="number" value="59.99" step="0.01" min="1" />
+              </div>
+              <div class="field">
+                <label for="productCard">Pay With Card</label>
+                <select id="productCard"></select>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-primary" id="createProductPaymentBtn" type="button">Create Product Payment</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Response</h2>
+          <pre class="json" id="responseBox">Ready.</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="loginModal">
+    <div class="modal">
+      <h3>Login Required</h3>
+      <p>
+        Use your backend account here first. This page auto-saves the token and then
+        uses that token for save-card and payment test requests.
+      </p>
+      <button class="btn btn-primary" id="focusLoginBtn" type="button">Open Login</button>
+      <div style="height: 10px;"></div>
+      <button class="btn btn-secondary" id="closeModalBtn" type="button">Close</button>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      paymentMethods: [],
+      membershipPlans: [],
+      nannies: [],
+      selectedMembershipPlanId: '',
+    };
+
+    let membershipCountdownTimer = null;
+
+    const els = {
+      baseUrl: document.getElementById('baseUrl'),
+      email: document.getElementById('email'),
+      password: document.getElementById('password'),
+      loginForm: document.getElementById('loginForm'),
+      logoutBtn: document.getElementById('logoutBtn'),
+      authStatus: document.getElementById('authStatus'),
+      saveCardForm: document.getElementById('saveCardForm'),
+      saveCardBtn: document.getElementById('saveCardBtn'),
+      refreshCardsBtn: document.getElementById('refreshCardsBtn'),
+      cardSaveStatus: document.getElementById('cardSaveStatus'),
+      savedCards: document.getElementById('savedCards'),
+      responseBox: document.getElementById('responseBox'),
+      membershipPlan: document.getElementById('membershipPlan'),
+      membershipCard: document.getElementById('membershipCard'),
+      loadPlansBtn: document.getElementById('loadPlansBtn'),
+      membershipSubscribeBtn: document.getElementById('membershipSubscribeBtn'),
+      membershipPlansGrid: document.getElementById('membershipPlansGrid'),
+      membershipCurrentCard: document.getElementById('membershipCurrentCard'),
+      trialBanner: document.getElementById('trialBanner'),
+      trialBannerText: document.getElementById('trialBannerText'),
+      trialCountdown: document.getElementById('trialCountdown'),
+      currentMembershipTitle: document.getElementById('currentMembershipTitle'),
+      currentMembershipAmount: document.getElementById('currentMembershipAmount'),
+      currentMembershipCurrency: document.getElementById('currentMembershipCurrency'),
+      currentMembershipCopy: document.getElementById('currentMembershipCopy'),
+      membershipUpgradeBtn: document.getElementById('membershipUpgradeBtn'),
+      membershipCancelBtn: document.getElementById('membershipCancelBtn'),
+      nannySelect: document.getElementById('nannySelect'),
+      manualNannyUserId: document.getElementById('manualNannyUserId'),
+      nannyStatus: document.getElementById('nannyStatus'),
+      tipAmount: document.getElementById('tipAmount'),
+      tipCard: document.getElementById('tipCard'),
+      tipNote: document.getElementById('tipNote'),
+      loadNanniesBtn: document.getElementById('loadNanniesBtn'),
+      createTipBtn: document.getElementById('createTipBtn'),
+      productId: document.getElementById('productId'),
+      productAmount: document.getElementById('productAmount'),
+      productCard: document.getElementById('productCard'),
+      createProductPaymentBtn: document.getElementById('createProductPaymentBtn'),
+      loginModal: document.getElementById('loginModal'),
+      focusLoginBtn: document.getElementById('focusLoginBtn'),
+      closeModalBtn: document.getElementById('closeModalBtn'),
+      tabs: Array.from(document.querySelectorAll('[data-tab]')),
+      sections: Array.from(document.querySelectorAll('[data-section]')),
+    };
+
+    const storage = {
+      token: 'payment-test-token',
+      baseUrl: 'payment-test-base-url',
+      email: 'payment-test-email',
+    };
+
+    function inferBaseUrl() {
+      const { protocol, hostname, port } = window.location;
+      if (port === '5500' || port === '5501' || port === '4173' || port === '3000') {
+        return `${protocol}//${hostname}:5000`;
+      }
+      return window.location.origin || 'http://127.0.0.1:5000';
+    }
+
+    function getBaseUrl() {
+      return (els.baseUrl.value.trim() || inferBaseUrl()).replace(/\/$/, '');
+    }
+
+    function getToken() {
+      return localStorage.getItem(storage.token) || '';
+    }
+
+    function setToken(token) {
+      if (token) {
+        localStorage.setItem(storage.token, token);
+      } else {
+        localStorage.removeItem(storage.token);
+      }
+    }
+
+    function setStatus(message, type = '') {
+      els.authStatus.textContent = message;
+      els.authStatus.className = `status ${type}`.trim();
+    }
+
+    function writeResponse(data, title = '') {
+      const payload = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+      els.responseBox.textContent = title ? `${title}\n\n${payload}` : payload;
+    }
+
+    function setCardSaveStatus(message, type = '') {
+      els.cardSaveStatus.textContent = message;
+      els.cardSaveStatus.className = `status ${type}`.trim();
+    }
+
+    function setNannyStatus(message, type = '') {
+      els.nannyStatus.textContent = message;
+      els.nannyStatus.className = `status ${type}`.trim();
+    }
+
+    function unwrapResponse(payload) {
+      if (payload && typeof payload === 'object' && 'data' in payload) {
+        return payload.data;
+      }
+
+      return payload;
+    }
+
+    function getAuthPayload(payload) {
+      const body = unwrapResponse(payload);
+      return body && typeof body === 'object' ? body : {};
+    }
+
+    function getNestedResultPayload(payload) {
+      const body = unwrapResponse(payload);
+      if (body && typeof body === 'object' && body.result && typeof body.result === 'object') {
+        return body.result.data || body.result;
+      }
+
+      return body;
+    }
+
+    function getMembershipCheckoutPayload(payload) {
+      const body = unwrapResponse(payload);
+      if (body && typeof body === 'object' && body.result) {
+        return body.result;
+      }
+
+      return body;
+    }
+
+    function getPlanVariant(plan) {
+      const normalized = String(plan.name || '').toLowerCase();
+      if (normalized.includes('global')) return 'global';
+      if (normalized.includes('year')) return 'yearly';
+      return 'monthly';
+    }
+
+    function formatPlanPrice(plan) {
+      const amount = Number(plan.price || 0).toLocaleString('en-US', {
+        minimumFractionDigits: Number(plan.price || 0) % 1 ? 2 : 0,
+        maximumFractionDigits: 2,
+      });
+      return plan.currency === 'USD' ? `$${amount} USD` : `${plan.currency} ${amount}`;
+    }
+
+    function formatCurrentAmount(amount) {
+      return Number(amount || 0).toLocaleString('en-US', {
+        minimumFractionDigits: Number(amount || 0) % 1 ? 2 : 0,
+        maximumFractionDigits: 2,
+      });
+    }
+
+    function selectMembershipPlan(planId) {
+      state.selectedMembershipPlanId = planId;
+      els.membershipPlan.value = planId;
+      els.membershipPlansGrid.querySelectorAll('.membership-card').forEach((card) => {
+        card.classList.toggle('selected', card.getAttribute('data-plan-id') === planId);
+      });
+    }
+
+    function clearMembershipCountdown() {
+      if (membershipCountdownTimer) {
+        clearInterval(membershipCountdownTimer);
+        membershipCountdownTimer = null;
+      }
+    }
+
+    function renderMembershipCountdown(trialEndsAt) {
+      clearMembershipCountdown();
+      if (!trialEndsAt) {
+        els.trialCountdown.textContent = '--:--:--';
+        return;
+      }
+
+      const tick = () => {
+        const diffMs = new Date(trialEndsAt).getTime() - Date.now();
+        if (diffMs <= 0) {
+          els.trialCountdown.textContent = '00:00:00';
+          clearMembershipCountdown();
+          return;
+        }
+
+        const totalSeconds = Math.floor(diffMs / 1000);
+        const hours = String(Math.floor((totalSeconds % 86400) / 3600)).padStart(2, '0');
+        const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+        const seconds = String(totalSeconds % 60).padStart(2, '0');
+        els.trialCountdown.textContent = `${hours}:${minutes}:${seconds}`;
+      };
+
+      tick();
+      membershipCountdownTimer = setInterval(tick, 1000);
+    }
+
+    function renderMembershipPlans() {
+      if (!state.membershipPlans.length) {
+        els.membershipPlansGrid.innerHTML = '<div class="hint">No membership plans found.</div>';
+        return;
+      }
+
+      if (!state.selectedMembershipPlanId) {
+        state.selectedMembershipPlanId = state.membershipPlans[0].id;
+      }
+
+      els.membershipPlansGrid.innerHTML = state.membershipPlans.map((plan) => {
+        const variant = getPlanVariant(plan);
+        const badge = plan.badgeText
+          ? `<span class="membership-card-badge">${plan.badgeText}</span>`
+          : '';
+
+        return `
+          <article class="membership-card ${variant} ${state.selectedMembershipPlanId === plan.id ? 'selected' : ''}" data-plan-id="${plan.id}">
+            <div class="membership-card-top">
+              <div class="membership-card-name">${plan.name}</div>
+              ${badge}
+            </div>
+            <div class="membership-card-price">
+              <strong>${formatPlanPrice(plan)}</strong>
+              <span>${plan.periodSuffix || (plan.interval === 'ANNUALLY' ? '/ per year' : '/ per month')}</span>
+            </div>
+            <div class="membership-card-copy">${plan.description || ''}</div>
+            <ul class="membership-feature-list">
+              ${(plan.features || []).map((feature) => `<li>${feature}</li>`).join('')}
+            </ul>
+            <div class="membership-additional">${plan.additionalChildText || ''}</div>
+            <button class="membership-card-cta" data-action="claim-trial" data-plan-id="${plan.id}" type="button">Start Free Trial</button>
+          </article>
+        `;
+      }).join('');
+
+      els.membershipPlansGrid.querySelectorAll('.membership-card').forEach((card) => {
+        card.addEventListener('click', (event) => {
+          const target = event.target;
+          if (target instanceof HTMLElement && target.closest('[data-action="claim-trial"]')) {
+            return;
+          }
+          selectMembershipPlan(card.getAttribute('data-plan-id'));
+        });
+      });
+
+      els.membershipPlansGrid.querySelectorAll('[data-action="claim-trial"]').forEach((button) => {
+        button.addEventListener('click', async (event) => {
+          event.stopPropagation();
+          const planId = button.getAttribute('data-plan-id');
+          selectMembershipPlan(planId);
+          await claimMembershipTrial(planId);
+        });
+      });
+
+      selectMembershipPlan(state.selectedMembershipPlanId);
+    }
+
+    function renderMembershipSummary(summary) {
+      const displayPrice = summary?.displayPrice ?? 0;
+      const displayCurrency = summary?.displayCurrency || 'AED';
+      const displayPeriod = summary?.displayPeriod || 'month';
+      const trialDaysRemaining = Number(summary?.trialDaysRemaining || 0);
+      const isTrial = summary?.status === 'FREE_TRIAL' || summary?.currentPlan === 'Free Trial';
+
+      els.currentMembershipTitle.textContent = summary?.currentPlan || 'Free Trial';
+      els.currentMembershipAmount.textContent = formatCurrentAmount(displayPrice);
+      els.currentMembershipCurrency.textContent = `${displayCurrency} / ${displayPeriod}`;
+      els.currentMembershipCopy.textContent =
+        summary?.trialDescription ||
+        `Your ${summary?.currentPlan || 'membership'} is currently active.`;
+      els.trialBanner.style.display = isTrial ? 'flex' : 'none';
+      els.trialBannerText.textContent = isTrial
+        ? `Free trial — ${trialDaysRemaining} day${trialDaysRemaining === 1 ? '' : 's'} remaining`
+        : `${summary?.currentPlan || 'Membership'} active`;
+
+      if (isTrial) {
+        renderMembershipCountdown(summary?.trialEndsAt);
+      } else {
+        clearMembershipCountdown();
+      }
+    }
+
+    function openLoginModal() {
+      els.loginModal.classList.add('open');
+    }
+
+    function closeLoginModal() {
+      els.loginModal.classList.remove('open');
+    }
+
+    async function request(path, options = {}) {
+      const prefixes = ['/api/v1', ''];
+      let lastError = 'Endpoint not found';
+
+      for (const prefix of prefixes) {
+        const res = await fetch(`${getBaseUrl()}${prefix}${path}`, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+            ...(options.headers || {}),
+          },
+        });
+
+        const text = await res.text();
+        let payload = null;
+        try {
+          payload = text ? JSON.parse(text) : null;
+        } catch {
+          payload = text;
+        }
+
+        if (res.ok) return payload;
+
+        if (res.status !== 404) {
+          throw new Error(
+            (payload && typeof payload === 'object' && payload.message) ||
+            payload ||
+            `Request failed with ${res.status}`,
+          );
+        }
+
+        lastError = payload || `404 on ${prefix}${path}`;
+      }
+
+      throw new Error(typeof lastError === 'string' ? lastError : 'Endpoint not found');
+    }
+
+    function ensureLoggedIn(actionLabel) {
+      if (getToken()) return true;
+      setStatus(`Login required before ${actionLabel}.`, 'warn');
+      setCardSaveStatus(`Login required before ${actionLabel}.`, 'warn');
+      openLoginModal();
+      return false;
+    }
+
+    function normalizeDigits(value) {
+      return String(value || '').replace(/\s+/g, '').trim();
+    }
+
+    function validateCardForm() {
+      const cardNumber = normalizeDigits(document.getElementById('cardNumber').value);
+      const expMonth = Number(document.getElementById('expMonth').value);
+      const expYear = Number(document.getElementById('expYear').value);
+      const cvv = normalizeDigits(document.getElementById('cvv').value);
+      const currentYear = new Date().getFullYear();
+
+      if (cardNumber.length < 12 || cardNumber.length > 19) {
+        throw new Error('Enter a valid card number.');
+      }
+
+      if (!expMonth || expMonth < 1 || expMonth > 12) {
+        throw new Error('Expiry month must be between 1 and 12.');
+      }
+
+      if (!expYear || expYear < currentYear) {
+        throw new Error(`Expiry year must be ${currentYear} or later.`);
+      }
+
+      if (cvv.length < 3 || cvv.length > 4) {
+        throw new Error('CVV must be 3 or 4 digits.');
+      }
+
+      return {
+        cardNumber,
+        expMonth,
+        expYear,
+        cvv,
+      };
+    }
+
+    function refreshCardSelectors() {
+      const selectors = [els.membershipCard, els.tipCard, els.productCard];
+      const options = state.paymentMethods.length
+        ? state.paymentMethods.map((item) => ({
+            value: item.id,
+            label: `${item.brand || 'Card'} ending ${item.last4 || '0000'}${item.isDefault ? ' (Default)' : ''}`,
+          }))
+        : [{ value: '', label: 'No saved cards yet' }];
+
+      selectors.forEach((select) => {
+        select.innerHTML = options
+          .map((option) => `<option value="${option.value}">${option.label}</option>`)
+          .join('');
+      });
+    }
+
+    function renderSavedCards() {
+      if (!state.paymentMethods.length) {
+        els.savedCards.innerHTML = '<div class="hint">No saved cards yet.</div>';
+        refreshCardSelectors();
+        return;
+      }
+
+      els.savedCards.innerHTML = state.paymentMethods.map((card) => `
+        <div class="card-item">
+          <div class="card-copy">
+            <div class="card-title">${card.brand || 'Card'} ending ${card.last4 || '0000'}</div>
+            <div class="card-subtitle">${card.cardholderName || 'Unnamed'} • ${card.expMonth}/${card.expYear}</div>
+            <div class="card-subtitle">Stripe token: ${card.paymentToken || card.stripePaymentMethodId || 'not available'}</div>
+          </div>
+          <div class="actions">
+            <span class="pill ${card.isDefault ? 'orange' : ''}">${card.isDefault ? 'Default' : 'Saved'}</span>
+            <button class="btn btn-secondary" data-action="toggle-default" data-id="${card.id}" type="button">
+              ${card.isDefault ? 'Remove default' : 'Make default'}
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      els.savedCards.querySelectorAll('[data-action="toggle-default"]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          const target = state.paymentMethods.find((item) => item.id === id);
+          if (!target) return;
+
+          const path = target.isDefault
+            ? `/payment/payment-methods/${id}/remove-default`
+            : `/payment/payment-methods/${id}/default`;
+
+          try {
+            const data = await request(path, { method: 'POST' });
+            writeResponse(data, 'Card default status updated');
+            await loadPaymentMethods();
+          } catch (error) {
+            writeResponse(error.message, 'Card default status failed');
+          }
+        });
+      });
+
+      refreshCardSelectors();
+    }
+
+    async function loadMe() {
+      if (!getToken()) {
+        setStatus('Not logged in.', 'warn');
+        renderMembershipSummary({
+          currentPlan: 'Free Trial',
+          displayPrice: 0,
+          displayCurrency: 'AED',
+          displayPeriod: 'month',
+          trialDescription:
+            'Free trial active. The 1 Child Subscription Plan will start automatically when your trial ends.',
+          trialDaysRemaining: 0,
+          status: 'FREE_TRIAL',
+        });
+        openLoginModal();
+        return;
+      }
+
+      try {
+        const data = await request('/auth/me');
+        const user = unwrapResponse(data) || {};
+        setStatus(`Logged in as ${user.fullName || user.email || 'User'} (${user.role || 'Unknown'})`, 'ok');
+        closeLoginModal();
+        await loadMembershipSummary();
+      } catch (error) {
+        setStatus(`Token check failed: ${error.message}`, 'warn');
+        openLoginModal();
+      }
+    }
+
+    async function loadPaymentMethods() {
+      if (!getToken()) {
+        state.paymentMethods = [];
+        renderSavedCards();
+        setCardSaveStatus('Login first, then save a card.', 'warn');
+        return;
+      }
+
+      try {
+        const data = await request('/payment/payment-methods');
+        state.paymentMethods = Array.isArray(unwrapResponse(data)) ? unwrapResponse(data) : [];
+        renderSavedCards();
+        if (state.paymentMethods.length) {
+          const firstCard = state.paymentMethods[0];
+          setCardSaveStatus(
+            `Saved card ready: ${firstCard.brand || 'Card'} ending ${firstCard.last4 || '0000'}. Stripe token saved.`,
+            'ok',
+          );
+        } else {
+          setCardSaveStatus('No saved cards yet for this account.', '');
+        }
+      } catch (error) {
+        writeResponse(error.message, 'Load saved cards failed');
+        setCardSaveStatus(`Could not load saved cards: ${error.message}`, 'warn');
+      }
+    }
+
+    async function loadMembershipPlans() {
+      try {
+        const data = await request('/membership/plans');
+        state.membershipPlans = Array.isArray(unwrapResponse(data)) ? unwrapResponse(data) : [];
+        els.membershipPlan.innerHTML = state.membershipPlans.length
+          ? state.membershipPlans
+              .map((plan) => `<option value="${plan.id}">${plan.name} - ${plan.price} ${plan.currency}</option>`)
+          .join('')
+          : '<option value="">No plans found</option>';
+        if (state.membershipPlans.length && !state.selectedMembershipPlanId) {
+          state.selectedMembershipPlanId = state.membershipPlans[0].id;
+        }
+        renderMembershipPlans();
+        writeResponse(state.membershipPlans, 'Membership plans loaded');
+      } catch (error) {
+        els.membershipPlansGrid.innerHTML = `<div class="hint">Could not load plans: ${error.message}</div>`;
+        writeResponse(error.message, 'Load plans failed');
+      }
+    }
+
+    async function loadMembershipSummary() {
+      if (!getToken()) return;
+
+      try {
+        const data = await request('/membership/me');
+        const summary = unwrapResponse(data) || {};
+        renderMembershipSummary(summary);
+      } catch (error) {
+        writeResponse(error.message, 'Load membership summary failed');
+      }
+    }
+
+    async function claimMembershipTrial(planId) {
+      if (!ensureLoggedIn('claiming a membership trial')) return;
+
+      try {
+        const data = await request('/membership/claim-trial', {
+          method: 'POST',
+          body: JSON.stringify({ planId }),
+        });
+        writeResponse(data, 'Membership trial claimed');
+        await loadMembershipSummary();
+      } catch (error) {
+        writeResponse(error.message, 'Claim trial failed');
+      }
+    }
+
+    async function loadNannies() {
+      if (!ensureLoggedIn('loading nannies')) return;
+
+      try {
+        const data = await request('/payment/tips/nannies');
+        const body = unwrapResponse(data);
+        state.nannies = body?.nannies || [];
+        els.nannySelect.innerHTML = state.nannies.length
+          ? state.nannies
+              .map((nanny) => `<option value="${nanny.nannyUserId}">${nanny.nannyName}</option>`)
+              .join('')
+          : '<option value="">No nannies found</option>';
+        if (state.nannies.length) {
+          const firstNanny = state.nannies[0];
+          els.manualNannyUserId.value = '';
+          setNannyStatus(
+            `Loaded ${state.nannies.length} nanny${state.nannies.length > 1 ? 'ies' : ''}. First: ${firstNanny.nannyName}.`,
+            'ok',
+          );
+        } else {
+          setNannyStatus('No nanny returned from API. Paste a nanny user ID manually to continue testing.', 'warn');
+        }
+        writeResponse(data, 'Nannies loaded');
+      } catch (error) {
+        setNannyStatus(`Load nanny failed: ${error.message}`, 'warn');
+        writeResponse(error.message, 'Load nannies failed');
+      }
+    }
+
+    els.loginForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      try {
+        const data = await request('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({
+            email: els.email.value.trim(),
+            password: els.password.value,
+          }),
+        });
+
+        const authData = getAuthPayload(data);
+        const token = authData.accessToken;
+        if (!token) throw new Error('accessToken missing in login response.');
+
+        setToken(token);
+        localStorage.setItem(storage.baseUrl, getBaseUrl());
+        localStorage.setItem(storage.email, els.email.value.trim());
+
+        writeResponse(data, 'Login success');
+        await loadMe();
+        await loadPaymentMethods();
+        await loadMembershipPlans();
+        await loadNannies();
+      } catch (error) {
+        writeResponse(error.message, 'Login failed');
+        setStatus(`Login failed: ${error.message}`, 'warn');
+      }
+    });
+
+    els.logoutBtn.addEventListener('click', async () => {
+      try {
+        await request('/auth/logout', { method: 'POST' });
+      } catch (_) {
+      }
+
+      setToken('');
+      els.password.value = '';
+      state.paymentMethods = [];
+      renderSavedCards();
+      clearMembershipCountdown();
+      renderMembershipSummary({
+        currentPlan: 'Free Trial',
+        displayPrice: 0,
+        displayCurrency: 'AED',
+        displayPeriod: 'month',
+        trialDescription:
+          'Free trial active. The 1 Child Subscription Plan will start automatically when your trial ends.',
+        trialDaysRemaining: 0,
+        status: 'FREE_TRIAL',
+      });
+      setStatus('Logged out.', 'warn');
+      openLoginModal();
+      writeResponse('Local token cleared.', 'Logout');
+    });
+
+    els.saveCardForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      if (!ensureLoggedIn('saving a card')) return;
+
+      try {
+        const validated = validateCardForm();
+        els.saveCardBtn.disabled = true;
+        els.saveCardBtn.textContent = 'Saving...';
+
+        const data = await request('/payment/payment-methods', {
+          method: 'POST',
+          body: JSON.stringify({
+            cardholderName: document.getElementById('cardholderName').value.trim(),
+            cardNumber: validated.cardNumber,
+            expMonth: validated.expMonth,
+            expYear: validated.expYear,
+            cvv: validated.cvv,
+            isDefault: document.getElementById('saveAsDefault').value === 'true',
+          }),
+        });
+
+        const savedCard = unwrapResponse(data) || {};
+        setCardSaveStatus(
+          `Card saved successfully. Token: ${savedCard.paymentToken || savedCard.stripePaymentMethodId || 'n/a'} | Last4: ${savedCard.last4 || 'n/a'}`,
+          'ok',
+        );
+        writeResponse(data, 'Card saved');
+        await loadPaymentMethods();
+      } catch (error) {
+        setCardSaveStatus(`Save card failed: ${error.message}`, 'warn');
+        writeResponse(error.message, 'Save card failed');
+      } finally {
+        els.saveCardBtn.disabled = false;
+        els.saveCardBtn.textContent = 'Save Card';
+      }
+    });
+
+    els.refreshCardsBtn.addEventListener('click', loadPaymentMethods);
+    els.loadPlansBtn.addEventListener('click', loadMembershipPlans);
+    els.loadNanniesBtn.addEventListener('click', loadNannies);
+
+    els.membershipSubscribeBtn.addEventListener('click', async () => {
+      if (!ensureLoggedIn('paying membership')) return;
+
+      try {
+        const selectedPlanId = state.selectedMembershipPlanId || els.membershipPlan.value;
+        if (!selectedPlanId) {
+          throw new Error('Select a membership plan first.');
+        }
+
+        const data = await request('/payment/checkout', {
+          method: 'POST',
+          body: JSON.stringify({
+            paymentType: 'MEMBERSHIP',
+            planId: selectedPlanId,
+            paymentMethodId: els.membershipCard.value || undefined,
+          }),
+        });
+        const result = getMembershipCheckoutPayload(data) || {};
+        writeResponse(data, 'Membership checkout response');
+
+        if (result.checkoutUrl) {
+          setStatus('Redirecting to Stripe checkout for card entry...', 'ok');
+          window.location.href = result.checkoutUrl;
+          return;
+        }
+
+        await loadMembershipSummary();
+      } catch (error) {
+        writeResponse(error.message, 'Membership checkout failed');
+      }
+    });
+
+    els.createTipBtn.addEventListener('click', async () => {
+      if (!ensureLoggedIn('creating a nanny tip')) return;
+
+      try {
+        const nannyUserId = els.nannySelect.value || els.manualNannyUserId.value.trim();
+        if (!nannyUserId) {
+          throw new Error('Select a nanny or paste a manual nanny user ID first.');
+        }
+
+        const data = await request('/payment/checkout', {
+          method: 'POST',
+          body: JSON.stringify({
+            paymentType: 'NANNY_TIP',
+            nannyUserId,
+            amount: Number(els.tipAmount.value),
+            currency: 'AED',
+            note: els.tipNote.value.trim(),
+            paymentMethodId: els.tipCard.value || undefined,
+          }),
+        });
+        const result = getNestedResultPayload(data) || {};
+        writeResponse(data, 'Nanny tip checkout complete');
+
+        if (result.checkoutUrl) {
+          setNannyStatus(
+            `Redirecting to Stripe checkout for ${result.nannyName || 'the nanny'} tip payment...`,
+            'ok',
+          );
+          window.location.href = result.checkoutUrl;
+          return;
+        }
+
+        if (result.status === 'SUCCEEDED') {
+          setNannyStatus(
+            `Tip payment completed successfully for ${result.nannyName || 'the nanny'}.`,
+            'ok',
+          );
+        } else {
+          setNannyStatus(
+            `Tip payment initialized for ${result.nannyName || 'the nanny'}.`,
+            'ok',
+          );
+        }
+      } catch (error) {
+        setNannyStatus(`Nanny tip failed: ${error.message}`, 'warn');
+        writeResponse(error.message, 'Nanny tip failed');
+      }
+    });
+
+    els.createProductPaymentBtn.addEventListener('click', async () => {
+      if (!ensureLoggedIn('buying a partner product')) return;
+
+      try {
+        const data = await request('/payment/checkout', {
+          method: 'POST',
+          body: JSON.stringify({
+            paymentType: 'PARTNER_PRODUCT',
+            productId: els.productId.value.trim(),
+            amount: Number(els.productAmount.value),
+            currency: 'AED',
+            paymentMethodId: els.productCard.value || undefined,
+          }),
+        });
+        writeResponse(data, 'Partner product checkout complete');
+      } catch (error) {
+        writeResponse(error.message, 'Partner product payment failed');
+      }
+    });
+
+    els.tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const name = tab.getAttribute('data-tab');
+        els.tabs.forEach((item) => item.classList.toggle('active', item === tab));
+        els.sections.forEach((section) => {
+          section.classList.toggle('active', section.getAttribute('data-section') === name);
+        });
+      });
+    });
+
+    els.focusLoginBtn.addEventListener('click', () => {
+      closeLoginModal();
+      els.email.focus();
+    });
+
+    els.membershipUpgradeBtn.addEventListener('click', async () => {
+      if (!ensureLoggedIn('upgrading the membership plan')) return;
+      await loadMembershipPlans();
+      const selected = state.selectedMembershipPlanId || (state.membershipPlans[0] && state.membershipPlans[0].id);
+      if (selected) {
+        selectMembershipPlan(selected);
+        els.membershipCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+
+    els.membershipCancelBtn.addEventListener('click', async () => {
+      if (!ensureLoggedIn('cancelling the membership plan')) return;
+
+      try {
+        const data = await request('/membership/cancel', {
+          method: 'POST',
+          body: JSON.stringify({}),
+        });
+        writeResponse(data, 'Membership cancelled');
+        await loadMembershipSummary();
+      } catch (error) {
+        writeResponse(error.message, 'Cancel membership failed');
+      }
+    });
+
+    els.closeModalBtn.addEventListener('click', closeLoginModal);
+
+    els.loginModal.addEventListener('click', (event) => {
+      if (event.target === els.loginModal) closeLoginModal();
+    });
+
+    els.baseUrl.value = localStorage.getItem(storage.baseUrl) || inferBaseUrl();
+    els.email.value = localStorage.getItem(storage.email) || '';
+
+    renderMembershipSummary({
+      currentPlan: 'Free Trial',
+      displayPrice: 0,
+      displayCurrency: 'AED',
+      displayPeriod: 'month',
+      trialDescription:
+        'Free trial active. The 1 Child Subscription Plan will start automatically when your trial ends.',
+      trialDaysRemaining: 0,
+      status: 'FREE_TRIAL',
+    });
+    loadMe();
+    loadPaymentMethods();
+    loadMembershipPlans();
+    loadNannies();
+  </script>
+</body>
+</html>

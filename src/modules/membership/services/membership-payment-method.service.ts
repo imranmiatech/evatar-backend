@@ -1,80 +1,34 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { Injectable } from '@nestjs/common';
 import { AddMembershipPaymentMethodDto } from '../dto/add-payment-method.dto';
+import { PaymentAccountService } from '../../payment/payment-account.service';
 
 @Injectable()
 export class MembershipPaymentMethodService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly paymentAccountService: PaymentAccountService) {}
 
   getPaymentMethods(userId: string) {
-    return this.prisma.paymentMethod.findMany({
-      where: { userId },
-      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
-    });
+    return this.paymentAccountService.getPaymentMethods(userId);
   }
 
-  async addPaymentMethod(
-    userId: string,
-    dto: AddMembershipPaymentMethodDto,
-  ) {
-    const existingCount = await this.prisma.paymentMethod.count({
-      where: { userId },
-    });
-    const shouldBeDefault = dto.isDefault || existingCount === 0;
-
-    if (shouldBeDefault) {
-      await this.prisma.paymentMethod.updateMany({
-        where: { userId },
-        data: { isDefault: false },
-      });
-    }
-
-    return this.prisma.paymentMethod.create({
-      data: {
-        userId,
-        brand: dto.brand,
-        last4: dto.last4,
-        expMonth: dto.expMonth,
-        expYear: dto.expYear,
-        cardholderName: dto.cardholderName || null,
-        isDefault: shouldBeDefault,
-      },
-    });
+  addPaymentMethod(userId: string, dto: AddMembershipPaymentMethodDto) {
+    return this.paymentAccountService.addPaymentMethod(userId, dto);
   }
 
-  async setDefaultPaymentMethod(userId: string, paymentMethodId: string) {
-    const method = await this.prisma.paymentMethod.findFirst({
-      where: { id: paymentMethodId, userId },
-    });
-
-    if (!method) {
-      throw new NotFoundException('Payment method not found.');
-    }
-
-    await this.prisma.paymentMethod.updateMany({
-      where: { userId },
-      data: { isDefault: false },
-    });
-
-    return this.prisma.paymentMethod.update({
-      where: { id: paymentMethodId },
-      data: { isDefault: true },
-    });
+  setDefaultPaymentMethod(userId: string, paymentMethodId: string) {
+    return this.paymentAccountService.setDefaultPaymentMethod(
+      userId,
+      paymentMethodId,
+    );
   }
 
-  async deletePaymentMethod(userId: string, paymentMethodId: string) {
-    const method = await this.prisma.paymentMethod.findFirst({
-      where: { id: paymentMethodId, userId },
-    });
+  removeDefaultPaymentMethod(userId: string, paymentMethodId: string) {
+    return this.paymentAccountService.removeDefaultPaymentMethod(
+      userId,
+      paymentMethodId,
+    );
+  }
 
-    if (!method) {
-      throw new NotFoundException('Payment method not found.');
-    }
-
-    await this.prisma.paymentMethod.delete({
-      where: { id: paymentMethodId },
-    });
-
-    return { message: 'Payment method removed successfully.' };
+  deletePaymentMethod(userId: string, paymentMethodId: string) {
+    return this.paymentAccountService.deletePaymentMethod(userId, paymentMethodId);
   }
 }

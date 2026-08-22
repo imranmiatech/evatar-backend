@@ -6,6 +6,7 @@ import { ExtendTrialDto } from './dto/extend-trial.dto';
 import { ChangeUserPlanDto } from './dto/change-user-plan.dto';
 import { SendUserMessageDto } from './dto/send-user-message.dto';
 import { UserRole, UserStatus, SubscriptionStatus, VerificationStatus } from '@prisma/client';
+import { computeMembershipPricing } from '../../membership/utils/membership-pricing.util';
 
 @Injectable()
 export class AdminUsersService {
@@ -253,16 +254,21 @@ export class AdminUsersService {
   async getSubscriptionPlans() {
     const plans = await this.prisma.subscriptionPlan.findMany({
       where: { isActive: true },
-      orderBy: { price: 'asc' },
+      orderBy: [{ sortOrder: 'asc' }, { price: 'asc' }],
     });
 
     return plans.map((p) => ({
       id: p.id,
       name: p.name,
       price: p.price,
-      currency: p.currency || 'EUR',
+      currency: p.currency || 'AED',
       interval: p.interval,
       maxChildren: p.maxChildren,
+      description: p.description,
+      badgeText: p.badgeText,
+      additionalChildPrice: p.additionalChildPrice,
+      additionalChildCurrency: p.additionalChildCurrency,
+      additionalChildText: computeMembershipPricing(p, 0).additionalChildText,
       features: p.features || [],
     }));
   }
@@ -399,13 +405,19 @@ export class AdminUsersService {
       trialRemainingText = trialDaysRemaining > 0 ? `${trialDaysRemaining} days remaining` : 'Expired';
     }
 
+    const childCount = childrenFormatted.length;
+    const pricing = sub?.plan ? computeMembershipPricing(sub.plan, childCount) : null;
+
     const membership = {
-      currentPlan: sub?.plan?.name || (isTrialActive ? 'Starter (Trial)' : 'Free'),
+      currentPlan: isTrialActive ? 'Free Trial' : sub?.plan?.name || 'Free',
       subscriptionStatus: sub?.status === SubscriptionStatus.ACTIVE ? 'Active' : isTrialActive ? 'Trial' : 'Inactive',
       rawStatus: sub?.status || SubscriptionStatus.FREE_TRIAL,
       trialRemaining: trialRemainingText,
       trialDaysRemaining,
       trialEndsAt: sub?.trialEndsAt,
+      trialDescription: isTrialActive
+        ? `Free trial active. The ${(pricing?.trialPlanLabel || '1 Child Subscription Plan')} will start automatically when your trial ends.`
+        : null,
       renewalDate: sub?.currentPeriodEnd
         ? new Date(sub.currentPeriodEnd).toLocaleDateString('en-US', {
             month: 'short',
@@ -414,8 +426,10 @@ export class AdminUsersService {
           })
         : 'Aug 12, 2026',
       billingStatus: sub?.isPaymentFailed ? 'Failed' : 'Current',
-      price: sub?.plan?.price || 0,
-      currency: sub?.plan?.currency || 'EUR',
+      childCount,
+      price: isTrialActive ? 0 : pricing?.totalAmount || sub?.plan?.price || 0,
+      currency: isTrialActive ? 'AED' : pricing?.totalCurrency || sub?.plan?.currency || 'AED',
+      additionalChildText: pricing?.additionalChildText || null,
     };
 
     // 4. Rewards Tab Data (100% Real DB Data)

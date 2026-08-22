@@ -965,11 +965,13 @@
           </div>
           <label>Base URL</label>
           <input id="baseUrl" value="http://localhost:5000" />
-          <label>Email</label>
-          <input id="email" value="p@e.com" />
-          <label>Password</label>
-          <input id="password" type="password" value="123456" />
-          <button class="primary" onclick="login()">Login & Save Token</button>
+          <form onsubmit="event.preventDefault(); login();">
+            <label>Email</label>
+            <input id="email" value="p@e.com" />
+            <label>Password</label>
+            <input id="password" type="password" value="123456" />
+            <button class="primary" type="submit">Login & Save Token</button>
+          </form>
           <div class="small-action-row">
             <button class="ghost" onclick="fillLogin('p@e.com')">Parent</button>
             <button class="ghost" onclick="fillLogin('n@e.com')">Nanny</button>
@@ -1008,6 +1010,7 @@
         'access_token',
         'adminToken',
       ];
+      const MANAGE_SYSTEM_BASE = '/api/v1/manage-system';
       const allPermissionKeys = [
         'dailyActivitiesRecipes',
         'manageDailyPlans',
@@ -1304,7 +1307,7 @@
           document.getElementById('sections').innerHTML =
             '<div class="empty">Loading caregiver data...</div>';
           state.user = await api('/api/v1/auth/me');
-          const childrenPayload = await api('/api/v1/caregivers/children');
+          const childrenPayload = await api(`${MANAGE_SYSTEM_BASE}/children`);
           state.children = Array.isArray(childrenPayload)
             ? childrenPayload
             : childrenPayload?.data || [];
@@ -1381,6 +1384,7 @@
         state.childId = id;
         localStorage.setItem('caregiver_selected_child_id', id);
         renderChildren();
+        await loadCaregivers();
       }
 
       async function selectChildFromScreen(id) {
@@ -1390,8 +1394,32 @@
       }
 
       async function loadCaregivers() {
-        const payload = await api('/api/v1/caregivers/manage');
-        state.sections = payload.sections || [];
+        const query = state.childId
+          ? `?childId=${encodeURIComponent(state.childId)}`
+          : '';
+        const payload = await api(`${MANAGE_SYSTEM_BASE}/caregivers${query}`);
+        state.sections = [
+          {
+            key: 'ACCOUNT_OWNER',
+            title: 'Account Owner',
+            items: payload.sections?.accountOwner || [],
+          },
+          {
+            key: 'NANNY',
+            title: 'Nannies',
+            items: payload.sections?.nannies || [],
+          },
+          {
+            key: 'PARENT',
+            title: 'Parents',
+            items: payload.sections?.parents || [],
+          },
+          {
+            key: 'FAMILY_MEMBER',
+            title: 'Family Members',
+            items: payload.sections?.familyMembers || [],
+          },
+        ];
         state.caregivers = payload.caregivers || [];
         renderSections();
       }
@@ -1404,7 +1432,7 @@
       }
 
       function cardSub(item) {
-        if (item.isOwner) {
+        if (item.isOwner || item.childNames) {
           return `Caring for ${item.childName || (item.childNames || []).join(', ')}`;
         }
         const relation = item.relationship
@@ -1444,6 +1472,12 @@
         const childId = item.child?.id || item.childId || '';
         const pending = item.status === 'PENDING';
         const isOwner = sectionKey === 'ACCOUNT_OWNER' || item.isOwner;
+        const canManageCareTeam = Boolean(
+          item.canManageCareTeam ||
+            item.permissions?.items?.some(
+              (perm) => perm.key === 'manageCareTeam' && perm.isEnabled,
+            ),
+        );
         return `
         <div class="card">
           <img class="avatar" src="${img(photo)}" alt="">
@@ -1454,8 +1488,8 @@
           <div class="actions">
             ${pending ? '<span class="pending">Pending</span>' : ''}
             ${!isOwner && item.status === 'ACCEPTED' && item.role === 'NANNY' ? `<button class="link" onclick="viewProfile('${invitedUserId}','${childId}')">View Profile</button>` : ''}
-            ${!isOwner && accessId ? `<button class="link" onclick="openExistingPermissions('${accessId}')">Manage Permissions</button>` : ''}
-            ${!isOwner && accessId ? `<button class="remove" onclick="openRemove('${accessId}','${item.role}')">♧</button>` : ''}
+            ${!isOwner && accessId && canManageCareTeam ? `<button class="link" onclick="openExistingPermissions('${accessId}')">Manage Permissions</button>` : ''}
+            ${!isOwner && accessId && canManageCareTeam ? `<button class="remove" onclick="openRemove('${accessId}','${item.role}')">♧</button>` : ''}
           </div>
         </div>
       `;
@@ -1487,7 +1521,7 @@
 
       async function confirmRemove() {
         if (!state.removeAccessId) return;
-        await api(`/api/v1/caregivers/access/${state.removeAccessId}`, {
+        await api(`${MANAGE_SYSTEM_BASE}/access/${state.removeAccessId}`, {
           method: 'DELETE',
         });
         closeOverlay('removeOverlay');
@@ -1496,6 +1530,11 @@
       }
 
       function startInviteFlow() {
+        const currentChild = state.children.find((child) => child.id === state.childId);
+        if (currentChild && !currentChild.permissions?.manageCareTeam) {
+          toast('You can view this child, but you do not have permission to manage the care team.');
+          return;
+        }
         state.childId = null;
         renderChildren();
         openChildScreen();
@@ -1606,10 +1645,12 @@
       async function openExistingPermissions(accessId) {
         state.permissionAccessId = accessId;
         const payload = await api(
-          `/api/v1/caregivers/access/${accessId}/permissions`,
+          `${MANAGE_SYSTEM_BASE}/access/${accessId}/permissions`,
         );
         state.permissionRole = payload.role;
-        state.permissionValues = payload.permissions || {};
+        state.permissionValues = Object.fromEntries(
+          (payload.items || []).map((item) => [item.key, Boolean(item.isEnabled)]),
+        );
         document.getElementById('permTitle').textContent = roleTitle(
           payload.role,
         );
@@ -1643,7 +1684,7 @@
       async function savePermissions() {
         if (state.permissionAccessId) {
           await api(
-            `/api/v1/caregivers/access/${state.permissionAccessId}/permissions`,
+            `${MANAGE_SYSTEM_BASE}/access/${state.permissionAccessId}/permissions`,
             {
               method: 'PATCH',
               body: JSON.stringify(
@@ -1694,7 +1735,7 @@
             return;
           }
           const users = await api(
-            `/api/v1/caregivers/search?query=${encodeURIComponent(query)}&role=${state.inviteRole}`,
+            `${MANAGE_SYSTEM_BASE}/search-user?query=${encodeURIComponent(query)}&role=${state.inviteRole}`,
           );
           document.getElementById('searchResults').innerHTML = users
             .map(
@@ -1730,17 +1771,21 @@
       function inviteBody(channel) {
         const body = {
           role: state.inviteRole,
-          inviteChannel: channel,
+          ...(channel ? { channel } : {}),
           ...visiblePermissionPayload(state.inviteRole),
         };
+        const inviteName = document.getElementById('inviteName').value.trim();
+        if (inviteName) body.invitedName = inviteName;
         if (state.inviteRole === 'FAMILY_MEMBER') {
-          body.invitedName =
-            document.getElementById('inviteName').value.trim() ||
-            'Family Member';
+          body.invitedName = inviteName || 'Family Member';
           body.relationship = state.relationship;
         }
-        if (state.selectedUser && state.inviteMode === 'existing')
-          body.invitedUserId = state.selectedUser.id;
+        if (state.selectedUser && state.inviteMode === 'existing') {
+          if (state.selectedUser.email) body.invitedEmail = state.selectedUser.email;
+          if (state.selectedUser.phoneNumber)
+            body.invitedPhone = state.selectedUser.phoneNumber;
+          if (!body.invitedName) body.invitedName = state.selectedUser.fullName;
+        }
         if (state.inviteMode === 'manual') {
           const email = document.getElementById('inviteEmail').value.trim();
           const phone = document.getElementById('invitePhone').value.trim();
@@ -1753,7 +1798,7 @@
       async function sendInvite() {
         const body = inviteBody(undefined);
         const payload = await api(
-          `/api/v1/caregivers/children/${state.childId}/invitations`,
+          `${MANAGE_SYSTEM_BASE}/children/${state.childId}/invite`,
           {
             method: 'POST',
             body: JSON.stringify(body),
@@ -1765,7 +1810,7 @@
 
       async function copyInviteLink() {
         const payload = await api(
-          `/api/v1/caregivers/children/${state.childId}/invitations`,
+          `${MANAGE_SYSTEM_BASE}/children/${state.childId}/invite`,
           {
             method: 'POST',
             body: JSON.stringify(inviteBody('LINK')),
@@ -1799,9 +1844,9 @@
         try {
           const inviteToken = readInviteToken();
           const payload = await api(
-            `/api/v1/caregivers/invitations/${inviteToken}`,
+            `${MANAGE_SYSTEM_BASE}/invitations/${inviteToken}`,
           );
-          toast(payload?.invitation?.status || 'Invitation preview loaded');
+          toast(payload?.status || 'Invitation preview loaded');
         } catch (error) {
           toast(error.message);
         }
@@ -1811,12 +1856,12 @@
         try {
           const inviteToken = readInviteToken();
           const payload = await api(
-            `/api/v1/caregivers/invitations/${inviteToken}/accept`,
+            `${MANAGE_SYSTEM_BASE}/invitations/${inviteToken}/accept`,
             {
               method: 'POST',
             },
           );
-          toast(payload?.status || 'Invitation accepted');
+          toast(payload?.status || payload?.message || 'Invitation accepted');
           await init();
         } catch (error) {
           toast(error.message);
@@ -1824,17 +1869,9 @@
       }
 
       async function loadPendingInvites() {
-        try {
-          const payload = await api(
-            '/api/v1/caregivers/my/invitations/pending',
-          );
-          const first = Array.isArray(payload) ? payload[0] : null;
-          toast(
-            first ? 'Pending invitations loaded' : 'No pending invitations',
-          );
-        } catch (error) {
-          toast(error.message);
-        }
+        toast(
+          'Pending invite list API backend e nei. Preview ba Accept button diye token test korun.',
+        );
       }
 
       async function finishSuccess() {

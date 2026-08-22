@@ -71,6 +71,10 @@ enum CaregiverInviteChannel {
 enum IdentityDocType {
   PASSPORT
   NATIONAL_ID
+  ID_CARD
+  DRIVERS_LICENSE
+  RESIDENCE_PERMIT
+  OTHER
 }
 
 enum DocumentType {
@@ -79,6 +83,11 @@ enum DocumentType {
   NID_BACK
   SELFIE
   PASSPORT_PAGE
+  DOCUMENT_FRONT
+  DOCUMENT_BACK
+  DOCUMENT_FILE
+  LIVENESS_VIDEO
+  OTHER
 }
 
 enum OtpPurpose {

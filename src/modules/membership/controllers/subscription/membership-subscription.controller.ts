@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
-import { CancelMembershipFeedbackDto } from '../../dto/cancel-feedback.dto';
+import { CancelMembershipDto } from '../../dto/cancel-membership.dto';
 import { PauseMembershipDto } from '../../dto/pause-membership.dto';
 import { SimulateMembershipPaymentFailureDto } from '../../dto/simulate-payment-failure.dto';
 import { SubscribeMembershipPlanDto } from '../../dto/subscribe-plan.dto';
@@ -65,23 +65,18 @@ export class MembershipSubscriptionController {
     );
   }
 
-  @Post('cancel/feedback')
-  @ApiOperation({ summary: 'Submit cancellation feedback before confirming cancel' })
-  submitCancelFeedback(
+  @Post('cancel')
+  @ApiOperation({
+    summary:
+      'Cancel membership in one step, with optional cancellation feedback',
+  })
+  cancelMembership(
     @CurrentUser() user: any,
-    @Body() dto: CancelMembershipFeedbackDto,
+    @Body() dto: CancelMembershipDto,
   ) {
-    return this.membershipSubscriptionService.submitCancelFeedback(
+    return this.membershipSubscriptionService.cancelMembership(
       extractMembershipUserId(user),
       dto,
-    );
-  }
-
-  @Post('cancel/confirm')
-  @ApiOperation({ summary: 'Confirm membership cancellation' })
-  confirmCancelMembership(@CurrentUser() user: any) {
-    return this.membershipSubscriptionService.confirmCancelMembership(
-      extractMembershipUserId(user),
     );
   }
 

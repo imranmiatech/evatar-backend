@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Onboarding & Signup Flow - EvaTurner</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://static.sumsub.com/idensic/static/sns-websdk-builder.js"></script>
   <style>
     :root {
       --primary: #00666a;
@@ -341,11 +342,202 @@
       color: var(--primary);
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
+    .doc-separator {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      margin: 6px 0 14px;
+    }
+    .verification-note {
+      margin-top: auto;
+      border-radius: 16px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      padding: 12px;
+      font-size: 11px;
+      color: #9a3412;
+      line-height: 1.5;
+    }
+    .verification-note strong {
+      display: block;
+      color: #7c2d12;
+      margin-bottom: 4px;
+    }
+    .capture-shell {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+      background: #fff;
+    }
+    .capture-shell.fullscreen {
+      margin-left: -24px;
+      margin-right: -24px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: #050b14;
+      overflow: hidden;
+    }
+    .capture-copy {
+      text-align: center;
+      font-size: 11px;
+      line-height: 1.45;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    .capture-stage {
+      height: min(58vh, 420px);
+      border-radius: 12px;
+      background: #050b14;
+      margin-bottom: 14px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .capture-shell.fullscreen .capture-stage {
+      height: calc(100vh - 340px);
+      min-height: 360px;
+      max-height: 72vh;
+      margin-bottom: 0;
+      border-radius: 0;
+    }
+    .camera-preview,
+    .captured-preview {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: 12px;
+    }
+    .capture-stage.document-mode .camera-preview,
+    .capture-stage.document-mode .captured-preview {
+      object-fit: contain;
+      background: #050b14;
+    }
+    .captured-preview {
+      display: none;
+    }
+    .capture-stage.has-image .captured-preview {
+      display: block;
+    }
+    .capture-stage.has-image .camera-preview,
+    .capture-stage.has-image .capture-status {
+      display: none;
+    }
+    .capture-status {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 12px;
+      color: #cbd5e1;
+      font-size: 11px;
+      line-height: 1.45;
+      background: rgba(2, 6, 23, 0.28);
+    }
+    .capture-status.error {
+      color: #fecaca;
+      background: rgba(127, 29, 29, 0.38);
+    }
+    .upload-stage {
+      border: 1px dashed #bfd5db;
+      border-radius: 14px;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      background: #fbfdff;
+      margin-bottom: 12px;
+    }
+    .upload-box {
+      border: 1px dashed #bfd5db;
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.45;
+      background: #fff;
+    }
+    .mini-upload-btn {
+      height: 30px;
+      border-radius: 999px;
+      border: 1px solid #cfe2e8;
+      background: #fff;
+      color: var(--primary);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 0 12px;
+      margin-top: 8px;
+      cursor: pointer;
+    }
+    .capture-btn-row {
+      display: flex;
+      gap: 10px;
+    }
+    .capture-btn-row .btn-outline,
+    .capture-btn-row .btn-teal {
+      height: 38px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+    .capture-shell.fullscreen .capture-btn-row {
+      padding: 12px 16px 16px;
+      background: linear-gradient(180deg, rgba(5, 11, 20, 0.08) 0%, rgba(5, 11, 20, 0.92) 100%);
+    }
+    .review-stack {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .review-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: #fff;
+    }
+    .review-card-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .review-preview {
+      height: 88px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #f8fafc, #dbeafe);
+      border: 1px solid #d5e2eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #5b6b79;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .review-preview.dark {
+      background: linear-gradient(135deg, #0f172a, #334155);
+      color: #e2e8f0;
+    }
+    .face-caption {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 12px;
+      margin-bottom: 16px;
+    }
+    .hidden-canvas {
+      display: none;
+    }
 
     /* Viewfinder */
     .viewfinder {
       width: 100%;
-      height: 240px;
+      height: min(62vh, 460px);
       border: 2px dashed #cbd5e1;
       border-radius: 20px;
       background: #000000;
@@ -359,8 +551,8 @@
     }
 
     .face-scan-frame {
-      width: 170px;
-      height: 170px;
+      width: min(68vw, 240px);
+      height: min(68vw, 240px);
       border-radius: 50%;
       border: 3px solid var(--accent);
       display: grid;
@@ -383,19 +575,218 @@
       100% { top: 10%; }
     }
 
-    /* Membership Plan Cards */
-    .plan-card {
-      border: 2px solid var(--line);
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 12px;
+    /* Membership */
+    .membership-header {
+      margin-bottom: 16px;
+    }
+    .membership-kicker {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .membership-copy {
+      font-size: 11px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+    .membership-toast {
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      display: none;
+    }
+    .membership-toast.info {
+      display: block;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+    }
+    .membership-toast.success {
+      display: block;
+      background: #ecfdf5;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+    }
+    .membership-toast.error {
+      display: block;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+    .membership-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 6px;
+      border-radius: 999px;
+      background: #eef6f6;
+      margin-bottom: 14px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .membership-tabs::-webkit-scrollbar { display: none; }
+    .membership-tab {
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
       cursor: pointer;
     }
-    .plan-card.selected {
-      border-color: var(--primary);
-      background: var(--primary-light);
+    .membership-tab.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 8px 18px rgba(0, 102, 106, 0.16);
     }
-    .plan-price { font-size: 18px; font-weight: 800; color: var(--primary); }
+    .membership-tab-badge {
+      margin-left: 6px;
+      display: inline-flex;
+      align-items: center;
+      height: 18px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.18);
+      font-size: 9px;
+      font-weight: 800;
+    }
+    .membership-card {
+      position: relative;
+      border: 1px solid #dfe9ed;
+      border-radius: 16px;
+      background: #fff;
+      padding: 16px;
+      box-shadow: 0 10px 24px rgba(16, 33, 43, 0.06);
+    }
+    .membership-check {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #dcfce7;
+      color: #166534;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #86efac;
+    }
+    .membership-check.active {
+      display: flex;
+    }
+    .membership-price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .membership-price {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .membership-period {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .membership-subprice {
+      font-size: 10px;
+      color: #94a3b8;
+      text-decoration: line-through;
+      margin-bottom: 4px;
+    }
+    .membership-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .membership-desc {
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    .membership-feature-list {
+      list-style: none;
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .membership-feature-list li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 11px;
+      line-height: 1.45;
+      color: var(--text);
+    }
+    .membership-feature-list li::before {
+      content: "✓";
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: #ecfeff;
+      color: var(--primary);
+      display: grid;
+      place-items: center;
+      font-size: 10px;
+      font-weight: 800;
+      margin-top: 1px;
+    }
+    .membership-note-card,
+    .membership-trial-card {
+      border-radius: 14px;
+      border: 1px solid #d9edf1;
+      background: #f5fbfc;
+      padding: 12px 14px;
+      margin-top: 12px;
+    }
+    .membership-note-card {
+      font-size: 11px;
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .membership-trial-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 5px;
+    }
+    .membership-trial-copy {
+      font-size: 10px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+    .membership-actions {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .membership-actions .btn-outline,
+    .membership-actions .btn-teal {
+      margin-top: 0;
+    }
+    .membership-secondary {
+      background: white;
+      color: var(--primary);
+      border: 1px solid #c7dfe1;
+      box-shadow: none;
+    }
+    .membership-secondary[disabled],
+    .btn-teal[disabled] {
+      opacity: 0.55;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
 
     .success-circle {
       width: 90px;
@@ -407,6 +798,207 @@
       place-items: center;
       margin: 40px auto 20px;
       box-shadow: 0 10px 25px rgba(0, 102, 106, 0.3);
+    }
+    .sumsub-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.76);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 9999;
+    }
+    .sumsub-modal.active {
+      display: flex;
+    }
+    .sumsub-sheet {
+      width: min(430px, 100%);
+      max-height: 92vh;
+      background: #fff;
+      border-radius: 24px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 30px 80px rgba(15, 23, 42, 0.28);
+    }
+    .sumsub-sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .sumsub-sheet-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .sumsub-sheet-close {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .sumsub-sheet-status {
+      padding: 12px 18px 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .sumsub-container {
+      min-height: 68vh;
+      background: #fff;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 0;
+        background: #0b1328;
+      }
+
+      .flow-switcher {
+        width: calc(100vw - 20px);
+        gap: 8px;
+        margin: 10px 10px 12px;
+        padding: 6px;
+        border-radius: 22px;
+      }
+
+      .flow-btn {
+        flex: 1;
+        min-width: 0;
+        padding: 10px 12px;
+        font-size: 11px;
+      }
+
+      .phone {
+        width: 100vw;
+        height: calc(100vh - 60px);
+        border-radius: 24px 24px 0 0;
+        border-width: 0;
+        box-shadow: none;
+      }
+
+      .statusbar {
+        padding: 0 18px 8px;
+      }
+
+      .step-view {
+        padding: 16px 16px 24px;
+      }
+
+      .title {
+        font-size: 18px;
+      }
+
+      .subtitle {
+        font-size: 11px;
+        margin-bottom: 16px;
+      }
+
+      .avatar-picker {
+        width: 72px;
+        height: 72px;
+        margin-bottom: 16px;
+      }
+
+      .form-group {
+        margin-bottom: 12px;
+      }
+
+      .form-input,
+      .form-select {
+        height: 44px;
+        font-size: 12px;
+      }
+
+      .phone-input-group {
+        gap: 6px;
+      }
+
+      .country-code {
+        width: 82px;
+      }
+
+      .radio-group {
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .otp-container {
+        gap: 8px;
+        margin: 20px 0;
+      }
+
+      .otp-box {
+        width: 44px;
+        height: 54px;
+        font-size: 22px;
+      }
+
+      .doc-card,
+      .membership-card,
+      .review-card,
+      .upload-box,
+      .capture-shell {
+        border-radius: 14px;
+      }
+
+      .doc-card {
+        padding: 14px;
+      }
+
+      .capture-shell.fullscreen {
+        margin-left: -16px;
+        margin-right: -16px;
+      }
+
+      .capture-shell.fullscreen .capture-stage {
+        height: calc(100vh - 310px);
+        min-height: 300px;
+      }
+
+      .viewfinder {
+        height: min(54vh, 420px);
+      }
+
+      .action-row {
+        gap: 10px;
+      }
+
+      .btn-teal,
+      .btn-outline {
+        height: 46px;
+        font-size: 13px;
+      }
+
+      .membership-actions {
+        gap: 8px;
+      }
+
+      .sumsub-modal {
+        padding: 0;
+      }
+
+      .sumsub-sheet {
+        width: 100vw;
+        max-height: 100vh;
+        height: 100vh;
+        border-radius: 0;
+      }
+
+      .sumsub-sheet-header {
+        padding: 14px 16px;
+      }
+
+      .sumsub-sheet-status {
+        padding: 10px 16px 0;
+      }
+
+      .sumsub-container {
+        min-height: calc(100vh - 110px);
+      }
     }
   </style>
 </head>
@@ -438,7 +1030,7 @@
 
       <div class="form-group">
         <label class="form-label">Full Name *</label>
-        <input id="p-name" class="form-input" placeholder="Enter your full name" value="John Smith" />
+        <input id="p-name" class="form-input" placeholder="Enter your full name" value="John Smith" autocomplete="name" />
       </div>
 
       <div class="form-group">
@@ -448,19 +1040,24 @@
           <option value="mother">Mother</option>
           <option value="guardian">Guardian</option>
           <option value="sibling">Sibling</option>
+          <option value="grandfather">Grandfather</option>
+          <option value="grandmother">Grandmother</option>
+          <option value="uncle">Uncle</option>
+          <option value="aunt">Aunt</option>
+          <option value="relative">Relative</option>
         </select>
       </div>
 
       <div class="form-group">
         <label class="form-label">Email *</label>
-        <input id="p-email" class="form-input" type="email" placeholder="Enter your email" value="john.parent@example.com" />
+        <input id="p-email" class="form-input" type="email" placeholder="Enter your email" value="john.parent@example.com" autocomplete="email" />
       </div>
 
       <div class="form-group">
         <label class="form-label">Phone Number *</label>
         <div class="phone-input-group">
           <select class="form-select country-code"><option>+880 🇧🇩</option><option>+971 🇦🇪</option></select>
-          <input id="p-phone" class="form-input" placeholder="1581 751829" value="1581751829" />
+          <input id="p-phone" class="form-input" placeholder="Enter your phone number" value="1581751829" autocomplete="tel-national" />
         </div>
       </div>
 
@@ -469,17 +1066,19 @@
         <select id="p-lang" class="form-select">
           <option value="en">English (EN)</option>
           <option value="ar">Arabic</option>
+          <option value="fil">Filipino</option>
+          <option value="si">Sinhala</option>
         </select>
       </div>
 
       <div class="form-group">
         <label class="form-label">Password *</label>
-        <input id="p-pass" class="form-input" type="password" value="secret123" />
+        <input id="p-pass" class="form-input" type="password" value="secret123" placeholder="Enter your password" autocomplete="new-password" />
       </div>
 
       <div class="form-group">
         <label class="form-label">Confirm Password *</label>
-        <input id="p-pass-conf" class="form-input" type="password" value="secret123" />
+        <input id="p-pass-conf" class="form-input" type="password" value="secret123" placeholder="Confirm your password" autocomplete="new-password" />
       </div>
 
       <div class="form-group">
@@ -500,7 +1099,7 @@
     <div id="parent-step-2" class="step-view">
       <div class="progress-bar"><div class="progress-fill" style="width: 20%;"></div></div>
       <h2 class="title">Enter The Code</h2>
-      <p id="p-otp-subtitle" class="subtitle">Check your phone/email and enter the code below.</p>
+      <p id="p-otp-subtitle" class="subtitle">Check your phone and enter the code below.</p>
 
       <div id="p-otp-err" class="error-banner">Invalid verification code. Please check and try again.</div>
 
@@ -536,28 +1135,28 @@
 
       <div class="form-group">
         <label class="form-label">Enter Address *</label>
-        <input id="p-addr" class="form-input" placeholder="e.g. 4517 Washington Ave. Kentucky" value="4517 Washington Ave. Kentucky 39495" />
+        <input id="p-addr" class="form-input" placeholder="e.g. 4517 Washington Ave. Kentucky" value="4517 Washington Ave. Kentucky 39495" autocomplete="street-address" />
       </div>
 
       <div style="display:flex; gap:10px;">
         <div class="form-group" style="flex:1;">
           <label class="form-label">Enter Street *</label>
-          <input id="p-street" class="form-input" placeholder="Dubai Street" value="Dubai Street" />
+          <input id="p-street" class="form-input" placeholder="Dubai Street" value="Dubai Street" autocomplete="address-line1" />
         </div>
         <div class="form-group" style="flex:1;">
           <label class="form-label">Postal Code *</label>
-          <input id="p-post" class="form-input" placeholder="1230" value="1230" />
+          <input id="p-post" class="form-input" placeholder="1230" value="1230" autocomplete="postal-code" />
         </div>
       </div>
 
       <div style="display:flex; gap:10px;">
         <div class="form-group" style="flex:1;">
           <label class="form-label">Enter City *</label>
-          <input id="p-city" class="form-input" placeholder="Dubai" value="Dubai" />
+          <input id="p-city" class="form-input" placeholder="Dubai" value="Dubai" autocomplete="address-level2" />
         </div>
         <div class="form-group" style="flex:1;">
           <label class="form-label">Enter State *</label>
-          <input id="p-state" class="form-input" placeholder="Dubai" value="Dubai" />
+          <input id="p-state" class="form-input" placeholder="Dubai" value="Dubai" autocomplete="address-level1" />
         </div>
       </div>
 
@@ -570,48 +1169,28 @@
     <!-- Parent Step 4: Membership Plans -->
     <div id="parent-step-4" class="step-view">
       <div class="progress-bar"><div class="progress-fill" style="width: 40%;"></div></div>
-      <h2 class="title">Choose which membership plan suits your family</h2>
-
-      <div class="plan-card selected">
-        <div style="font-size:14px; font-weight:800;">2 child Family Membership</div>
-        <div class="plan-price" style="margin:4px 0;">60 AED <span style="font-size:11px; font-weight:500; color:var(--muted);">/ month</span></div>
-        <ul style="font-size:11px; color:var(--muted); padding-left:16px; line-height:1.5;">
-          <li>Manage 2 child maximum at a time</li>
-          <li>Customized daily routines for every child</li>
-          <li>Nanny insights grounded in real-life</li>
-        </ul>
-        <button class="btn-teal" style="margin-top:10px; height:38px; font-size:12px;" onclick="nextStep('parent-step-4', 'parent-step-5')">Get 2 child Family Membership</button>
+      <h2 class="title">Membership</h2>
+      <div class="membership-header">
+        <div class="membership-kicker">Choose your Alurei membership</div>
+        <div class="membership-copy">Everything your family needs to plan, connect, learn, and grow together.</div>
       </div>
-
-      <div class="plan-card">
-        <div style="font-size:14px; font-weight:800;">4 child Family Membership</div>
-        <div class="plan-price" style="margin:4px 0;">120 AED <span style="font-size:11px; font-weight:500; color:var(--muted);">/ month</span></div>
-        <button class="btn-teal" style="margin-top:10px; height:38px; font-size:12px;" onclick="nextStep('parent-step-4', 'parent-step-5')">Get 4 child Family Membership</button>
+      <div id="parent-membership-toast" class="membership-toast"></div>
+      <div id="parent-membership-tabs" class="membership-tabs"></div>
+      <div id="parent-membership-content"></div>
+      <div class="membership-actions">
+        <button id="parent-free-plan-btn" class="btn-outline membership-secondary" onclick="claimParentTrial()">Start with a 14-day free trial</button>
+        <button id="parent-paid-plan-btn" class="btn-teal" onclick="purchaseParentPlan()">Continue with selected plan</button>
+        <button id="parent-membership-next-btn" class="btn-teal" onclick="continueParentMembershipFlow()" disabled>Next ›</button>
       </div>
     </div>
 
-    <!-- Parent Step 5: Everything to know -->
+    <!-- Parent Step 5: Document Select -->
     <div id="parent-step-5" class="step-view">
       <div class="progress-bar"><div class="progress-fill" style="width: 50%;"></div></div>
-      <h2 class="title" style="font-size:17px;">Everything you need to know before joining Alurei</h2>
-
-      <div style="background:#f8fafc; border:1px solid var(--line); border-radius:14px; padding:14px; font-size:12px; color:var(--muted); line-height:1.6; margin-bottom:15px;">
-        <strong style="color:var(--text);">Earn rewards while caring for your child</strong><br/>
-        As you use Alurei for daily routines, childcare, and family milestones, you earn points automatically.
-      </div>
-
-      <div class="action-row">
-        <button class="btn-teal" onclick="nextStep('parent-step-5', 'parent-step-6')">Continue Payment</button>
-      </div>
-    </div>
-
-    <!-- Parent Step 6: Submit Documents Select -->
-    <div id="parent-step-6" class="step-view">
-      <div class="progress-bar"><div class="progress-fill" style="width: 60%;"></div></div>
       <h2 class="title">Submit Documents</h2>
       <p class="subtitle">Choose how you want to verify</p>
 
-      <div class="doc-card selected" onclick="selectDoc(this)">
+      <div id="parent-doc-passport" class="doc-card selected" onclick="selectParentDocumentType('PASSPORT')">
         <div class="doc-icon">🛂</div>
         <div>
           <div style="font-size:14px; font-weight:700;">Passport</div>
@@ -619,36 +1198,173 @@
         </div>
       </div>
 
+      <div class="doc-separator">Or</div>
+
+      <div id="parent-doc-national-id" class="doc-card" onclick="selectParentDocumentType('NATIONAL_ID')">
+        <div class="doc-icon">🪪</div>
+        <div>
+          <div style="font-size:14px; font-weight:700;">National ID Card</div>
+          <div style="font-size:11px; color: var(--muted);">You'll need to capture photos of your ID card.</div>
+        </div>
+      </div>
+
       <div class="action-row">
-        <button class="btn-outline" onclick="nextStep('parent-step-6', 'parent-step-7')">Remind me later</button>
-        <button class="btn-teal" onclick="nextStep('parent-step-6', 'parent-step-7')">Next ›</button>
+        <button class="btn-outline" onclick="nextStep('parent-step-5', 'parent-step-4')">Remind me later</button>
+        <button class="btn-teal" onclick="goToParentDocumentFlow()">Next ›</button>
+      </div>
+
+      <div class="verification-note">
+        <strong>Save verification now?</strong>
+        You'll need to verify your documents before using child KYC. You can submit documents now or come back later.
       </div>
     </div>
 
-    <!-- Parent Step 7: Document Review & Face Verification -->
-    <div id="parent-step-7" class="step-view">
-      <div class="progress-bar"><div class="progress-fill" style="width: 80%;"></div></div>
-      <h2 class="title">Verify Identity</h2>
-      <p class="subtitle">Position your face within the frame and ensure optimal recognition.</p>
+    <!-- Parent Step 6: Passport Capture -->
+    <div id="parent-step-6" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 60%;"></div></div>
+      <h2 class="title">Take a clear photo of your passport's photo page.</h2>
+      <p class="subtitle">Place your passport with the photo page opened and information clearly visible.</p>
 
-      <div class="viewfinder" style="background:#0f172a;">
-        <div class="face-scan-frame"><div class="scan-line"></div></div>
+      <div class="capture-shell fullscreen">
+        <div id="passport-capture-stage" class="capture-stage document-mode">
+          <video id="passport-camera" class="camera-preview" autoplay playsinline muted></video>
+          <img id="passport-preview" class="captured-preview" alt="Passport preview" />
+          <div id="passport-status" class="capture-status">Opening rear camera for passport scan...</div>
+        </div>
+        <canvas id="passport-canvas" class="hidden-canvas"></canvas>
+        <div class="capture-btn-row">
+          <button class="btn-teal" onclick="captureParentDocument('passport')">Capture</button>
+        </div>
       </div>
-      <p style="text-align:center; font-size:11px; color:var(--accent); margin-bottom:14px;">✨ Liveness: Optimal</p>
+
+      <div class="action-row">
+        <button class="btn-outline" onclick="retakeParentDocument('passport')">Retake</button>
+        <button class="btn-teal" onclick="submitPassportCapture()">Submit</button>
+      </div>
+    </div>
+
+    <!-- Parent Step 7: NID Upload -->
+    <div id="parent-step-7" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 66%;"></div></div>
+      <h2 class="title">Capture your NID</h2>
+      <p class="subtitle">Capture both sides of your NID clearly and fully, then tap Next.</p>
+
+      <div class="upload-stage">
+        <div class="upload-box">
+          Front side photo of your NID card with your clear name
+          <div><button class="mini-upload-btn" type="button" onclick="nextStep('parent-step-7', 'parent-step-8')">+ Click Photo</button></div>
+        </div>
+        <div class="upload-box">
+          Back side photo of your NID card with your clear name
+          <div><button class="mini-upload-btn" type="button" onclick="nextStep('parent-step-7', 'parent-step-9')">+ Click Photo</button></div>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-teal" onclick="goToNextNidStep()">Next ›</button>
+      </div>
+    </div>
+
+    <!-- Parent Step 8: NID Front Capture -->
+    <div id="parent-step-8" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 72%;"></div></div>
+      <h2 class="title">Take a clear photo of the front of your National ID card.</h2>
+      <p class="subtitle">Place your NID within the frame and make all the details clearly visible.</p>
+
+      <div class="capture-shell fullscreen">
+        <div id="nid-front-capture-stage" class="capture-stage document-mode">
+          <video id="nid-front-camera" class="camera-preview" autoplay playsinline muted></video>
+          <img id="nid-front-preview" class="captured-preview" alt="NID front preview" />
+          <div id="nid-front-status" class="capture-status">Opening rear camera for National ID front side...</div>
+        </div>
+        <canvas id="nid-front-canvas" class="hidden-canvas"></canvas>
+        <div class="capture-btn-row">
+          <button class="btn-teal" onclick="captureParentDocument('nidFront')">Capture</button>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-outline" onclick="retakeParentDocument('nidFront')">Retake</button>
+        <button class="btn-teal" onclick="submitNidFrontCapture()">Submit</button>
+      </div>
+    </div>
+
+    <!-- Parent Step 9: NID Back Capture -->
+    <div id="parent-step-9" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 78%;"></div></div>
+      <h2 class="title">Take a clear photo of the back of your National ID card.</h2>
+      <p class="subtitle">Place your NID within the frame and make all information clearly visible.</p>
+
+      <div class="capture-shell fullscreen">
+        <div id="nid-back-capture-stage" class="capture-stage document-mode">
+          <video id="nid-back-camera" class="camera-preview" autoplay playsinline muted></video>
+          <img id="nid-back-preview" class="captured-preview" alt="NID back preview" />
+          <div id="nid-back-status" class="capture-status">Opening rear camera for National ID back side...</div>
+        </div>
+        <canvas id="nid-back-canvas" class="hidden-canvas"></canvas>
+        <div class="capture-btn-row">
+          <button class="btn-teal" onclick="captureParentDocument('nidBack')">Capture</button>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-outline" onclick="retakeParentDocument('nidBack')">Retake</button>
+        <button class="btn-teal" onclick="submitNidBackCapture()">Submit</button>
+      </div>
+    </div>
+
+    <!-- Parent Step 10: Review -->
+    <div id="parent-step-10" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 84%;"></div></div>
+      <h2 class="title">Review your images</h2>
+      <p class="subtitle">Using a clear, readable image may result in a faster review process.</p>
+
+      <div class="review-stack">
+        <div class="review-card">
+          <div class="review-card-label">Front side</div>
+          <img id="review-front-preview" class="review-preview" alt="Front side review preview" />
+          <button class="btn-outline" style="height:34px; border-radius:10px; font-size:11px;" onclick="nextStep('parent-step-10', 'parent-step-8')">Retake</button>
+        </div>
+        <div class="review-card">
+          <div class="review-card-label">Back side</div>
+          <img id="review-back-preview" class="review-preview dark" alt="Back side review preview" />
+          <button class="btn-outline" style="height:34px; border-radius:10px; font-size:11px;" onclick="nextStep('parent-step-10', 'parent-step-9')">Retake</button>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-teal" onclick="nextStep('parent-step-10', 'parent-step-11')">Submit</button>
+      </div>
+    </div>
+
+    <!-- Parent Step 11: Face Verify -->
+    <div id="parent-step-11" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 92%;"></div></div>
+      <h2 class="title">Verify Identity</h2>
+      <p class="subtitle">Your document images stay in this signup flow. Only the final live liveness check opens in the embedded verification sheet.</p>
+
+      <div class="viewfinder" style="background:#ffffff; border-style:solid; border-color:#dbe7eb;">
+        <video id="face-camera" class="camera-preview" autoplay playsinline muted style="position:absolute; inset:0;"></video>
+        <div class="face-scan-frame" style="border-color:#cbd5e1; box-shadow:none; background:radial-gradient(circle at center, rgba(248,250,252,0.18) 0%, rgba(226,232,240,0.12) 70%, rgba(203,213,225,0.14) 100%); z-index:1;">
+          <div class="scan-line"></div>
+        </div>
+        <div id="face-status" class="capture-status" style="background:rgba(255,255,255,0.1); color:#475569; z-index:2;">Opening front camera for face verification...</div>
+      </div>
+      <div class="face-caption">Liveness Control</div>
 
       <div class="action-row">
         <button class="btn-teal" onclick="requestSumsubToken('PARENT')">Submit Verification</button>
       </div>
     </div>
 
-    <!-- Parent Step 8: Success -->
-    <div id="parent-step-8" class="step-view">
+    <!-- Parent Step 12: Success -->
+    <div id="parent-step-12" class="step-view">
       <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
       <div class="success-circle">
         <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
       </div>
-      <h2 class="title">Verification Successful</h2>
-      <p class="subtitle">Your identity has been successfully verified. You can now continue using all platform features.</p>
+      <h2 id="parent-completion-title" class="title">Verification Successful</h2>
+      <p id="parent-completion-subtitle" class="subtitle">Your identity has been successfully verified. You can now continue using all platform features.</p>
       <div class="action-row">
         <button class="btn-teal" onclick="alert('Verification Complete! Welcome to Alurei.')">Continue</button>
       </div>
@@ -737,7 +1453,7 @@
     <div id="nanny-step-3" class="step-view">
       <div class="progress-bar"><div class="progress-fill" style="width: 80%;"></div></div>
       <h2 class="title">Verify Identity</h2>
-      <p class="subtitle">Position your face within the frame for Nanny verification.</p>
+      <p class="subtitle">This step keeps you inside signup and uses the embedded liveness handoff instead of sending you to the default Sumsub document flow.</p>
 
       <div class="viewfinder" style="background:#0f172a;">
         <div class="face-scan-frame"><div class="scan-line"></div></div>
@@ -754,8 +1470,8 @@
       <div class="success-circle">
         <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
       </div>
-      <h2 class="title">Account Ready!</h2>
-      <p class="subtitle">Your nanny caregiver account has been created and verified successfully!</p>
+      <h2 id="nanny-completion-title" class="title">Account Ready!</h2>
+      <p id="nanny-completion-subtitle" class="subtitle">Your nanny caregiver account has been created and verified successfully!</p>
       <div class="action-row">
         <button class="btn-teal" onclick="alert('Welcome Nanny Caregiver!')">Continue</button>
       </div>
@@ -763,14 +1479,88 @@
 
   </div>
 
+  <div id="sumsub-modal" class="sumsub-modal">
+    <div class="sumsub-sheet">
+      <div class="sumsub-sheet-header">
+        <div class="sumsub-sheet-title">Complete Real Identity Verification</div>
+        <button class="sumsub-sheet-close" type="button" onclick="closeSumsubModal()">×</button>
+      </div>
+      <div id="sumsub-status" class="sumsub-sheet-status">Preparing Sumsub verification...</div>
+      <div id="sumsub-websdk-container" class="sumsub-container"></div>
+    </div>
+  </div>
+
   <script>
-    // DYNAMIC API BASE URL ROUTER: Detects if running on VS Code Live Server (port 5500) vs NestJS (port 5000)
-    const API_BASE_URL = (window.location.port === '5000' || window.location.origin.includes(':5000')) ? '' : 'http://localhost:5000';
+    // Use the same origin when the page is served by the backend/tunnel.
+    // Only fall back to localhost when running from a local static server like Live Server on port 5500.
+    const API_BASE_URL = (() => {
+      const { hostname, port, origin, protocol } = window.location;
+
+      if ((hostname === '127.0.0.1' || hostname === 'localhost') && port === '5500') {
+        return 'http://localhost:5000';
+      }
+
+      if (protocol === 'http:' || protocol === 'https:') {
+        return origin;
+      }
+
+      return 'http://localhost:5000';
+    })();
 
     let currentFlow = 'PARENT';
-    let userToken = '';
+    let userToken = window.sessionStorage.getItem('signupUserToken') || '';
     let parentGeneratedOtp = '';
     let nannyGeneratedOtp = '';
+    let parentMembershipPlans = [];
+    let selectedParentMembershipPlanId = '';
+    let parentMembershipCompleted = false;
+    let parentMembershipInitialized = false;
+    let parentDocumentType = 'PASSPORT';
+    let activeParentCameraStream = null;
+    let activeParentCameraStepId = '';
+    let sumsubSdkInstance = null;
+    let sumsubVerificationInProgress = false;
+    let currentKycRole = 'PARENT';
+    const parentCaptureState = {
+      passport: '',
+      nidFront: '',
+      nidBack: '',
+    };
+    const PARENT_CAMERA_CONFIG = {
+      passport: {
+        stepId: 'parent-step-6',
+        videoId: 'passport-camera',
+        previewId: 'passport-preview',
+        canvasId: 'passport-canvas',
+        stageId: 'passport-capture-stage',
+        statusId: 'passport-status',
+        facingMode: 'environment',
+      },
+      nidFront: {
+        stepId: 'parent-step-8',
+        videoId: 'nid-front-camera',
+        previewId: 'nid-front-preview',
+        canvasId: 'nid-front-canvas',
+        stageId: 'nid-front-capture-stage',
+        statusId: 'nid-front-status',
+        facingMode: 'environment',
+      },
+      nidBack: {
+        stepId: 'parent-step-9',
+        videoId: 'nid-back-camera',
+        previewId: 'nid-back-preview',
+        canvasId: 'nid-back-canvas',
+        stageId: 'nid-back-capture-stage',
+        statusId: 'nid-back-status',
+        facingMode: 'environment',
+      },
+      face: {
+        stepId: 'parent-step-11',
+        videoId: 'face-camera',
+        statusId: 'face-status',
+        facingMode: 'user',
+      },
+    };
 
     function switchFlow(flow) {
       currentFlow = flow;
@@ -788,16 +1578,875 @@
     function nextStep(currentId, nextId) {
       document.getElementById(currentId).classList.remove('active');
       document.getElementById(nextId).classList.add('active');
+      handleParentStepMedia(nextId);
       if (nextId === 'parent-step-2') {
         document.getElementById('po1').focus();
+      } else if (nextId === 'parent-step-4') {
+        initializeParentMembershipStep();
       } else if (nextId === 'nanny-step-2') {
         document.getElementById('no1').focus();
       }
     }
 
-    function selectDoc(card) {
-      document.querySelectorAll('.doc-card').forEach(c => c.classList.remove('selected'));
-      card.classList.add('selected');
+    function unwrapApiData(payload) {
+      return payload && typeof payload === 'object' && 'data' in payload ? payload.data : payload;
+    }
+
+    function getAuthHeaders() {
+      return {
+        'Authorization': 'Bearer ' + userToken,
+        'Content-Type': 'application/json'
+      };
+    }
+
+    function setSumsubStatus(message) {
+      const el = document.getElementById('sumsub-status');
+      if (el) {
+        el.innerText = message;
+      }
+    }
+
+    function setCompletionState(role, status) {
+      const isParent = role === 'PARENT';
+      const titleEl = document.getElementById(isParent ? 'parent-completion-title' : 'nanny-completion-title');
+      const subtitleEl = document.getElementById(isParent ? 'parent-completion-subtitle' : 'nanny-completion-subtitle');
+
+      if (!titleEl || !subtitleEl) {
+        return;
+      }
+
+      if (status === 'pending') {
+        titleEl.innerText = 'Verification Submitted';
+        subtitleEl.innerText = 'Your KYC files were submitted successfully and are now waiting for Sumsub review. You can continue, but full activation depends on approval.';
+        return;
+      }
+
+      titleEl.innerText = isParent ? 'Verification Successful' : 'Account Ready!';
+      subtitleEl.innerText = isParent
+        ? 'Your identity has been successfully verified. You can now continue using all platform features.'
+        : 'Your nanny caregiver account has been created and verified successfully!';
+    }
+
+    function openSumsubModal() {
+      document.getElementById('sumsub-modal').classList.add('active');
+    }
+
+    function closeSumsubModal() {
+      document.getElementById('sumsub-modal').classList.remove('active');
+      document.getElementById('sumsub-websdk-container').innerHTML = '';
+      if (sumsubSdkInstance && typeof sumsubSdkInstance.destroy === 'function') {
+        try {
+          sumsubSdkInstance.destroy();
+        } catch {}
+      }
+      sumsubSdkInstance = null;
+      sumsubVerificationInProgress = false;
+    }
+
+    async function fetchCurrentProfile() {
+      const res = await fetch(API_BASE_URL + '/api/v1/auth/me', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + userToken,
+        },
+      });
+      const payload = await res.json();
+      const data = unwrapApiData(payload);
+
+      if (!res.ok) {
+        throw new Error(payload.message || 'Failed to refresh verification status.');
+      }
+
+      return data;
+    }
+
+    async function waitForVerificationDecision(maxAttempts = 6, delayMs = 2000) {
+      let profile = await fetchCurrentProfile();
+
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        if (
+          profile.verificationStatus === 'APPROVED' ||
+          profile.verificationStatus === 'REJECTED'
+        ) {
+          return profile;
+        }
+
+        await new Promise((resolve) => window.setTimeout(resolve, delayMs));
+        profile = await fetchCurrentProfile();
+      }
+
+      return profile;
+    }
+
+    async function handleSumsubFinalStatus(role, fallbackPayload) {
+      try {
+        await requestKycReview();
+      } catch (error) {
+        const message = error?.message || '';
+        if (
+          !message.toLowerCase().includes('pending') &&
+          !message.toLowerCase().includes('queued') &&
+          !message.toLowerCase().includes('prechecked')
+        ) {
+          throw error;
+        }
+      }
+
+      const profile = await waitForVerificationDecision();
+      const reviewAnswer = fallbackPayload?.reviewResult?.reviewAnswer;
+
+      if (profile.verificationStatus === 'APPROVED' || reviewAnswer === 'GREEN') {
+        setSumsubStatus('Verification approved. Finishing setup...');
+        setCompletionState(role, 'approved');
+        closeSumsubModal();
+        nextStep(role === 'PARENT' ? 'parent-step-11' : 'nanny-step-3', role === 'PARENT' ? 'parent-step-12' : 'nanny-step-4');
+        return;
+      }
+
+      if (profile.verificationStatus === 'REJECTED' || reviewAnswer === 'RED') {
+        const reason = profile.rejectionReason || fallbackPayload?.reviewResult?.moderationComment || 'Verification was rejected.';
+        setSumsubStatus(reason);
+        alert(reason);
+        closeSumsubModal();
+        return;
+      }
+
+      setSumsubStatus('Verification submitted and waiting for final review.');
+      setCompletionState(role, 'pending');
+      closeSumsubModal();
+      nextStep(role === 'PARENT' ? 'parent-step-11' : 'nanny-step-3', role === 'PARENT' ? 'parent-step-12' : 'nanny-step-4');
+    }
+
+    function dataUrlToFile(dataUrl, filename) {
+      const [header, content] = dataUrl.split(',');
+      const mimeMatch = header.match(/data:(.*?);base64/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      const binary = window.atob(content);
+      const bytes = new Uint8Array(binary.length);
+
+      for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      return new File([bytes], filename, { type: mimeType });
+    }
+
+    async function createKycSession() {
+      const res = await fetch(API_BASE_URL + '/api/v1/kyc/session', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ lang: 'en' }),
+      });
+      const payload = await res.json();
+      const data = unwrapApiData(payload);
+
+      if (!res.ok) {
+        throw new Error(payload.message || 'Failed to prepare KYC session.');
+      }
+
+      return data;
+    }
+
+    async function submitParentDocumentsToKyc() {
+      const formData = new FormData();
+      formData.append('countryCode', 'BGD');
+
+      if (parentDocumentType === 'PASSPORT') {
+        if (!parentCaptureState.passport) {
+          throw new Error('Please capture your passport before continuing.');
+        }
+
+        formData.append('docType', 'PASSPORT');
+        formData.append(
+          'document',
+          dataUrlToFile(parentCaptureState.passport, 'passport.jpg'),
+        );
+      } else {
+        if (!parentCaptureState.nidFront || !parentCaptureState.nidBack) {
+          throw new Error('Please capture both sides of your National ID before continuing.');
+        }
+
+        formData.append('docType', 'NATIONAL_ID');
+        formData.append(
+          'front',
+          dataUrlToFile(parentCaptureState.nidFront, 'national-id-front.jpg'),
+        );
+        formData.append(
+          'back',
+          dataUrlToFile(parentCaptureState.nidBack, 'national-id-back.jpg'),
+        );
+      }
+
+      const res = await fetch(API_BASE_URL + '/api/v1/kyc/documents', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + userToken,
+        },
+        body: formData,
+      });
+      const payload = await res.json();
+      const data = unwrapApiData(payload);
+
+      if (!res.ok) {
+        throw new Error(payload.message || 'Failed to upload KYC documents.');
+      }
+
+      return data;
+    }
+
+    async function requestKycReview() {
+      const res = await fetch(API_BASE_URL + '/api/v1/kyc/review', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      const payload = await res.json();
+      const data = unwrapApiData(payload);
+
+      if (!res.ok) {
+        throw new Error(payload.message || 'Failed to submit documents for review.');
+      }
+
+      return data;
+    }
+
+    async function createLivenessAction() {
+      const res = await fetch(API_BASE_URL + '/api/v1/kyc/liveness-action', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ lang: 'en' }),
+      });
+      const payload = await res.json();
+      const data = unwrapApiData(payload);
+
+      if (!res.ok || !data?.sdk?.token) {
+        throw new Error(payload.message || 'Failed to start live biometric check.');
+      }
+
+      return data;
+    }
+
+    async function refreshKycAccessToken() {
+      const res = await fetch(API_BASE_URL + '/api/v1/kyc/sumsub/access-token', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ lang: 'en' }),
+      });
+      const payload = await res.json();
+      const data = unwrapApiData(payload);
+
+      if (!res.ok || !data?.token) {
+        throw new Error(payload.message || 'Failed to refresh Sumsub access token.');
+      }
+
+      return data.token;
+    }
+
+    async function launchEmbeddedLivenessVerification(role, livenessData) {
+      if (!userToken) {
+        throw new Error('Please complete OTP verification first.');
+      }
+
+      if (typeof window.snsWebSdk === 'undefined') {
+        throw new Error('Sumsub WebSDK failed to load.');
+      }
+
+      openSumsubModal();
+      setSumsubStatus(
+        livenessData.mode === 'APPLICANT_LEVEL_FALLBACK'
+          ? 'Opening verification with your main Sumsub level. Sumsub may still request additional steps depending on level configuration.'
+          : 'Opening embedded liveness check...',
+      );
+      document.getElementById('sumsub-websdk-container').innerHTML = '';
+      sumsubVerificationInProgress = true;
+      currentKycRole = role;
+
+      const phone =
+        role === 'PARENT'
+          ? ('+880' + document.getElementById('p-phone').value.trim())
+          : ('+971' + document.getElementById('n-phone').value.trim());
+      const email =
+        role === 'PARENT'
+          ? document.getElementById('p-email').value.trim()
+          : document.getElementById('n-email').value.trim();
+
+      sumsubSdkInstance = window.snsWebSdk
+        .init(livenessData.sdk.token, refreshKycAccessToken)
+        .withConf({
+          lang: 'en',
+          email,
+          phone,
+          theme: 'light',
+          customizationName: livenessData.sdk.customizationName || undefined,
+        })
+        .withOptions({ addViewportTag: false, adaptIframeHeight: true })
+        .on('idCheck.onApplicantLoaded', (payload) => {
+          setSumsubStatus(`Live check ready${payload?.applicantId ? ` (${payload.applicantId})` : ''}.`);
+        })
+        .on('idCheck.onStepCompleted', (payload) => {
+          const stepName = payload?.idDocSetType || payload?.step || 'current step';
+          setSumsubStatus(`Completed: ${stepName}`);
+        })
+        .on('idCheck.onApplicantSubmitted', () => {
+          setSumsubStatus('Liveness submitted. Waiting for Sumsub decision...');
+        })
+        .on('idCheck.onApplicantStatusChanged', async (payload) => {
+          if (payload?.reviewStatus === 'completed') {
+            await handleSumsubFinalStatus(role, payload);
+            return;
+          }
+          setSumsubStatus(`Current Sumsub status: ${payload?.reviewStatus || 'pending'}`);
+        })
+        .on('idCheck.onApplicantVerificationCompleted', async (payload) => {
+          await handleSumsubFinalStatus(role, payload);
+        })
+        .on('idCheck.onError', (error) => {
+          const reason = error?.reason ? ` (${error.reason})` : '';
+          setSumsubStatus(`${error?.error || 'Sumsub verification error'}${reason}`);
+        })
+        .build();
+
+      sumsubSdkInstance.launch('#sumsub-websdk-container');
+    }
+
+    async function launchSumsubVerification(role) {
+      if (role === 'PARENT') {
+        await createKycSession();
+        setSumsubStatus('Uploading your captured document images...');
+        await submitParentDocumentsToKyc();
+      }
+
+      const livenessData = await createLivenessAction();
+      await launchEmbeddedLivenessVerification(role, livenessData);
+    }
+
+    function setParentMembershipToast(message, type = 'info') {
+      const toast = document.getElementById('parent-membership-toast');
+      if (!message) {
+        toast.className = 'membership-toast';
+        toast.style.display = 'none';
+        toast.innerText = '';
+        return;
+      }
+
+      toast.className = `membership-toast ${type}`;
+      toast.style.display = 'block';
+      toast.innerText = message;
+    }
+
+    function formatMembershipPrice(plan) {
+      return `${plan.formattedPrice || `${plan.currency} ${plan.price}`}${plan.periodSuffix || ''}`;
+    }
+
+    function getParentMembershipReturnBaseUrl() {
+      if (window.location.protocol.startsWith('http')) {
+        return `${window.location.origin}${window.location.pathname}`;
+      }
+      return `${API_BASE_URL}/signup-ui`;
+    }
+
+    function getSelectedParentPlan() {
+      return parentMembershipPlans.find(plan => plan.id === selectedParentMembershipPlanId) || parentMembershipPlans[0] || null;
+    }
+
+    function renderParentMembershipTabs() {
+      const tabs = document.getElementById('parent-membership-tabs');
+      tabs.innerHTML = '';
+
+      parentMembershipPlans.forEach((plan, index) => {
+        const tab = document.createElement('button');
+        tab.type = 'button';
+        tab.className = `membership-tab ${plan.id === selectedParentMembershipPlanId ? 'active' : ''}`;
+        tab.onclick = () => {
+          selectedParentMembershipPlanId = plan.id;
+          parentMembershipCompleted = false;
+          renderParentMembershipTabs();
+          renderParentMembershipCard();
+          syncParentMembershipButtons();
+        };
+
+        const badge = plan.badgeText ? `<span class="membership-tab-badge">${plan.badgeText}</span>` : '';
+        tab.innerHTML = `${plan.name}${badge}`;
+        tabs.appendChild(tab);
+
+        if (index === 0 && !selectedParentMembershipPlanId) {
+          selectedParentMembershipPlanId = plan.id;
+        }
+      });
+    }
+
+    function renderParentMembershipCard() {
+      const content = document.getElementById('parent-membership-content');
+      const plan = getSelectedParentPlan();
+
+      if (!plan) {
+        content.innerHTML = '<div class="membership-card"><div class="membership-desc">No membership plan found right now.</div></div>';
+        return;
+      }
+
+      const features = Array.isArray(plan.features) ? plan.features : [];
+      const upperDescription = plan.description || 'Everything your family needs.';
+      const comparePrice = plan.interval === 'ANNUALLY' ? 'AED 4,788 / year' : '';
+
+      content.innerHTML = `
+        <div class="membership-card">
+          <div class="membership-check ${parentMembershipCompleted ? 'active' : ''}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          ${comparePrice ? `<div class="membership-subprice">${comparePrice}</div>` : ''}
+          <div class="membership-price-row">
+            <div class="membership-price">${plan.formattedPrice || `${plan.price} ${plan.currency}`}</div>
+            <div class="membership-period">${plan.periodSuffix || ''}</div>
+          </div>
+          <div class="membership-title">${plan.name}</div>
+          <div class="membership-desc">${plan.savingsText || upperDescription}</div>
+          <ul class="membership-feature-list">
+            ${features.map(feature => `<li>${feature}</li>`).join('')}
+          </ul>
+          <div class="membership-note-card">Need to add another child? ${plan.additionalChildText || ''}</div>
+          <div class="membership-trial-card">
+            <div class="membership-trial-title">Start with a 14-day free trial</div>
+            <div class="membership-trial-copy">Explore the complete Alurei experience before your first payment. A card is required to start your trial.</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function syncParentMembershipButtons() {
+      const nextBtn = document.getElementById('parent-membership-next-btn');
+      const paidBtn = document.getElementById('parent-paid-plan-btn');
+      nextBtn.disabled = !parentMembershipCompleted;
+
+      const plan = getSelectedParentPlan();
+      paidBtn.innerText = plan ? `Choose ${plan.name}` : 'Continue with selected plan';
+    }
+
+    async function loadParentMembershipPlans() {
+      const res = await fetch(API_BASE_URL + '/api/v1/membership/plans');
+      const payload = await res.json();
+      const plans = unwrapApiData(payload);
+
+      if (!res.ok || !Array.isArray(plans)) {
+        throw new Error(payload?.message || 'Failed to load membership plans.');
+      }
+
+      parentMembershipPlans = plans;
+      if (!selectedParentMembershipPlanId && plans.length) {
+        selectedParentMembershipPlanId = plans[0].id;
+      }
+      renderParentMembershipTabs();
+      renderParentMembershipCard();
+      syncParentMembershipButtons();
+    }
+
+    function finalizeParentMembershipSelection(planId, message, autoContinue = true) {
+      if (planId) {
+        selectedParentMembershipPlanId = planId;
+      }
+      parentMembershipCompleted = true;
+      renderParentMembershipTabs();
+      renderParentMembershipCard();
+      syncParentMembershipButtons();
+      setParentMembershipToast(message, 'success');
+
+      if (autoContinue) {
+        window.setTimeout(() => {
+          if (document.getElementById('parent-step-4').classList.contains('active')) {
+            continueParentMembershipFlow();
+          }
+        }, 1200);
+      }
+    }
+
+    async function initializeParentMembershipStep() {
+      if (!parentMembershipInitialized) {
+        parentMembershipInitialized = true;
+        setParentMembershipToast('Loading membership plans...', 'info');
+        try {
+          await loadParentMembershipPlans();
+          setParentMembershipToast('');
+        } catch (error) {
+          setParentMembershipToast(error.message || 'Failed to load membership plans.', 'error');
+        }
+      }
+
+      await handleParentMembershipReturn();
+    }
+
+    async function handleParentMembershipReturn() {
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get('session_id');
+      const planId = params.get('plan_id');
+      const canceled = params.get('canceled');
+
+      if (canceled) {
+        setParentMembershipToast('Payment was cancelled. You can choose a plan again.', 'error');
+        window.history.replaceState({}, '', window.location.pathname);
+        return;
+      }
+
+      if (!sessionId || !planId) {
+        return;
+      }
+
+      if (!parentMembershipPlans.length) {
+        try {
+          await loadParentMembershipPlans();
+          parentMembershipInitialized = true;
+        } catch (error) {
+          setParentMembershipToast(error.message || 'Failed to load membership plans.', 'error');
+          return;
+        }
+      }
+
+      currentFlow = 'PARENT';
+      document.querySelectorAll('.step-view').forEach(s => s.classList.remove('active'));
+      document.getElementById('parent-step-4').classList.add('active');
+      finalizeParentMembershipSelection(planId, 'Payment successful. Your plan has been selected.');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    async function claimParentTrial() {
+      if (!userToken) {
+        setParentMembershipToast('Please complete OTP verification first.', 'error');
+        return;
+      }
+
+      const plan = getSelectedParentPlan();
+      setParentMembershipToast('Starting your free trial...', 'info');
+
+      try {
+        const res = await fetch(API_BASE_URL + '/api/v1/membership/claim-trial', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ planId: plan?.id })
+        });
+        const payload = await res.json();
+
+        if (!res.ok) {
+          throw new Error(payload.message || 'Unable to start free trial.');
+        }
+
+        finalizeParentMembershipSelection(plan?.id, payload.message || 'Free trial started successfully.');
+      } catch (error) {
+        setParentMembershipToast(error.message || 'Unable to start free trial.', 'error');
+      }
+    }
+
+    async function purchaseParentPlan() {
+      if (!userToken) {
+        setParentMembershipToast('Please complete OTP verification first.', 'error');
+        return;
+      }
+
+      const plan = getSelectedParentPlan();
+      if (!plan) {
+        setParentMembershipToast('Please select a membership plan first.', 'error');
+        return;
+      }
+
+      const baseReturnUrl = getParentMembershipReturnBaseUrl();
+      const successUrl = `${baseReturnUrl}?session_id={CHECKOUT_SESSION_ID}&plan_id=${encodeURIComponent(plan.id)}`;
+      const cancelUrl = `${baseReturnUrl}?canceled=true&plan_id=${encodeURIComponent(plan.id)}`;
+
+      setParentMembershipToast('Redirecting to secure Stripe checkout...', 'info');
+
+      try {
+        const res = await fetch(API_BASE_URL + '/api/v1/payment/checkout', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            paymentType: 'MEMBERSHIP',
+            planId: plan.id,
+            successUrl,
+            cancelUrl
+          })
+        });
+
+        const payload = await res.json();
+        const data = unwrapApiData(payload);
+        const checkoutUrl = data?.result?.checkoutUrl || data?.result?.checkoutSessionUrl || data?.result?.data?.checkoutUrl;
+
+        if (!res.ok || !checkoutUrl) {
+          throw new Error(payload.message || data?.result?.message || 'Unable to create checkout session.');
+        }
+
+        window.location.href = checkoutUrl;
+      } catch (error) {
+        setParentMembershipToast(error.message || 'Unable to create checkout session.', 'error');
+      }
+    }
+
+    function continueParentMembershipFlow() {
+      nextStep('parent-step-4', 'parent-step-5');
+    }
+
+    function stopParentCameraStream() {
+      if (activeParentCameraStream) {
+        activeParentCameraStream.getTracks().forEach(track => track.stop());
+      }
+      activeParentCameraStream = null;
+      activeParentCameraStepId = '';
+    }
+
+    function setCameraStatus(statusId, message, isError = false) {
+      const el = document.getElementById(statusId);
+      if (!el) return;
+      el.innerText = message;
+      el.classList.toggle('error', !!isError);
+      el.style.display = message ? 'flex' : 'none';
+    }
+
+    async function normalizeTrackZoom(track) {
+      if (!track?.getCapabilities || !track?.applyConstraints) {
+        return;
+      }
+
+      try {
+        const capabilities = track.getCapabilities();
+        const advanced = [];
+
+        if (typeof capabilities.zoom === 'number' || capabilities.zoom?.min !== undefined) {
+          const minZoom =
+            typeof capabilities.zoom === 'object' && capabilities.zoom !== null
+              ? capabilities.zoom.min
+              : 1;
+          advanced.push({ zoom: minZoom || 1 });
+        }
+
+        if (typeof capabilities.focusMode !== 'undefined') {
+          const focusModes = Array.isArray(capabilities.focusMode)
+            ? capabilities.focusMode
+            : [];
+          if (focusModes.includes('continuous')) {
+            advanced.push({ focusMode: 'continuous' });
+          }
+        }
+
+        if (advanced.length) {
+          await track.applyConstraints({ advanced });
+        }
+      } catch {}
+    }
+
+    async function openParentCamera(cameraKey) {
+      const config = PARENT_CAMERA_CONFIG[cameraKey];
+      if (!config || !navigator.mediaDevices?.getUserMedia) {
+        if (config?.statusId) {
+          setCameraStatus(config.statusId, 'Camera is not supported on this device/browser.', true);
+        }
+        return;
+      }
+
+      if (activeParentCameraStepId === config.stepId && activeParentCameraStream) {
+        return;
+      }
+
+      stopParentCameraStream();
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: config.facingMode },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            aspectRatio: cameraKey === 'face' ? { ideal: 1.333333 } : { ideal: 1.777777 },
+            resizeMode: 'none',
+          },
+          audio: false,
+        });
+
+        activeParentCameraStream = stream;
+        activeParentCameraStepId = config.stepId;
+        await normalizeTrackZoom(stream.getVideoTracks()[0]);
+
+        const video = document.getElementById(config.videoId);
+        if (video) {
+          video.srcObject = stream;
+          await video.play().catch(() => {});
+        }
+
+        if (config.previewId && config.stageId) {
+          const stage = document.getElementById(config.stageId);
+          const preview = document.getElementById(config.previewId);
+          if (stage) {
+            stage.classList.toggle('has-image', !!parentCaptureState[cameraKey]);
+          }
+          if (preview && parentCaptureState[cameraKey]) {
+            preview.src = parentCaptureState[cameraKey];
+          }
+        }
+
+        if (config.statusId) {
+          setCameraStatus(config.statusId, '', false);
+        }
+      } catch (error) {
+        if (config.statusId) {
+          setCameraStatus(config.statusId, 'Camera permission denied or unavailable. Please allow camera access in your mobile browser.', true);
+        }
+      }
+    }
+
+    function handleParentStepMedia(stepId) {
+      if (stepId === 'parent-step-6') {
+        openParentCamera('passport');
+        return;
+      }
+
+      if (stepId === 'parent-step-8') {
+        openParentCamera('nidFront');
+        return;
+      }
+
+      if (stepId === 'parent-step-9') {
+        openParentCamera('nidBack');
+        return;
+      }
+
+      if (stepId === 'parent-step-11') {
+        openParentCamera('face');
+        return;
+      }
+
+      stopParentCameraStream();
+    }
+
+    function captureParentDocument(cameraKey) {
+      const config = PARENT_CAMERA_CONFIG[cameraKey];
+      if (!config) return false;
+
+      const video = document.getElementById(config.videoId);
+      const canvas = document.getElementById(config.canvasId);
+      const preview = config.previewId ? document.getElementById(config.previewId) : null;
+      const stage = config.stageId ? document.getElementById(config.stageId) : null;
+
+      if (!video || !canvas || !video.videoWidth || !video.videoHeight) {
+        if (config.statusId) {
+          setCameraStatus(config.statusId, 'Camera is still loading. Please wait a moment and try again.', true);
+        }
+        return false;
+      }
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        return false;
+      }
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      parentCaptureState[cameraKey] = dataUrl;
+
+      if (preview) {
+        preview.src = dataUrl;
+      }
+      if (stage) {
+        stage.classList.add('has-image');
+      }
+      if (config.statusId) {
+        setCameraStatus(config.statusId, '');
+      }
+
+      if (cameraKey === 'nidFront' || cameraKey === 'nidBack') {
+        updateParentReviewImages();
+      }
+
+      return true;
+    }
+
+    function retakeParentDocument(cameraKey) {
+      const config = PARENT_CAMERA_CONFIG[cameraKey];
+      parentCaptureState[cameraKey] = '';
+      if (config?.previewId) {
+        const preview = document.getElementById(config.previewId);
+        if (preview) {
+          preview.src = '';
+        }
+      }
+      if (config?.stageId) {
+        const stage = document.getElementById(config.stageId);
+        if (stage) {
+          stage.classList.remove('has-image');
+        }
+      }
+      if (config?.statusId) {
+        setCameraStatus(config.statusId, `Ready to capture ${cameraKey === 'passport' ? 'passport' : 'National ID'} image.`);
+      }
+      openParentCamera(cameraKey);
+    }
+
+    function updateParentReviewImages() {
+      const front = document.getElementById('review-front-preview');
+      const back = document.getElementById('review-back-preview');
+
+      if (front) {
+        if (parentCaptureState.nidFront) {
+          front.src = parentCaptureState.nidFront;
+          front.style.objectFit = 'cover';
+        } else {
+          front.removeAttribute('src');
+          front.alt = 'Front side review preview';
+        }
+      }
+
+      if (back) {
+        if (parentCaptureState.nidBack) {
+          back.src = parentCaptureState.nidBack;
+          back.style.objectFit = 'cover';
+        } else {
+          back.removeAttribute('src');
+          back.alt = 'Back side review preview';
+        }
+      }
+    }
+
+    function selectParentDocumentType(type) {
+      parentDocumentType = type;
+      document.getElementById('parent-doc-passport').classList.toggle('selected', type === 'PASSPORT');
+      document.getElementById('parent-doc-national-id').classList.toggle('selected', type === 'NATIONAL_ID');
+    }
+
+    function goToParentDocumentFlow() {
+      nextStep('parent-step-5', parentDocumentType === 'PASSPORT' ? 'parent-step-6' : 'parent-step-7');
+    }
+
+    function goToParentReviewStep() {
+      nextStep('parent-step-6', 'parent-step-11');
+    }
+
+    function submitPassportCapture() {
+      if (!parentCaptureState.passport && !captureParentDocument('passport')) {
+        return;
+      }
+      nextStep('parent-step-6', 'parent-step-11');
+    }
+
+    function submitNidFrontCapture() {
+      if (!parentCaptureState.nidFront && !captureParentDocument('nidFront')) {
+        return;
+      }
+      nextStep('parent-step-8', 'parent-step-9');
+    }
+
+    function submitNidBackCapture() {
+      if (!parentCaptureState.nidBack && !captureParentDocument('nidBack')) {
+        return;
+      }
+      updateParentReviewImages();
+      nextStep('parent-step-9', 'parent-step-10');
+    }
+
+    function goToNextNidStep() {
+      if (!parentCaptureState.nidFront) {
+        nextStep('parent-step-7', 'parent-step-8');
+        return;
+      }
+      if (!parentCaptureState.nidBack) {
+        nextStep('parent-step-7', 'parent-step-9');
+        return;
+      }
+      updateParentReviewImages();
+      nextStep('parent-step-7', 'parent-step-10');
     }
 
     function autoTab(input, nextInputId) {
@@ -854,51 +2503,34 @@
           })
         });
 
-        let data = await res.json();
+        let payload = await res.json();
+        let data = unwrapApiData(payload);
 
-        // Auto handle existing email during re-testing
-        if (!res.ok && (data.message || '').includes('already in use')) {
-          email = `parent.${Date.now()}@example.com`;
-          phoneNumber = '+8801581' + Math.floor(100000 + Math.random() * 900000);
-          document.getElementById('p-email').value = email;
+        console.log('Backend Signup Response:', payload);
 
-          res = await fetch(API_BASE_URL + '/api/v1/auth/signup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              role: 'PARENT',
-              email,
-              password,
-              fullName,
-              phoneNumber,
-              relationType,
-              preferredLanguage,
-              country: 'United Arab Emirates',
-              otpDeliveryMethod
-            })
-          });
-          data = await res.json();
+        if (!res.ok) {
+          toast.innerText = payload.message || 'Signup failed. Please check your information and try again.';
+          return;
         }
-
-        console.log('Backend Signup Response:', data);
 
         if (data.otp) {
           parentGeneratedOtp = data.otp;
           document.getElementById('test-code-box-p').innerText = 'Generated Code: ' + data.otp;
         }
 
-        document.getElementById('p-otp-subtitle').innerText = `Check your ${otpDeliveryMethod.toLowerCase()} (${otpDeliveryMethod === 'EMAIL' ? email : phoneNumber}) for the 4-digit code.`;
+        document.getElementById('p-otp-subtitle').innerText = `Check your ${otpDeliveryMethod === 'EMAIL' ? 'email' : 'phone'} and enter the code below.`;
         toast.style.display = 'none';
         nextStep('parent-step-1', 'parent-step-2');
       } catch (e) {
         console.error('Signup error:', e);
-        toast.style.display = 'none';
-        nextStep('parent-step-1', 'parent-step-2');
+        toast.innerText = 'Signup failed. Please make sure the server is running.';
       }
     }
 
     async function verifyParentOTP() {
       const email = document.getElementById('p-email').value;
+      const phoneNumber = '+880' + document.getElementById('p-phone').value.trim();
+      const otpDeliveryMethod = document.querySelector('input[name="p-otp-opt"]:checked')?.value || 'EMAIL';
       const code = document.getElementById('po1').value + document.getElementById('po2').value + document.getElementById('po3').value + document.getElementById('po4').value;
       const errBox = document.getElementById('p-otp-err');
 
@@ -909,16 +2541,21 @@
       }
 
       try {
-        const res = await fetch(API_BASE_URL + '/api/v1/auth/verify-otp', {
+        const verifyPayload = otpDeliveryMethod === 'PHONE'
+          ? { phoneNumber, otpCode: code }
+          : { email, otpCode: code };
+
+        const res = await fetch(API_BASE_URL + '/api/v1/auth/verify-signup-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, code, purpose: 'SIGNUP_VERIFICATION' })
+          body: JSON.stringify(verifyPayload)
         });
-        const data = await res.json();
-        console.log('OTP Verify Response:', data);
+        const payload = await res.json();
+        const data = unwrapApiData(payload);
+        console.log('OTP Verify Response:', payload);
 
         if (!res.ok) {
-          errBox.innerText = data.message || 'Invalid verification code. Please check and try again.';
+          errBox.innerText = payload.message || 'Invalid verification code. Please check and try again.';
           errBox.style.display = 'block';
           return;
         }
@@ -926,6 +2563,7 @@
         errBox.style.display = 'none';
         if (data.accessToken) {
           userToken = data.accessToken;
+          window.sessionStorage.setItem('signupUserToken', userToken);
         }
         nextStep('parent-step-2', 'parent-step-3');
       } catch (e) {
@@ -959,22 +2597,14 @@
         });
         let data = await res.json();
 
-        if (!res.ok && (data.message || '').includes('already in use')) {
-          email = `nanny.${Date.now()}@example.com`;
-          phoneNumber = '+97150' + Math.floor(1000000 + Math.random() * 9000000);
-          document.getElementById('n-email').value = email;
-
-          res = await fetch(API_BASE_URL + '/api/v1/auth/signup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ role: 'NANNY', email, password, fullName, phoneNumber, otpDeliveryMethod })
-          });
-          data = await res.json();
-        }
-
         if (data.otp) {
           nannyGeneratedOtp = data.otp;
           document.getElementById('test-code-box-n').innerText = 'Generated Code: ' + data.otp;
+        }
+
+        if (!res.ok) {
+          toast.innerText = data.message || 'Signup failed. Please check your information and try again.';
+          return;
         }
 
         document.getElementById('n-otp-subtitle').innerText = `Check your ${otpDeliveryMethod.toLowerCase()} (${otpDeliveryMethod === 'EMAIL' ? email : phoneNumber}) for the 4-digit code.`;
@@ -1019,27 +2649,14 @@
     }
 
     async function requestSumsubToken(role) {
-      if (!userToken) {
-        alert('Verification complete for ' + role);
-        nextStep(role === 'PARENT' ? 'parent-step-7' : 'nanny-step-3', role === 'PARENT' ? 'parent-step-8' : 'nanny-step-4');
-        return;
-      }
-
       try {
-        const res = await fetch(API_BASE_URL + '/api/v1/kyc/sumsub/access-token', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + userToken,
-            'Content-Type': 'application/json'
-          }
-        });
-        const data = await res.json();
-        alert('Sumsub Access Token generated: ' + (data.token ? data.token.slice(0, 18) + '...' : 'Generated'));
-        nextStep(role === 'PARENT' ? 'parent-step-7' : 'nanny-step-3', role === 'PARENT' ? 'parent-step-8' : 'nanny-step-4');
+        await launchSumsubVerification(role);
       } catch (e) {
-        nextStep(role === 'PARENT' ? 'parent-step-7' : 'nanny-step-3', role === 'PARENT' ? 'parent-step-8' : 'nanny-step-4');
+        alert(e?.message || 'Unable to start Sumsub verification.');
       }
     }
+
+    handleParentMembershipReturn();
   </script>
 </body>
 </html>

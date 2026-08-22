@@ -762,7 +762,10 @@
         </div>
         <div style="margin-top: 20px;">
           <button class="btn-primary" onclick="submitDirectInvite('EMAIL')" style="margin-bottom:10px;">
-            <span>📩 Send Invite via Email / WhatsApp</span>
+            <span>📩 Send Invite via Email</span>
+          </button>
+          <button class="btn-primary" onclick="submitDirectInvite('WHATSAPP')" style="margin-bottom:10px; background: rgba(37, 211, 102, 0.14); border: 1px solid rgba(37, 211, 102, 0.35);">
+            <span>💬 Share via WhatsApp</span>
           </button>
           <button class="btn-primary" onclick="submitDirectInvite('LINK')" style="background: rgba(255,255,255,0.1);">
             <span>🔗 Generate & Copy Invite Link</span>
@@ -782,12 +785,16 @@
       </div>
       <form onsubmit="handleLoginSubmit(event)">
         <div class="form-group">
-          <label class="form-label">Email Address:</label>
-          <input type="email" id="loginEmail" class="form-input" placeholder="imran32472@gmail.com" required value="imran32472@gmail.com" />
+          <label class="form-label">Email Address (Optional):</label>
+          <input type="email" id="loginEmail" class="form-input" placeholder="imran32472@gmail.com" value="imran32472@gmail.com" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number (Optional):</label>
+          <input type="tel" id="loginPhone" class="form-input" placeholder="+8801700000000" />
         </div>
         <div class="form-group">
           <label class="form-label">Password:</label>
-          <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required value="123456" />
+          <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required autocomplete="current-password" value="123456" />
         </div>
         <button type="submit" class="btn-primary" style="margin-top: 10px;">
           <span>Login & Save Token</span>
@@ -816,14 +823,14 @@
       </div>
       <form onsubmit="handleSignupSubmit(event)">
         <input type="hidden" id="signupToken" />
-        <input type="hidden" id="signupRole" />
+          <input type="hidden" id="signupRole" />
         <div class="form-group">
           <label class="form-label">Full Name:</label>
           <input type="text" id="signupFullName" class="form-input" placeholder="Your Full Name" required value="New Caregiver" />
         </div>
         <div class="form-group">
           <label class="form-label">Email Address:</label>
-          <input type="email" id="signupEmail" class="form-input" required readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted);" />
+          <input type="email" id="signupEmail" class="form-input" required style="background: rgba(255,255,255,0.05); color: var(--text-muted);" />
         </div>
         <div class="form-group">
           <label class="form-label">Phone Number (Optional):</label>
@@ -831,7 +838,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Create Password:</label>
-          <input type="password" id="signupPassword" class="form-input" placeholder="••••••••" required value="123456" />
+          <input type="password" id="signupPassword" class="form-input" placeholder="••••••••" required autocomplete="new-password" value="123456" />
         </div>
         <button type="submit" class="btn-primary" style="margin-top: 10px;">
           <span>Register & Join Care Team</span>
@@ -910,6 +917,7 @@
       const token = params.get('token');
       const action = params.get('action');
       const email = params.get('email');
+      const phone = params.get('phone');
       const role = params.get('role');
       const accepted = params.get('accepted');
 
@@ -919,10 +927,14 @@
           const emailInput = document.getElementById('loginEmail');
           if (emailInput) emailInput.value = email;
         }
+        if (phone) {
+          const phoneInput = document.getElementById('loginPhone');
+          if (phoneInput) phoneInput.value = phone;
+        }
       }
 
       if (action === 'signup' && token) {
-        openSignupModal(token, email, role);
+        openSignupModal(token, email, role, phone);
         return;
       }
 
@@ -942,12 +954,14 @@
       }
     }
 
-    function openSignupModal(token, email, role) {
+    function openSignupModal(token, email, role, phone) {
       closeLoginModal();
       closeInvitePreviewModal();
       document.getElementById('signupToken').value = token || '';
       document.getElementById('signupEmail').value = email || '';
+      document.getElementById('signupPhone').value = phone || '';
       document.getElementById('signupRole').value = role || 'NANNY';
+      document.getElementById('signupEmail').readOnly = Boolean(email);
       document.getElementById('signupModal').classList.add('active');
     }
 
@@ -979,7 +993,7 @@
           const loginRes = await fetch(`${API_BASE}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email: email || undefined, phoneNumber: phoneNumber || undefined, password })
           });
           const loginJson = await loginRes.json();
           const tokenVal = extractToken(loginJson);
@@ -1030,7 +1044,12 @@
     async function acceptTokenInvite() {
       if (!state.token) {
         const invite = state.pendingInviteData;
-        openSignupModal(state.pendingInviteToken, invite?.invitedEmail || '', invite?.role || 'NANNY');
+        openSignupModal(
+          state.pendingInviteToken,
+          invite?.invitedEmail || '',
+          invite?.role || 'NANNY',
+          invite?.invitedPhone || ''
+        );
         return;
       }
       try {
@@ -1126,20 +1145,26 @@
     async function handleLoginSubmit(e) {
       e.preventDefault();
       const email = document.getElementById('loginEmail').value.trim();
+      const phoneNumber = document.getElementById('loginPhone').value.trim();
       const password = document.getElementById('loginPassword').value;
+
+      if (!email && !phoneNumber) {
+        showToast('Enter an email or phone number to login', '⚠️');
+        return;
+      }
 
       try {
         let res = await fetch(`${API_BASE}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ email: email || undefined, phoneNumber: phoneNumber || undefined, password })
         });
 
         if (res.status === 404) {
           res = await fetch(`${API_BASE}/auth/signin`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email: email || undefined, phoneNumber: phoneNumber || undefined, password })
           });
         }
 
@@ -1150,7 +1175,7 @@
           state.token = token;
           localStorage.setItem('accessToken', token);
           const userData = json.data?.user || json.user || {};
-          const userName = userData.fullName || userData.name || email;
+          const userName = userData.fullName || userData.name || email || phoneNumber;
           updateAuthBadge(userName, true);
           closeLoginModal();
           showToast('Login successful! Token saved.', '✅');
@@ -1185,12 +1210,21 @@
       const container = document.getElementById('caregiverSectionsContainer');
       container.innerHTML = '';
 
-      if (!data.sections || data.sections.length === 0) {
+      const normalizedSections = Array.isArray(data.sections)
+        ? data.sections
+        : [
+            { title: 'Account Owner', items: data.sections?.accountOwner || [] },
+            { title: 'Nannies', items: data.sections?.nannies || [] },
+            { title: 'Parents', items: data.sections?.parents || [] },
+            { title: 'Family Members', items: data.sections?.familyMembers || [] }
+          ].filter(section => Array.isArray(section.items));
+
+      if (!normalizedSections.length || normalizedSections.every(sec => !sec.items.length)) {
         container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted)">No caregivers found.</div>';
         return;
       }
 
-      data.sections.forEach(sec => {
+      normalizedSections.forEach(sec => {
         const secEl = document.createElement('div');
         secEl.className = 'section-group';
         secEl.innerHTML = `<div class="section-title">${sec.title}</div>`;
@@ -1504,7 +1538,7 @@
         role: state.selectedRole,
         relationship: state.relationship,
         invitedUserId: userId,
-        inviteChannel: 'IN_APP',
+        channel: 'IN_APP',
         ...state.permissions
       };
       await executeCreateInvite(body);
@@ -1514,18 +1548,33 @@
       const email = document.getElementById('inviteEmailInput').value.trim();
       const phone = document.getElementById('invitePhoneInput').value.trim();
 
+      if (channel === 'EMAIL' && !email) {
+        showToast('Please enter an email address first', '⚠️');
+        return;
+      }
+
+      if (channel === 'WHATSAPP' && !phone) {
+        showToast('Please enter a WhatsApp phone number first', '⚠️');
+        return;
+      }
+
       const body = {
         role: state.selectedRole,
         relationship: state.relationship,
         invitedEmail: email || undefined,
         invitedPhone: phone || undefined,
-        inviteChannel: channel,
+        channel: channel === 'WHATSAPP' ? 'LINK' : channel,
         ...state.permissions
       };
-      await executeCreateInvite(body);
+      await executeCreateInvite(body, channel);
     }
 
-    async function executeCreateInvite(body) {
+    function openWhatsAppShare(whatsappLink, fallbackMessage) {
+      const targetUrl = whatsappLink || `https://wa.me/?text=${encodeURIComponent(fallbackMessage)}`;
+      window.open(targetUrl, '_blank');
+    }
+
+    async function executeCreateInvite(body, requestedChannel = body.channel) {
       if (!state.selectedChild) {
         showToast('Please select a child first', '⚠️');
         return;
@@ -1544,7 +1593,12 @@
 
         if (res.ok) {
           showToast('Invitation sent successfully!', '🎉');
-          if (json.data?.inviteUrl && body.inviteChannel === 'LINK') {
+          if (requestedChannel === 'WHATSAPP') {
+            const whatsappMessage =
+              json.data?.shareMessage ||
+              `Join the care team on Alurei: ${json.data?.inviteUrl || ''}`;
+            openWhatsAppShare(json.data?.whatsappLink, whatsappMessage);
+          } else if (json.data?.inviteUrl && requestedChannel === 'LINK') {
             navigator.clipboard.writeText(json.data.inviteUrl);
             alert('Invite Link copied to clipboard:\n' + json.data.inviteUrl);
           }

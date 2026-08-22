@@ -55,6 +55,8 @@ model User {
   kitchenInventoryUpdated       KitchenItem[]                @relation("KitchenInventoryUpdatedBy")
   kitchenItems                  KitchenItem[]
   paymentMethods                PaymentMethod[]
+  payoutMethods                 PayoutMethod[]                 @relation("UserPayoutMethods")
+  paymentRoutingTargets         PaymentRoutingSetting[]        @relation("PaymentRoutingTargetUser")
   rewardAccount                 RewardAccount?
   rewardLedgerEntries           RewardLedgerEntry[]
   rewardOffers                  RewardOffer[]                @relation("PartnerRewardOffers")

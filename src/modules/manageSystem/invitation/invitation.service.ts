@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -64,15 +65,15 @@ export class InvitationService {
     }
 
     const invitedUser = await this.resolveInvitedUser(dto);
-    if (invitedUser?.id === child.parentUserId) {
+    const activeInvitedUser =
+      invitedUser?.status === UserStatus.ACTIVE ? invitedUser : null;
+
+    if (activeInvitedUser?.id === child.parentUserId) {
       throw new BadRequestException('The child owner already has full access');
     }
 
-    if (invitedUser) {
-      if (invitedUser.status !== UserStatus.ACTIVE) {
-        throw new BadRequestException('Invited user must be active');
-      }
-      this.assertUserMatchesCaregiverRole(invitedUser.role, dto.role);
+    if (activeInvitedUser) {
+      this.assertUserMatchesCaregiverRole(activeInvitedUser.role, dto.role);
     }
 
     const inviteChannel =
@@ -87,7 +88,7 @@ export class InvitationService {
 
     if (
       inviteChannel !== CaregiverInviteChannel.LINK &&
-      !invitedUser &&
+      !activeInvitedUser &&
       !dto.invitedEmail &&
       !dto.invitedPhone
     ) {
@@ -106,7 +107,7 @@ export class InvitationService {
     const existing = await this.findExistingAccess(
       childId,
       dto,
-      invitedUser?.id,
+      activeInvitedUser?.id,
     );
     if (existing?.status === CaregiverAccessStatus.ACCEPTED) {
       throw new BadRequestException(
@@ -115,13 +116,15 @@ export class InvitationService {
     }
 
     let tempPin: string | null = null;
-    let targetUserId = invitedUser?.id;
+    let targetUserId = activeInvitedUser?.id;
 
-    if (!invitedUser && dto.invitedEmail) {
-      const existingUser = await this.prisma.user.findUnique({
-        where: { email: dto.invitedEmail.toLowerCase() },
-        select: { id: true },
-      });
+    if (!activeInvitedUser && (dto.invitedEmail || dto.invitedPhone)) {
+      const existingUser = dto.invitedEmail
+        ? await this.prisma.user.findUnique({
+            where: { email: dto.invitedEmail.toLowerCase() },
+            select: { id: true },
+          })
+        : null;
 
       if (existingUser) {
         targetUserId = existingUser.id;
@@ -132,15 +135,19 @@ export class InvitationService {
         tempPin = Math.floor(1000 + Math.random() * 9000).toString();
         const hashedPassword = await bcrypt.hash(tempPin, 10);
         const userRole = UserRole.PARENT;
+        const syntheticEmail =
+          dto.invitedEmail?.toLowerCase() ||
+          `${dto.role.toLowerCase()}.${(dto.invitedPhone || 'guest').replace(/[^\d]/g, '')}@invite.alurei.local`;
 
         const createdUser = await this.prisma.user.create({
           data: {
-            email: dto.invitedEmail.toLowerCase(),
+            email: syntheticEmail,
             fullName:
               dto.invitedName ||
               (dto.role === CaregiverAccessRole.PARENT
                 ? 'Parent Member'
                 : 'Family Member'),
+            phoneNumber: dto.invitedPhone || null,
             passwordHash: hashedPassword,
             role: userRole,
             status: UserStatus.ACTIVE,
@@ -160,9 +167,10 @@ export class InvitationService {
       invitedEmail: dto.invitedEmail?.toLowerCase(),
       invitedPhone: dto.invitedPhone,
       invitedName:
-        dto.role === CaregiverAccessRole.FAMILY_MEMBER
-          ? dto.invitedName?.trim()
-          : null,
+        dto.invitedName?.trim() ||
+        activeInvitedUser?.fullName ||
+        dto.invitedPhone ||
+        (dto.invitedEmail ? dto.invitedEmail.toLowerCase() : null),
       invitedByUserId: inviterUserId,
       role: dto.role,
       relationship:
@@ -191,8 +199,19 @@ export class InvitationService {
         });
 
     const inviteUrl = this.inviteUrl(token);
-    const shareLinks = this.inviteShareLinks(access, inviteUrl);
+    const shareLinks = this.inviteShareLinks(access, token, tempPin);
     const delivered = await this.deliverInvite(access, token, tempPin);
+    const loginAccount = targetUserId
+      ? await this.prisma.user.findUnique({
+          where: { id: targetUserId },
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+            role: true,
+          },
+        })
+      : null;
 
     return {
       success: true,
@@ -203,6 +222,8 @@ export class InvitationService {
         ...this.caregiverService.formatAccess(access),
         inviteToken: token,
         tempPin: tempPin || undefined,
+        canLoginIndependently: Boolean(targetUserId || dto.invitedEmail),
+        loginAccount,
         inviteUrl,
         shareMessage: shareLinks.message,
         whatsappLink: shareLinks.whatsappLink,
@@ -245,6 +266,15 @@ export class InvitationService {
    */
   async acceptInvitation(userId: string, token: string) {
     const inviteTokenHash = this.hashToken(token);
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true },
+    });
+
+    if (!currentUser) {
+      throw new NotFoundException('User not found');
+    }
+
     const access = await this.prisma.caregiverAccess.findUnique({
       where: { inviteTokenHash },
       select: {
@@ -274,6 +304,21 @@ export class InvitationService {
       throw new BadRequestException('This invitation token has expired');
     }
 
+    if (access.invitedUserId && access.invitedUserId !== userId) {
+      throw new ForbiddenException(
+        'This invitation belongs to another account. Please log in with the invited account.',
+      );
+    }
+
+    if (
+      access.invitedEmail &&
+      currentUser.email.toLowerCase() !== access.invitedEmail.toLowerCase()
+    ) {
+      throw new ForbiddenException(
+        'This invitation email does not match your current account.',
+      );
+    }
+
     const updated = await this.prisma.caregiverAccess.update({
       where: { id: access.id },
       data: {
@@ -288,7 +333,10 @@ export class InvitationService {
     return {
       success: true,
       message: 'Caregiver invitation accepted successfully!',
-      data: this.caregiverService.formatAccess(updated),
+      data: {
+        ...this.caregiverService.formatAccess(updated),
+        canLoginIndependently: true,
+      },
     };
   }
 
@@ -343,9 +391,16 @@ export class InvitationService {
     }
 
     let targetUser = access.invitedUser;
-    if (!targetUser && access.invitedEmail) {
-      targetUser = await this.prisma.user.findUnique({
-        where: { email: access.invitedEmail.toLowerCase() },
+    if (!targetUser && (access.invitedEmail || access.invitedPhone)) {
+      targetUser = await this.prisma.user.findFirst({
+        where: {
+          OR: [
+            access.invitedEmail
+              ? { email: access.invitedEmail.toLowerCase() }
+              : undefined,
+            access.invitedPhone ? { phoneNumber: access.invitedPhone } : undefined,
+          ].filter(Boolean) as Prisma.UserWhereInput[],
+        },
         select: {
           id: true,
           fullName: true,
@@ -370,13 +425,13 @@ export class InvitationService {
 
       const appUrl =
         this.configService.get<string>('APP_URL') ?? 'http://localhost:5000';
-      const redirectUrl = `${appUrl.replace(/\/$/, '')}/manage-system-ui?email=${encodeURIComponent(targetUser.email)}&accepted=true`;
+      const redirectUrl = `${appUrl.replace(/\/$/, '')}/manage-system-ui?email=${encodeURIComponent(targetUser.email || '')}&phone=${encodeURIComponent(targetUser.phoneNumber || '')}&accepted=true`;
       return { redirectUrl };
     }
 
     const appUrl =
       this.configService.get<string>('APP_URL') ?? 'http://localhost:5000';
-    const redirectSignupUrl = `${appUrl.replace(/\/$/, '')}/manage-system-ui?action=signup&token=${encodeURIComponent(token)}&email=${encodeURIComponent(access.invitedEmail || '')}&role=${encodeURIComponent(access.role)}`;
+    const redirectSignupUrl = `${appUrl.replace(/\/$/, '')}/manage-system-ui?action=signup&token=${encodeURIComponent(token)}&email=${encodeURIComponent(access.invitedEmail || '')}&phone=${encodeURIComponent(access.invitedPhone || '')}&role=${encodeURIComponent(access.role)}`;
 
     return { redirectUrl: redirectSignupUrl };
   }
@@ -400,6 +455,15 @@ export class InvitationService {
 
     if (!access) {
       throw new NotFoundException('Invitation token is invalid or has expired');
+    }
+
+    if (
+      access.invitedEmail &&
+      access.invitedEmail.toLowerCase() !== dto.email.toLowerCase()
+    ) {
+      throw new BadRequestException(
+        'Signup email must match the invitation email address.',
+      );
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -504,15 +568,31 @@ export class InvitationService {
     )}`;
   }
 
-  private inviteShareLinks(access: LoadedAccess, inviteUrl: string) {
+  private inviteShareLinks(
+    access: LoadedAccess,
+    token: string,
+    tempPin?: string | null,
+  ) {
     const inviterName = access.invitedByUser.fullName;
     const childName = access.child.name;
     const roleLabel =
       access.role === CaregiverAccessRole.FAMILY_MEMBER && access.relationship
         ? access.relationship.toLowerCase()
         : access.role.toLowerCase();
+    const appBaseUrl =
+      this.configService.get<string>('APP_URL') ??
+      this.configService.get<string>('FRONTEND_URL') ??
+      'http://localhost:5000';
+    const cleanBaseUrl = appBaseUrl.replace(/\/$/, '');
+    const acceptUrl = `${cleanBaseUrl}/api/v1/manage-system/invitations/${encodeURIComponent(token)}/accept-html`;
+    const declineUrl = `${cleanBaseUrl}/api/v1/manage-system/invitations/${encodeURIComponent(token)}/decline-html`;
 
-    const message = `${inviterName} invited you to join ${childName}'s care team on Alurei as a ${roleLabel}. Click to accept: ${inviteUrl}`;
+    let message = `${inviterName} has invited you to join ${childName}'s care team on Alurei as a ${roleLabel}.\nAccept: ${acceptUrl}\nDecline: ${declineUrl}`;
+
+    if (tempPin) {
+      message += `\nYour 4-Digit Password for login: ${tempPin}`;
+    }
+
     const whatsappLink = `https://wa.me/${(
       access.invitedPhone ??
       access.invitedUser?.phoneNumber ??
@@ -573,6 +653,7 @@ export class InvitationService {
       },
       select: {
         id: true,
+        fullName: true,
         email: true,
         phoneNumber: true,
         role: true,
@@ -722,7 +803,7 @@ export class InvitationService {
       </div>
     `;
 
-    if (email) {
+    if (email && !email.endsWith('@invite.alurei.local')) {
       try {
         await this.mailService.sendMail({
           to: email,
@@ -736,14 +817,8 @@ export class InvitationService {
       }
     }
 
-    if (phone) {
-      try {
-        await this.twilioService.sendSms(phone, textMessage);
-        whatsappDelivered = true;
-      } catch (err) {
-        // Logging error silently
-      }
-    }
+    // WhatsApp delivery is user-driven through share links, not provider-sent.
+    whatsappDelivered = false;
 
     return { emailDelivered, whatsappDelivered };
   }

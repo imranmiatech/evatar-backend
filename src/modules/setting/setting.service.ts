@@ -1,12 +1,21 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ChangePasswordDto, DeleteAccountDto } from './dto/setting.dto';
+import {
+  ChangePasswordDto,
+  DeleteAccountDto,
+  SavePayoutMethodDto,
+  UpdateMembershipRoutingDto,
+} from './dto/setting.dto';
 import * as bcrypt from 'bcrypt';
 import { UserStatus } from '@prisma/client';
+import { PaymentAccountService } from '../payment/payment-account.service';
 
 @Injectable()
 export class SettingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly paymentAccountService: PaymentAccountService,
+  ) {}
 
   async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
     const { currentPassword, newPassword } = changePasswordDto;
@@ -116,6 +125,71 @@ export class SettingService {
     return {
       success: true,
       data: deletedAccount,
+    };
+  }
+
+  async getMyPayoutMethods(userId: string) {
+    return {
+      success: true,
+      data: await this.paymentAccountService.getPayoutMethods(userId),
+    };
+  }
+
+  async saveMyPayoutMethod(userId: string, dto: SavePayoutMethodDto) {
+    return {
+      success: true,
+      message: 'Payout method saved successfully.',
+      data: await this.paymentAccountService.savePayoutMethod(userId, dto),
+    };
+  }
+
+  async setDefaultPayoutMethod(userId: string, payoutMethodId: string) {
+    return {
+      success: true,
+      message: 'Default payout method updated successfully.',
+      data: await this.paymentAccountService.setDefaultPayoutMethod(
+        userId,
+        payoutMethodId,
+      ),
+    };
+  }
+
+  async removeDefaultPayoutMethod(userId: string, payoutMethodId: string) {
+    return {
+      success: true,
+      message: 'Default marker removed successfully.',
+      data: await this.paymentAccountService.removeDefaultPayoutMethod(
+        userId,
+        payoutMethodId,
+      ),
+    };
+  }
+
+  async getPaymentRoutingOverview() {
+    return {
+      success: true,
+      data: await this.paymentAccountService.getPaymentRoutingOverview(),
+    };
+  }
+
+  async updateMembershipRouting(dto: UpdateMembershipRoutingDto) {
+    return {
+      success: true,
+      message: 'Membership subscription routing updated successfully.',
+      data: await this.paymentAccountService.updateMembershipRouting(dto),
+    };
+  }
+
+  async resolvePaymentRecipient(
+    context: string,
+    options: { nannyUserId?: string; productId?: string } = {},
+  ) {
+    return {
+      success: true,
+      data: await this.paymentAccountService.resolvePaymentRecipient(
+        context,
+        options,
+      ),
     };
   }
 }
