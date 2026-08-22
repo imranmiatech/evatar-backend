@@ -12,6 +12,7 @@ export enum UnifiedPaymentType {
   MEMBERSHIP = 'MEMBERSHIP',
   NANNY_TIP = 'NANNY_TIP',
   PARTNER_PRODUCT = 'PARTNER_PRODUCT',
+  GROCERY_ORDER = 'GROCERY_ORDER',
 }
 
 export class UnifiedPaymentCheckoutDto {
@@ -19,7 +20,7 @@ export class UnifiedPaymentCheckoutDto {
     enum: UnifiedPaymentType,
     example: UnifiedPaymentType.MEMBERSHIP,
     description:
-      'Use MEMBERSHIP for subscription payments, NANNY_TIP for nanny appreciation, PARTNER_PRODUCT for partner store products.',
+      'Use MEMBERSHIP for subscription payments, NANNY_TIP for nanny appreciation, PARTNER_PRODUCT for partner store products, or GROCERY_ORDER for grocery checkout.',
   })
   @IsEnum(UnifiedPaymentType)
   paymentType!: UnifiedPaymentType;
@@ -119,4 +120,12 @@ export class UnifiedPaymentCheckoutDto {
   @IsOptional()
   @IsString()
   productId?: string;
+
+  @ApiPropertyOptional({
+    example: 'grocery-order-id',
+    description: 'Required when paymentType is GROCERY_ORDER.',
+  })
+  @IsOptional()
+  @IsString()
+  groceryOrderId?: string;
 }

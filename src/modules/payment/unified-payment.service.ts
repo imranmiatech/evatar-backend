@@ -102,9 +102,33 @@ export class UnifiedPaymentService {
           result,
         };
       }
+      case UnifiedPaymentType.GROCERY_ORDER: {
+        if (!dto.groceryOrderId) {
+          throw new BadRequestException(
+            'groceryOrderId is required for GROCERY_ORDER payment.',
+          );
+        }
+
+        const result = await this.paymentService.createGroceryOrderPaymentIntent(
+          userId,
+          {
+            groceryOrderId: dto.groceryOrderId,
+            paymentMethodId: dto.paymentMethodId,
+            currency: dto.currency,
+            successUrl: dto.successUrl,
+            cancelUrl: dto.cancelUrl,
+          },
+        );
+
+        return {
+          paymentType: dto.paymentType,
+          route: '/api/v1/payment/checkout',
+          result,
+        };
+      }
       default:
         throw new BadRequestException(
-          'Unsupported paymentType. Use MEMBERSHIP, NANNY_TIP, or PARTNER_PRODUCT.',
+          'Unsupported paymentType. Use MEMBERSHIP, NANNY_TIP, PARTNER_PRODUCT, or GROCERY_ORDER.',
         );
     }
   }

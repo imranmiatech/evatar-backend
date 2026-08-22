@@ -211,8 +211,14 @@ export class NannyFeedbackService {
             dayActivityId,
             {
               title: updated.dayActivity.title,
+              category: updated.dayActivity.category,
+              description: updated.dayActivity.description,
               childId: updated.dayActivity.dayPlan.childId,
               childName: updated.dayActivity.dayPlan.child.name,
+              dayPlanDate: updated.dayActivity.dayPlan.date.toISOString(),
+              hasMedia:
+                Boolean(updated.dayActivity.proofMediaId) ||
+                updated.dayActivity.proofs.length > 0,
               completedByRole: UserRole.NANNY,
             },
           )
@@ -246,7 +252,7 @@ export class NannyFeedbackService {
         reward: reward
           ? {
               awarded: reward.awarded,
-              pointsEarned: reward.awarded ? 2 : 0,
+              pointsEarned: reward.awarded ? reward.points : 0,
               balance: reward.account.balance,
             }
           : null,
@@ -329,8 +335,13 @@ export class NannyFeedbackService {
             dayActivityId,
             {
               title: updated.title,
+              category: updated.category,
+              description: updated.description,
               childId: updated.dayPlan.childId,
               childName: updated.dayPlan.child.name,
+              dayPlanDate: updated.dayPlan.date.toISOString(),
+              hasMedia:
+                Boolean(updated.proofMediaId) || updated.proofs.length > 0,
               completedByRole: UserRole.NANNY,
             },
           )
@@ -352,7 +363,7 @@ export class NannyFeedbackService {
         reward: reward
           ? {
               awarded: reward.awarded,
-              pointsEarned: reward.awarded ? 2 : 0,
+              pointsEarned: reward.awarded ? reward.points : 0,
               balance: reward.account.balance,
             }
           : null,

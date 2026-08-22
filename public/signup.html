@@ -1449,14 +1449,163 @@
       </div>
     </div>
 
-    <!-- Nanny Step 3: Face Identity Verification -->
+    <!-- Nanny Step 3: Document Select -->
     <div id="nanny-step-3" class="step-view">
-      <div class="progress-bar"><div class="progress-fill" style="width: 80%;"></div></div>
+      <div class="progress-bar"><div class="progress-fill" style="width: 56%;"></div></div>
+      <h2 class="title">Submit Documents</h2>
+      <p class="subtitle">Choose how you want to verify your nanny identity.</p>
+
+      <div id="nanny-doc-passport" class="doc-card selected" onclick="selectNannyDocumentType('PASSPORT')">
+        <div class="doc-icon">🛂</div>
+        <div>
+          <div style="font-size:14px; font-weight:700;">Passport</div>
+          <div style="font-size:11px; color: var(--muted);">Capture your passport photo page.</div>
+        </div>
+      </div>
+
+      <div class="doc-separator">Or</div>
+
+      <div id="nanny-doc-national-id" class="doc-card" onclick="selectNannyDocumentType('NATIONAL_ID')">
+        <div class="doc-icon">🪪</div>
+        <div>
+          <div style="font-size:14px; font-weight:700;">National ID Card</div>
+          <div style="font-size:11px; color: var(--muted);">Capture both sides of your ID card.</div>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-teal" onclick="goToNannyDocumentFlow()">Next ›</button>
+      </div>
+    </div>
+
+    <!-- Nanny Step 4: Passport Capture -->
+    <div id="nanny-step-4" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 66%;"></div></div>
+      <h2 class="title">Take a clear photo of your passport's photo page.</h2>
+      <p class="subtitle">Place your passport with the photo page opened and information clearly visible.</p>
+
+      <div class="capture-shell fullscreen">
+        <div id="nanny-passport-capture-stage" class="capture-stage document-mode">
+          <video id="nanny-passport-camera" class="camera-preview" autoplay playsinline muted></video>
+          <img id="nanny-passport-preview" class="captured-preview" alt="Nanny passport preview" />
+          <div id="nanny-passport-status" class="capture-status">Opening rear camera for passport scan...</div>
+        </div>
+        <canvas id="nanny-passport-canvas" class="hidden-canvas"></canvas>
+        <div class="capture-btn-row">
+          <button class="btn-teal" onclick="captureNannyDocument('passport')">Capture</button>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-outline" onclick="retakeNannyDocument('passport')">Retake</button>
+        <button class="btn-teal" onclick="submitNannyPassportCapture()">Submit</button>
+      </div>
+    </div>
+
+    <!-- Nanny Step 5: NID Upload -->
+    <div id="nanny-step-5" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 70%;"></div></div>
+      <h2 class="title">Capture your ID</h2>
+      <p class="subtitle">Capture both sides clearly and fully, then tap Next.</p>
+
+      <div class="upload-stage">
+        <div class="upload-box">
+          Front side photo of your identity card
+          <div><button class="mini-upload-btn" type="button" onclick="nextStep('nanny-step-5', 'nanny-step-6')">+ Click Photo</button></div>
+        </div>
+        <div class="upload-box">
+          Back side photo of your identity card
+          <div><button class="mini-upload-btn" type="button" onclick="nextStep('nanny-step-5', 'nanny-step-7')">+ Click Photo</button></div>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-teal" onclick="goToNextNannyNidStep()">Next ›</button>
+      </div>
+    </div>
+
+    <!-- Nanny Step 6: NID Front -->
+    <div id="nanny-step-6" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 76%;"></div></div>
+      <h2 class="title">Take a clear photo of the front of your ID card.</h2>
+      <p class="subtitle">Place your ID within the frame and make all details clearly visible.</p>
+
+      <div class="capture-shell fullscreen">
+        <div id="nanny-nid-front-capture-stage" class="capture-stage document-mode">
+          <video id="nanny-nid-front-camera" class="camera-preview" autoplay playsinline muted></video>
+          <img id="nanny-nid-front-preview" class="captured-preview" alt="Nanny ID front preview" />
+          <div id="nanny-nid-front-status" class="capture-status">Opening rear camera for ID front side...</div>
+        </div>
+        <canvas id="nanny-nid-front-canvas" class="hidden-canvas"></canvas>
+        <div class="capture-btn-row">
+          <button class="btn-teal" onclick="captureNannyDocument('nidFront')">Capture</button>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-outline" onclick="retakeNannyDocument('nidFront')">Retake</button>
+        <button class="btn-teal" onclick="submitNannyNidFrontCapture()">Submit</button>
+      </div>
+    </div>
+
+    <!-- Nanny Step 7: NID Back -->
+    <div id="nanny-step-7" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 82%;"></div></div>
+      <h2 class="title">Take a clear photo of the back of your ID card.</h2>
+      <p class="subtitle">Place your ID within the frame and make all information clearly visible.</p>
+
+      <div class="capture-shell fullscreen">
+        <div id="nanny-nid-back-capture-stage" class="capture-stage document-mode">
+          <video id="nanny-nid-back-camera" class="camera-preview" autoplay playsinline muted></video>
+          <img id="nanny-nid-back-preview" class="captured-preview" alt="Nanny ID back preview" />
+          <div id="nanny-nid-back-status" class="capture-status">Opening rear camera for ID back side...</div>
+        </div>
+        <canvas id="nanny-nid-back-canvas" class="hidden-canvas"></canvas>
+        <div class="capture-btn-row">
+          <button class="btn-teal" onclick="captureNannyDocument('nidBack')">Capture</button>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-outline" onclick="retakeNannyDocument('nidBack')">Retake</button>
+        <button class="btn-teal" onclick="submitNannyNidBackCapture()">Submit</button>
+      </div>
+    </div>
+
+    <!-- Nanny Step 8: Review -->
+    <div id="nanny-step-8" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 88%;"></div></div>
+      <h2 class="title">Review your invitation</h2>
+      <p class="subtitle">Using a clear, readable image may result in a faster review process.</p>
+
+      <div class="review-stack">
+        <div class="review-card">
+          <div class="review-card-label">Front side</div>
+          <img id="nanny-review-front-preview" class="review-preview" alt="Nanny review front preview" />
+          <button class="btn-outline" style="height:34px; border-radius:10px; font-size:11px;" onclick="nextStep('nanny-step-8', 'nanny-step-6')">Retake</button>
+        </div>
+        <div class="review-card">
+          <div class="review-card-label">Back side</div>
+          <img id="nanny-review-back-preview" class="review-preview dark" alt="Nanny review back preview" />
+          <button class="btn-outline" style="height:34px; border-radius:10px; font-size:11px;" onclick="nextStep('nanny-step-8', 'nanny-step-7')">Retake</button>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-teal" onclick="nextStep('nanny-step-8', 'nanny-step-9')">Submit</button>
+      </div>
+    </div>
+
+    <!-- Nanny Step 9: Face Identity Verification -->
+    <div id="nanny-step-9" class="step-view">
+      <div class="progress-bar"><div class="progress-fill" style="width: 94%;"></div></div>
       <h2 class="title">Verify Identity</h2>
-      <p class="subtitle">This step keeps you inside signup and uses the embedded liveness handoff instead of sending you to the default Sumsub document flow.</p>
+      <p class="subtitle">Your document images stay in this signup flow. Only the final live liveness check opens in the embedded verification sheet.</p>
 
       <div class="viewfinder" style="background:#0f172a;">
+        <video id="nanny-face-camera" class="camera-preview" autoplay playsinline muted style="position:absolute; inset:0;"></video>
         <div class="face-scan-frame"><div class="scan-line"></div></div>
+        <div id="nanny-face-status" class="capture-status" style="z-index:2;">Opening front camera for face verification...</div>
       </div>
 
       <div class="action-row">
@@ -1464,8 +1613,8 @@
       </div>
     </div>
 
-    <!-- Nanny Step 4: Success -->
-    <div id="nanny-step-4" class="step-view">
+    <!-- Nanny Step 10: Success -->
+    <div id="nanny-step-10" class="step-view">
       <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
       <div class="success-circle">
         <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
@@ -1516,12 +1665,18 @@
     let parentMembershipCompleted = false;
     let parentMembershipInitialized = false;
     let parentDocumentType = 'PASSPORT';
+    let nannyDocumentType = 'PASSPORT';
     let activeParentCameraStream = null;
     let activeParentCameraStepId = '';
     let sumsubSdkInstance = null;
     let sumsubVerificationInProgress = false;
     let currentKycRole = 'PARENT';
     const parentCaptureState = {
+      passport: '',
+      nidFront: '',
+      nidBack: '',
+    };
+    const nannyCaptureState = {
       passport: '',
       nidFront: '',
       nidBack: '',
@@ -1561,6 +1716,41 @@
         facingMode: 'user',
       },
     };
+    const NANNY_CAMERA_CONFIG = {
+      passport: {
+        stepId: 'nanny-step-4',
+        videoId: 'nanny-passport-camera',
+        previewId: 'nanny-passport-preview',
+        canvasId: 'nanny-passport-canvas',
+        stageId: 'nanny-passport-capture-stage',
+        statusId: 'nanny-passport-status',
+        facingMode: 'environment',
+      },
+      nidFront: {
+        stepId: 'nanny-step-6',
+        videoId: 'nanny-nid-front-camera',
+        previewId: 'nanny-nid-front-preview',
+        canvasId: 'nanny-nid-front-canvas',
+        stageId: 'nanny-nid-front-capture-stage',
+        statusId: 'nanny-nid-front-status',
+        facingMode: 'environment',
+      },
+      nidBack: {
+        stepId: 'nanny-step-7',
+        videoId: 'nanny-nid-back-camera',
+        previewId: 'nanny-nid-back-preview',
+        canvasId: 'nanny-nid-back-canvas',
+        stageId: 'nanny-nid-back-capture-stage',
+        statusId: 'nanny-nid-back-status',
+        facingMode: 'environment',
+      },
+      face: {
+        stepId: 'nanny-step-9',
+        videoId: 'nanny-face-camera',
+        statusId: 'nanny-face-status',
+        facingMode: 'user',
+      },
+    };
 
     function switchFlow(flow) {
       currentFlow = flow;
@@ -1578,7 +1768,7 @@
     function nextStep(currentId, nextId) {
       document.getElementById(currentId).classList.remove('active');
       document.getElementById(nextId).classList.add('active');
-      handleParentStepMedia(nextId);
+      handleStepMedia(nextId);
       if (nextId === 'parent-step-2') {
         document.getElementById('po1').focus();
       } else if (nextId === 'parent-step-4') {
@@ -1699,7 +1889,7 @@
         setSumsubStatus('Verification approved. Finishing setup...');
         setCompletionState(role, 'approved');
         closeSumsubModal();
-        nextStep(role === 'PARENT' ? 'parent-step-11' : 'nanny-step-3', role === 'PARENT' ? 'parent-step-12' : 'nanny-step-4');
+        nextStep(role === 'PARENT' ? 'parent-step-11' : 'nanny-step-9', role === 'PARENT' ? 'parent-step-12' : 'nanny-step-10');
         return;
       }
 
@@ -1714,7 +1904,7 @@
       setSumsubStatus('Verification submitted and waiting for final review.');
       setCompletionState(role, 'pending');
       closeSumsubModal();
-      nextStep(role === 'PARENT' ? 'parent-step-11' : 'nanny-step-3', role === 'PARENT' ? 'parent-step-12' : 'nanny-step-4');
+      nextStep(role === 'PARENT' ? 'parent-step-11' : 'nanny-step-9', role === 'PARENT' ? 'parent-step-12' : 'nanny-step-10');
     }
 
     function dataUrlToFile(dataUrl, filename) {
@@ -1789,6 +1979,53 @@
 
       if (!res.ok) {
         throw new Error(payload.message || 'Failed to upload KYC documents.');
+      }
+
+      return data;
+    }
+
+    async function submitNannyDocumentsToKyc() {
+      const formData = new FormData();
+      formData.append('countryCode', 'ARE');
+
+      if (nannyDocumentType === 'PASSPORT') {
+        if (!nannyCaptureState.passport) {
+          throw new Error('Please capture your passport before continuing.');
+        }
+
+        formData.append('docType', 'PASSPORT');
+        formData.append(
+          'document',
+          dataUrlToFile(nannyCaptureState.passport, 'nanny-passport.jpg'),
+        );
+      } else {
+        if (!nannyCaptureState.nidFront || !nannyCaptureState.nidBack) {
+          throw new Error('Please capture both sides of your identity card before continuing.');
+        }
+
+        formData.append('docType', 'NATIONAL_ID');
+        formData.append(
+          'front',
+          dataUrlToFile(nannyCaptureState.nidFront, 'nanny-id-front.jpg'),
+        );
+        formData.append(
+          'back',
+          dataUrlToFile(nannyCaptureState.nidBack, 'nanny-id-back.jpg'),
+        );
+      }
+
+      const res = await fetch(API_BASE_URL + '/api/v1/kyc/documents', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + userToken,
+        },
+        body: formData,
+      });
+      const payload = await res.json();
+      const data = unwrapApiData(payload);
+
+      if (!res.ok) {
+        throw new Error(payload.message || 'Failed to upload nanny KYC documents.');
       }
 
       return data;
@@ -1913,6 +2150,10 @@
         await createKycSession();
         setSumsubStatus('Uploading your captured document images...');
         await submitParentDocumentsToKyc();
+      } else if (role === 'NANNY') {
+        await createKycSession();
+        setSumsubStatus('Uploading your nanny document images...');
+        await submitNannyDocumentsToKyc();
       }
 
       const livenessData = await createLivenessAction();
@@ -2228,8 +2469,8 @@
       } catch {}
     }
 
-    async function openParentCamera(cameraKey) {
-      const config = PARENT_CAMERA_CONFIG[cameraKey];
+    async function openCamera(cameraMap, captureState, cameraKey) {
+      const config = cameraMap[cameraKey];
       if (!config || !navigator.mediaDevices?.getUserMedia) {
         if (config?.statusId) {
           setCameraStatus(config.statusId, 'Camera is not supported on this device/browser.', true);
@@ -2269,10 +2510,10 @@
           const stage = document.getElementById(config.stageId);
           const preview = document.getElementById(config.previewId);
           if (stage) {
-            stage.classList.toggle('has-image', !!parentCaptureState[cameraKey]);
+            stage.classList.toggle('has-image', !!captureState[cameraKey]);
           }
-          if (preview && parentCaptureState[cameraKey]) {
-            preview.src = parentCaptureState[cameraKey];
+          if (preview && captureState[cameraKey]) {
+            preview.src = captureState[cameraKey];
           }
         }
 
@@ -2286,7 +2527,15 @@
       }
     }
 
-    function handleParentStepMedia(stepId) {
+    async function openParentCamera(cameraKey) {
+      return openCamera(PARENT_CAMERA_CONFIG, parentCaptureState, cameraKey);
+    }
+
+    async function openNannyCamera(cameraKey) {
+      return openCamera(NANNY_CAMERA_CONFIG, nannyCaptureState, cameraKey);
+    }
+
+    function handleStepMedia(stepId) {
       if (stepId === 'parent-step-6') {
         openParentCamera('passport');
         return;
@@ -2307,11 +2556,31 @@
         return;
       }
 
+       if (stepId === 'nanny-step-4') {
+        openNannyCamera('passport');
+        return;
+      }
+
+      if (stepId === 'nanny-step-6') {
+        openNannyCamera('nidFront');
+        return;
+      }
+
+      if (stepId === 'nanny-step-7') {
+        openNannyCamera('nidBack');
+        return;
+      }
+
+      if (stepId === 'nanny-step-9') {
+        openNannyCamera('face');
+        return;
+      }
+
       stopParentCameraStream();
     }
 
-    function captureParentDocument(cameraKey) {
-      const config = PARENT_CAMERA_CONFIG[cameraKey];
+    function captureDocument(cameraMap, captureState, cameraKey, reviewUpdater) {
+      const config = cameraMap[cameraKey];
       if (!config) return false;
 
       const video = document.getElementById(config.videoId);
@@ -2335,7 +2604,7 @@
 
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-      parentCaptureState[cameraKey] = dataUrl;
+      captureState[cameraKey] = dataUrl;
 
       if (preview) {
         preview.src = dataUrl;
@@ -2347,11 +2616,29 @@
         setCameraStatus(config.statusId, '');
       }
 
-      if (cameraKey === 'nidFront' || cameraKey === 'nidBack') {
-        updateParentReviewImages();
+      if ((cameraKey === 'nidFront' || cameraKey === 'nidBack') && reviewUpdater) {
+        reviewUpdater();
       }
 
       return true;
+    }
+
+    function captureParentDocument(cameraKey) {
+      return captureDocument(
+        PARENT_CAMERA_CONFIG,
+        parentCaptureState,
+        cameraKey,
+        updateParentReviewImages,
+      );
+    }
+
+    function captureNannyDocument(cameraKey) {
+      return captureDocument(
+        NANNY_CAMERA_CONFIG,
+        nannyCaptureState,
+        cameraKey,
+        updateNannyReviewImages,
+      );
     }
 
     function retakeParentDocument(cameraKey) {
@@ -2373,6 +2660,27 @@
         setCameraStatus(config.statusId, `Ready to capture ${cameraKey === 'passport' ? 'passport' : 'National ID'} image.`);
       }
       openParentCamera(cameraKey);
+    }
+
+    function retakeNannyDocument(cameraKey) {
+      const config = NANNY_CAMERA_CONFIG[cameraKey];
+      nannyCaptureState[cameraKey] = '';
+      if (config?.previewId) {
+        const preview = document.getElementById(config.previewId);
+        if (preview) {
+          preview.src = '';
+        }
+      }
+      if (config?.stageId) {
+        const stage = document.getElementById(config.stageId);
+        if (stage) {
+          stage.classList.remove('has-image');
+        }
+      }
+      if (config?.statusId) {
+        setCameraStatus(config.statusId, `Ready to capture ${cameraKey === 'passport' ? 'passport' : 'identity card'} image.`);
+      }
+      openNannyCamera(cameraKey);
     }
 
     function updateParentReviewImages() {
@@ -2400,14 +2708,49 @@
       }
     }
 
+    function updateNannyReviewImages() {
+      const front = document.getElementById('nanny-review-front-preview');
+      const back = document.getElementById('nanny-review-back-preview');
+
+      if (front) {
+        if (nannyCaptureState.nidFront) {
+          front.src = nannyCaptureState.nidFront;
+          front.style.objectFit = 'cover';
+        } else {
+          front.removeAttribute('src');
+          front.alt = 'Nanny front side review preview';
+        }
+      }
+
+      if (back) {
+        if (nannyCaptureState.nidBack) {
+          back.src = nannyCaptureState.nidBack;
+          back.style.objectFit = 'cover';
+        } else {
+          back.removeAttribute('src');
+          back.alt = 'Nanny back side review preview';
+        }
+      }
+    }
+
     function selectParentDocumentType(type) {
       parentDocumentType = type;
       document.getElementById('parent-doc-passport').classList.toggle('selected', type === 'PASSPORT');
       document.getElementById('parent-doc-national-id').classList.toggle('selected', type === 'NATIONAL_ID');
     }
 
+    function selectNannyDocumentType(type) {
+      nannyDocumentType = type;
+      document.getElementById('nanny-doc-passport').classList.toggle('selected', type === 'PASSPORT');
+      document.getElementById('nanny-doc-national-id').classList.toggle('selected', type === 'NATIONAL_ID');
+    }
+
     function goToParentDocumentFlow() {
       nextStep('parent-step-5', parentDocumentType === 'PASSPORT' ? 'parent-step-6' : 'parent-step-7');
+    }
+
+    function goToNannyDocumentFlow() {
+      nextStep('nanny-step-3', nannyDocumentType === 'PASSPORT' ? 'nanny-step-4' : 'nanny-step-5');
     }
 
     function goToParentReviewStep() {
@@ -2419,6 +2762,13 @@
         return;
       }
       nextStep('parent-step-6', 'parent-step-11');
+    }
+
+    function submitNannyPassportCapture() {
+      if (!nannyCaptureState.passport && !captureNannyDocument('passport')) {
+        return;
+      }
+      nextStep('nanny-step-4', 'nanny-step-9');
     }
 
     function submitNidFrontCapture() {
@@ -2436,6 +2786,21 @@
       nextStep('parent-step-9', 'parent-step-10');
     }
 
+    function submitNannyNidFrontCapture() {
+      if (!nannyCaptureState.nidFront && !captureNannyDocument('nidFront')) {
+        return;
+      }
+      nextStep('nanny-step-6', 'nanny-step-7');
+    }
+
+    function submitNannyNidBackCapture() {
+      if (!nannyCaptureState.nidBack && !captureNannyDocument('nidBack')) {
+        return;
+      }
+      updateNannyReviewImages();
+      nextStep('nanny-step-7', 'nanny-step-8');
+    }
+
     function goToNextNidStep() {
       if (!parentCaptureState.nidFront) {
         nextStep('parent-step-7', 'parent-step-8');
@@ -2447,6 +2812,19 @@
       }
       updateParentReviewImages();
       nextStep('parent-step-7', 'parent-step-10');
+    }
+
+    function goToNextNannyNidStep() {
+      if (!nannyCaptureState.nidFront) {
+        nextStep('nanny-step-5', 'nanny-step-6');
+        return;
+      }
+      if (!nannyCaptureState.nidBack) {
+        nextStep('nanny-step-5', 'nanny-step-7');
+        return;
+      }
+      updateNannyReviewImages();
+      nextStep('nanny-step-5', 'nanny-step-8');
     }
 
     function autoTab(input, nextInputId) {

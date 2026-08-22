@@ -2,6 +2,7 @@ import { Controller, Patch, Post, Get, Body, UseGuards, Param, Query } from '@ne
 import { SettingService } from './setting.service';
 import {
   ChangePasswordDto,
+  CreateStripeOnboardingLinkDto,
   DeleteAccountDto,
   SavePayoutMethodDto,
   UpdateMembershipRoutingDto,
@@ -79,6 +80,29 @@ export class SettingController {
     @Body() dto: SavePayoutMethodDto,
   ) {
     return this.settingService.saveMyPayoutMethod(user.id, dto);
+  }
+
+  @Post('payout-methods/stripe/onboarding-link')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary:
+      'Create or reuse a Stripe connected account and return an onboarding link for partner payouts',
+  })
+  async createStripeOnboardingLink(
+    @CurrentUser() user: any,
+    @Body() dto: CreateStripeOnboardingLinkDto,
+  ) {
+    return this.settingService.createStripeOnboardingLink(user.id, dto);
+  }
+
+  @Get('payout-methods/stripe/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary:
+      'Get Stripe connected-account onboarding status for the logged-in partner',
+  })
+  async getStripeConnectStatus(@CurrentUser() user: any) {
+    return this.settingService.getStripeConnectStatus(user.id);
   }
 
   @Patch('payout-methods/:id/default')

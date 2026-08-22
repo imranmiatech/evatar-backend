@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   ChangePasswordDto,
+  CreateStripeOnboardingLinkDto,
   DeleteAccountDto,
   SavePayoutMethodDto,
   UpdateMembershipRoutingDto,
@@ -190,6 +191,27 @@ export class SettingService {
         context,
         options,
       ),
+    };
+  }
+
+  async createStripeOnboardingLink(
+    userId: string,
+    dto: CreateStripeOnboardingLinkDto,
+  ) {
+    return {
+      success: true,
+      message: 'Stripe onboarding link created successfully.',
+      data: await this.paymentAccountService.createStripeOnboardingLink(
+        userId,
+        dto,
+      ),
+    };
+  }
+
+  async getStripeConnectStatus(userId: string) {
+    return {
+      success: true,
+      data: await this.paymentAccountService.getStripeConnectStatus(userId),
     };
   }
 }

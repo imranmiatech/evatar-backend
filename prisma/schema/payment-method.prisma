@@ -22,6 +22,7 @@ model PayoutMethod {
   label               String?
   methodType          String   @default("CARD")
   providerName        String?
+  stripeConnectedAccountId String?
   accountHolderName   String?
   cardBrand           String?
   cardLast4           String?
@@ -37,6 +38,7 @@ model PayoutMethod {
   user                User     @relation("UserPayoutMethods", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isDefault])
+  @@index([stripeConnectedAccountId])
   @@map("payout_methods")
 }
 

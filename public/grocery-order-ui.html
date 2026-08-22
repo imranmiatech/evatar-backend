@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grocery Order Mobile UI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #3e3e3e;
+      --phone: #f5f6f8;
+      --card: #ffffff;
+      --ink: #17323c;
+      --muted: #7b8791;
+      --line: #d8dee4;
+      --teal: #0d6f74;
+      --teal-soft: #e4f2f1;
+      --teal-ghost: #d8ebe9;
+      --danger: #d14d41;
+      --success: #1f8a5a;
+      --shadow: 0 14px 34px rgba(13, 35, 41, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Outfit', sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(13, 111, 116, 0.16), transparent 26%),
+        linear-gradient(180deg, #474747 0%, var(--bg) 100%);
+      color: var(--ink);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 30px 14px;
+    }
+
+    .layout {
+      width: min(1180px, 100%);
+      display: grid;
+      grid-template-columns: 390px minmax(320px, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .phone {
+      width: 100%;
+      min-height: 860px;
+      background: var(--phone);
+      border-radius: 34px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.35);
+      position: sticky;
+      top: 18px;
+      padding-bottom: 92px;
+    }
+
+    .statusbar {
+      padding: 16px 24px 6px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .topbar {
+      padding: 10px 20px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #8cc3c8, #0d6f74);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      flex: 0 0 auto;
+    }
+
+    .greeting {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .greeting small {
+      color: var(--muted);
+      display: block;
+      font-size: 11px;
+    }
+
+    .greeting strong {
+      display: block;
+      font-size: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .icon-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      border: 0;
+      background: #ffffff;
+      color: var(--teal);
+      font-weight: 700;
+      box-shadow: 0 8px 20px rgba(16, 40, 45, 0.08);
+      cursor: pointer;
+    }
+
+    .tabs {
+      margin: 18px 16px 10px;
+      padding: 5px;
+      background: #e9edf0;
+      border-radius: 999px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .tab {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 10px;
+      font-weight: 700;
+      color: var(--ink);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: var(--teal);
+      color: white;
+    }
+
+    .screen-stack {
+      padding: 10px 16px 26px;
+    }
+
+    .screen {
+      display: none;
+      gap: 14px;
+    }
+
+    .screen.active {
+      display: grid;
+    }
+
+    .sheet {
+      background: var(--card);
+      border: 1px solid #dce3e8;
+      border-radius: 22px;
+      padding: 16px;
+      box-shadow: 0 12px 28px rgba(21, 38, 43, 0.08);
+      position: relative;
+    }
+
+    .sheet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .sheet-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .close-x {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fbfcfd;
+      padding: 12px 14px;
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .field textarea {
+      min-height: 82px;
+      resize: vertical;
+    }
+
+    .qty-row {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 10px;
+    }
+
+    .chips {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .chip {
+      border: 1px solid #dbe3e7;
+      border-radius: 14px;
+      background: #fbfcfd;
+      padding: 12px 8px;
+      font-size: 11px;
+      text-align: center;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .chip.active {
+      background: var(--teal-soft);
+      border-color: var(--teal);
+      color: var(--teal);
+      font-weight: 700;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .btn,
+    .btn-outline,
+    .btn-link {
+      border: 0;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn {
+      background: var(--teal);
+      color: white;
+    }
+
+    .btn:disabled,
+    .btn-outline:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .btn-outline {
+      background: white;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .btn-link {
+      background: transparent;
+      color: var(--teal);
+      padding-inline: 0;
+      text-align: left;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .voucher-item,
+    .store-option,
+    .payment-option,
+    .detail-card {
+      border: 1px solid #e2e8ec;
+      border-radius: 16px;
+      background: white;
+      padding: 12px 14px;
+    }
+
+    .voucher-item strong,
+    .store-option strong,
+    .payment-option strong,
+    .detail-card strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .tiny {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .split {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .radio {
+      width: 18px;
+      height: 18px;
+      border: 1px solid #c6d1d8;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      margin-top: 3px;
+    }
+
+    .radio.active::after {
+      content: '';
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    .total-box {
+      border-top: 1px dashed #dbe4e9;
+      padding-top: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    .total-row.muted {
+      color: var(--muted);
+    }
+
+    .total-row.big {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--teal);
+    }
+
+    .success-box {
+      text-align: center;
+      padding: 38px 20px;
+    }
+
+    .success-badge {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      margin: 0 auto 18px;
+      background: radial-gradient(circle, #d8f2eb 0%, #eefaf6 70%);
+      color: var(--success);
+      display: grid;
+      place-items: center;
+      font-size: 36px;
+      font-weight: 700;
+      border: 6px solid white;
+      box-shadow: 0 10px 26px rgba(31, 138, 90, 0.12);
+    }
+
+    .timeline {
+      position: relative;
+      display: grid;
+      gap: 18px;
+      margin-top: 8px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 11px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: #dce6ea;
+    }
+
+    .timeline-step {
+      position: relative;
+      padding-left: 34px;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid #cfd8de;
+      display: grid;
+      place-items: center;
+      color: #cfd8de;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .timeline-step.active .timeline-dot {
+      background: var(--teal-soft);
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.92);
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.44);
+      box-shadow: var(--shadow);
+      padding: 22px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .subpanel {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #f9fbfc;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .subpanel h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .flow-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .flow-card {
+      border-radius: 18px;
+      border: 1px solid #d8e3e8;
+      background: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
+      padding: 14px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .flow-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .flow-badge {
+      min-width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: var(--teal-soft);
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .flow-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink);
+      flex: 1;
+    }
+
+    .step-list {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status-strip {
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: #eef8f8;
+      border: 1px solid #d6eceb;
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .token-panel textarea,
+    .token-panel input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px 14px;
+      font: inherit;
+    }
+
+    .console {
+      margin: 0;
+      min-height: 360px;
+      border-radius: 20px;
+      background: #10232a;
+      color: #d6f6f4;
+      padding: 16px;
+      overflow: auto;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .bottom-nav {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 14px 18px 18px;
+      background: linear-gradient(180deg, rgba(245, 246, 248, 0) 0%, rgba(245, 246, 248, 0.92) 18%, rgba(245, 246, 248, 1) 100%);
+    }
+
+    .bottom-nav-inner {
+      border-radius: 22px;
+      background: #ffffff;
+      border: 1px solid #dde4e8;
+      box-shadow: 0 10px 24px rgba(18, 37, 41, 0.08);
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .nav-item {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 11px;
+      font-weight: 600;
+      display: grid;
+      gap: 6px;
+      justify-items: center;
+      cursor: pointer;
+      padding: 6px 4px;
+      border-radius: 16px;
+    }
+
+    .nav-item.active {
+      color: var(--teal);
+      background: var(--teal-soft);
+    }
+
+    .nav-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: #edf3f5;
+      color: inherit;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .floating-agent {
+      position: absolute;
+      right: 18px;
+      bottom: 116px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 3px solid #2da7ff;
+      background: linear-gradient(135deg, #1d3740, #0d6f74);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      box-shadow: 0 10px 24px rgba(16, 34, 38, 0.22);
+      z-index: 3;
+    }
+
+    .floating-agent.small {
+      width: 40px;
+      height: 40px;
+      right: 12px;
+      top: 12px;
+      bottom: auto;
+      font-size: 16px;
+    }
+
+    .voucher-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .mini-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 12px;
+      border: 1px solid #dce4e9;
+      background: #f7fbfc;
+      display: grid;
+      place-items: center;
+      color: var(--teal);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .drag-handle {
+      width: 48px;
+      height: 4px;
+      border-radius: 999px;
+      background: #cfd8de;
+      margin: 0 auto 12px;
+    }
+
+    .sheet.overlay-sheet {
+      margin-top: -174px;
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      z-index: 2;
+    }
+
+    .store-option,
+    .payment-option {
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .payment-row {
+      display: grid;
+      gap: 10px;
+    }
+
+    .inline-card-form {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 92px;
+      gap: 10px;
+    }
+
+    .helper-text {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .warning-text {
+      font-size: 11px;
+      color: var(--danger);
+      margin-top: 6px;
+    }
+
+    .tracking-header {
+      margin-bottom: 10px;
+    }
+
+    .tracking-code {
+      color: var(--teal);
+      font-size: 13px;
+      font-weight: 700;
+      margin-top: 10px;
+    }
+
+    .mini-note {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .phone {
+        position: static;
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div class="phone">
+      <div class="statusbar">
+        <span>9:41</span>
+        <span>4G 80%</span>
+      </div>
+
+      <div class="topbar">
+        <div class="greeting">
+          <div class="avatar" id="avatarBadge">M</div>
+          <div>
+            <small>Good Morning</small>
+            <strong id="profileName">Monica Steve</strong>
+          </div>
+        </div>
+        <div class="icon-row">
+          <button class="icon-btn" type="button" onclick="showScreen('screen-add')">+</button>
+          <button class="icon-btn" type="button" onclick="showScreen('screen-voucher')">#</button>
+          <button class="icon-btn" type="button" onclick="showScreen('screen-order')">O</button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab" type="button">Recipes</button>
+        <button class="tab active" type="button">Groceries</button>
+      </div>
+
+      <div class="screen-stack">
+        <section class="screen active" id="screen-add">
+          <div class="sheet">
+            <div class="sheet-header">
+              <div class="sheet-title">Add Grocery Item</div>
+              <button class="close-x" type="button">×</button>
+            </div>
+
+            <label class="field">Item name*
+              <input id="itemName" value="Organic Whole Milk" autocomplete="off" />
+            </label>
+
+            <label class="field">Unit*
+              <select id="itemUnit">
+                <option value="LITER">Liter</option>
+                <option value="GM" selected>gm</option>
+                <option value="KG">kg</option>
+                <option value="PCS">pcs</option>
+              </select>
+            </label>
+
+            <div class="field">Quantity*
+              <div class="qty-row">
+                <input id="itemQty" value="250" inputmode="numeric" autocomplete="off" />
+                <input id="itemQtyLabel" value="gm" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field">Category*
+              <div class="chips" id="categoryChips">
+                <button type="button" class="chip" data-category="PRODUCE">Produce</button>
+                <button type="button" class="chip active" data-category="DAIRY">Dairy</button>
+                <button type="button" class="chip" data-category="BAKERY">Bakery</button>
+                <button type="button" class="chip" data-category="PANTRY">Pantry</button>
+                <button type="button" class="chip" data-category="BABY">Baby</button>
+                <button type="button" class="chip" data-category="FRUIT">Fruit</button>
+                <button type="button" class="chip" data-category="MEAT">Meat</button>
+                <button type="button" class="chip" data-category="OTHER">Other</button>
+              </div>
+            </div>
+
+            <label class="field">Note: (Optional)
+              <textarea id="itemNote" autocomplete="off">Please send fresh brand's milk</textarea>
+            </label>
+
+            <div class="actions">
+              <button class="btn-outline" type="button">Cancel</button>
+              <button class="btn" type="button" onclick="addShoppingItem()">Add</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-voucher">
+          <div class="sheet">
+            <div class="sheet-header">
+              <div class="sheet-title">Shopping Voucher</div>
+              <button class="close-x" type="button" onclick="previewCheckout()">↻</button>
+            </div>
+            <div class="voucher-header">
+              <div class="tiny" id="voucherMeta">June 15, 2026 • 0 items</div>
+              <div class="mini-icon">⇪</div>
+            </div>
+            <div class="list" id="voucherList"></div>
+            <label class="field" style="margin-top:12px;">Final Note: (Optional)
+              <textarea id="voucherFinalNote" autocomplete="off">Please check expiry dates and prioritize the organic brands for all dairy and vegetable items.</textarea>
+            </label>
+            <div class="toolbar">
+              <button class="btn" type="button" onclick="showScreen('screen-stores'); loadStores();">Order from store</button>
+              <button class="btn-outline" type="button" onclick="downloadPreview()">Download PDF</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-stores">
+          <div class="sheet">
+            <div class="list" id="storePreviewList"></div>
+          </div>
+          <div class="sheet overlay-sheet">
+            <div class="drag-handle"></div>
+            <div class="sheet-header">
+              <div class="sheet-title">Choose Store</div>
+              <button class="close-x" type="button">×</button>
+            </div>
+            <div class="list" id="storeList"></div>
+            <button class="btn" type="button" style="margin-top:12px;" onclick="showScreen('screen-order')">Send order</button>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-order">
+          <div class="sheet">
+            <div class="sheet-header">
+              <div class="sheet-title">My order</div>
+              <button class="close-x" type="button" onclick="loadOrders()">↻</button>
+            </div>
+
+            <div class="detail-card">
+              <div class="tiny" id="selectedStoreLabel">Store: Not selected</div>
+              <strong id="orderCodeLabel">Order ID: Pending</strong>
+            </div>
+
+            <div class="detail-card">
+              <strong>Voucher Items</strong>
+              <div class="list" id="orderVoucherList"></div>
+            </div>
+
+            <div class="total-box">
+              <div class="total-row muted"><span>Subtotal</span><span id="subtotalText">$0</span></div>
+              <div class="total-row muted"><span>Online Discount (5%)</span><span id="discountText">$0</span></div>
+              <div class="total-row muted"><span>Delivery Fee</span><span id="deliveryFeeText">$0</span></div>
+              <div class="total-row big"><span>Total</span><span id="totalText">$0</span></div>
+            </div>
+
+            <label class="field" style="margin-top:12px;">Delivery address*
+              <input id="deliveryAddress" value="4517 Washington Ave. Kentucky 39495" autocomplete="street-address" />
+            </label>
+            <label class="field">Receiver phone number*
+              <input id="receiverPhone" value="+8801700000000" autocomplete="tel" />
+            </label>
+
+            <div class="field">Payment Method
+              <div class="payment-row" id="paymentMethodList"></div>
+              <div class="inline-card-form">
+                <div class="helper-text">Optional: save a test card for direct-charge testing</div>
+                <input id="mockCardNumber" value="4654 6575 4356 4444" autocomplete="cc-number" />
+                <div class="two-col">
+                  <input id="mockExpiry" value="MM/YY" autocomplete="cc-exp" />
+                  <input id="mockCvv" value="***" autocomplete="cc-csc" />
+                </div>
+                <input id="mockCardholder" value="Monica Steve" autocomplete="cc-name" />
+                <div class="toolbar">
+                  <button class="btn-outline" type="button" onclick="saveMockPaymentMethod()">Save test card</button>
+                </div>
+                <div class="warning-text" id="paymentWarning"></div>
+                <div class="toolbar" id="checkoutActionRow" style="display:none;">
+                  <button class="btn" type="button" onclick="openPendingCheckout()">Open Stripe Checkout</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="toolbar">
+              <button class="btn" id="payNowButton" type="button" onclick="createOrder('ONLINE')">Pay now on Stripe</button>
+              <button class="btn-outline" type="button" onclick="createOrder('CASH_ON_DELIVERY')">Confirm order</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-success">
+          <div class="sheet success-box">
+            <div class="success-badge">✓</div>
+            <h3 style="margin:0 0 10px;">Payment Confirmed</h3>
+            <p class="mini-note" style="margin:0 0 18px;">Your order has been placed successfully. You'll be notified once it's delivered.</p>
+            <div class="toolbar" style="justify-content:center;">
+              <button class="btn" type="button" onclick="showScreen('screen-order'); loadOrders();">Track Status</button>
+              <button class="btn-outline" type="button" onclick="showScreen('screen-add')">Back to Home</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-tracking">
+          <div class="sheet">
+            <div class="sheet-header">
+              <div class="sheet-title">Tracking Voucher</div>
+              <button class="close-x" type="button">×</button>
+            </div>
+            <div class="tracking-header">
+              <button class="btn" type="button" style="padding:10px 18px; margin-left:auto; display:block;" onclick="showScreen('screen-voucher')">View voucher</button>
+            </div>
+            <div class="detail-card" id="trackingStoreCard"></div>
+            <div class="timeline" id="timelineSteps"></div>
+            <button class="btn-outline" type="button" style="margin-top:10px; color:var(--danger);" onclick="cancelLatestOrder()">Cancel Order</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="floating-agent">👤</div>
+
+      <div class="bottom-nav">
+        <div class="bottom-nav-inner">
+          <button class="nav-item" type="button" data-screen="screen-add" onclick="showScreen('screen-add')">
+            <span class="nav-icon">T</span>
+            <span>Today</span>
+          </button>
+          <button class="nav-item active" type="button" data-screen="screen-add" onclick="showScreen('screen-add')">
+            <span class="nav-icon">K</span>
+            <span>Kitchen</span>
+          </button>
+          <button class="nav-item" type="button" data-screen="screen-order" onclick="showScreen('screen-order')">
+            <span class="nav-icon">A</span>
+            <span>Activity</span>
+          </button>
+          <button class="nav-item" type="button" data-screen="screen-tracking" onclick="showScreen('screen-tracking')">
+            <span class="nav-icon">H</span>
+            <span>Home</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel token-panel">
+      <h2>Token + API Console</h2>
+      <div class="mini-note">Signup/login token auto-loads from local storage. Best flow: open <a href="/login-token.html" target="_blank">login-token.html</a>, sign in, then return here.</div>
+      <label class="field">API Base URL
+        <input id="apiBase" value="http://localhost:5000" />
+      </label>
+      <label class="field">Access Token
+        <textarea id="tokenBox" rows="4" placeholder="JWT token auto-saved here"></textarea>
+      </label>
+      <form onsubmit="event.preventDefault(); signin();">
+        <div class="toolbar">
+          <button class="btn" type="submit">Sign In + Save Token</button>
+          <button class="btn-outline" type="button" onclick="saveToken()">Save Token</button>
+          <button class="btn-outline" type="button" onclick="clearToken()">Clear Token</button>
+          <button class="btn-outline" type="button" onclick="loadMe()">Load /auth/me</button>
+        </div>
+        <div class="toolbar">
+          <input id="loginEmail" value="" placeholder="Use real parent/partner email" autocomplete="email" style="flex:1;" />
+          <input id="loginPassword" type="password" value="" placeholder="Use real password" autocomplete="current-password" style="flex:1;" />
+        </div>
+      </form>
+      <div class="subpanel">
+        <h3>Payment Flow</h3>
+        <div class="flow-grid">
+          <div class="flow-card">
+            <div class="flow-head">
+              <div class="flow-badge">1</div>
+              <div class="flow-title">Partner Setup First</div>
+            </div>
+            <ol class="step-list">
+              <li>Login with the selected store owner partner account.</li>
+              <li>Tap `Create Onboarding Link`.</li>
+              <li>Finish Stripe onboarding, then tap `Check Status`.</li>
+            </ol>
+          </div>
+          <div class="flow-card">
+            <div class="flow-head">
+              <div class="flow-badge">2</div>
+              <div class="flow-title">Parent Pays After That</div>
+            </div>
+            <ol class="step-list">
+              <li>Login with the real parent/family account.</li>
+              <li>Create the grocery order from the phone UI.</li>
+              <li>Tap `Pay now on Stripe` and enter card details on Stripe.</li>
+            </ol>
+          </div>
+        </div>
+        <div class="status-strip">No card should be charged before partner onboarding is complete.</div>
+      </div>
+      <div class="subpanel">
+        <h3>Partner Stripe Onboarding</h3>
+        <div class="mini-note">Selected store owner partner diye login kore first onboarding complete korte hobe. Tarpor parent/user Pay now on Stripe dile card info Stripe page-e dibe.</div>
+        <div class="toolbar">
+          <button class="btn" type="button" onclick="createPartnerOnboardingLink()">Create Onboarding Link</button>
+          <button class="btn-outline" type="button" onclick="checkPartnerStripeStatus()">Check Status</button>
+        </div>
+        <div class="mini-note" id="partnerStripeStatusText">Status: not checked yet</div>
+      </div>
+      <div class="mini-note">Latest response</div>
+      <pre class="console" id="output">Ready. Sign in or paste a token, then test the phone UI on the left.</pre>
+    </div>
+  </div>
+
+  <script>
+    const TOKEN_KEYS = ['evaturner_access_token', 'api_test_access_token', 'accessToken'];
+    const BASE_URL_KEY = 'grocery_order_ui_base_url';
+
+    const state = {
+      categories: 'DAIRY',
+      shoppingItems: [],
+      stores: [],
+      selectedStoreId: '',
+      selectedPaymentMethodId: '',
+      paymentMethods: [],
+      latestPreview: null,
+      latestOrder: null,
+      me: null,
+      pendingCheckoutUrl: '',
+    };
+
+    function $(id) {
+      return document.getElementById(id);
+    }
+
+    function getStoredToken() {
+      for (const key of TOKEN_KEYS) {
+        const value = localStorage.getItem(key);
+        if (value) return value;
+      }
+      return '';
+    }
+
+    function setStoredToken(token) {
+      TOKEN_KEYS.forEach((key) => {
+        if (token) localStorage.setItem(key, token);
+        else localStorage.removeItem(key);
+      });
+      $('tokenBox').value = token || '';
+    }
+
+    function saveToken() {
+      setStoredToken($('tokenBox').value.trim());
+      renderOutput({ message: 'Token saved locally' });
+    }
+
+    function clearToken() {
+      setStoredToken('');
+      renderOutput({ message: 'Token cleared' });
+    }
+
+    function getBaseUrl() {
+      return $('apiBase').value.trim().replace(/\/$/, '');
+    }
+
+    function renderOutput(payload) {
+      $('output').textContent =
+        typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
+    }
+
+    function setPartnerStripeStatus(message = '') {
+      const el = $('partnerStripeStatusText');
+      if (el) {
+        el.textContent = message || 'Status: not checked yet';
+      }
+    }
+
+    function setPaymentWarning(message = '') {
+      $('paymentWarning').textContent = message;
+    }
+
+    function setPendingCheckoutUrl(url = '') {
+      state.pendingCheckoutUrl = url || '';
+      const row = $('checkoutActionRow');
+      if (row) {
+        row.style.display = state.pendingCheckoutUrl ? 'flex' : 'none';
+      }
+    }
+
+    function openPendingCheckout() {
+      if (!state.pendingCheckoutUrl) return;
+      window.location.href = state.pendingCheckoutUrl;
+    }
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach((screen) => {
+        screen.classList.toggle('active', screen.id === id);
+      });
+      document.querySelectorAll('.nav-item[data-screen]').forEach((item) => {
+        item.classList.toggle('active', item.dataset.screen === id);
+      });
+    }
+
+    function money(value) {
+      return `$${Number(value || 0).toFixed(2)}`;
+    }
+
+    async function request(method, path, body) {
+      const headers = { Accept: 'application/json' };
+      if (body) headers['Content-Type'] = 'application/json';
+      const token = getStoredToken();
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      let res;
+      try {
+        res = await fetch(`${getBaseUrl()}${path}`, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : undefined,
+        });
+      } catch (error) {
+        const message = `Cannot reach ${getBaseUrl()}. Start the backend server first.`;
+        renderOutput({ method, path, body, networkError: message });
+        throw new Error(message);
+      }
+      const text = await res.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = text;
+      }
+
+      const extracted =
+        data?.accessToken ||
+        data?.data?.accessToken ||
+        data?.data?.data?.accessToken ||
+        null;
+      if (extracted) {
+        setStoredToken(extracted);
+      }
+
+      renderOutput({ method, path, body, status: res.status, response: data });
+      if (!res.ok) {
+        const apiMessage =
+          typeof data === 'object' ? data.message || 'Request failed' : 'Request failed';
+
+        if (
+          res.status === 404 &&
+          path === '/api/v1/setting/payout-methods/stripe/onboarding-link'
+        ) {
+          throw new Error(
+            'Stripe onboarding route not loaded in the running backend. Restart Nest with npm run start:dev, then try again.',
+          );
+        }
+
+        if (res.status === 400 && apiMessage === 'Invalid password') {
+          throw new Error(
+            'Invalid password. Use the real account password instead of the old demo value.',
+          );
+        }
+
+        throw new Error(
+          apiMessage
+        );
+      }
+      return data;
+    }
+
+    async function signin() {
+      await request('POST', '/api/v1/auth/signin', {
+        email: $('loginEmail').value.trim(),
+        password: $('loginPassword').value,
+      });
+      await loadMe();
+    }
+
+    async function loadMe() {
+      const data = await request('GET', '/api/v1/auth/me');
+      state.me = data.data || data;
+      const fullName = state.me?.fullName || state.me?.data?.fullName || 'Monica Steve';
+      $('profileName').textContent = fullName;
+      $('avatarBadge').textContent = fullName.charAt(0).toUpperCase();
+      const role = state.me?.role || state.me?.data?.role || '';
+      if (role) {
+        setPartnerStripeStatus(`Logged in as ${role}. Use selected partner account for onboarding.`);
+      }
+      return data;
+    }
+
+    async function createPartnerOnboardingLink() {
+      const response = await request(
+        'POST',
+        '/api/v1/setting/payout-methods/stripe/onboarding-link',
+        {
+          returnUrl: `${window.location.origin}/grocery-order-ui.html?partner_onboarding=done`,
+          refreshUrl: `${window.location.origin}/grocery-order-ui.html?partner_onboarding=refresh`,
+        },
+      );
+      const payload = response?.data || response;
+      setPartnerStripeStatus(
+        `Onboarding link ready for ${payload.accountId || 'partner account'}. Opening Stripe...`,
+      );
+      if (payload.onboardingUrl) {
+        window.open(payload.onboardingUrl, '_blank', 'noopener,noreferrer');
+      }
+      return response;
+    }
+
+    async function checkPartnerStripeStatus() {
+      const response = await request(
+        'GET',
+        '/api/v1/setting/payout-methods/stripe/status',
+      );
+      const payload = response?.data || response;
+      const requirements = payload.requirementsCurrentlyDue?.length
+        ? ` Due: ${payload.requirementsCurrentlyDue.join(', ')}`
+        : '';
+      setPartnerStripeStatus(
+        `Status: ${payload.onboardingComplete ? 'connected' : 'incomplete'} | charges=${payload.chargesEnabled} payouts=${payload.payoutsEnabled}.${requirements}`,
+      );
+      return response;
+    }
+
+    function activateCategoryButtons() {
+      document.querySelectorAll('.chip[data-category]').forEach((chip) => {
+        chip.addEventListener('click', () => {
+          state.categories = chip.dataset.category;
+          document.querySelectorAll('.chip[data-category]').forEach((item) =>
+            item.classList.remove('active'),
+          );
+          chip.classList.add('active');
+        });
+      });
+    }
+
+    async function addShoppingItem() {
+      const quantity = `${$('itemQty').value.trim()}${$('itemQtyLabel').value.trim() ? ' ' + $('itemQtyLabel').value.trim() : ''}`.trim();
+      const payload = {
+        name: $('itemName').value.trim(),
+        unit: $('itemUnit').value,
+        quantity,
+        category: state.categories,
+        note: $('itemNote').value.trim() || undefined,
+      };
+
+      const response = await request('POST', '/api/v1/parent/kitchen/shopping', payload);
+      const item = response.data;
+      state.shoppingItems.unshift(item);
+      $('itemName').value = '';
+      $('itemNote').value = '';
+      await previewCheckout();
+      showScreen('screen-voucher');
+    }
+
+    async function loadStores() {
+      const response = await request('GET', '/api/v1/parent/kitchen/stores');
+      state.stores = response.data?.stores || [];
+      if (!state.selectedStoreId && state.stores[0]) {
+        state.selectedStoreId = state.stores[0].id;
+      }
+      renderStores();
+      return response;
+    }
+
+    function renderStores() {
+      $('storeList').innerHTML = '';
+      $('storePreviewList').innerHTML = '';
+      state.stores.forEach((store) => {
+        const active = store.id === state.selectedStoreId;
+        const storeMarkup = `
+          <div class="split">
+            <div>
+              <strong>${store.name}</strong>
+              <div class="tiny">${store.partner?.name || 'Partner'} • ${store.deliveryLabel || ''}</div>
+              <div class="tiny">${store.address || 'Address pending'}</div>
+            </div>
+            <span class="radio ${active ? 'active' : ''}"></span>
+          </div>
+        `;
+        const previewCard = document.createElement('div');
+        previewCard.className = 'store-option';
+        previewCard.innerHTML = storeMarkup;
+        $('storePreviewList').appendChild(previewCard);
+
+        const wrapper = document.createElement('button');
+        wrapper.type = 'button';
+        wrapper.className = 'store-option';
+        wrapper.innerHTML = storeMarkup;
+        wrapper.addEventListener('click', async () => {
+          state.selectedStoreId = store.id;
+          renderStores();
+          await previewCheckout();
+        });
+        $('storeList').appendChild(wrapper);
+      });
+    }
+
+    async function previewCheckout() {
+      if (!state.shoppingItems.length) {
+        const shopping = await request('GET', '/api/v1/parent/kitchen/shopping');
+        state.shoppingItems = shopping.data || [];
+      }
+      if (!state.stores.length) {
+        await loadStores();
+      }
+      const payload = {
+        itemIds: state.shoppingItems.map((item) => item.id),
+        storeId: state.selectedStoreId || undefined,
+      };
+      const response = await request('POST', '/api/v1/parent/kitchen/checkout/preview', payload);
+      state.latestPreview = response.data;
+      setPendingCheckoutUrl('');
+      state.paymentMethods = response.data?.paymentMethods || [];
+      if (!state.selectedPaymentMethodId && state.paymentMethods[0]) {
+        state.selectedPaymentMethodId = state.paymentMethods.find((item) => item.isDefault)?.id || state.paymentMethods[0].id;
+      }
+      renderVoucher();
+      renderPaymentMethods();
+      renderOrderPreview();
+      return response;
+    }
+
+    function renderVoucher() {
+      const preview = state.latestPreview;
+      const items = preview?.voucherItems || [];
+      $('voucherMeta').textContent = `${new Date().toLocaleDateString()} • ${items.length} items total`;
+      $('voucherList').innerHTML = '';
+      items.forEach((item) => {
+        const div = document.createElement('div');
+        div.className = 'voucher-item';
+        div.innerHTML = `
+          <div class="split">
+            <div>
+              <strong>${item.name}</strong>
+              <div class="tiny">${item.note || 'No special note provided'}</div>
+            </div>
+            <div class="tiny">Qty: ${item.quantity}</div>
+          </div>
+        `;
+        $('voucherList').appendChild(div);
+      });
+    }
+
+    function renderPaymentMethods() {
+      $('paymentMethodList').innerHTML = '';
+      if (!state.paymentMethods.length) {
+        $('paymentMethodList').innerHTML = `
+          <div class="payment-option">
+            <strong>No saved payment method</strong>
+            <div class="tiny">Tap Pay now to continue on hosted Stripe checkout and enter card info there.</div>
+          </div>
+        `;
+        $('payNowButton').disabled = false;
+        setPaymentWarning('Pay now will open Stripe checkout so you can enter card details there.');
+        return;
+      }
+
+      $('payNowButton').disabled = false;
+      setPaymentWarning('Saved card list is optional. Pay now still opens Stripe checkout for manual card entry.');
+      state.paymentMethods.forEach((method) => {
+        const active = method.id === state.selectedPaymentMethodId;
+        const option = document.createElement('button');
+        option.type = 'button';
+        option.className = 'payment-option';
+        option.style.width = '100%';
+        option.style.textAlign = 'left';
+        option.innerHTML = `
+          <div class="split">
+            <div>
+              <strong>${method.brand || 'Card'} ${method.last4 || ''}</strong>
+              <div class="tiny">${method.maskedNumber || 'Saved payment method'} ${method.isDefault ? '• Default' : ''}</div>
+            </div>
+            <span class="radio ${active ? 'active' : ''}"></span>
+          </div>
+        `;
+        option.addEventListener('click', () => {
+          state.selectedPaymentMethodId = method.id;
+          renderPaymentMethods();
+        });
+        $('paymentMethodList').appendChild(option);
+      });
+    }
+
+    function parseExpiryParts() {
+      const raw = $('mockExpiry').value.trim();
+      const [monthText, yearText] = raw.split('/');
+      const expMonth = Number(monthText);
+      const shortYear = Number(yearText);
+      const expYear = yearText?.length === 2 ? 2000 + shortYear : shortYear;
+
+      if (!expMonth || !expYear) {
+        throw new Error('Expiry must look like MM/YY');
+      }
+
+      return { expMonth, expYear };
+    }
+
+    async function refreshPaymentMethods() {
+      const response = await request('GET', '/api/v1/payment/payment-methods');
+      state.paymentMethods = Array.isArray(response) ? response : response?.data || [];
+      if (!state.selectedPaymentMethodId && state.paymentMethods[0]) {
+        state.selectedPaymentMethodId =
+          state.paymentMethods.find((item) => item.isDefault)?.id ||
+          state.paymentMethods[0].id;
+      }
+      renderPaymentMethods();
+      return response;
+    }
+
+    async function saveMockPaymentMethod() {
+      const { expMonth, expYear } = parseExpiryParts();
+      const cvvValue = $('mockCvv').value.trim().replace(/\*/g, '1');
+      const payload = {
+        cardNumber: $('mockCardNumber').value.trim(),
+        expMonth,
+        expYear,
+        cvv: cvvValue,
+        cardholderName: $('mockCardholder').value.trim() || undefined,
+        isDefault: true,
+      };
+
+      const response = await request('POST', '/api/v1/payment/payment-methods', payload);
+      const savedMethod = response?.id ? response : response?.data || response;
+      if (savedMethod?.id) {
+        state.selectedPaymentMethodId = savedMethod.id;
+      }
+      setPaymentWarning('');
+      await refreshPaymentMethods();
+      renderOutput({
+        message: 'Test card saved successfully',
+        paymentMethod: savedMethod,
+      });
+    }
+
+    function renderOrderPreview() {
+      const preview = state.latestPreview;
+      if (!preview) return;
+      $('selectedStoreLabel').textContent = `Store: ${preview.selectedStore?.name || 'Not selected'}`;
+      $('orderCodeLabel').textContent = 'Order ID: Will be generated after confirm';
+      $('subtotalText').textContent = money(preview.pricing?.subtotal);
+      $('discountText').textContent = money(preview.pricing?.onlineDiscount);
+      $('deliveryFeeText').textContent = money(preview.pricing?.deliveryFee);
+      $('totalText').textContent = money(preview.pricing?.total);
+      $('orderVoucherList').innerHTML = '';
+      (preview.voucherItems || []).forEach((item) => {
+        const div = document.createElement('div');
+        div.className = 'split';
+        div.innerHTML = `
+          <div>
+            <strong style="font-size:13px;">${item.name}</strong>
+            <div class="tiny">${item.quantity}</div>
+          </div>
+          <div class="tiny">${money(item.price)}</div>
+        `;
+        $('orderVoucherList').appendChild(div);
+      });
+    }
+
+    async function createOrder(paymentType) {
+      if (!state.latestPreview) {
+        await previewCheckout();
+      }
+      const payload = {
+        itemIds: state.shoppingItems.map((item) => item.id),
+        storeId: state.selectedStoreId,
+        deliveryAddress: $('deliveryAddress').value.trim(),
+        receiverPhone: $('receiverPhone').value.trim(),
+        paymentType,
+        finalNote: $('voucherFinalNote').value.trim() || undefined,
+      };
+
+      try {
+        const response = await request('POST', '/api/v1/parent/kitchen/orders', payload);
+        state.latestOrder = response.data;
+
+        if (paymentType === 'ONLINE') {
+          const checkoutResponse = await request('POST', '/api/v1/payment/checkout', {
+            paymentType: 'GROCERY_ORDER',
+            groceryOrderId: response.data.id,
+            currency: 'AED',
+            successUrl: `${window.location.origin}/grocery-order-ui.html?checkout=success&order_id=${response.data.id}&session_id={CHECKOUT_SESSION_ID}`,
+            cancelUrl: `${window.location.origin}/grocery-order-ui.html?checkout=canceled&order_id=${response.data.id}`,
+          });
+
+          const paymentResult =
+            checkoutResponse?.data?.result?.data ||
+            checkoutResponse?.result?.data ||
+            checkoutResponse?.data?.data ||
+            checkoutResponse?.data ||
+            checkoutResponse?.result ||
+            null;
+          state.latestOrder.payment = paymentResult;
+
+          if (paymentResult?.checkoutUrl) {
+            setPaymentWarning('Opening Stripe checkout. Card info Stripe page-e dibe.');
+            setPendingCheckoutUrl(paymentResult.checkoutUrl);
+            window.location.href = paymentResult.checkoutUrl;
+            return checkoutResponse;
+          }
+
+          renderLatestOrder();
+          showScreen(paymentResult?.status === 'SUCCEEDED' ? 'screen-success' : 'screen-tracking');
+          return checkoutResponse;
+        }
+
+        renderLatestOrder();
+        showScreen('screen-tracking');
+        return response;
+      } catch (error) {
+        if (
+          paymentType === 'ONLINE' &&
+          error?.message?.includes('Saved Stripe connected account is invalid')
+        ) {
+          setPaymentWarning(
+            'Partner Stripe account invalid. First login as the selected partner, click Create Onboarding Link, complete onboarding, then Check Status. Tarpor Pay now on Stripe dile card info Stripe page-e diba.',
+          );
+          setPartnerStripeStatus(
+            'Selected partner needs Stripe onboarding again. Use partner login, then Create Onboarding Link.',
+          );
+          showScreen('screen-order');
+          return;
+        }
+        throw error;
+      }
+    }
+
+    async function loadOrders() {
+      const response = await request('GET', '/api/v1/parent/kitchen/orders');
+      state.latestOrder = response.data?.[0] || null;
+      if (state.latestOrder) {
+        renderLatestOrder();
+      }
+      showScreen('screen-tracking');
+      return response;
+    }
+
+    function renderLatestOrder() {
+      const order = state.latestOrder;
+      if (!order) return;
+
+      $('selectedStoreLabel').textContent = `Store: ${order.store?.name || 'Unknown Store'}`;
+      $('orderCodeLabel').textContent = `Order ID: ${order.orderId || order.id}`;
+      $('subtotalText').textContent = money(order.pricing?.subtotal);
+      $('discountText').textContent = money(order.pricing?.onlineDiscount);
+      $('deliveryFeeText').textContent = money(order.pricing?.deliveryFee);
+      $('totalText').textContent = money(order.pricing?.total);
+
+      $('trackingStoreCard').innerHTML = `
+        <div class="toolbar" style="justify-content:space-between; align-items:flex-start;">
+          <div>
+            <div class="tiny">Partner Details</div>
+            <strong>${order.store?.name || 'Partner Store'}</strong>
+            <div class="tiny">${order.store?.partner?.name || 'Partner'}</div>
+            <div class="tiny">${order.store?.address || 'Address pending'}</div>
+            <div class="tiny">${order.store?.partner?.phoneNumber || 'Phone pending'}</div>
+          </div>
+          <div class="floating-agent small">👤</div>
+        </div>
+        <div class="tracking-code">Tracking Voucher: ${order.trackingCode || 'Pending'}</div>
+      `;
+
+      $('timelineSteps').innerHTML = '';
+      (order.trackingTimeline || []).forEach((step) => {
+        const item = document.createElement('div');
+        item.className = `timeline-step ${step.active ? 'active' : ''}`;
+        item.innerHTML = `
+          <div class="timeline-dot">${step.active ? '✓' : ''}</div>
+          <strong style="font-size:14px; margin-bottom:4px; display:block;">${step.title}</strong>
+          <div class="tiny">${step.timestamp ? new Date(step.timestamp).toLocaleString() : 'Pending'}</div>
+        `;
+        $('timelineSteps').appendChild(item);
+      });
+    }
+
+    async function cancelLatestOrder() {
+      if (!state.latestOrder?.id) {
+        await loadOrders();
+      }
+      if (!state.latestOrder?.id) return;
+
+      const response = await request('PATCH', `/api/v1/parent/kitchen/orders/${state.latestOrder.id}`, {
+        action: 'CANCEL',
+      });
+      state.latestOrder = response.data;
+      renderLatestOrder();
+      return response;
+    }
+
+    function downloadPreview() {
+      renderOutput({
+        info: 'PDF route not added separately. Current compact flow uses preview + order routes only.',
+        latestPreview: state.latestPreview,
+      });
+    }
+
+    async function bootstrap() {
+      const savedBase = localStorage.getItem(BASE_URL_KEY);
+      if (savedBase) $('apiBase').value = savedBase;
+      $('apiBase').addEventListener('change', () => {
+        localStorage.setItem(BASE_URL_KEY, getBaseUrl());
+      });
+      $('tokenBox').value = getStoredToken();
+      activateCategoryButtons();
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('partner_onboarding') === 'done') {
+        setPartnerStripeStatus(
+          'Stripe onboarding returned successfully. Now check partner status, then pay as parent.',
+        );
+      } else if (params.get('partner_onboarding') === 'refresh') {
+        setPartnerStripeStatus(
+          'Stripe onboarding was refreshed. Open the onboarding link again if needed.',
+        );
+      } else if (params.get('checkout') === 'success') {
+        renderOutput({
+          message: 'Stripe checkout completed successfully.',
+          orderId: params.get('order_id'),
+          sessionId: params.get('session_id'),
+        });
+        showScreen('screen-success');
+      } else if (params.get('checkout') === 'canceled') {
+        renderOutput({
+          warning: 'Stripe checkout was canceled.',
+          orderId: params.get('order_id'),
+        });
+        showScreen('screen-order');
+      }
+      if (getStoredToken()) {
+        try {
+          await loadMe();
+          await refreshPaymentMethods();
+          await previewCheckout();
+        } catch (error) {
+          renderOutput({ warning: error.message });
+        }
+      } else {
+        renderPaymentMethods();
+      }
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>

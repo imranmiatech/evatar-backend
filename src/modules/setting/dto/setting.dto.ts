@@ -56,6 +56,15 @@ export class SavePayoutMethodDto {
   @IsOptional()
   providerName?: string;
 
+  @ApiPropertyOptional({
+    example: 'acct_1QwErTyUiOp12345',
+    description:
+      'Stripe connected account ID created from Stripe onboarding for destination charges',
+  })
+  @IsString()
+  @IsOptional()
+  stripeConnectedAccountId?: string;
+
   @ApiPropertyOptional({ example: 'Jane Doe' })
   @IsString()
   @IsOptional()
@@ -116,4 +125,20 @@ export class UpdateMembershipRoutingDto {
   @IsString()
   @IsOptional()
   notes?: string;
+}
+
+export class CreateStripeOnboardingLinkDto {
+  @ApiPropertyOptional({
+    example: 'http://localhost:5000/grocery-order-ui.html?partner_onboarding=done',
+  })
+  @IsString()
+  @IsOptional()
+  returnUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 'http://localhost:5000/grocery-order-ui.html?partner_onboarding=refresh',
+  })
+  @IsString()
+  @IsOptional()
+  refreshUrl?: string;
 }

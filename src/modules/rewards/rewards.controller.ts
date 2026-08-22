@@ -1,12 +1,18 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  ApiBody,
   ApiBearerAuth,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiTags,
@@ -52,10 +58,25 @@ export class RewardsController {
     summary: 'Mark a Today task complete and award 2 points once',
   })
   @ApiParam({ name: 'dayActivityId' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        image: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('image'))
   completeTaskForReward(
     @CurrentUser() user: CurrentUserPayload,
     @Param('dayActivityId') dayActivityId: string,
+    @Body() _body: Record<string, unknown>,
+    @UploadedFile() image?: Express.Multer.File,
   ) {
-    return this.rewardsService.completeTaskForReward(user, dayActivityId);
+    return this.rewardsService.completeTaskForReward(user, dayActivityId, image);
   }
 }

@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import Stripe from 'stripe';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SavePaymentMethodDto } from './dto/save-payment-method.dto';
@@ -14,12 +15,50 @@ import {
 type PaymentRecipientOptions = {
   nannyUserId?: string;
   productId?: string;
+  storeId?: string;
 };
 
 type StripeChargeSource = {
   storedPaymentMethod: any | null;
   stripePaymentMethodId: string | null;
   stripeCustomerId: string | null;
+};
+
+type PaymentRecipient = {
+  context: string;
+  targetUserId: string;
+  targetRole: string;
+  targetName: string;
+  targetEmail?: string | null;
+  payoutMethod: {
+    id: string;
+    label: string | null;
+    methodType: string;
+    providerName: string;
+    stripeConnectedAccountId: string | null;
+    accountHolderName: string | null;
+    cardLast4: string | null;
+    accountNumberMasked: string | null;
+    routingNumberMasked: string | null;
+    ibanMasked: string | null;
+    expiryMonth: number | null;
+    expiryYear: number | null;
+    isDefault: boolean;
+    isActive: boolean;
+    displayValue: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
+};
+
+type StripeConnectStatus = {
+  accountId: string;
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+  onboardingComplete: boolean;
+  requirementsCurrentlyDue: string[];
+  requirementsEventuallyDue: string[];
 };
 
 @Injectable()
@@ -205,6 +244,7 @@ export class PaymentAccountService {
   async resolveSelectedPaymentMethod(
     userId: string,
     paymentMethodId?: string | null,
+    useDefaultFallback = true,
   ) {
     let method: any = null;
 
@@ -214,7 +254,7 @@ export class PaymentAccountService {
       });
     }
 
-    if (!method) {
+    if (!method && useDefaultFallback) {
       method = await this.prisma.paymentMethod.findFirst({
         where: { userId, isDefault: true },
       });
@@ -226,10 +266,12 @@ export class PaymentAccountService {
   async getStripeChargeSource(
     userId: string,
     paymentMethodId?: string | null,
+    useDefaultFallback = true,
   ): Promise<StripeChargeSource> {
     const storedPaymentMethod = await this.resolveSelectedPaymentMethod(
       userId,
       paymentMethodId,
+      useDefaultFallback,
     );
 
     if (!storedPaymentMethod?.stripePaymentMethodId) {
@@ -280,10 +322,12 @@ export class PaymentAccountService {
     const routingNumber = this.normalizeDigits(dto.routingNumber);
     const iban = dto.iban?.replace(/\s+/g, '').trim();
     const cardLast4 = dto.cardLast4 || cardNumber?.slice(-4);
+    const stripeConnectedAccountId =
+      dto.stripeConnectedAccountId?.trim() || null;
 
-    if (!cardLast4 && !accountNumber && !iban) {
+    if (!cardLast4 && !accountNumber && !iban && !stripeConnectedAccountId) {
       throw new BadRequestException(
-        'Provide cardNumber/cardLast4 or accountNumber/iban to save a payout method.',
+        'Provide cardNumber/cardLast4, accountNumber/iban, or stripeConnectedAccountId to save a payout method.',
       );
     }
 
@@ -306,6 +350,7 @@ export class PaymentAccountService {
         methodType:
           dto.methodType || (iban || accountNumber ? 'BANK_ACCOUNT' : 'CARD'),
         providerName: dto.providerName || this.detectCardBrand(cardNumber),
+        stripeConnectedAccountId,
         accountHolderName: dto.accountHolderName || null,
         cardBrand: this.detectCardBrand(cardNumber),
         cardLast4: cardLast4 || null,
@@ -319,6 +364,170 @@ export class PaymentAccountService {
     });
 
     return this.serializePayoutMethod(created);
+  }
+
+  async createStripeOnboardingLink(
+    userId: string,
+    input: {
+      returnUrl?: string;
+      refreshUrl?: string;
+    } = {},
+  ) {
+    if (!this.stripe) {
+      throw new BadRequestException('Stripe integration is not configured.');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        role: true,
+        email: true,
+        fullName: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.role !== UserRole.PARTNER) {
+      throw new BadRequestException(
+        'Only partner accounts can start Stripe onboarding.',
+      );
+    }
+
+    let payoutMethod = await this.prisma.payoutMethod.findFirst({
+      where: {
+        userId,
+        stripeConnectedAccountId: { not: null },
+      },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+    });
+
+    let accountId = payoutMethod?.stripeConnectedAccountId || null;
+
+    if (accountId) {
+      try {
+        await this.stripe.accounts.retrieve(accountId);
+      } catch {
+        accountId = null;
+      }
+    }
+
+    if (!accountId) {
+      const account = await this.stripe.accounts.create({
+        type: 'express',
+        email: user.email || undefined,
+        business_type: 'individual',
+        business_profile: {
+          name: user.fullName,
+          product_description: 'Partner store payouts for grocery orders',
+        },
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+        metadata: {
+          userId: user.id,
+          role: user.role,
+        },
+      });
+
+      accountId = account.id;
+
+      if (payoutMethod) {
+        payoutMethod = await this.prisma.payoutMethod.update({
+          where: { id: payoutMethod.id },
+          data: {
+            label: payoutMethod.label || 'Stripe Connect Onboarding',
+            providerName: 'Stripe Connect',
+            methodType: 'BANK_ACCOUNT',
+            stripeConnectedAccountId: accountId,
+            accountHolderName: user.fullName,
+            isDefault: true,
+          },
+        });
+      } else {
+        await this.prisma.payoutMethod.updateMany({
+          where: { userId },
+          data: { isDefault: false },
+        });
+
+        payoutMethod = await this.prisma.payoutMethod.create({
+          data: {
+            userId,
+            label: 'Stripe Connect Onboarding',
+            methodType: 'BANK_ACCOUNT',
+            providerName: 'Stripe Connect',
+            stripeConnectedAccountId: accountId,
+            accountHolderName: user.fullName,
+            isDefault: true,
+          },
+        });
+      }
+    }
+
+    const baseUrl =
+      process.env.APP_BASE_URL ||
+      `http://localhost:${process.env.PORT ?? 5000}`;
+
+    const accountLink = await this.stripe.accountLinks.create({
+      account: accountId,
+      refresh_url:
+        input.refreshUrl?.trim() ||
+        `${baseUrl}/grocery-order-ui.html?partner_onboarding=refresh`,
+      return_url:
+        input.returnUrl?.trim() ||
+        `${baseUrl}/grocery-order-ui.html?partner_onboarding=done`,
+      type: 'account_onboarding',
+    });
+
+    return {
+      accountId,
+      onboardingUrl: accountLink.url,
+      expiresAt: accountLink.expires_at,
+      payoutMethod: payoutMethod
+        ? this.serializePayoutMethod(payoutMethod)
+        : null,
+    };
+  }
+
+  async getStripeConnectStatus(userId: string): Promise<StripeConnectStatus> {
+    if (!this.stripe) {
+      throw new BadRequestException('Stripe integration is not configured.');
+    }
+
+    const payoutMethod = await this.prisma.payoutMethod.findFirst({
+      where: {
+        userId,
+        stripeConnectedAccountId: { not: null },
+      },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+    });
+
+    if (!payoutMethod?.stripeConnectedAccountId) {
+      throw new NotFoundException(
+        'No Stripe connected account found for this partner.',
+      );
+    }
+
+    const account = await this.stripe.accounts.retrieve(
+      payoutMethod.stripeConnectedAccountId,
+    );
+
+    return {
+      accountId: account.id,
+      chargesEnabled: !!account.charges_enabled,
+      payoutsEnabled: !!account.payouts_enabled,
+      detailsSubmitted: !!account.details_submitted,
+      onboardingComplete:
+        !!account.details_submitted &&
+        !!account.charges_enabled &&
+        !!account.payouts_enabled,
+      requirementsCurrentlyDue: account.requirements?.currently_due || [],
+      requirementsEventuallyDue: account.requirements?.eventually_due || [],
+    };
   }
 
   async setDefaultPayoutMethod(userId: string, payoutMethodId: string) {
@@ -460,7 +669,7 @@ export class PaymentAccountService {
   async resolvePaymentRecipient(
     context: string,
     options: PaymentRecipientOptions = {},
-  ) {
+  ): Promise<PaymentRecipient | (PaymentRecipient & Record<string, any>)> {
     switch (context) {
       case 'NANNY_TIP': {
         if (!options.nannyUserId) {
@@ -522,6 +731,42 @@ export class PaymentAccountService {
           productName: product.productName,
         };
       }
+      case 'GROCERY_ORDER': {
+        if (!options.storeId) {
+          throw new BadRequestException(
+            'storeId is required for GROCERY_ORDER routing.',
+          );
+        }
+
+        const store = await this.prisma.store.findUnique({
+          where: { id: options.storeId },
+          include: {
+            user: {
+              include: {
+                payoutMethods: {
+                  where: { isDefault: true },
+                  take: 1,
+                  orderBy: { createdAt: 'desc' },
+                },
+              },
+            },
+          },
+        });
+
+        if (!store) {
+          throw new NotFoundException('Store not found.');
+        }
+
+        return {
+          ...this.serializeRecipient(
+            store.user,
+            store.user.payoutMethods?.[0],
+            context,
+          ),
+          storeId: store.id,
+          storeName: store.name,
+        };
+      }
       case 'MEMBERSHIP_SUBSCRIPTION': {
         const routing = await this.prisma.paymentRoutingSetting.findUnique({
           where: { paymentContext: 'MEMBERSHIP_SUBSCRIPTION' },
@@ -570,7 +815,7 @@ export class PaymentAccountService {
       }
       default:
         throw new BadRequestException(
-          'Unsupported context. Use NANNY_TIP, MEMBERSHIP_SUBSCRIPTION, or PARTNER_PRODUCT.',
+          'Unsupported context. Use NANNY_TIP, MEMBERSHIP_SUBSCRIPTION, PARTNER_PRODUCT, or GROCERY_ORDER.',
         );
     }
   }
@@ -598,6 +843,7 @@ export class PaymentAccountService {
       label: method.label,
       methodType: method.methodType,
       providerName: method.providerName || method.cardBrand || 'Account',
+      stripeConnectedAccountId: method.stripeConnectedAccountId || null,
       accountHolderName: method.accountHolderName,
       cardLast4: method.cardLast4,
       accountNumberMasked: method.accountNumberMasked,

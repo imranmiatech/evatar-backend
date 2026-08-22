@@ -4,7 +4,14 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { NotificationType, TransactionStatus, UserRole } from '@prisma/client';
+import {
+  GroceryOrderStatus,
+  NotificationType,
+  PaymentGateway,
+  PaymentMethodType,
+  TransactionStatus,
+  UserRole,
+} from '@prisma/client';
 import Stripe from 'stripe';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
@@ -505,6 +512,222 @@ export class PaymentService {
     };
   }
 
+  async createGroceryOrderPaymentIntent(
+    payerUserId: string,
+    input: {
+      groceryOrderId: string;
+      currency?: string;
+      paymentMethodId?: string | null;
+      successUrl?: string;
+      cancelUrl?: string;
+    },
+  ) {
+    const order = await this.prisma.groceryOrder.findUnique({
+      where: { id: input.groceryOrderId },
+      include: {
+        store: {
+          include: {
+            user: {
+              include: {
+                payoutMethods: {
+                  where: { isDefault: true },
+                  take: 1,
+                  orderBy: { createdAt: 'desc' },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Grocery order not found');
+    }
+
+    const amount = Number(order.total);
+    const currency = (input.currency || 'AED').toUpperCase();
+
+    if (isNaN(amount) || amount < 1) {
+      throw new BadRequestException(
+        'Grocery order payment amount must be at least 1 AED',
+      );
+    }
+
+    const payerPaymentMethod =
+      await this.paymentAccountService.resolveSelectedPaymentMethod(
+        payerUserId,
+        input.paymentMethodId,
+        !!input.paymentMethodId,
+      );
+    const stripeChargeSource =
+      await this.paymentAccountService.getStripeChargeSource(
+        payerUserId,
+        input.paymentMethodId,
+        !!input.paymentMethodId,
+      );
+    const payoutRecipient =
+      await this.paymentAccountService.resolvePaymentRecipient('GROCERY_ORDER', {
+        storeId: order.storeId,
+      });
+    const destinationAccountId =
+      payoutRecipient.payoutMethod?.stripeConnectedAccountId || null;
+
+    if (!this.stripe) {
+      throw new BadRequestException(
+        'Stripe integration is not configured for grocery payments.',
+      );
+    }
+
+    if (!destinationAccountId) {
+      throw new BadRequestException(
+        'Selected partner store has no Stripe onboarding account connected for grocery payments.',
+      );
+    }
+
+    await this.ensureConnectedAccountReady(destinationAccountId);
+
+    let clientSecret = `pi_mock_grocery_${order.id}_secret_dummy`;
+    let paymentIntentId = `pi_mock_grocery_${order.id}`;
+    let checkoutUrl: string | null = null;
+    let checkoutSessionId: string | null = null;
+    let paymentStatus = 'PENDING';
+    const paymentMetadata = {
+      payerUserId,
+      groceryOrderId: order.id,
+      storeId: order.storeId,
+      storeName: order.store.name,
+      type: 'GROCERY_ORDER',
+    };
+    const description = `Grocery order payment for ${order.store.name}`;
+
+    if (stripeChargeSource.stripePaymentMethodId) {
+      let paymentIntent;
+      try {
+        paymentIntent = await this.createStripePaymentIntent({
+          amount: Math.round(amount * 100),
+          currency,
+          stripeChargeSource,
+          metadata: paymentMetadata,
+          description,
+          destinationAccountId,
+        });
+      } catch (error: any) {
+        throw new BadRequestException(
+          this.mapStripeConnectError(
+            error,
+            'Stripe PaymentIntent could not be created for this grocery order.',
+          ),
+        );
+      }
+
+      if (!paymentIntent) {
+        throw new BadRequestException(
+          'Stripe PaymentIntent could not be created for this grocery order.',
+        );
+      }
+
+      clientSecret = paymentIntent.client_secret || clientSecret;
+      paymentIntentId = paymentIntent.id;
+      paymentStatus = paymentIntent.status.toUpperCase();
+    } else {
+      let checkoutSession;
+      try {
+        checkoutSession = await this.createStripeCheckoutSession({
+          amount: Math.round(amount * 100),
+          currency,
+          metadata: paymentMetadata,
+          description,
+          productName: `Grocery order from ${order.store.name}`,
+          successUrl:
+            input.successUrl ||
+            `${this.appBaseUrl()}/grocery-order-ui.html?checkout=success&order_id=${order.id}&session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl:
+            input.cancelUrl ||
+            `${this.appBaseUrl()}/grocery-order-ui.html?checkout=canceled&order_id=${order.id}`,
+          destinationAccountId,
+        });
+      } catch (error: any) {
+        throw new BadRequestException(
+          this.mapStripeConnectError(
+            error,
+            'Stripe Checkout session could not be created for this grocery order.',
+          ),
+        );
+      }
+
+      if (!checkoutSession?.url) {
+        throw new BadRequestException(
+          'Stripe Checkout session could not be created for this grocery order.',
+        );
+      }
+
+      checkoutUrl = checkoutSession.url || null;
+      checkoutSessionId = checkoutSession.id;
+      paymentStatus = 'CHECKOUT_REQUIRED';
+      paymentIntentId = checkoutSession.payment_intent as string || paymentIntentId;
+    }
+
+    const transaction = await this.prisma.transaction.create({
+      data: {
+        userId: payerUserId,
+        groceryOrderId: order.id,
+        paymentMethodId: payerPaymentMethod?.id ?? null,
+        transactionId: `grocery-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        paymentGateway: PaymentGateway.STRIPE,
+        paymentMethodType: PaymentMethodType.ONLINE,
+        amount,
+        currency,
+        status:
+          paymentStatus === 'SUCCEEDED'
+            ? TransactionStatus.SUCCESS
+            : TransactionStatus.PENDING,
+        cardBrand: payerPaymentMethod?.brand ?? null,
+        cardLast4: payerPaymentMethod?.last4 ?? null,
+        paymentIntentId,
+        gatewayResponse: JSON.stringify({
+          clientSecret,
+          checkoutUrl,
+          checkoutSessionId,
+          paymentStatus,
+          payoutRecipient,
+        }),
+      },
+    });
+
+    await this.prisma.groceryOrder.update({
+      where: { id: order.id },
+      data: {
+        transactionId: transaction.id,
+        status:
+          paymentStatus === 'SUCCEEDED'
+            ? GroceryOrderStatus.ORDER_CONFIRMED
+            : GroceryOrderStatus.STORE_REVIEWED,
+      },
+    });
+
+    return {
+      success: true,
+      message:
+        paymentStatus === 'SUCCEEDED'
+          ? 'Grocery order payment completed successfully'
+          : 'Stripe PaymentIntent created for grocery order',
+      data: {
+        groceryOrderId: order.id,
+        transactionId: transaction.id,
+        paymentIntentId,
+        clientSecret,
+        checkoutUrl,
+        checkoutSessionId,
+        amount,
+        currency,
+        status: paymentStatus,
+        payerPaymentMethod,
+        payoutRecipient,
+      },
+    };
+  }
+
   private async createStripePaymentIntent(input: {
     amount: number;
     currency: string;
@@ -514,12 +737,13 @@ export class PaymentService {
     };
     metadata: Record<string, string>;
     description: string;
+    destinationAccountId?: string | null;
   }) {
     if (!this.stripe) {
       return null;
     }
 
-    return this.stripe.paymentIntents.create({
+    const paymentIntentInput: Stripe.PaymentIntentCreateParams = {
       amount: input.amount,
       currency: input.currency.toLowerCase(),
       payment_method_types: ['card'],
@@ -528,7 +752,16 @@ export class PaymentService {
       confirm: !!input.stripeChargeSource.stripePaymentMethodId,
       metadata: input.metadata,
       description: input.description,
-    });
+    };
+
+    if (input.destinationAccountId) {
+      paymentIntentInput.transfer_data = {
+        destination: input.destinationAccountId,
+      };
+      paymentIntentInput.on_behalf_of = input.destinationAccountId;
+    }
+
+    return this.stripe.paymentIntents.create(paymentIntentInput);
   }
 
   private async createStripeCheckoutSession(input: {
@@ -536,8 +769,10 @@ export class PaymentService {
     currency: string;
     metadata: Record<string, string>;
     description: string;
+    productName?: string;
     successUrl: string;
     cancelUrl: string;
+    destinationAccountId?: string | null;
   }) {
     if (!this.stripe) {
       return null;
@@ -550,7 +785,7 @@ export class PaymentService {
           price_data: {
             currency: input.currency.toLowerCase(),
             product_data: {
-              name: 'Nanny Appreciation Tip',
+              name: input.productName || 'Checkout Payment',
               description: input.description,
             },
             unit_amount: input.amount,
@@ -565,6 +800,12 @@ export class PaymentService {
       payment_intent_data: {
         metadata: input.metadata,
         description: input.description,
+        transfer_data: input.destinationAccountId
+          ? {
+              destination: input.destinationAccountId,
+            }
+          : undefined,
+        on_behalf_of: input.destinationAccountId || undefined,
       },
     });
   }
@@ -574,5 +815,57 @@ export class PaymentService {
       process.env.APP_BASE_URL ||
       `http://localhost:${process.env.PORT ?? 5000}`
     );
+  }
+
+  private async ensureConnectedAccountReady(accountId: string) {
+    if (!this.stripe) {
+      throw new BadRequestException(
+        'Stripe integration is not configured for grocery payments.',
+      );
+    }
+
+    let account: Stripe.Account;
+    try {
+      account = await this.stripe.accounts.retrieve(accountId);
+    } catch (error: any) {
+      throw new BadRequestException(
+        this.mapStripeConnectError(
+          error,
+          'Partner Stripe connected account could not be verified.',
+        ),
+      );
+    }
+
+    if (!account.details_submitted) {
+      throw new BadRequestException(
+        'Partner Stripe onboarding is not completed yet. Complete onboarding details first.',
+      );
+    }
+
+    if (!account.charges_enabled || !account.payouts_enabled) {
+      const due = account.requirements?.currently_due?.length
+        ? ` Missing: ${account.requirements.currently_due.join(', ')}`
+        : '';
+      throw new BadRequestException(
+        `Partner Stripe account is not ready for payments yet. charges_enabled=${!!account.charges_enabled}, payouts_enabled=${!!account.payouts_enabled}.${due}`,
+      );
+    }
+  }
+
+  private mapStripeConnectError(error: any, fallbackMessage: string) {
+    const message = error?.message || '';
+
+    if (message.includes('No such on_behalf_of')) {
+      return 'Saved Stripe connected account is invalid. Open partner onboarding again to create a real connected account.';
+    }
+
+    if (
+      message.includes('No such account') ||
+      message.includes('does not have the required capabilities')
+    ) {
+      return 'Partner Stripe connected account is not ready for payments yet. Complete Stripe onboarding and verify card_payments/transfers are enabled.';
+    }
+
+    return fallbackMessage;
   }
 }

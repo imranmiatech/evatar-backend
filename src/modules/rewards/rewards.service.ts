@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   ActivityStatus,
+  MediaType,
   Prisma,
   RewardClaimMethod,
   RewardLedgerEntry,
@@ -45,6 +46,14 @@ const POINTS_PER_GROCERY_ORDER = 10;
 const POINTS_PER_APPRECIATION = 5;
 const REWARD_HUB_ACTIVITY_LIMIT = 20;
 const REWARD_HUB_RECENT_DAYS = 7;
+const MEDIA_REWARD_UPGRADE_WINDOW_HOURS = 24;
+
+type TaskRewardDecision = {
+  activityKey: string;
+  points: number;
+  description: string;
+  metadata: Prisma.InputJsonValue;
+};
 
 @Injectable()
 export class RewardsService {
@@ -190,18 +199,25 @@ export class RewardsService {
 
 
 
-  async completeTaskForReward(user: CurrentUserPayload, dayActivityId: string) {
+  async completeTaskForReward(
+    user: CurrentUserPayload,
+    dayActivityId: string,
+    image?: Express.Multer.File,
+  ) {
     this.ensureRewardUser(user);
     const userId = this.currentUserId(user);
-
     const activity = await this.prisma.dayActivity.findUnique({
       where: { id: dayActivityId },
       include: {
         dayPlan: {
           select: {
             childId: true,
+            date: true,
             child: { select: { id: true, name: true } },
           },
+        },
+        proofs: {
+          select: { id: true },
         },
       },
     });
@@ -216,15 +232,29 @@ export class RewardsService {
       'dailyActivitiesRecipes',
     );
 
+    const uploadedProof = image
+      ? await this.createTaskProofImage(userId, dayActivityId, image)
+      : null;
+
     await this.prisma.dayActivity.update({
       where: { id: dayActivityId },
-      data: { status: ActivityStatus.COMPLETED },
+      data: {
+        status: ActivityStatus.COMPLETED,
+        ...(uploadedProof && { proofMediaId: uploadedProof.id }),
+      },
     });
 
     const award = await this.awardCompletedTask(userId, dayActivityId, {
       title: activity.title,
+      category: activity.category,
+      description: activity.description,
       childId: activity.dayPlan.childId,
       childName: activity.dayPlan.child.name,
+      dayPlanDate: activity.dayPlan.date.toISOString(),
+      hasMedia:
+        Boolean(activity.proofMediaId) ||
+        activity.proofs.length > 0 ||
+        Boolean(uploadedProof),
       completedByRole: user.role,
     });
 
@@ -638,14 +668,19 @@ export class RewardsService {
     dayActivityId: string,
     metadata?: Prisma.InputJsonValue,
   ) {
-    return this.awardActivityReward({
-      activityKey: DAILY_FLOW_REWARD_RULE_KEY,
+    const taskReward = await this.resolveTaskRewardDecision(
       userId,
-      sourceType: RewardLedgerSourceType.DAY_ACTIVITY,
-      sourceId: dayActivityId,
-      defaultPoints: POINTS_PER_COMPLETED_TASK,
-      description: 'Completed task',
+      dayActivityId,
       metadata,
+    );
+
+    return this.awardTaskActivityReward({
+      activityKey: taskReward.activityKey,
+      userId,
+      sourceId: dayActivityId,
+      points: taskReward.points,
+      description: taskReward.description,
+      metadata: taskReward.metadata,
     });
   }
 
@@ -655,12 +690,17 @@ export class RewardsService {
     points: number,
     metadata?: Prisma.InputJsonValue,
   ) {
+    const role =
+      (metadata as Record<string, unknown> | undefined)
+        ?.completedByRole as UserRole | undefined;
+
     return this.awardActivityReward({
       activityKey: CARE_MODULE_REWARD_RULE_KEY,
       userId,
       sourceType: RewardLedgerSourceType.CARE_MODULE_ASSIGNMENT,
       sourceId: assignmentId,
-      defaultPoints: points,
+      defaultPoints:
+        role === UserRole.PARENT ? 150 : role === UserRole.NANNY ? 80 : points,
       description: 'Completed care module',
       metadata,
     });
@@ -718,6 +758,46 @@ export class RewardsService {
       description: 'Sent appreciation to caregiver',
       metadata: { ...((metadata as Record<string, unknown>) ?? {}), nannyUserId },
       userRole: UserRole.PARENT,
+    });
+  }
+
+  private async awardTaskActivityReward(input: {
+    activityKey: string;
+    userId: string;
+    sourceId: string;
+    points: number;
+    description: string;
+    metadata?: Prisma.InputJsonValue;
+  }) {
+    const role =
+      ((input.metadata as Record<string, unknown> | undefined)
+        ?.completedByRole as UserRole | undefined) ?? undefined;
+
+    const rule = await this.resolveRewardRule(
+      input.activityKey,
+      role,
+      input.points,
+    );
+
+    if (!rule.shouldAward || rule.points <= 0) {
+      const account = await this.ensureRewardAccount(input.userId);
+      return {
+        awarded: false,
+        account,
+        ledgerEntry: null,
+        points: 0,
+        reason: rule.reason,
+      };
+    }
+
+    return this.awardUpgradableTaskReward({
+      userId: input.userId,
+      sourceId: input.sourceId,
+      points: rule.points,
+      description: input.description,
+      metadata: this.withRewardRuleMetadata(input.metadata, rule),
+      rewardRuleActivityKey: rule.activityKey,
+      weeklyLimit: rule.weeklyLimit,
     });
   }
 
@@ -817,6 +897,174 @@ export class RewardsService {
     });
   }
 
+  private async awardUpgradableTaskReward(input: {
+    userId: string;
+    sourceId: string;
+    points: number;
+    description: string;
+    metadata?: Prisma.InputJsonValue;
+    rewardRuleActivityKey?: string;
+    weeklyLimit?: number | null;
+  }) {
+    if (input.points < 0) {
+      throw new BadRequestException('Reward points cannot be negative');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      if (input.rewardRuleActivityKey && input.weeklyLimit) {
+        const now = new Date();
+        const weekStart = new Date(now);
+        weekStart.setUTCHours(0, 0, 0, 0);
+        weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay());
+
+        const weeklyAwardCount = await tx.rewardLedgerEntry.count({
+          where: {
+            userId: input.userId,
+            entryType: RewardLedgerEntryType.EARN,
+            createdAt: { gte: weekStart },
+            metadata: {
+              path: ['rewardRuleActivityKey'],
+              equals: input.rewardRuleActivityKey,
+            },
+          },
+        });
+
+        if (weeklyAwardCount >= input.weeklyLimit) {
+          const account = await this.ensureRewardAccountForTx(tx, input.userId);
+          return {
+            awarded: false,
+            account,
+            ledgerEntry: null,
+            points: 0,
+            reason: 'WEEKLY_LIMIT_REACHED',
+          };
+        }
+      }
+
+      const existing = await tx.rewardLedgerEntry.findUnique({
+        where: {
+          entryType_sourceType_sourceId: {
+            entryType: RewardLedgerEntryType.EARN,
+            sourceType: RewardLedgerSourceType.DAY_ACTIVITY,
+            sourceId: input.sourceId,
+          },
+        },
+      });
+
+      if (!existing) {
+        if (input.points <= 0) {
+          const account = await this.ensureRewardAccountForTx(tx, input.userId);
+          return {
+            awarded: false,
+            account,
+            ledgerEntry: null,
+            points: 0,
+            reason: 'NO_REWARD_AVAILABLE',
+          };
+        }
+
+        const account = await tx.rewardAccount.upsert({
+          where: { userId: input.userId },
+          update: {
+            balance: { increment: input.points },
+            lifetimeEarned: { increment: input.points },
+          },
+          create: {
+            userId: input.userId,
+            balance: input.points,
+            lifetimeEarned: input.points,
+          },
+        });
+
+        const ledgerEntry = await tx.rewardLedgerEntry.create({
+          data: {
+            userId: input.userId,
+            entryType: RewardLedgerEntryType.EARN,
+            sourceType: RewardLedgerSourceType.DAY_ACTIVITY,
+            sourceId: input.sourceId,
+            points: input.points,
+            balanceAfter: account.balance,
+            description: input.description,
+            metadata: input.metadata,
+          },
+        });
+
+        return { awarded: true, account, ledgerEntry, points: input.points };
+      }
+
+      const existingMetadata =
+        existing.metadata &&
+        typeof existing.metadata === 'object' &&
+        !Array.isArray(existing.metadata)
+          ? (existing.metadata as Record<string, unknown>)
+          : {};
+
+      const previouslyHadMedia = Boolean(existingMetadata.hasMedia);
+      const nextHasMedia = Boolean(
+        (input.metadata as Record<string, unknown> | undefined)?.hasMedia,
+      );
+      const ageMs = Date.now() - existing.createdAt.getTime();
+      const withinUpgradeWindow =
+        ageMs <= MEDIA_REWARD_UPGRADE_WINDOW_HOURS * 60 * 60 * 1000;
+      const pointsDelta = input.points - existing.points;
+
+      if (
+        pointsDelta > 0 &&
+        nextHasMedia &&
+        !previouslyHadMedia &&
+        withinUpgradeWindow
+      ) {
+        const account = await tx.rewardAccount.update({
+          where: { userId: input.userId },
+          data: {
+            balance: { increment: pointsDelta },
+            lifetimeEarned: { increment: pointsDelta },
+          },
+        });
+
+        const ledgerEntry = await tx.rewardLedgerEntry.create({
+          data: {
+            userId: input.userId,
+            entryType: RewardLedgerEntryType.ADJUSTMENT,
+            sourceType: RewardLedgerSourceType.DAY_ACTIVITY,
+            sourceId: input.sourceId,
+            points: pointsDelta,
+            balanceAfter: account.balance,
+            description: `${input.description} media upgrade`,
+            metadata: {
+              ...(existingMetadata ?? {}),
+              ...((input.metadata as Record<string, unknown>) ?? {}),
+              rewardUpgradeFromPoints: existing.points,
+              rewardUpgradeToPoints: input.points,
+            },
+          },
+        });
+
+        await tx.rewardLedgerEntry.update({
+          where: { id: existing.id },
+          data: {
+            metadata: {
+              ...existingMetadata,
+              ...((input.metadata as Record<string, unknown>) ?? {}),
+              upgradedAt: new Date().toISOString(),
+            },
+          },
+        });
+
+        return { awarded: true, account, ledgerEntry, points: pointsDelta };
+      }
+
+      const account = await this.ensureRewardAccountForTx(tx, input.userId);
+      return {
+        awarded: false,
+        account,
+        ledgerEntry: existing,
+        points: 0,
+        reason: 'ALREADY_REWARDED',
+      };
+    });
+  }
+
   private async resolveRewardRule(
     activityKey: string,
     role: UserRole | undefined,
@@ -865,6 +1113,269 @@ export class RewardsService {
       points: rule.alureiValue,
       weeklyLimit: rule.weeklyLimit,
     };
+  }
+
+  private async resolveTaskRewardDecision(
+    userId: string,
+    dayActivityId: string,
+    metadata?: Prisma.InputJsonValue,
+  ): Promise<TaskRewardDecision> {
+    const taskMeta =
+      metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+        ? (metadata as Record<string, unknown>)
+        : {};
+
+    const role = taskMeta.completedByRole as UserRole | undefined;
+    const title = String(taskMeta.title ?? '').toLowerCase();
+    const category = String(taskMeta.category ?? '').toLowerCase();
+    const hasMedia = Boolean(taskMeta.hasMedia);
+    const dayPlanDate = taskMeta.dayPlanDate
+      ? new Date(String(taskMeta.dayPlanDate))
+      : null;
+    const scheduleContext = await this.resolveChildScheduleContext(taskMeta);
+    const mealType = String(
+      scheduleContext?.recipe?.recipeMealType ?? '',
+    ).toLowerCase();
+    const activityType = String(
+      scheduleContext?.activity?.activityType ?? '',
+    ).toLowerCase();
+    const descriptionText = String(taskMeta.description ?? '').toLowerCase();
+    const text = `${title} ${category} ${descriptionText} ${mealType} ${activityType}`;
+
+    const task = {
+      isMeal:
+        category.includes('recipe') ||
+        !!mealType ||
+        this.containsAny(text, ['breakfast', 'lunch', 'dinner', 'snack']),
+      isBreakfast: mealType === 'breakfast' || text.includes('breakfast'),
+      isLunch:
+        mealType === 'lunch' ||
+        (text.includes('lunch') && !text.includes('lunchbox') && !text.includes('lunch box')),
+      isDinner: mealType === 'dinner' || text.includes('dinner'),
+      isSnack: mealType === 'snack' || text.includes('snack'),
+      isLunchbox: this.containsAny(text, ['lunchbox', 'lunch box']),
+      isOutdoor:
+        this.containsAny(text, ['outdoor']) || activityType === 'outdoor_play',
+      isPartnerVisit:
+        text.includes('partner visit') ||
+        text.includes('external partner') ||
+        (text.includes('visit') &&
+          this.containsAny(text, ['partner', 'clinic', 'doctor', 'therapy', 'hospital'])),
+    };
+
+    const isActivity =
+      !task.isMeal &&
+      !task.isLunchbox &&
+      !task.isPartnerVisit &&
+      this.containsAny(text, [
+        'activity',
+        'play',
+        'study',
+        'learning',
+        'outdoor',
+        'creative',
+        'art',
+        'music',
+        'story',
+      ]);
+
+    const isSharedParentActivity =
+      role === UserRole.PARENT &&
+      isActivity &&
+      !task.isOutdoor &&
+      (await this.isSharedParentActivity(userId, dayActivityId, {
+        dayPlanDate,
+        title: String(taskMeta.title ?? ''),
+        category: String(taskMeta.category ?? ''),
+      }));
+
+    let activityKey = 'NO_REWARD_TASK';
+    let description = 'Completed task';
+    let points = 0;
+
+    if (role === UserRole.PARENT) {
+      if (task.isBreakfast || task.isLunch || task.isDinner) {
+        activityKey = task.isBreakfast
+          ? 'EF_01_BREAKFAST_LOGGED'
+          : task.isLunch
+            ? 'EF_02_LUNCH_LOGGED'
+            : 'EF_03_DINNER_LOGGED';
+        description = 'Logged meal';
+        points = hasMedia ? 50 : 20;
+      } else if (task.isSnack) {
+        activityKey = 'EF_04_SNACK_LOGGED';
+        description = 'Logged snack';
+        points = hasMedia ? 30 : 20;
+      } else if (task.isLunchbox) {
+        activityKey = 'EF_05_LUNCHBOX_PREPARED';
+        description = 'Prepared lunchbox';
+        points = 30;
+      } else if (task.isPartnerVisit) {
+        activityKey = 'EF_08_EXTERNAL_PARTNER_VISIT';
+        description = 'Logged external partner visit';
+        points = 200;
+      } else if (
+        task.isOutdoor ||
+        activityType === 'outdoor_play' ||
+        this.containsAny(text, ['outdoor play'])
+      ) {
+        activityKey = 'EF_07_OUTDOOR_ACTIVITY_COMPLETED';
+        description = 'Completed outdoor activity';
+        points = hasMedia ? 100 : 50;
+      } else if (isActivity) {
+        activityKey = isSharedParentActivity
+          ? 'EF_12_SHARED_ACTIVITY'
+          : 'EF_06_AT_HOME_ACTIVITY_COMPLETED';
+        description = isSharedParentActivity
+          ? 'Completed shared activity'
+          : 'Completed at-home activity';
+        points = hasMedia ? 100 : 50;
+
+        if (isSharedParentActivity) {
+          points = Math.round(points * 0.75);
+        }
+      }
+    } else if (role === UserRole.NANNY) {
+      if (task.isBreakfast || task.isLunch || task.isDinner || task.isSnack) {
+        activityKey = 'EN_01_MEAL_LOGGED';
+        description = 'Logged meal';
+        points = hasMedia ? 30 : 0;
+      } else if (task.isPartnerVisit) {
+        activityKey = 'EN_04_EXTERNAL_PARTNER_VISIT';
+        description = 'Logged external partner visit';
+        points = 100;
+      } else if (
+        isActivity ||
+        task.isOutdoor ||
+        task.isLunchbox ||
+        activityType === 'outdoor_play'
+      ) {
+        activityKey = 'EN_02_ACTIVITY_COMPLETED';
+        description = 'Completed activity';
+        points = hasMedia ? 50 : 0;
+      }
+    }
+
+    return {
+      activityKey,
+      points,
+      description,
+      metadata: {
+        ...taskMeta,
+        hasMedia,
+        isSharedParentActivity,
+      } satisfies Prisma.InputJsonValue,
+    };
+  }
+
+  private async isSharedParentActivity(
+    userId: string,
+    dayActivityId: string,
+    input: {
+      dayPlanDate: Date | null;
+      title: string;
+      category: string;
+    },
+  ) {
+    if (!input.dayPlanDate || !input.title) {
+      return false;
+    }
+
+    const parentChildren = await this.prisma.child.findMany({
+      where: { parentUserId: userId },
+      select: { id: true },
+    });
+
+    if (parentChildren.length < 2) {
+      return false;
+    }
+
+    const siblingActivityCount = await this.prisma.dayActivity.count({
+      where: {
+        id: { not: dayActivityId },
+        title: input.title,
+        category: input.category || undefined,
+        dayPlan: {
+          date: input.dayPlanDate,
+          childId: { in: parentChildren.map((child) => child.id) },
+        },
+      },
+    });
+
+    return siblingActivityCount > 0;
+  }
+
+  private containsAny(value: string, keywords: string[]) {
+    return keywords.some((keyword) => value.includes(keyword));
+  }
+
+  private async resolveChildScheduleContext(taskMeta: Record<string, unknown>) {
+    const childId = String(taskMeta.childId ?? '').trim();
+    const title = String(taskMeta.title ?? '').trim();
+    const dayPlanDate = taskMeta.dayPlanDate
+      ? new Date(String(taskMeta.dayPlanDate))
+      : null;
+
+    if (!childId || !title || !dayPlanDate || Number.isNaN(dayPlanDate.getTime())) {
+      return null;
+    }
+
+    return this.prisma.childSchedule.findFirst({
+      where: {
+        childId,
+        date: dayPlanDate,
+        title,
+      },
+      include: {
+        recipe: {
+          select: {
+            id: true,
+            recipeMealType: true,
+          },
+        },
+        activity: {
+          select: {
+            id: true,
+            activityType: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  private async createTaskProofImage(
+    userId: string,
+    dayActivityId: string,
+    image: Express.Multer.File,
+  ) {
+    const url = await this.storageService.uploadFile(image, 'reward-task-proofs');
+    const mediaAsset = await this.prisma.mediaAsset.create({
+      data: {
+        ownerUserId: userId,
+        type: this.mediaTypeFromMime(image.mimetype),
+        url,
+        storageKey: url,
+        mimeType: image.mimetype,
+        sizeBytes: image.size,
+      },
+    });
+
+    await this.prisma.dayActivityProof.create({
+      data: {
+        dayActivityId,
+        mediaAssetId: mediaAsset.id,
+        uploadedByUserId: userId,
+      },
+    });
+
+    return mediaAsset;
+  }
+
+  private mediaTypeFromMime(mimeType?: string) {
+    if (mimeType?.startsWith('video/')) return MediaType.VIDEO;
+    if (mimeType?.startsWith('audio/')) return MediaType.AUDIO;
+    return MediaType.IMAGE;
   }
 
   private isEligibleForRewardRule(

@@ -3,8 +3,12 @@ model GroceryOrder {
   userId           String
   storeId          String
   orderId          String?            @unique
+  trackingCode     String?            @unique
   status           GroceryOrderStatus @default(VOUCHER_SENT)
   finalNote        String?
+  deliveryAddress  String?
+  receiverPhone    String?
+  estimatedDeliveryAt DateTime?
   rewardCouponCode String?
   subtotal         Float              @default(0)
   onlineDiscount   Float              @default(0)
