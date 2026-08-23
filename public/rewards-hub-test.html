@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rewards Hub Test Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --page: #0b1520;
+      --page-glow: radial-gradient(circle at top right, rgba(76, 208, 198, 0.24), transparent 28%), radial-gradient(circle at bottom left, rgba(24, 119, 242, 0.18), transparent 24%), #0b1520;
+      --panel: rgba(10, 22, 34, 0.88);
+      --panel-soft: rgba(17, 34, 50, 0.88);
+      --line: rgba(201, 216, 226, 0.12);
+      --line-strong: rgba(86, 197, 189, 0.28);
+      --text: #f2f7fa;
+      --muted: #97a8b5;
+      --teal: #0d8b88;
+      --teal-strong: #0a6d6a;
+      --teal-soft: rgba(13, 139, 136, 0.16);
+      --cyan: #6cd9d0;
+      --danger: #ff6b6b;
+      --warn: #f5b944;
+      --success: #43c59e;
+      --chip: rgba(255, 255, 255, 0.06);
+      --shadow: 0 24px 60px rgba(2, 10, 18, 0.45);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--page-glow);
+      color: var(--text);
+      font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+      padding: 24px;
+    }
+
+    .shell {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 1120px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .sidebar {
+      padding: 22px;
+      position: sticky;
+      top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand h1 {
+      font-size: 24px;
+      line-height: 1.1;
+      letter-spacing: -0.04em;
+    }
+
+    .brand p {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .input,
+    .select,
+    .textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      color: var(--text);
+      border-radius: var(--radius-md);
+      padding: 13px 14px;
+      font-size: 14px;
+      outline: none;
+      transition: 0.2s ease;
+    }
+
+    .input:focus,
+    .select:focus,
+    .textarea:focus {
+      border-color: var(--line-strong);
+      box-shadow: 0 0 0 4px rgba(13, 139, 136, 0.12);
+    }
+
+    .textarea {
+      resize: vertical;
+      min-height: 90px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .button-row,
+    .quick-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .quick-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.16s ease, opacity 0.16s ease, background 0.16s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      cursor: wait;
+      opacity: 0.7;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--teal), var(--teal-strong));
+      color: white;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .btn-soft {
+      background: var(--teal-soft);
+      color: var(--cyan);
+      border: 1px solid rgba(108, 217, 208, 0.14);
+    }
+
+    .micro-copy {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      align-self: flex-start;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--line);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .status-pill::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--warn);
+      box-shadow: 0 0 12px rgba(245, 185, 68, 0.5);
+    }
+
+    .status-pill.ready {
+      color: #dcfff0;
+      border-color: rgba(67, 197, 158, 0.28);
+      background: rgba(67, 197, 158, 0.12);
+    }
+
+    .status-pill.ready::before {
+      background: var(--success);
+      box-shadow: 0 0 12px rgba(67, 197, 158, 0.5);
+    }
+
+    .status-pill.error {
+      color: #ffe0e0;
+      border-color: rgba(255, 107, 107, 0.28);
+      background: rgba(255, 107, 107, 0.12);
+    }
+
+    .status-pill.error::before {
+      background: var(--danger);
+      box-shadow: 0 0 12px rgba(255, 107, 107, 0.5);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 390px) minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 1280px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .phone {
+      min-height: 860px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: #f5f8fa;
+      color: #12222d;
+      position: relative;
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at top right, rgba(13, 139, 136, 0.18), transparent 26%);
+    }
+
+    .phone-header {
+      background: white;
+      padding: 18px 20px 12px;
+      border-bottom: 1px solid #e6edf2;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 1;
+    }
+
+    .phone-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .phone-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .phone-subtitle {
+      font-size: 12px;
+      color: #6d7d89;
+    }
+
+    .balance-card {
+      background: linear-gradient(135deg, #0c6666, #073b46);
+      color: white;
+      border-radius: 24px;
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .balance-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .balance-value {
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -0.05em;
+    }
+
+    .balance-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      width: fit-content;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: #e8eff3;
+      padding: 4px;
+      border-radius: 999px;
+    }
+
+    .tab {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 14px;
+      background: transparent;
+      color: #5e6d77;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .tab.active {
+      background: #0d8b88;
+      color: white;
+      box-shadow: 0 10px 20px rgba(13, 139, 136, 0.24);
+    }
+
+    .phone-body {
+      padding: 18px 20px 22px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      z-index: 1;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .section-heading h3 {
+      font-size: 15px;
+      font-weight: 800;
+      color: #18323f;
+    }
+
+    .section-heading span {
+      font-size: 11px;
+      color: #71828e;
+      font-weight: 700;
+    }
+
+    .activity-list,
+    .redemption-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .activity-card,
+    .redemption-card {
+      background: white;
+      border: 1px solid #e7eef2;
+      border-radius: 18px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      box-shadow: 0 8px 22px rgba(18, 34, 45, 0.05);
+    }
+
+    .icon-shell {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: #edf7f7;
+      color: #0d8b88;
+      font-size: 20px;
+      font-weight: 800;
+      overflow: hidden;
+    }
+
+    .icon-shell.brand {
+      background: #f3f7fb;
+    }
+
+    .icon-shell img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #18323f;
+      line-height: 1.35;
+      margin-bottom: 4px;
+    }
+
+    .card-subtitle {
+      font-size: 11px;
+      color: #788894;
+    }
+
+    .points {
+      font-size: 15px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .points.earn {
+      color: #118a63;
+    }
+
+    .points.spend {
+      color: #eb5a46;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .mini-card {
+      background: white;
+      border: 1px solid #e7eef2;
+      border-radius: 18px;
+      padding: 14px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .mini-card label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #71828e;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .mini-card strong {
+      font-size: 24px;
+      color: #16303d;
+      letter-spacing: -0.03em;
+    }
+
+    .recognition {
+      background: linear-gradient(135deg, #083d52, #0d8b88);
+      color: white;
+      border-radius: 22px;
+      padding: 16px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .recognition small {
+      color: rgba(255, 255, 255, 0.74);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .recognition strong {
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .recognition p {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.55;
+    }
+
+    .data-side {
+      display: grid;
+      gap: 24px;
+    }
+
+    .wide-panel {
+      padding: 22px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .panel-title h2 {
+      font-size: 22px;
+      letter-spacing: -0.04em;
+    }
+
+    .panel-title p {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    @media (max-width: 720px) {
+      .stats-row,
+      .summary-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .stat-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .stat-box label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .stat-box strong {
+      font-size: 28px;
+      letter-spacing: -0.04em;
+    }
+
+    .json-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    @media (max-width: 960px) {
+      .json-panel {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .code-block {
+      background: #07111a;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 18px;
+      padding: 16px;
+      min-height: 260px;
+      overflow: auto;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      line-height: 1.65;
+      color: #d7e5ef;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .empty-state {
+      border: 1px dashed rgba(13, 139, 136, 0.28);
+      background: rgba(13, 139, 136, 0.06);
+      color: #497786;
+      border-radius: 18px;
+      padding: 18px;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .token-preview {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #b8cad5;
+      word-break: break-all;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--line);
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="panel sidebar">
+      <div class="brand">
+        <h1>Rewards Test Login</h1>
+        <p>Auto save token diye `rewards/hub` ar `rewards/redemptions` instantly test korar page.</p>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="apiBase">API Base URL</label>
+        <input class="input" id="apiBase" value="http://localhost:5000/api/v1" />
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Quick Accounts</label>
+        <div class="quick-row">
+          <button class="btn btn-soft" type="button" data-user="parent">Use `p@e.com`</button>
+          <button class="btn btn-soft" type="button" data-user="nanny">Use `n@e.com`</button>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="email">Email</label>
+        <input class="input" id="email" value="p@e.com" />
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="password">Password</label>
+        <input class="input" id="password" type="password" value="123456" />
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="savedToken">Saved Access Token</label>
+        <textarea class="textarea" id="savedToken" placeholder="Login korle token ekhane auto save hobe."></textarea>
+      </div>
+
+      <div class="button-row">
+        <button class="btn btn-primary" id="loginBtn" type="button">Login & Save</button>
+        <button class="btn btn-secondary" id="loadBtn" type="button">Load Data</button>
+      </div>
+
+      <div class="button-row">
+        <button class="btn btn-secondary" id="meBtn" type="button">Check `/user/me`</button>
+        <button class="btn btn-secondary" id="logoutBtn" type="button">Clear Token</button>
+      </div>
+
+      <div id="authStatus" class="status-pill">No saved token</div>
+      <div class="micro-copy" id="statusText">
+        Absolute API base use kora hocche jate Live Server ba `:5500` theke relative path issue na hoy.
+      </div>
+      <div class="token-preview" id="tokenPreview">Token preview not available yet.</div>
+    </aside>
+
+    <section class="workspace">
+      <div class="panel phone">
+        <div class="phone-header">
+          <div class="phone-top">
+            <div>
+              <div class="phone-title">Rewards</div>
+              <div class="phone-subtitle" id="phoneSubtitle">Sign in to preview live reward data.</div>
+            </div>
+            <div class="status-pill" id="phonePill">Waiting</div>
+          </div>
+
+          <div class="balance-card">
+            <div class="balance-meta">
+              <span>Available balance</span>
+              <span id="periodText">Last 7 days</span>
+            </div>
+            <div class="balance-value" id="balanceValue">0</div>
+            <div class="balance-meta">
+              <span id="lifetimeEarnedText">Lifetime earned: 0</span>
+              <span id="lifetimeSpentText">Lifetime spent: 0</span>
+            </div>
+            <div class="balance-action" id="primaryActionText">Use Care Moments</div>
+          </div>
+
+          <div class="tabs">
+            <button class="tab active" id="earnTab" type="button">Earn</button>
+            <button class="tab" id="spendTab" type="button">Spend</button>
+          </div>
+        </div>
+
+        <div class="phone-body">
+          <div class="summary-grid">
+            <div class="mini-card">
+              <label>Earn entries</label>
+              <strong id="earnCount">0</strong>
+            </div>
+            <div class="mini-card">
+              <label>Spend entries</label>
+              <strong id="spendCount">0</strong>
+            </div>
+          </div>
+
+          <div class="recognition" id="recognitionCard">
+            <small>Recognition</small>
+            <strong>No reward activity loaded yet</strong>
+            <p>Login kore `Load Data` dile latest recognition ekhane show korbe.</p>
+          </div>
+
+          <section id="earnSection">
+            <div class="section-heading">
+              <h3>Earned Last Week</h3>
+              <span id="earnTotalPoints">0 Alurei</span>
+            </div>
+            <div class="activity-list" id="earnList">
+              <div class="empty-state">Earn activity preview ekhane asbe.</div>
+            </div>
+          </section>
+
+          <section id="spendSection" style="display:none;">
+            <div class="section-heading">
+              <h3>Spent Last Week</h3>
+              <span id="spendTotalPoints">0 Alurei</span>
+            </div>
+            <div class="activity-list" id="spendList">
+              <div class="empty-state">Spend activity preview ekhane asbe.</div>
+            </div>
+          </section>
+
+          <section>
+            <div class="section-heading">
+              <h3>Redemptions</h3>
+              <span id="redemptionCount">0 items</span>
+            </div>
+            <div class="redemption-list" id="redemptionList">
+              <div class="empty-state">Redemption list ekhane render hobe.</div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="data-side">
+        <div class="panel wide-panel">
+          <div class="panel-title">
+            <div>
+              <h2>Live Reward Summary</h2>
+              <p>`p@e.com` ar `n@e.com` direct DB demo data diye test korar jonno ready.</p>
+            </div>
+            <button class="btn btn-primary" id="refreshBtn" type="button">Refresh Rewards</button>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-box">
+              <label>Current User</label>
+              <strong id="currentUserStat">-</strong>
+            </div>
+            <div class="stat-box">
+              <label>Balance</label>
+              <strong id="balanceStat">0</strong>
+            </div>
+            <div class="stat-box">
+              <label>Earn Total</label>
+              <strong id="earnStat">0</strong>
+            </div>
+            <div class="stat-box">
+              <label>Spend Total</label>
+              <strong id="spendStat">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="json-panel">
+          <div class="panel wide-panel">
+            <div class="panel-title">
+              <div>
+                <h2>Hub Response</h2>
+                <p>`GET /api/v1/rewards/hub` raw JSON</p>
+              </div>
+            </div>
+            <pre class="code-block" id="hubJson">Load data to inspect response.</pre>
+          </div>
+
+          <div class="panel wide-panel">
+            <div class="panel-title">
+              <div>
+                <h2>Redemptions Response</h2>
+                <p>`GET /api/v1/rewards/redemptions` raw JSON</p>
+              </div>
+            </div>
+            <pre class="code-block" id="redemptionsJson">Load data to inspect response.</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_KEYS = {
+      apiBase: "rewardsHubTest.apiBase",
+      email: "rewardsHubTest.email",
+      token: "rewardsHubTest.token",
+    };
+
+    const QUICK_USERS = {
+      parent: { email: "p@e.com", password: "123456" },
+      nanny: { email: "n@e.com", password: "123456" },
+    };
+
+    const ICON_MAP = {
+      BOOK: "📘",
+      CARE: "💚",
+      APPRECIATION: "🤍",
+      CART: "🛒",
+      TASK: "🧩",
+      ARTICLE: "📄",
+      SUBSCRIPTION: "🧾",
+      TEAM: "👥",
+      CHECKLIST: "✅",
+      STAR: "⭐",
+      VOUCHER: "🎟️",
+      GIFT: "🎁",
+    };
+
+    const state = {
+      token: "",
+      profile: null,
+      hub: null,
+      redemptions: null,
+      activeTab: "earn",
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function extractToken(payload) {
+      if (!payload || typeof payload !== "object") return "";
+      if (typeof payload.accessToken === "string") return payload.accessToken;
+      if (typeof payload.token === "string") return payload.token;
+      if (payload.data && typeof payload.data === "object") {
+        if (typeof payload.data.accessToken === "string") return payload.data.accessToken;
+        if (typeof payload.data.token === "string") return payload.data.token;
+        if (payload.data.data && typeof payload.data.data === "object") {
+          if (typeof payload.data.data.accessToken === "string") return payload.data.data.accessToken;
+          if (typeof payload.data.data.token === "string") return payload.data.data.token;
+        }
+      }
+      return "";
+    }
+
+    function getApiBase() {
+      return $("apiBase").value.trim().replace(/\/$/, "");
+    }
+
+    function setBusy(busy) {
+      ["loginBtn", "loadBtn", "refreshBtn", "meBtn", "logoutBtn"].forEach((id) => {
+        $(id).disabled = busy;
+      });
+    }
+
+    function setStatus(kind, text, detail) {
+      const pill = $("authStatus");
+      pill.className = "status-pill";
+      if (kind === "ready") pill.classList.add("ready");
+      if (kind === "error") pill.classList.add("error");
+      pill.textContent = text;
+      $("statusText").textContent = detail;
+      $("phonePill").className = pill.className;
+      $("phonePill").textContent = text;
+    }
+
+    function persistSession() {
+      localStorage.setItem(STORAGE_KEYS.apiBase, getApiBase());
+      localStorage.setItem(STORAGE_KEYS.email, $("email").value.trim());
+      if (state.token) {
+        localStorage.setItem(STORAGE_KEYS.token, state.token);
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.token);
+      }
+    }
+
+    function updateTokenUI() {
+      $("savedToken").value = state.token;
+      $("tokenPreview").textContent = state.token
+        ? `${state.token.slice(0, 36)} ... ${state.token.slice(-24)}`
+        : "Token preview not available yet.";
+    }
+
+    function loadPersistedSession() {
+      $("apiBase").value =
+        localStorage.getItem(STORAGE_KEYS.apiBase) || "http://localhost:5000/api/v1";
+      $("email").value = localStorage.getItem(STORAGE_KEYS.email) || "p@e.com";
+      $("password").value = "123456";
+      state.token = localStorage.getItem(STORAGE_KEYS.token) || "";
+      updateTokenUI();
+
+      if (state.token) {
+        setStatus("ready", "Saved token found", "Auto-saved token ready. Load data diye test korte paro.");
+      }
+    }
+
+    async function apiFetch(path, options = {}) {
+      const token = state.token || $("savedToken").value.trim();
+      const headers = {
+        Accept: "application/json",
+        ...(options.body ? { "Content-Type": "application/json" } : {}),
+        ...(options.headers || {}),
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${getApiBase()}${path}`, {
+        ...options,
+        headers,
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = payload.message || `Request failed with status ${response.status}`;
+        throw new Error(Array.isArray(message) ? message.join(", ") : message);
+      }
+      return payload;
+    }
+
+    async function login() {
+      setBusy(true);
+      try {
+        const email = $("email").value.trim();
+        const password = $("password").value;
+        const response = await fetch(`${getApiBase()}/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        const token = extractToken(payload);
+
+        if (!response.ok || !token) {
+          throw new Error(payload.message || "Login failed or token missing in response.");
+        }
+
+        state.token = token;
+        updateTokenUI();
+        persistSession();
+        setStatus("ready", "Login success", `${email} account er token auto-save hoye geche.`);
+        await loadAllData();
+      } catch (error) {
+        setStatus("error", "Login failed", error.message || "Unable to login.");
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function loadProfile() {
+      const payload = await apiFetch("/user/me");
+      state.profile = payload;
+      const profileData = payload.data || payload.user || payload;
+      const name = profileData.fullName || profileData.name || $("email").value.trim();
+      $("currentUserStat").textContent = name;
+      $("phoneSubtitle").textContent = `${name} reward preview loaded from live API.`;
+      return payload;
+    }
+
+    async function loadAllData() {
+      const token = $("savedToken").value.trim() || state.token;
+      if (!token) {
+        setStatus("error", "Missing token", "Login first, nahole saved token paste kore test koro.");
+        return;
+      }
+
+      state.token = token;
+      persistSession();
+      updateTokenUI();
+      setBusy(true);
+
+      try {
+        const [profile, hub, redemptions] = await Promise.all([
+          loadProfile(),
+          apiFetch("/rewards/hub"),
+          apiFetch("/rewards/redemptions"),
+        ]);
+
+        state.profile = profile;
+        state.hub = hub;
+        state.redemptions = redemptions;
+
+        renderHub(hub.data || {});
+        renderRedemptions(redemptions.data || []);
+        $("hubJson").textContent = JSON.stringify(hub, null, 2);
+        $("redemptionsJson").textContent = JSON.stringify(redemptions, null, 2);
+        setStatus("ready", "Rewards loaded", "Hub and redemptions duita response live API theke load hoye geche.");
+      } catch (error) {
+        setStatus("error", "Load failed", error.message || "Unable to load reward data.");
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function renderHub(data) {
+      const balanceCard = data.balanceCard || {};
+      const tabs = Array.isArray(data.tabs) ? data.tabs : [];
+      const earnTab = tabs.find((item) => item.key === "EARN") || {};
+      const spendTab = tabs.find((item) => item.key === "SPEND") || {};
+      const earnedLastWeek = Array.isArray(data.earnedLastWeek) ? data.earnedLastWeek : [];
+      const spentLastWeek = Array.isArray(data.spentLastWeek) ? data.spentLastWeek : [];
+      const recognition = data.careMomentRecognition || {};
+      const period = data.period || {};
+
+      $("balanceValue").textContent = `${balanceCard.availableBalance ?? 0}`;
+      $("balanceStat").textContent = `${balanceCard.availableBalance ?? 0}`;
+      $("lifetimeEarnedText").textContent = `Lifetime earned: ${balanceCard.lifetimeEarned ?? 0}`;
+      $("lifetimeSpentText").textContent = `Lifetime spent: ${balanceCard.lifetimeSpent ?? 0}`;
+      $("primaryActionText").textContent = balanceCard.primaryAction?.label || "Use Care Moments";
+      $("periodText").textContent = period.label || "Last 7 days";
+      $("earnCount").textContent = `${earnTab.count ?? earnedLastWeek.length}`;
+      $("spendCount").textContent = `${spendTab.count ?? spentLastWeek.length}`;
+      $("earnStat").textContent = `${earnTab.totalPoints ?? 0}`;
+      $("spendStat").textContent = `${spendTab.totalPoints ?? 0}`;
+      $("earnTotalPoints").textContent = `${earnTab.totalPoints ?? 0} Alurei`;
+      $("spendTotalPoints").textContent = `${spendTab.totalPoints ?? 0} Alurei`;
+
+      renderRecognition(recognition);
+      renderActivityList("earnList", earnedLastWeek, "earn");
+      renderActivityList("spendList", spentLastWeek, "spend");
+      renderVisibleTab();
+    }
+
+    function renderRecognition(recognition) {
+      const card = $("recognitionCard");
+      if (!recognition.available) {
+        card.innerHTML = `
+          <small>Recognition</small>
+          <strong>No recent recognition yet</strong>
+          <p>Latest reward activity hole ekhane recognition message dekhabe.</p>
+        `;
+        return;
+      }
+
+      card.innerHTML = `
+        <small>Recognition</small>
+        <strong>${escapeHtml(recognition.title || "Your Care Has Been Recognized")}</strong>
+        <p>${escapeHtml(recognition.message || "")}</p>
+      `;
+    }
+
+    function renderActivityList(targetId, items, mode) {
+      const root = $(targetId);
+      if (!items.length) {
+        root.innerHTML = `<div class="empty-state">No ${mode} activity found in this response.</div>`;
+        return;
+      }
+
+      root.innerHTML = items.map((item) => {
+        const icon = renderIcon(item.icon, item.title);
+        const pointsClass = mode === "earn" ? "earn" : "spend";
+        const pointsSign = mode === "earn" ? "+" : "-";
+        return `
+          <article class="activity-card">
+            ${icon}
+            <div>
+              <div class="card-title">${escapeHtml(item.title || "Untitled activity")}</div>
+              <div class="card-subtitle">${escapeHtml(item.subtitle || "-")}</div>
+            </div>
+            <div class="points ${pointsClass}">${pointsSign}${Math.abs(item.absolutePoints ?? item.points ?? 0)}</div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderRedemptions(items) {
+      $("redemptionCount").textContent = `${items.length} item${items.length === 1 ? "" : "s"}`;
+      const root = $("redemptionList");
+
+      if (!items.length) {
+        root.innerHTML = `<div class="empty-state">No redemption data found.</div>`;
+        return;
+      }
+
+      root.innerHTML = items.map((item) => `
+        <article class="redemption-card">
+          ${renderIcon(item.icon, item.offer?.title || item.code)}
+          <div>
+            <div class="card-title">${escapeHtml(item.offer?.title || "Reward redemption")}</div>
+            <div class="card-subtitle">${escapeHtml(formatRedemptionMeta(item))}</div>
+          </div>
+          <div class="points spend">-${Math.abs(item.pointsSpent ?? 0)}</div>
+        </article>
+      `).join("");
+    }
+
+    function renderIcon(icon, label) {
+      if (icon && icon.imageUrl) {
+        return `
+          <div class="icon-shell brand" title="${escapeHtml(icon.fallbackLabel || label || "")}">
+            <img src="${escapeAttribute(icon.imageUrl)}" alt="${escapeAttribute(icon.fallbackLabel || label || "icon")}" />
+          </div>
+        `;
+      }
+
+      const glyph = ICON_MAP[icon?.key] || "✨";
+      return `<div class="icon-shell" title="${escapeHtml(icon?.fallbackLabel || label || "")}">${glyph}</div>`;
+    }
+
+    function formatRedemptionMeta(item) {
+      const offerName = item.offer?.store?.name || item.offer?.stores?.[0]?.name || item.offer?.partner?.fullName || item.claimMethod || "Redemption";
+      const status = item.status || "ACTIVE";
+      return `${offerName} · ${status}`;
+    }
+
+    function renderVisibleTab() {
+      $("earnSection").style.display = state.activeTab === "earn" ? "block" : "none";
+      $("spendSection").style.display = state.activeTab === "spend" ? "block" : "none";
+      $("earnTab").classList.toggle("active", state.activeTab === "earn");
+      $("spendTab").classList.toggle("active", state.activeTab === "spend");
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function escapeAttribute(value) {
+      return escapeHtml(value).replaceAll("`", "&#96;");
+    }
+
+    function clearSession() {
+      state.token = "";
+      state.profile = null;
+      state.hub = null;
+      state.redemptions = null;
+      localStorage.removeItem(STORAGE_KEYS.token);
+      updateTokenUI();
+      $("hubJson").textContent = "Load data to inspect response.";
+      $("redemptionsJson").textContent = "Load data to inspect response.";
+      $("currentUserStat").textContent = "-";
+      $("phoneSubtitle").textContent = "Sign in to preview live reward data.";
+      $("balanceValue").textContent = "0";
+      $("balanceStat").textContent = "0";
+      $("earnStat").textContent = "0";
+      $("spendStat").textContent = "0";
+      $("earnCount").textContent = "0";
+      $("spendCount").textContent = "0";
+      $("redemptionCount").textContent = "0 items";
+      $("earnList").innerHTML = `<div class="empty-state">Earn activity preview ekhane asbe.</div>`;
+      $("spendList").innerHTML = `<div class="empty-state">Spend activity preview ekhane asbe.</div>`;
+      $("redemptionList").innerHTML = `<div class="empty-state">Redemption list ekhane render hobe.</div>`;
+      renderRecognition({});
+      setStatus("waiting", "No saved token", "Session clear hoye geche.");
+    }
+
+    document.querySelectorAll("[data-user]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const config = QUICK_USERS[button.dataset.user];
+        if (!config) return;
+        $("email").value = config.email;
+        $("password").value = config.password;
+        persistSession();
+        setStatus("waiting", "Preset loaded", `${config.email} ready. Login & Save press korlei token update hobe.`);
+      });
+    });
+
+    $("loginBtn").addEventListener("click", login);
+    $("loadBtn").addEventListener("click", loadAllData);
+    $("refreshBtn").addEventListener("click", loadAllData);
+    $("logoutBtn").addEventListener("click", clearSession);
+    $("meBtn").addEventListener("click", async () => {
+      const token = $("savedToken").value.trim() || state.token;
+      if (!token) {
+        setStatus("error", "Missing token", "Login first, then `/user/me` test koro.");
+        return;
+      }
+      state.token = token;
+      persistSession();
+      setBusy(true);
+      try {
+        const profile = await loadProfile();
+        $("hubJson").textContent = JSON.stringify(profile, null, 2);
+        setStatus("ready", "Profile loaded", "`/user/me` response Hub JSON panel e dekhano holo.");
+      } catch (error) {
+        setStatus("error", "Profile failed", error.message || "Unable to load user profile.");
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    $("earnTab").addEventListener("click", () => {
+      state.activeTab = "earn";
+      renderVisibleTab();
+    });
+
+    $("spendTab").addEventListener("click", () => {
+      state.activeTab = "spend";
+      renderVisibleTab();
+    });
+
+    $("savedToken").addEventListener("input", () => {
+      state.token = $("savedToken").value.trim();
+      updateTokenUI();
+      persistSession();
+    });
+
+    $("apiBase").addEventListener("change", persistSession);
+    $("email").addEventListener("change", persistSession);
+
+    loadPersistedSession();
+    renderVisibleTab();
+  </script>
+</body>
+</html>

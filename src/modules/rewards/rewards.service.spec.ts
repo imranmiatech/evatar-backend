@@ -1,4 +1,10 @@
-import { ActivityStatus, MediaType, RewardLedgerEntryType, RewardLedgerSourceType, UserRole } from '@prisma/client';
+import {
+  ActivityStatus,
+  MediaType,
+  RewardLedgerEntryType,
+  RewardLedgerSourceType,
+  UserRole,
+} from '@prisma/client';
 import { RewardsService } from './rewards.service';
 
 describe('RewardsService', () => {
@@ -8,9 +14,12 @@ describe('RewardsService', () => {
         findUnique: jest.fn().mockResolvedValue(null),
       },
       rewardAccount: {
-        upsert: jest
-          .fn()
-          .mockResolvedValue({ userId: 'user-1', balance: 0, lifetimeEarned: 0, lifetimeSpent: 0 }),
+        upsert: jest.fn().mockResolvedValue({
+          userId: 'user-1',
+          balance: 0,
+          lifetimeEarned: 0,
+          lifetimeSpent: 0,
+        }),
       },
       child: {
         findMany: jest.fn().mockResolvedValue([{ id: 'child-1' }]),
@@ -48,7 +57,9 @@ describe('RewardsService', () => {
     };
 
     const storageService = {
-      uploadFile: jest.fn().mockResolvedValue('https://cdn.example.com/test.jpg'),
+      uploadFile: jest
+        .fn()
+        .mockResolvedValue('https://cdn.example.com/test.jpg'),
     };
 
     const service = new RewardsService(
@@ -64,6 +75,110 @@ describe('RewardsService', () => {
     jest.clearAllMocks();
   });
 
+  it('uses metadata icon values in reward hub activity responses', () => {
+    const { service } = makeService();
+
+    const result = (service as any).formatRewardHubActivity(
+      {
+        id: 'entry-1',
+        entryType: RewardLedgerEntryType.EARN,
+        sourceType: RewardLedgerSourceType.MANUAL_ADJUSTMENT,
+        sourceId: 'manual-1',
+        points: 12,
+        balanceAfter: 12,
+        description: 'Read a parent guidance article',
+        metadata: {
+          iconKey: 'ARTICLE',
+          iconLabel: 'Guidance article',
+        },
+        createdAt: new Date('2026-08-23T10:00:00.000Z'),
+      } as any,
+      new Date('2026-08-23T12:00:00.000Z'),
+    );
+
+    expect(result.icon).toEqual({
+      key: 'ARTICLE',
+      imageUrl: null,
+    });
+  });
+
+  it('uses brand logo data in redemption responses', () => {
+    const { service } = makeService();
+
+    const result = (service as any).formatRedemption(
+      {
+        id: 'redemption-1',
+        code: 'ALR-1234',
+        claimMethod: 'ONLINE',
+        couponCode: 'SAVE20',
+        qrToken: null,
+        qrPayload: null,
+        pointsSpent: 20,
+        status: 'ACTIVE',
+        redeemedAt: new Date('2026-08-23T10:00:00.000Z'),
+        expiresAt: new Date('2026-08-30T10:00:00.000Z'),
+        usedAt: null,
+        createdAt: new Date('2026-08-23T10:00:00.000Z'),
+        updatedAt: new Date('2026-08-23T10:00:00.000Z'),
+        offer: {
+          id: 'offer-1',
+          title: 'Carrefour Voucher',
+          productName: 'Family grocery savings',
+          description: null,
+          includedTitle: null,
+          includedDescription: null,
+          terms: null,
+          imageUrl: 'https://cdn.example.com/offer.png',
+          channel: 'ONLINE',
+          onlineCouponCode: 'SAVE20',
+          websiteUrl: null,
+          pointsCost: 20,
+          availableQuantity: 10,
+          redeemedCount: 1,
+          status: 'ACTIVE',
+          startsAt: null,
+          endsAt: null,
+          savedByUsers: [],
+          locations: [],
+          stores: [
+            {
+              store: {
+                id: 'store-1',
+                name: 'Carrefour',
+                logoUrl: 'https://cdn.example.com/logo.png',
+                description: null,
+                address: null,
+                city: null,
+                latitude: null,
+                longitude: null,
+                mapUrl: null,
+                createdAt: new Date('2026-08-23T10:00:00.000Z'),
+                updatedAt: new Date('2026-08-23T10:00:00.000Z'),
+              },
+            },
+          ],
+          partnerUser: {
+            id: 'partner-1',
+            fullName: 'Partner',
+            email: 'partner@e.com',
+            profilePictureUrl: 'https://cdn.example.com/partner.png',
+          },
+          store: null,
+          createdAt: new Date('2026-08-23T10:00:00.000Z'),
+          updatedAt: new Date('2026-08-23T10:00:00.000Z'),
+        },
+      } as any,
+      new Date('2026-08-23T12:00:00.000Z'),
+    );
+
+    expect(result.icon).toEqual({
+      type: 'BRAND',
+      key: 'VOUCHER',
+      imageUrl: 'https://cdn.example.com/logo.png',
+      fallbackLabel: 'Carrefour',
+    });
+  });
+
   it('classifies parent breakfast without media as 20 points', async () => {
     const { service, prisma } = makeService();
     prisma.childSchedule.findFirst.mockResolvedValue({
@@ -71,14 +186,18 @@ describe('RewardsService', () => {
       activity: null,
     });
 
-    const result = await (service as any).resolveTaskRewardDecision('parent-1', 'activity-1', {
-      title: 'Oat Bowl',
-      category: 'RECIPE',
-      childId: 'child-1',
-      dayPlanDate: '2026-08-22T00:00:00.000Z',
-      hasMedia: false,
-      completedByRole: UserRole.PARENT,
-    });
+    const result = await (service as any).resolveTaskRewardDecision(
+      'parent-1',
+      'activity-1',
+      {
+        title: 'Oat Bowl',
+        category: 'RECIPE',
+        childId: 'child-1',
+        dayPlanDate: '2026-08-22T00:00:00.000Z',
+        hasMedia: false,
+        completedByRole: UserRole.PARENT,
+      },
+    );
 
     expect(result.activityKey).toBe('EF_01_BREAKFAST_LOGGED');
     expect(result.points).toBe(20);
@@ -91,14 +210,18 @@ describe('RewardsService', () => {
       activity: null,
     });
 
-    const result = await (service as any).resolveTaskRewardDecision('parent-1', 'activity-1', {
-      title: 'Lunch',
-      category: 'RECIPE',
-      childId: 'child-1',
-      dayPlanDate: '2026-08-22T00:00:00.000Z',
-      hasMedia: true,
-      completedByRole: UserRole.PARENT,
-    });
+    const result = await (service as any).resolveTaskRewardDecision(
+      'parent-1',
+      'activity-1',
+      {
+        title: 'Lunch',
+        category: 'RECIPE',
+        childId: 'child-1',
+        dayPlanDate: '2026-08-22T00:00:00.000Z',
+        hasMedia: true,
+        completedByRole: UserRole.PARENT,
+      },
+    );
 
     expect(result.activityKey).toBe('EF_02_LUNCH_LOGGED');
     expect(result.points).toBe(50);
@@ -106,21 +229,28 @@ describe('RewardsService', () => {
 
   it('classifies shared parent activity at 75 percent of standard points', async () => {
     const { service, prisma } = makeService();
-    prisma.child.findMany.mockResolvedValue([{ id: 'child-1' }, { id: 'child-2' }]);
+    prisma.child.findMany.mockResolvedValue([
+      { id: 'child-1' },
+      { id: 'child-2' },
+    ]);
     prisma.dayActivity.count.mockResolvedValue(1);
     prisma.childSchedule.findFirst.mockResolvedValue({
       recipe: null,
       activity: { activityType: 'CREATIVE_PLAY' },
     });
 
-    const result = await (service as any).resolveTaskRewardDecision('parent-1', 'activity-1', {
-      title: 'Creative Play',
-      category: 'ACTIVITY',
-      childId: 'child-1',
-      dayPlanDate: '2026-08-22T00:00:00.000Z',
-      hasMedia: true,
-      completedByRole: UserRole.PARENT,
-    });
+    const result = await (service as any).resolveTaskRewardDecision(
+      'parent-1',
+      'activity-1',
+      {
+        title: 'Creative Play',
+        category: 'ACTIVITY',
+        childId: 'child-1',
+        dayPlanDate: '2026-08-22T00:00:00.000Z',
+        hasMedia: true,
+        completedByRole: UserRole.PARENT,
+      },
+    );
 
     expect(result.activityKey).toBe('EF_12_SHARED_ACTIVITY');
     expect(result.points).toBe(75);
@@ -133,14 +263,18 @@ describe('RewardsService', () => {
       activity: null,
     });
 
-    const result = await (service as any).resolveTaskRewardDecision('nanny-1', 'activity-1', {
-      title: 'Dinner',
-      category: 'RECIPE',
-      childId: 'child-1',
-      dayPlanDate: '2026-08-22T00:00:00.000Z',
-      hasMedia: true,
-      completedByRole: UserRole.NANNY,
-    });
+    const result = await (service as any).resolveTaskRewardDecision(
+      'nanny-1',
+      'activity-1',
+      {
+        title: 'Dinner',
+        category: 'RECIPE',
+        childId: 'child-1',
+        dayPlanDate: '2026-08-22T00:00:00.000Z',
+        hasMedia: true,
+        completedByRole: UserRole.NANNY,
+      },
+    );
 
     expect(result.activityKey).toBe('EN_01_MEAL_LOGGED');
     expect(result.points).toBe(30);
@@ -153,14 +287,18 @@ describe('RewardsService', () => {
       activity: null,
     });
 
-    const result = await (service as any).resolveTaskRewardDecision('nanny-1', 'activity-1', {
-      title: 'Snack',
-      category: 'RECIPE',
-      childId: 'child-1',
-      dayPlanDate: '2026-08-22T00:00:00.000Z',
-      hasMedia: false,
-      completedByRole: UserRole.NANNY,
-    });
+    const result = await (service as any).resolveTaskRewardDecision(
+      'nanny-1',
+      'activity-1',
+      {
+        title: 'Snack',
+        category: 'RECIPE',
+        childId: 'child-1',
+        dayPlanDate: '2026-08-22T00:00:00.000Z',
+        hasMedia: false,
+        completedByRole: UserRole.NANNY,
+      },
+    );
 
     expect(result.activityKey).toBe('EN_01_MEAL_LOGGED');
     expect(result.points).toBe(0);
@@ -170,7 +308,12 @@ describe('RewardsService', () => {
     const { service } = makeService();
     const awardActivityRewardSpy = jest
       .spyOn(service, 'awardActivityReward')
-      .mockResolvedValue({ awarded: true, account: { balance: 0 }, ledgerEntry: null, points: 0 } as any);
+      .mockResolvedValue({
+        awarded: true,
+        account: { balance: 0 },
+        ledgerEntry: null,
+        points: 0,
+      } as any);
 
     await service.awardCareModuleCompletion('parent-1', 'assignment-1', 999, {
       completedByRole: UserRole.PARENT,
@@ -191,6 +334,9 @@ describe('RewardsService', () => {
 
   it('upgrades points when media is added within 24 hours', async () => {
     const { service, prisma } = makeService();
+    const nowSpy = jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(new Date('2026-08-22T12:00:00.000Z').getTime());
     prisma.rewardLedgerEntry.findUnique.mockResolvedValue({
       id: 'entry-1',
       userId: 'parent-1',
@@ -203,9 +349,12 @@ describe('RewardsService', () => {
       metadata: { hasMedia: false },
       createdAt: new Date('2026-08-22T00:00:00.000Z'),
     });
-    prisma.rewardAccount.update = jest
-      .fn()
-      .mockResolvedValue({ userId: 'parent-1', balance: 50, lifetimeEarned: 50, lifetimeSpent: 0 });
+    prisma.rewardAccount.update = jest.fn().mockResolvedValue({
+      userId: 'parent-1',
+      balance: 50,
+      lifetimeEarned: 50,
+      lifetimeSpent: 0,
+    });
     prisma.rewardLedgerEntry.create.mockResolvedValue({
       id: 'adj-1',
       points: 30,
@@ -240,6 +389,7 @@ describe('RewardsService', () => {
         }),
       }),
     );
+    nowSpy.mockRestore();
   });
 
   it('completes a task with uploaded media without changing response shape', async () => {
@@ -257,7 +407,10 @@ describe('RewardsService', () => {
         child: { id: 'child-1', name: 'Ava' },
       },
     });
-    prisma.dayActivity.update.mockResolvedValue({ id: 'activity-1', status: ActivityStatus.COMPLETED });
+    prisma.dayActivity.update.mockResolvedValue({
+      id: 'activity-1',
+      status: ActivityStatus.COMPLETED,
+    });
     prisma.childSchedule.findFirst.mockResolvedValue({
       recipe: { recipeMealType: 'BREAKFAST' },
       activity: null,
@@ -335,7 +488,10 @@ describe('RewardsService', () => {
       recipe: { recipeMealType: 'BREAKFAST' },
       activity: null,
     });
-    prisma.dayActivity.update.mockResolvedValue({ id: 'activity-1', status: ActivityStatus.COMPLETED });
+    prisma.dayActivity.update.mockResolvedValue({
+      id: 'activity-1',
+      status: ActivityStatus.COMPLETED,
+    });
 
     prisma.rewardLedgerEntry.findUnique.mockResolvedValueOnce(null);
     prisma.rewardAccount.upsert.mockResolvedValueOnce({
@@ -366,14 +522,12 @@ describe('RewardsService', () => {
       metadata: { hasMedia: false },
       createdAt: new Date(),
     });
-    prisma.rewardAccount.update = jest
-      .fn()
-      .mockResolvedValueOnce({
-        userId: 'parent-1',
-        balance: 50,
-        lifetimeEarned: 50,
-        lifetimeSpent: 0,
-      });
+    prisma.rewardAccount.update = jest.fn().mockResolvedValueOnce({
+      userId: 'parent-1',
+      balance: 50,
+      lifetimeEarned: 50,
+      lifetimeSpent: 0,
+    });
     prisma.rewardLedgerEntry.create.mockResolvedValueOnce({
       id: 'adj-1',
       points: 30,
@@ -430,7 +584,10 @@ describe('RewardsService', () => {
       recipe: { recipeMealType: 'DINNER' },
       activity: null,
     });
-    prisma.dayActivity.update.mockResolvedValue({ id: 'activity-2', status: ActivityStatus.COMPLETED });
+    prisma.dayActivity.update.mockResolvedValue({
+      id: 'activity-2',
+      status: ActivityStatus.COMPLETED,
+    });
     prisma.rewardLedgerEntry.findUnique.mockResolvedValue(null);
     prisma.rewardLedgerEntry.create.mockResolvedValue({
       id: 'earn-2',

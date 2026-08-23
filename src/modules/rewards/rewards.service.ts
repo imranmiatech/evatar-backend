@@ -55,6 +55,13 @@ type TaskRewardDecision = {
   metadata: Prisma.InputJsonValue;
 };
 
+type RewardIconPayload = {
+  type: 'SYSTEM' | 'BRAND';
+  key: string;
+  imageUrl: string | null;
+  fallbackLabel: string | null;
+};
+
 @Injectable()
 export class RewardsService {
   constructor(
@@ -109,6 +116,21 @@ export class RewardsService {
           _sum: { points: true },
         }),
       ]);
+    const redemptionIds = spentEntries
+      .filter(
+        (entry) =>
+          entry.sourceType === RewardLedgerSourceType.REWARD_REDEMPTION,
+      )
+      .map((entry) => entry.sourceId);
+    const linkedRedemptions = redemptionIds.length
+      ? await this.prisma.rewardRedemption.findMany({
+          where: { id: { in: redemptionIds } },
+          include: this.rewardRedemptionInclude(userId),
+        })
+      : [];
+    const redemptionById = new Map(
+      linkedRedemptions.map((redemption) => [redemption.id, redemption]),
+    );
 
     const latestEarn = earnedEntries[0] ?? null;
 
@@ -144,47 +166,33 @@ export class RewardsService {
           this.formatRewardHubActivity(entry, now),
         ),
         spentLastWeek: spentEntries.map((entry) =>
-          this.formatRewardHubActivity(entry, now),
+          this.formatRewardHubActivity(
+            entry,
+            now,
+            redemptionById.get(entry.sourceId) ?? null,
+          ),
         ),
         careMomentRecognition: latestEarn
           ? {
-              available: true,
-              ledgerEntryId: latestEarn.id,
               title: 'Your Care Has Been Recognized',
               message:
                 'Thank you for your continued dedication. Every meaningful care moment helps create a better journey for your child while earning Alurei along the way.',
               pointsEarned: latestEarn.points,
-              sourceType: latestEarn.sourceType,
-              recognizedAt: latestEarn.createdAt,
             }
-          : {
-              available: false,
-              ledgerEntryId: null,
-              title: null,
-              message: null,
-              pointsEarned: 0,
-              sourceType: null,
-              recognizedAt: null,
-            },
+          : null,
         period: {
           label: 'Last 7 days',
-          start: recentStart,
-          end: now,
         },
       },
     };
   }
-
-
-
-
 
   async getMyRedemptions(user: CurrentUserPayload) {
     const userId = this.currentUserId(user);
     const now = new Date();
     const redemptions = await this.prisma.rewardRedemption.findMany({
       where: { userId },
-      include: { offer: { include: this.offerInclude() } },
+      include: this.rewardRedemptionInclude(userId),
       orderBy: { createdAt: 'desc' },
     });
 
@@ -196,8 +204,6 @@ export class RewardsService {
       ),
     };
   }
-
-
 
   async completeTaskForReward(
     user: CurrentUserPayload,
@@ -270,8 +276,6 @@ export class RewardsService {
       },
     };
   }
-
-
 
   async createPartnerOffer(
     user: CurrentUserPayload,
@@ -690,9 +694,8 @@ export class RewardsService {
     points: number,
     metadata?: Prisma.InputJsonValue,
   ) {
-    const role =
-      (metadata as Record<string, unknown> | undefined)
-        ?.completedByRole as UserRole | undefined;
+    const role = (metadata as Record<string, unknown> | undefined)
+      ?.completedByRole as UserRole | undefined;
 
     return this.awardActivityReward({
       activityKey: CARE_MODULE_REWARD_RULE_KEY,
@@ -756,7 +759,10 @@ export class RewardsService {
       sourceId: appreciationId,
       defaultPoints: POINTS_PER_APPRECIATION,
       description: 'Sent appreciation to caregiver',
-      metadata: { ...((metadata as Record<string, unknown>) ?? {}), nannyUserId },
+      metadata: {
+        ...((metadata as Record<string, unknown>) ?? {}),
+        nannyUserId,
+      },
       userRole: UserRole.PARENT,
     });
   }
@@ -1150,7 +1156,9 @@ export class RewardsService {
       isBreakfast: mealType === 'breakfast' || text.includes('breakfast'),
       isLunch:
         mealType === 'lunch' ||
-        (text.includes('lunch') && !text.includes('lunchbox') && !text.includes('lunch box')),
+        (text.includes('lunch') &&
+          !text.includes('lunchbox') &&
+          !text.includes('lunch box')),
       isDinner: mealType === 'dinner' || text.includes('dinner'),
       isSnack: mealType === 'snack' || text.includes('snack'),
       isLunchbox: this.containsAny(text, ['lunchbox', 'lunch box']),
@@ -1160,7 +1168,13 @@ export class RewardsService {
         text.includes('partner visit') ||
         text.includes('external partner') ||
         (text.includes('visit') &&
-          this.containsAny(text, ['partner', 'clinic', 'doctor', 'therapy', 'hospital'])),
+          this.containsAny(text, [
+            'partner',
+            'clinic',
+            'doctor',
+            'therapy',
+            'hospital',
+          ])),
     };
 
     const isActivity =
@@ -1316,7 +1330,12 @@ export class RewardsService {
       ? new Date(String(taskMeta.dayPlanDate))
       : null;
 
-    if (!childId || !title || !dayPlanDate || Number.isNaN(dayPlanDate.getTime())) {
+    if (
+      !childId ||
+      !title ||
+      !dayPlanDate ||
+      Number.isNaN(dayPlanDate.getTime())
+    ) {
       return null;
     }
 
@@ -1349,7 +1368,10 @@ export class RewardsService {
     dayActivityId: string,
     image: Express.Multer.File,
   ) {
-    const url = await this.storageService.uploadFile(image, 'reward-task-proofs');
+    const url = await this.storageService.uploadFile(
+      image,
+      'reward-task-proofs',
+    );
     const mediaAsset = await this.prisma.mediaAsset.create({
       data: {
         ownerUserId: userId,
@@ -1649,6 +1671,14 @@ export class RewardsService {
     } satisfies Prisma.RewardOfferInclude;
   }
 
+  private rewardRedemptionInclude(userId?: string) {
+    return {
+      offer: {
+        include: this.offerInclude(userId),
+      },
+    } satisfies Prisma.RewardRedemptionInclude;
+  }
+
   private formatOffer(
     offer: Prisma.RewardOfferGetPayload<{
       include: ReturnType<RewardsService['offerInclude']>;
@@ -1721,9 +1751,7 @@ export class RewardsService {
 
   private formatRedemption(
     redemption: Prisma.RewardRedemptionGetPayload<{
-      include: {
-        offer: { include: ReturnType<RewardsService['offerInclude']> };
-      };
+      include: ReturnType<RewardsService['rewardRedemptionInclude']>;
     }>,
     now: Date,
   ) {
@@ -1750,6 +1778,7 @@ export class RewardsService {
         ),
       ),
       usedAt: redemption.usedAt,
+      icon: this.resolveRedemptionIcon(redemption),
       offer: this.formatOffer(redemption.offer),
       createdAt: redemption.createdAt,
       updatedAt: redemption.updatedAt,
@@ -1759,8 +1788,16 @@ export class RewardsService {
   private formatRewardHubActivity(
     entry: RewardLedgerEntry,
     now: Date,
+    linkedRedemption?: Prisma.RewardRedemptionGetPayload<{
+      include: ReturnType<RewardsService['rewardRedemptionInclude']>;
+    }> | null,
   ) {
     const metadata = this.objectMetadata(entry.metadata);
+    const icon = this.resolveRewardActivityIcon(
+      entry,
+      metadata,
+      linkedRedemption,
+    );
 
     return {
       id: entry.id,
@@ -1770,15 +1807,104 @@ export class RewardsService {
         this.defaultRewardActivityTitle(entry),
       subtitle: this.formatTimeAgo(entry.createdAt, now),
       points: entry.points,
-      absolutePoints: Math.abs(entry.points),
-      entryType: entry.entryType,
-      sourceType: entry.sourceType,
-      sourceId: entry.sourceId,
-      childId: this.stringFromUnknown(metadata.childId) ?? null,
-      childName: this.stringFromUnknown(metadata.childName) ?? null,
-      metadata: entry.metadata,
-      createdAt: entry.createdAt,
+      icon: this.compactRewardHubIcon(icon),
     };
+  }
+
+  private compactRewardHubIcon(icon: RewardIconPayload) {
+    return {
+      key: icon.key,
+      imageUrl: icon.imageUrl,
+    };
+  }
+
+  private resolveRewardActivityIcon(
+    entry: RewardLedgerEntry,
+    metadata: Record<string, unknown>,
+    linkedRedemption?: Prisma.RewardRedemptionGetPayload<{
+      include: ReturnType<RewardsService['rewardRedemptionInclude']>;
+    }> | null,
+  ): RewardIconPayload {
+    const metadataImageUrl = this.trimString(metadata.iconImageUrl) ?? null;
+    const metadataKey = this.trimString(metadata.iconKey);
+    const metadataLabel = this.trimString(metadata.iconLabel) ?? null;
+
+    if (linkedRedemption) {
+      return {
+        type: 'BRAND',
+        key: metadataKey ?? this.defaultRewardIconKey(entry),
+        imageUrl:
+          metadataImageUrl ??
+          this.resolveOfferBrandImageUrl(linkedRedemption.offer),
+        fallbackLabel:
+          metadataLabel ?? this.resolveOfferBrandLabel(linkedRedemption.offer),
+      };
+    }
+
+    return {
+      type: metadataImageUrl ? 'BRAND' : 'SYSTEM',
+      key: metadataKey ?? this.defaultRewardIconKey(entry),
+      imageUrl: metadataImageUrl,
+      fallbackLabel: metadataLabel,
+    };
+  }
+
+  private resolveRedemptionIcon(
+    redemption: Prisma.RewardRedemptionGetPayload<{
+      include: ReturnType<RewardsService['rewardRedemptionInclude']>;
+    }>,
+  ): RewardIconPayload {
+    return {
+      type: 'BRAND',
+      key: 'VOUCHER',
+      imageUrl: this.resolveOfferBrandImageUrl(redemption.offer),
+      fallbackLabel: this.resolveOfferBrandLabel(redemption.offer),
+    };
+  }
+
+  private defaultRewardIconKey(entry: RewardLedgerEntry) {
+    if (entry.entryType === RewardLedgerEntryType.SPEND) {
+      return 'VOUCHER';
+    }
+
+    switch (entry.sourceType) {
+      case RewardLedgerSourceType.BEDTIME_STORY:
+        return 'BOOK';
+      case RewardLedgerSourceType.CARE_MODULE_ASSIGNMENT:
+        return 'CARE';
+      case RewardLedgerSourceType.SEND_NANNY_APPRECIATION:
+        return 'APPRECIATION';
+      case RewardLedgerSourceType.GROCERY_ORDER_COMPLETE:
+        return 'CART';
+      case RewardLedgerSourceType.DAY_ACTIVITY:
+        return 'TASK';
+      case RewardLedgerSourceType.MANUAL_ADJUSTMENT:
+        return 'STAR';
+      default:
+        return 'GIFT';
+    }
+  }
+
+  private resolveOfferBrandImageUrl(
+    offer: Prisma.RewardOfferGetPayload<{
+      include: ReturnType<RewardsService['offerInclude']>;
+    }>,
+  ) {
+    return (
+      offer.store?.logoUrl ??
+      offer.stores[0]?.store?.logoUrl ??
+      offer.partnerUser.profilePictureUrl ??
+      offer.imageUrl ??
+      null
+    );
+  }
+
+  private resolveOfferBrandLabel(
+    offer: Prisma.RewardOfferGetPayload<{
+      include: ReturnType<RewardsService['offerInclude']>;
+    }>,
+  ) {
+    return offer.store?.name ?? offer.stores[0]?.store?.name ?? offer.title;
   }
 
   private defaultRewardActivityTitle(entry: RewardLedgerEntry) {
@@ -1845,6 +1971,11 @@ export class RewardsService {
 
   private stringFromUnknown(value: unknown) {
     return typeof value === 'string' ? value : undefined;
+  }
+
+  private trimString(value: unknown) {
+    const text = this.stringFromUnknown(value)?.trim();
+    return text ? text : undefined;
   }
 
   private numberFromUnknown(value: unknown) {
