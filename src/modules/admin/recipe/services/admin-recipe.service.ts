@@ -111,6 +111,9 @@ export class AdminRecipeService {
     const where = {
       ...(query.search && { title: { contains: query.search, mode: 'insensitive' as const } }),
       ...(query.recipeMealType && { recipeMealType: query.recipeMealType }),
+      ...(query.cuisineType && {
+        cuisineType: { contains: query.cuisineType, mode: 'insensitive' as const },
+      }),
       ...(query.status && { status: query.status }),
       ...ageWhere,
     };

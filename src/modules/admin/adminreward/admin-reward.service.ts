@@ -15,6 +15,10 @@ import {
   CreateRewardRuleDto,
   UpdateRewardRuleDto,
 } from './dto/reward-rule.dto';
+import {
+  type AdminTopRewardOfferStatus,
+  AdminTopRewardOffersQueryDto,
+} from './dto/top-offers-query.dto';
 
 type RewardMetric = {
   key: string;
@@ -206,6 +210,61 @@ export class AdminRewardService {
     return activities
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, take);
+  }
+
+  async getTopOffers(query: AdminTopRewardOffersQueryDto) {
+    const limit = Math.min(Math.max(query.limit ?? 5, 1), 50);
+    const now = new Date();
+    const status = query.status ?? 'ALL';
+
+    const offers = await this.prisma.rewardOffer.findMany({
+      where: this.topOfferWhere(status, now),
+      include: {
+        partnerUser: {
+          select: {
+            fullName: true,
+            partnerProfile: {
+              select: {
+                businessName: true,
+              },
+            },
+          },
+        },
+        store: {
+          select: {
+            name: true,
+          },
+        },
+        _count: {
+          select: {
+            redemptions: true,
+          },
+        },
+      },
+      orderBy: [{ createdAt: 'desc' }],
+    });
+
+    const items = offers
+      .map((offer) => this.formatTopOfferRow(offer, now))
+      .sort((a, b) => {
+        if (b.redeemedCount !== a.redeemedCount) {
+          return b.redeemedCount - a.redeemedCount;
+        }
+
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      })
+      .slice(0, limit);
+
+    return {
+      success: true,
+      message: 'Top reward offers fetched successfully',
+      data: {
+        total: offers.length,
+        limit,
+        status,
+        items,
+      },
+    };
   }
 
   async getRewardRules(query: { search?: string; status?: string }) {
@@ -598,6 +657,132 @@ export class AdminRewardService {
     }
 
     return normalized as RewardRuleStatus;
+  }
+
+  private topOfferWhere(
+    status: AdminTopRewardOfferStatus,
+    now: Date,
+  ): Prisma.RewardOfferWhereInput {
+    if (status === 'ALL') {
+      return {};
+    }
+
+    if (status === 'SCHEDULED') {
+      return {
+        status: { not: RewardOfferStatus.EXPIRED },
+        startsAt: { gt: now },
+      };
+    }
+
+    if (status === 'ACTIVE') {
+      return {
+        status: RewardOfferStatus.ACTIVE,
+        OR: [{ startsAt: null }, { startsAt: { lte: now } }],
+        AND: [{ OR: [{ endsAt: null }, { endsAt: { gte: now } }] }],
+      };
+    }
+
+    if (status === 'EXPIRED') {
+      return {
+        OR: [
+          { status: RewardOfferStatus.EXPIRED },
+          {
+            status: RewardOfferStatus.ACTIVE,
+            endsAt: { lt: now },
+          },
+        ],
+      };
+    }
+
+    if (status === 'INACTIVE') {
+      return { status: RewardOfferStatus.INACTIVE };
+    }
+
+    return { status: RewardOfferStatus.DRAFT };
+  }
+
+  private formatTopOfferRow(
+    offer: Prisma.RewardOfferGetPayload<{
+      include: {
+        partnerUser: {
+          select: {
+            fullName: true;
+            partnerProfile: {
+              select: {
+                businessName: true;
+              };
+            };
+          };
+        };
+        store: {
+          select: {
+            name: true;
+          };
+        };
+        _count: {
+          select: {
+            redemptions: true;
+          };
+        };
+      };
+    }>,
+    now: Date,
+  ) {
+    const displayStatus = this.topOfferDisplayStatus(offer, now);
+    const subtitle =
+      offer.productName?.trim() &&
+      offer.productName.trim().toLowerCase() !== offer.title.trim().toLowerCase()
+        ? offer.productName.trim()
+        : offer.includedTitle?.trim() || null;
+
+    return {
+      id: offer.id,
+      offerTitle: offer.title,
+      offerSubtitle: subtitle,
+      partnerName:
+        offer.partnerUser.partnerProfile?.businessName ??
+        offer.store?.name ??
+        offer.partnerUser.fullName,
+      redeemedCount: offer._count.redemptions,
+      status: displayStatus,
+      statusLabel: displayStatus.toLowerCase(),
+      rawStatus: offer.status,
+      startsAt: offer.startsAt,
+      endsAt: offer.endsAt,
+      createdAt: offer.createdAt,
+      updatedAt: offer.updatedAt,
+    };
+  }
+
+  private topOfferDisplayStatus(
+    offer: {
+      status: RewardOfferStatus;
+      startsAt: Date | null;
+      endsAt: Date | null;
+    },
+    now: Date,
+  ) {
+    if (offer.status === RewardOfferStatus.EXPIRED) {
+      return 'EXPIRED';
+    }
+
+    if (offer.endsAt && offer.endsAt < now) {
+      return 'EXPIRED';
+    }
+
+    if (offer.startsAt && offer.startsAt > now) {
+      return 'SCHEDULED';
+    }
+
+    if (offer.status === RewardOfferStatus.ACTIVE) {
+      return 'ACTIVE';
+    }
+
+    if (offer.status === RewardOfferStatus.INACTIVE) {
+      return 'INACTIVE';
+    }
+
+    return 'DRAFT';
   }
 
   private async assertRewardRuleExists(id: string) {

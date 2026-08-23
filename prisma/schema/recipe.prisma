@@ -2,6 +2,7 @@ model Recipe {
   id                  String             @id @default(uuid())
   title               String
   imageUrl            String?
+  cuisineType         String?
   recipeMealType      RecipeMealType
   shortDescription    String?
   videoUrl            String?

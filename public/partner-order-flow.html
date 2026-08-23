@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Partner Order Flow Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #eef2f3;
+      --ink: #183038;
+      --muted: #667984;
+      --line: #dbe4e8;
+      --panel: rgba(255, 255, 255, 0.92);
+      --panel-strong: #ffffff;
+      --brand: #0b6b73;
+      --brand-deep: #084d53;
+      --mint: #d9f6f1;
+      --sea: #dcf2ff;
+      --violet: #5866c4;
+      --violet-soft: #e5e9ff;
+      --warning: #f08f34;
+      --warning-soft: #fff4e8;
+      --success: #1c8f66;
+      --success-soft: #e6fbf1;
+      --danger: #d85d4f;
+      --danger-soft: #fff0ed;
+      --shadow: 0 20px 50px rgba(20, 41, 46, 0.10);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(11, 107, 115, 0.16), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(88, 102, 196, 0.11), transparent 22%),
+        linear-gradient(180deg, #f7f9fa 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: 'Outfit', sans-serif;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: 0;
+    }
+
+    .shell {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .masthead {
+      background: linear-gradient(135deg, #0b6b73 0%, #083f44 100%);
+      color: #fff;
+      border-radius: 28px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .masthead::after {
+      content: '';
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      top: -120px;
+      right: -80px;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: -120px 130px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .masthead-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 20px;
+      align-items: end;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #d7f2f5;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .masthead h1 {
+      margin: 14px 0 10px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 40px;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    .masthead p {
+      margin: 0;
+      max-width: 720px;
+      color: #c7e3e6;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .mast-actions {
+      display: grid;
+      gap: 12px;
+      justify-items: end;
+    }
+
+    .base-url {
+      width: min(100%, 420px);
+      background: rgba(255, 255, 255, 0.13);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 18px;
+      padding: 14px;
+      backdrop-filter: blur(10px);
+    }
+
+    .base-url label,
+    .field label,
+    .token-tools label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .masthead .base-url label {
+      color: #d7f2f5;
+    }
+
+    .base-url input,
+    .field input,
+    .field select,
+    .field textarea,
+    .token-tools textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fbfcfd;
+      padding: 12px 14px;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .masthead .base-url input {
+      background: rgba(255, 255, 255, 0.96);
+      border-color: transparent;
+    }
+
+    .base-url input:focus,
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus,
+    .token-tools textarea:focus {
+      box-shadow: 0 0 0 4px rgba(11, 107, 115, 0.13);
+      border-color: #85c8ce;
+    }
+
+    .layout {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+      position: sticky;
+      top: 18px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+    }
+
+    .card-head {
+      padding: 18px 20px 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .card-head h2,
+    .card-head h3 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .card-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .card-body {
+      padding: 18px 20px 20px;
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .inline-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .btn {
+      min-height: 46px;
+      padding: 0 16px;
+      border-radius: 14px;
+      background: var(--brand);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: 0.2s ease;
+    }
+
+    .btn:hover { background: var(--brand-deep); }
+
+    .btn.soft {
+      background: #ecf3f5;
+      color: var(--ink);
+    }
+
+    .btn.soft:hover { background: #dbe8eb; }
+
+    .btn.violet {
+      background: var(--violet);
+    }
+
+    .btn.violet:hover { background: #4956aa; }
+
+    .btn.ghost {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+
+    .btn.ghost:hover { background: #f5f8f9; }
+
+    .btn.danger {
+      background: var(--danger);
+    }
+
+    .btn.danger:hover { background: #bf4f43; }
+
+    .status-panel {
+      display: grid;
+      gap: 12px;
+    }
+
+    .status-chip,
+    .mini-chip,
+    .tab-pill,
+    .token-state {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 7px 12px;
+      white-space: nowrap;
+    }
+
+    .token-state {
+      background: var(--warning-soft);
+      color: var(--warning);
+    }
+
+    .token-state.live {
+      background: var(--success-soft);
+      color: var(--success);
+    }
+
+    .notice {
+      border-radius: 18px;
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .notice.info {
+      background: #ecf8fb;
+      color: #276776;
+    }
+
+    .notice.success {
+      background: var(--success-soft);
+      color: var(--success);
+    }
+
+    .notice.error {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .token-tools textarea {
+      min-height: 110px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .console {
+      background: #0e1a1d;
+      color: #d8ecf0;
+      border-radius: 18px;
+      padding: 14px;
+      min-height: 240px;
+      max-height: 460px;
+      overflow: auto;
+      font-size: 12px;
+      line-height: 1.6;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      white-space: pre-wrap;
+    }
+
+    .workspace {
+      display: grid;
+      gap: 20px;
+    }
+
+    .workspace-top {
+      display: grid;
+      grid-template-columns: 1.2fr auto;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .workspace-title h2 {
+      margin: 0;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 28px;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    .workspace-title p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: end;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric-card {
+      background: var(--panel-strong);
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      border: 1px solid #edf2f4;
+    }
+
+    .metric-card strong {
+      display: block;
+      font-size: 30px;
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+
+    .metric-card span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .tab-pill {
+      border: 1px solid #e3eaed;
+      background: #ffffff;
+      color: var(--muted);
+      min-height: 42px;
+      padding-inline: 14px;
+    }
+
+    .tab-pill.active {
+      background: #e5f5f6;
+      color: var(--brand);
+      border-color: #bfe3e6;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(360px, 0.88fr) minmax(0, 1.12fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .orders-panel,
+    .detail-panel {
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+      backdrop-filter: blur(18px);
+    }
+
+    .order-list {
+      display: grid;
+      gap: 14px;
+      max-height: 1040px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .order-card {
+      background: #fff;
+      border: 1px solid #edf2f4;
+      border-radius: 22px;
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+      transition: 0.18s ease;
+    }
+
+    .order-card.active {
+      border-color: #7bc1c8;
+      box-shadow: 0 16px 34px rgba(11, 107, 115, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .order-card-head,
+    .order-meta,
+    .order-footer,
+    .line-items,
+    .detail-kpis {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .order-id {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .mini-chip {
+      padding: 6px 10px;
+      font-size: 11px;
+      background: #edf5f8;
+      color: #40606a;
+    }
+
+    .mini-chip.warning {
+      background: var(--warning-soft);
+      color: var(--warning);
+    }
+
+    .mini-chip.success {
+      background: var(--success-soft);
+      color: var(--success);
+    }
+
+    .mini-chip.danger {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .mini-chip.info {
+      background: var(--sea);
+      color: #2c6380;
+    }
+
+    .amount {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .detail-empty {
+      min-height: 580px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      text-align: center;
+      padding: 30px;
+    }
+
+    .detail-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+    }
+
+    .detail-head h3 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .detail-sub {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .detail-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.82fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .progress-rail {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .progress-rail::before {
+      content: '';
+      position: absolute;
+      top: 22px;
+      left: 24px;
+      right: 24px;
+      height: 3px;
+      background: #d7e4e8;
+      z-index: 0;
+    }
+
+    .progress-fill {
+      position: absolute;
+      top: 22px;
+      left: 24px;
+      height: 3px;
+      background: var(--brand);
+      z-index: 1;
+      transition: width 0.2s ease;
+    }
+
+    .step {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+    }
+
+    .step-icon {
+      width: 46px;
+      height: 46px;
+      margin: 0 auto 10px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: #e9f8fb;
+      color: #5daab5;
+      font-size: 20px;
+      border: 2px solid transparent;
+    }
+
+    .step.active .step-icon,
+    .step.done .step-icon {
+      background: #d1f4f0;
+      color: var(--brand);
+    }
+
+    .step.active .step-icon {
+      border-color: var(--brand);
+    }
+
+    .step-label {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .stage-banner {
+      border-radius: 20px;
+      padding: 16px 18px;
+      margin-bottom: 18px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .stage-banner strong {
+      font-size: 16px;
+    }
+
+    .stage-banner p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .stage-banner.delivery {
+      background: #eaeeff;
+      color: #4a57aa;
+    }
+
+    .stage-banner.completed {
+      background: #dff9e9;
+      color: var(--success);
+    }
+
+    .detail-section,
+    .side-card {
+      background: #fff;
+      border: 1px solid #ecf1f3;
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: 0 14px 28px rgba(25, 40, 45, 0.06);
+    }
+
+    .detail-section h4,
+    .side-card h4 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    .item-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid #edf2f4;
+    }
+
+    .item-row:last-child { border-bottom: 0; }
+
+    .item-row strong,
+    .side-card strong {
+      display: block;
+      font-size: 17px;
+      margin-bottom: 4px;
+    }
+
+    .summary-rows {
+      margin-top: 8px;
+      padding-top: 14px;
+      border-top: 1px dashed #cdd7dc;
+      display: grid;
+      gap: 8px;
+    }
+
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 15px;
+    }
+
+    .summary-line.total {
+      font-size: 18px;
+      font-weight: 800;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #edf2f4;
+    }
+
+    .parent-note {
+      margin-top: 16px;
+      border-radius: 18px;
+      background: #fff7e9;
+      color: #b56712;
+      border: 1px solid #ffdcb0;
+      padding: 16px;
+      font-size: 14px;
+    }
+
+    .parent-note strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .side-card p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .side-card .phone {
+      margin-top: 10px;
+      color: var(--brand);
+      font-weight: 700;
+    }
+
+    .status-chip.new {
+      background: #edf8fa;
+      color: var(--brand);
+    }
+
+    .status-chip.processing {
+      background: var(--sea);
+      color: #296587;
+    }
+
+    .status-chip.delivery {
+      background: var(--violet-soft);
+      color: var(--violet);
+    }
+
+    .status-chip.completed {
+      background: var(--success-soft);
+      color: var(--success);
+    }
+
+    .status-chip.cancelled {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1280px) {
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .content-grid,
+      .detail-layout,
+      .masthead-grid,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .stack {
+        position: static;
+      }
+      .workspace-top {
+        grid-template-columns: 1fr;
+      }
+      .toolbar {
+        justify-content: start;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .shell { padding: 12px; }
+      .masthead { padding: 22px; border-radius: 22px; }
+      .masthead h1 { font-size: 30px; }
+      .metrics { grid-template-columns: 1fr; }
+      .inline-grid { grid-template-columns: 1fr; }
+      .progress-rail { gap: 8px; }
+      .step-label { font-size: 12px; }
+      .detail-head h3 { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="masthead">
+      <div class="masthead-grid">
+        <div>
+          <div class="eyebrow">Partner Flow Lab</div>
+          <h1>Login once, save token, and test the full partner order journey.</h1>
+          <p>
+            This page logs in with the partner account, stores the token automatically in the browser,
+            then lets you fetch list, open detail, and run the order state flow from one place.
+          </p>
+        </div>
+        <div class="mast-actions">
+          <div class="base-url">
+            <label for="baseUrlInput">API Base URL</label>
+            <input id="baseUrlInput" type="text" placeholder="http://localhost:5000/api/v1" />
+          </div>
+          <div id="tokenState" class="token-state">No saved token yet</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <aside class="stack">
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2>Partner Login</h2>
+              <p>Auto-save access token and restore session on refresh.</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="field-grid">
+              <div class="field">
+                <label for="emailInput">Email</label>
+                <input id="emailInput" type="email" placeholder="hello@business.com" />
+              </div>
+              <div class="field">
+                <label for="passwordInput">Password</label>
+                <input id="passwordInput" type="password" placeholder="Password123!" />
+              </div>
+            </div>
+            <div class="btn-row">
+              <button id="loginBtn" class="btn">Login & Save Token</button>
+              <button id="meBtn" class="btn soft">Check Profile</button>
+              <button id="logoutBtn" class="btn danger">Clear Session</button>
+            </div>
+            <div id="authNotice" class="notice info" style="margin-top: 14px;">
+              Use an approved partner account. The token will be saved to <code>localStorage</code>.
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h3>Saved Auth</h3>
+              <p>Paste token manually if you want to skip login.</p>
+            </div>
+          </div>
+          <div class="card-body token-tools">
+            <label for="tokenInput">Access Token</label>
+            <textarea id="tokenInput" placeholder="Saved access token will appear here"></textarea>
+            <div class="btn-row">
+              <button id="saveTokenBtn" class="btn soft">Save Token Only</button>
+              <button id="refreshAllBtn" class="btn">Fetch Orders</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h3>User Snapshot</h3>
+              <p>Who is currently logged in.</p>
+            </div>
+          </div>
+          <div id="userCard" class="card-body status-panel">
+            <div class="muted">No user loaded yet.</div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h3>API Console</h3>
+              <p>Last request and response for quick debugging.</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <pre id="consoleOutput" class="console">Ready.</pre>
+          </div>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <div class="workspace-top">
+          <div class="workspace-title">
+            <h2>Partner Orders</h2>
+            <p id="workspaceSubtitle">Log in and press “Fetch Orders” to load the live partner order flow.</p>
+          </div>
+          <div class="toolbar">
+            <button id="reloadOrdersBtn" class="btn soft">Reload List</button>
+            <button id="reloadDetailBtn" class="btn ghost">Reload Detail</button>
+          </div>
+        </div>
+
+        <section class="metrics" id="metricsRow">
+          <article class="metric-card"><strong>0</strong><span>New Orders</span></article>
+          <article class="metric-card"><strong>0</strong><span>Processing</span></article>
+          <article class="metric-card"><strong>0</strong><span>In Transit</span></article>
+          <article class="metric-card"><strong>0</strong><span>Completed</span></article>
+        </section>
+
+        <div id="filterTabs" class="tabs"></div>
+
+        <section class="content-grid">
+          <div class="orders-panel">
+            <div class="card-head" style="padding: 0 0 14px;">
+              <div>
+                <h3>Order List</h3>
+                <p>Matches the partner dashboard list and quick action flow.</p>
+              </div>
+            </div>
+            <div id="orderList" class="order-list">
+              <div class="muted">No order loaded yet.</div>
+            </div>
+          </div>
+
+          <div class="detail-panel">
+            <div id="orderDetail" class="detail-empty">
+              <div>
+                <h3 style="margin: 0 0 8px; font-size: 24px;">Select an order</h3>
+                <p style="margin: 0; max-width: 360px;">
+                  Pick any order from the left to see the progress rail, order items, delivery detail,
+                  and action buttons for the partner workflow.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <script>
+    const storageKeys = {
+      baseUrl: 'partner-order-flow.baseUrl',
+      accessToken: 'partner-order-flow.accessToken',
+      refreshToken: 'partner-order-flow.refreshToken',
+      user: 'partner-order-flow.user',
+    };
+
+    const ui = {
+      baseUrlInput: document.getElementById('baseUrlInput'),
+      emailInput: document.getElementById('emailInput'),
+      passwordInput: document.getElementById('passwordInput'),
+      tokenInput: document.getElementById('tokenInput'),
+      tokenState: document.getElementById('tokenState'),
+      authNotice: document.getElementById('authNotice'),
+      userCard: document.getElementById('userCard'),
+      consoleOutput: document.getElementById('consoleOutput'),
+      workspaceSubtitle: document.getElementById('workspaceSubtitle'),
+      metricsRow: document.getElementById('metricsRow'),
+      filterTabs: document.getElementById('filterTabs'),
+      orderList: document.getElementById('orderList'),
+      orderDetail: document.getElementById('orderDetail'),
+      loginBtn: document.getElementById('loginBtn'),
+      meBtn: document.getElementById('meBtn'),
+      logoutBtn: document.getElementById('logoutBtn'),
+      saveTokenBtn: document.getElementById('saveTokenBtn'),
+      refreshAllBtn: document.getElementById('refreshAllBtn'),
+      reloadOrdersBtn: document.getElementById('reloadOrdersBtn'),
+      reloadDetailBtn: document.getElementById('reloadDetailBtn'),
+    };
+
+    const state = {
+      orders: [],
+      selectedOrderId: null,
+      selectedOrder: null,
+      activeFilter: 'ALL',
+      accessToken: '',
+      refreshToken: '',
+      user: null,
+    };
+
+    const filterMeta = [
+      { key: 'ALL', label: 'All' },
+      { key: 'NEW', label: 'New' },
+      { key: 'PROCESSING', label: 'Processing' },
+      { key: 'DELIVERY_SENT', label: 'Delivery Sent' },
+      { key: 'COMPLETED', label: 'Completed' },
+      { key: 'CANCELLED', label: 'Cancelled' },
+    ];
+
+    function defaultBaseUrl() {
+      const { protocol, hostname, port, origin } = window.location;
+      const localHosts = new Set(['localhost', '127.0.0.1']);
+
+      if (localHosts.has(hostname) && port && port !== '5000') {
+        return `${protocol}//${hostname}:5000/api/v1`;
+      }
+
+      return `${origin.replace(/\/$/, '')}/api/v1`;
+    }
+
+    function normalizeBaseUrl(value) {
+      const fallback = defaultBaseUrl();
+      const raw = String(value || '').trim();
+
+      if (!raw) {
+        return fallback;
+      }
+
+      try {
+        const url = new URL(raw);
+        const localHosts = new Set(['localhost', '127.0.0.1']);
+
+        if (localHosts.has(url.hostname) && url.port && url.port !== '5000') {
+          url.port = '5000';
+        }
+
+        if (!url.pathname || url.pathname === '/') {
+          url.pathname = '/api/v1';
+        }
+
+        return url.toString().replace(/\/$/, '');
+      } catch {
+        return fallback;
+      }
+    }
+
+    function loadSavedState() {
+      const savedBaseUrl = localStorage.getItem(storageKeys.baseUrl);
+      ui.baseUrlInput.value = normalizeBaseUrl(savedBaseUrl);
+      state.accessToken = localStorage.getItem(storageKeys.accessToken) || '';
+      state.refreshToken = localStorage.getItem(storageKeys.refreshToken) || '';
+      state.user = parseJson(localStorage.getItem(storageKeys.user));
+      ui.tokenInput.value = state.accessToken;
+      saveBaseUrl();
+      renderAuthState();
+      renderUserCard();
+      renderTabs();
+      renderMetrics();
+    }
+
+    function saveBaseUrl() {
+      const normalized = normalizeBaseUrl(ui.baseUrlInput.value);
+      ui.baseUrlInput.value = normalized;
+      localStorage.setItem(storageKeys.baseUrl, normalized);
+    }
+
+    function saveTokenState(accessToken, refreshToken = state.refreshToken, user = state.user) {
+      state.accessToken = accessToken || '';
+      state.refreshToken = refreshToken || '';
+      state.user = user || null;
+      localStorage.setItem(storageKeys.accessToken, state.accessToken);
+      localStorage.setItem(storageKeys.refreshToken, state.refreshToken);
+      localStorage.setItem(storageKeys.user, JSON.stringify(state.user || null));
+      ui.tokenInput.value = state.accessToken;
+      renderAuthState();
+      renderUserCard();
+    }
+
+    function clearSession() {
+      saveTokenState('', '', null);
+      state.orders = [];
+      state.selectedOrderId = null;
+      state.selectedOrder = null;
+      renderMetrics();
+      renderTabs();
+      renderOrderList();
+      renderOrderDetail();
+      setNotice('Session cleared. Login again or paste a token.', 'info');
+      logConsole('Session cleared.');
+    }
+
+    function parseJson(value) {
+      try {
+        return value ? JSON.parse(value) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function renderAuthState() {
+      if (state.accessToken) {
+        ui.tokenState.textContent = 'Saved token active';
+        ui.tokenState.className = 'token-state live';
+      } else {
+        ui.tokenState.textContent = 'No saved token yet';
+        ui.tokenState.className = 'token-state';
+      }
+    }
+
+    function renderUserCard() {
+      if (!state.user) {
+        ui.userCard.innerHTML = '<div class="muted">No user loaded yet.</div>';
+        return;
+      }
+
+      const lines = [
+        { label: 'Name', value: state.user.fullName || state.user.businessName || '-' },
+        { label: 'Email', value: state.user.email || '-' },
+        { label: 'Role', value: state.user.role || '-' },
+        { label: 'Phone', value: state.user.phoneNumber || '-' },
+      ];
+
+      ui.userCard.innerHTML = `
+        <div class="status-chip ${state.user.role === 'PARTNER' ? 'new' : 'cancelled'}">${escapeHtml(state.user.role || 'UNKNOWN')}</div>
+        ${lines.map((item) => `
+          <div>
+            <div class="muted">${escapeHtml(item.label)}</div>
+            <div style="font-size: 15px; font-weight: 700; margin-top: 3px;">${escapeHtml(item.value)}</div>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    function setNotice(message, type = 'info') {
+      ui.authNotice.className = `notice ${type}`;
+      ui.authNotice.textContent = message;
+    }
+
+    function logConsole(title, payload) {
+      const stamp = new Date().toLocaleTimeString();
+      const text = payload === undefined
+        ? `[${stamp}] ${title}`
+        : `[${stamp}] ${title}\n${typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2)}`;
+      ui.consoleOutput.textContent = text;
+    }
+
+    function apiBaseUrl() {
+      return ui.baseUrlInput.value.trim().replace(/\/$/, '');
+    }
+
+    async function request(path, options = {}) {
+      saveBaseUrl();
+      const url = `${apiBaseUrl()}${path}`;
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      };
+
+      if (state.accessToken) {
+        headers.Authorization = `Bearer ${state.accessToken}`;
+      }
+
+      const response = await fetch(url, {
+        ...options,
+        headers,
+        credentials: 'include',
+      }).catch((error) => {
+        throw new Error(
+          `Could not reach API server at ${apiBaseUrl()}. Start backend on port 5000 and try again.`,
+        );
+      });
+
+      const rawText = await response.text();
+      const data = rawText ? parseJsonSafely(rawText) : null;
+
+      logConsole(`${options.method || 'GET'} ${path}`, data || rawText || 'No response body');
+
+      if (!response.ok) {
+        if (response.status === 405) {
+          throw new Error(
+            `Method not allowed from ${apiBaseUrl()}. Check the API Base URL. It should usually be http://127.0.0.1:5000/api/v1 or http://localhost:5000/api/v1.`,
+          );
+        }
+        throw new Error(data?.message || `Request failed with status ${response.status}`);
+      }
+
+      return data;
+    }
+
+    function parseJsonSafely(raw) {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return raw;
+      }
+    }
+
+    function responseData(response) {
+      return response?.data !== undefined ? response.data : response;
+    }
+
+    async function login() {
+      const email = ui.emailInput.value.trim();
+      const password = ui.passwordInput.value;
+
+      if (!email || !password) {
+        setNotice('Email and password are required.', 'error');
+        return;
+      }
+
+      ui.loginBtn.disabled = true;
+      try {
+        const result = await request('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        });
+        const payload = responseData(result);
+        saveTokenState(payload.accessToken || '', payload.refreshToken || '', payload.user || null);
+        setNotice(result.message || 'Login successful.', 'success');
+        ui.workspaceSubtitle.textContent = `Logged in as ${payload.user?.fullName || payload.user?.email || 'partner user'}. Loading orders...`;
+        await fetchOrders(true);
+      } catch (error) {
+        setNotice(error.message || 'Login failed.', 'error');
+      } finally {
+        ui.loginBtn.disabled = false;
+      }
+    }
+
+    async function fetchProfile() {
+      if (!state.accessToken) {
+        setNotice('No access token found. Login or paste a token first.', 'error');
+        return;
+      }
+
+      try {
+        const result = await request('/auth/me');
+        state.user = responseData(result);
+        localStorage.setItem(storageKeys.user, JSON.stringify(state.user));
+        renderUserCard();
+        setNotice('Profile loaded successfully.', 'success');
+      } catch (error) {
+        setNotice(error.message || 'Could not load profile.', 'error');
+      }
+    }
+
+    async function fetchOrders(selectFirst = false) {
+      if (!state.accessToken) {
+        setNotice('No access token found. Login or paste a token first.', 'error');
+        return;
+      }
+
+      try {
+        const result = await request('/partner/grocery-orders');
+        state.orders = responseData(result) || [];
+        renderMetrics();
+        renderTabs();
+        renderOrderList();
+        setNotice(`Loaded ${state.orders.length} partner order(s).`, 'success');
+
+        const shouldLoadSelected = state.selectedOrderId && state.orders.some((item) => item.id === state.selectedOrderId);
+        if (shouldLoadSelected) {
+          await fetchOrderDetail(state.selectedOrderId);
+          return;
+        }
+
+        if (selectFirst && state.orders[0]?.id) {
+          await fetchOrderDetail(state.orders[0].id);
+        } else if (!state.orders.length) {
+          state.selectedOrderId = null;
+          state.selectedOrder = null;
+          renderOrderDetail();
+        }
+      } catch (error) {
+        setNotice(error.message || 'Could not load orders.', 'error');
+      }
+    }
+
+    async function fetchOrderDetail(orderId) {
+      if (!orderId) {
+        return;
+      }
+
+      try {
+        const result = await request(`/partner/grocery-orders/${orderId}`);
+        state.selectedOrder = responseData(result);
+        state.selectedOrderId = state.selectedOrder?.id || orderId;
+        renderOrderList();
+        renderOrderDetail();
+      } catch (error) {
+        setNotice(error.message || 'Could not load order detail.', 'error');
+      }
+    }
+
+    async function updateOrderStatus(orderId, status) {
+      if (!orderId) {
+        return;
+      }
+
+      try {
+        const result = await request(`/partner/grocery-orders/${orderId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status }),
+        });
+        const updated = responseData(result);
+        state.selectedOrder = updated;
+        state.selectedOrderId = updated.id;
+        setNotice(`Order updated to ${status}.`, 'success');
+        await fetchOrders();
+        renderOrderDetail();
+      } catch (error) {
+        setNotice(error.message || 'Could not update order.', 'error');
+      }
+    }
+
+    function uiStage(status) {
+      if (status === 'ORDER_CONFIRMED') return 'PROCESSING';
+      if (status === 'OUT_FOR_DELIVERY') return 'DELIVERY_SENT';
+      if (status === 'DELIVERED') return 'COMPLETED';
+      if (status === 'CANCELLED') return 'CANCELLED';
+      return 'NEW';
+    }
+
+    function stageChipClass(stage) {
+      return {
+        NEW: 'new',
+        PROCESSING: 'processing',
+        DELIVERY_SENT: 'delivery',
+        COMPLETED: 'completed',
+        CANCELLED: 'cancelled',
+      }[stage] || 'new';
+    }
+
+    function stageLabel(stage) {
+      return {
+        NEW: 'New',
+        PROCESSING: 'Processing',
+        DELIVERY_SENT: 'Delivery Sent',
+        COMPLETED: 'Completed',
+        CANCELLED: 'Cancelled',
+      }[stage] || stage;
+    }
+
+    function stageCounts() {
+      return state.orders.reduce((acc, order) => {
+        const stage = uiStage(order.status);
+        acc.ALL += 1;
+        acc[stage] = (acc[stage] || 0) + 1;
+        return acc;
+      }, {
+        ALL: 0,
+        NEW: 0,
+        PROCESSING: 0,
+        DELIVERY_SENT: 0,
+        COMPLETED: 0,
+        CANCELLED: 0,
+      });
+    }
+
+    function filteredOrders() {
+      if (state.activeFilter === 'ALL') return state.orders;
+      return state.orders.filter((order) => uiStage(order.status) === state.activeFilter);
+    }
+
+    function renderMetrics() {
+      const counts = stageCounts();
+      const cards = [
+        { key: 'NEW', label: 'New Orders' },
+        { key: 'PROCESSING', label: 'Processing' },
+        { key: 'DELIVERY_SENT', label: 'In Transit' },
+        { key: 'COMPLETED', label: 'Completed' },
+      ];
+
+      ui.metricsRow.innerHTML = cards.map((card) => `
+        <article class="metric-card">
+          <strong>${counts[card.key] || 0}</strong>
+          <span>${card.label}</span>
+        </article>
+      `).join('');
+    }
+
+    function renderTabs() {
+      const counts = stageCounts();
+      ui.filterTabs.innerHTML = filterMeta.map((tab) => `
+        <button class="tab-pill ${state.activeFilter === tab.key ? 'active' : ''}" data-filter="${tab.key}">
+          ${tab.label} <span style="opacity: 0.7;">${counts[tab.key] || 0}</span>
+        </button>
+      `).join('');
+
+      ui.filterTabs.querySelectorAll('[data-filter]').forEach((button) => {
+        button.addEventListener('click', () => {
+          state.activeFilter = button.dataset.filter;
+          renderTabs();
+          renderOrderList();
+        });
+      });
+    }
+
+    function renderOrderList() {
+      const list = filteredOrders();
+
+      if (!list.length) {
+        ui.orderList.innerHTML = '<div class="muted">No order found for this filter.</div>';
+        return;
+      }
+
+      ui.orderList.innerHTML = list.map((order) => {
+        const stage = uiStage(order.status);
+        const isActive = order.id === state.selectedOrderId;
+        const customerName = order.store?.partner?.name || state.user?.fullName || 'Partner Store';
+        const actionLabel = primaryActionLabel(stage);
+        const paymentChip = order.paymentType === 'ONLINE' ? 'Pay now' : 'Cash on delivery';
+
+        return `
+          <article class="order-card ${isActive ? 'active' : ''}" data-order-id="${order.id}">
+            <div class="order-card-head">
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <div class="order-id">${escapeHtml(order.orderId || order.id)}</div>
+                <div class="mini-chip">${escapeHtml(stageLabel(stage))}</div>
+                ${stage === 'NEW' ? '<div class="mini-chip warning">Action needed</div>' : ''}
+              </div>
+              <div class="amount">${formatMoney(order.pricing?.total, order.pricing?.currency)}</div>
+            </div>
+
+            <div class="order-meta">
+              <div class="muted">${escapeHtml(customerName)}</div>
+              <div class="muted">${escapeHtml(formatDateTime(order.createdAt))}</div>
+            </div>
+
+            <div class="muted">${escapeHtml(order.deliveryAddress || 'No delivery address')}</div>
+
+            <div class="line-items">
+              ${(order.items || []).slice(0, 3).map((item) => `
+                <div class="mini-chip info">${escapeHtml(item.name)} x${escapeHtml(item.quantity)}</div>
+              `).join('')}
+              <div class="mini-chip">${escapeHtml(paymentChip)}</div>
+            </div>
+
+            <div class="order-footer">
+              <div class="muted">${escapeHtml(order.status)}</div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                ${actionLabel ? `<button class="btn ${stage === 'PROCESSING' ? 'violet' : ''}" data-primary-action="${order.id}">${escapeHtml(actionLabel)}</button>` : ''}
+                <button class="btn soft" data-view-order="${order.id}">View</button>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      ui.orderList.querySelectorAll('[data-view-order]').forEach((button) => {
+        button.addEventListener('click', () => fetchOrderDetail(button.dataset.viewOrder));
+      });
+
+      ui.orderList.querySelectorAll('[data-primary-action]').forEach((button) => {
+        button.addEventListener('click', async (event) => {
+          event.stopPropagation();
+          const order = state.orders.find((item) => item.id === button.dataset.primaryAction);
+          if (!order) return;
+          await runPrimaryAction(order);
+        });
+      });
+
+      ui.orderList.querySelectorAll('[data-order-id]').forEach((card) => {
+        card.addEventListener('click', (event) => {
+          if (event.target.closest('button')) return;
+          fetchOrderDetail(card.dataset.orderId);
+        });
+      });
+    }
+
+    function primaryActionLabel(stage) {
+      if (stage === 'NEW') return 'Accept order';
+      if (stage === 'PROCESSING') return 'Mark as delivery sent';
+      return '';
+    }
+
+    async function runPrimaryAction(order) {
+      const stage = uiStage(order.status);
+      if (stage === 'NEW') {
+        await updateOrderStatus(order.id, 'ORDER_CONFIRMED');
+      } else if (stage === 'PROCESSING') {
+        await updateOrderStatus(order.id, 'OUT_FOR_DELIVERY');
+      }
+    }
+
+    function progressIndex(stage) {
+      if (stage === 'NEW') return 0;
+      if (stage === 'PROCESSING') return 1;
+      if (stage === 'DELIVERY_SENT') return 2;
+      if (stage === 'COMPLETED') return 3;
+      if (stage === 'CANCELLED') return 0;
+      return 0;
+    }
+
+    function renderOrderDetail() {
+      const order = state.selectedOrder;
+      if (!order) {
+        ui.orderDetail.className = 'detail-empty';
+        ui.orderDetail.innerHTML = `
+          <div>
+            <h3 style="margin: 0 0 8px; font-size: 24px;">Select an order</h3>
+            <p style="margin: 0; max-width: 360px;">
+              Pick any order from the left to see the progress rail, order items, delivery detail,
+              and action buttons for the partner workflow.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      ui.orderDetail.className = '';
+      const stage = uiStage(order.status);
+      const stages = ['NEW', 'PROCESSING', 'DELIVERY_SENT', 'COMPLETED'];
+      const currentIndex = progressIndex(stage);
+      const fillWidth = `${Math.max(0, currentIndex) * 33.33}%`;
+      const note = order.finalNote || 'No note from parent.';
+      const banner = stageBanner(order, stage);
+
+      ui.orderDetail.innerHTML = `
+        <div class="detail-head">
+          <div>
+            <h3>Order ${escapeHtml(order.orderId || order.id)}</h3>
+            <div class="detail-sub">Placed ${escapeHtml(formatDateTime(order.createdAt))}</div>
+          </div>
+          <div style="display: grid; gap: 10px; justify-items: end;">
+            <div class="status-chip ${stageChipClass(stage)}">${escapeHtml(stageLabel(stage))}</div>
+            ${detailActionButton(stage)}
+          </div>
+        </div>
+
+        <div class="progress-rail">
+          <div class="progress-fill" style="width: ${fillWidth};"></div>
+          ${stages.map((item, index) => `
+            <div class="step ${index === currentIndex ? 'active' : ''} ${index < currentIndex || stage === 'COMPLETED' ? 'done' : ''}">
+              <div class="step-icon">${stepGlyph(item)}</div>
+              <div class="step-label">${escapeHtml(stageLabel(item))}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        ${banner}
+
+        <div class="detail-layout">
+          <div>
+            <section class="detail-section">
+              <h4>Items ordered</h4>
+              ${(order.items || []).map((item) => `
+                <div class="item-row">
+                  <div>
+                    <strong>${escapeHtml(item.name)}</strong>
+                    <div class="muted">Qty: ${escapeHtml(item.quantity)} × ${formatMoney(item.price, order.pricing?.currency)}</div>
+                  </div>
+                  <div style="font-weight: 700;">${formatMoney(item.price, order.pricing?.currency)}</div>
+                </div>
+              `).join('')}
+              <div class="summary-rows">
+                <div class="summary-line"><span>Subtotal</span><strong>${formatMoney(order.pricing?.subtotal, order.pricing?.currency)}</strong></div>
+                <div class="summary-line"><span>Delivery</span><strong>${formatMoney(order.pricing?.deliveryFee, order.pricing?.currency)}</strong></div>
+                <div class="summary-line"><span>Discount 5%</span><strong>${formatMoney(order.pricing?.onlineDiscount, order.pricing?.currency)}</strong></div>
+                <div class="summary-line total"><span>Total</span><strong>${formatMoney(order.pricing?.total, order.pricing?.currency)}</strong></div>
+              </div>
+            </section>
+
+            <div class="parent-note">
+              <strong>Note from Parent</strong>
+              <span>${escapeHtml(note)}</span>
+            </div>
+          </div>
+
+          <div class="side-stack">
+            <section class="side-card">
+              <h4>Delivery Details</h4>
+              <strong>${escapeHtml(order.store?.partner?.name || state.user?.fullName || 'Partner')}</strong>
+              <p>${escapeHtml(order.deliveryAddress || 'No address provided')}</p>
+              <div class="phone">${escapeHtml(order.receiverPhone || 'No receiver phone')}</div>
+            </section>
+
+            <section class="side-card">
+              <h4>Order State</h4>
+              <p>${escapeHtml(stageDescription(stage, order.paymentType))}</p>
+              <div class="btn-row" style="margin-top: 16px;">
+                ${sideActionButtons(order, stage)}
+              </div>
+            </section>
+
+            <section class="side-card">
+              <h4>Developer Status Switch</h4>
+              <p>Use this only if you want to jump to a specific backend status for testing.</p>
+              <div class="inline-grid" style="margin-top: 14px;">
+                <div class="field" style="margin: 0;">
+                  <label for="statusSelect">Backend Status</label>
+                  <select id="statusSelect">
+                    ${['VOUCHER_SENT', 'STORE_REVIEWING', 'STORE_REVIEWED', 'ORDER_CONFIRMED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED']
+                      .map((value) => `<option value="${value}" ${value === order.status ? 'selected' : ''}>${value}</option>`)
+                      .join('')}
+                  </select>
+                </div>
+                <div class="field" style="margin: 0; align-self: end;">
+                  <label>&nbsp;</label>
+                  <button id="applyStatusBtn" class="btn ghost" style="width: 100%;">Apply Status</button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      `;
+
+      const mainAction = ui.orderDetail.querySelector('[data-main-action]');
+      if (mainAction) {
+        mainAction.addEventListener('click', async () => {
+          const action = mainAction.dataset.mainAction;
+          if (action === 'accept') {
+            await updateOrderStatus(order.id, 'ORDER_CONFIRMED');
+          } else if (action === 'dispatch') {
+            await updateOrderStatus(order.id, 'OUT_FOR_DELIVERY');
+          }
+        });
+      }
+
+      ui.orderDetail.querySelectorAll('[data-status-set]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          await updateOrderStatus(order.id, button.dataset.statusSet);
+        });
+      });
+
+      const applyStatusBtn = document.getElementById('applyStatusBtn');
+      if (applyStatusBtn) {
+        applyStatusBtn.addEventListener('click', async () => {
+          const select = document.getElementById('statusSelect');
+          await updateOrderStatus(order.id, select.value);
+        });
+      }
+    }
+
+    function detailActionButton(stage) {
+      if (stage === 'NEW') {
+        return '<button class="btn" data-main-action="accept">Accept order</button>';
+      }
+      if (stage === 'PROCESSING') {
+        return '<button class="btn violet" data-main-action="dispatch">Mark as Delivery sent</button>';
+      }
+      return '';
+    }
+
+    function sideActionButtons(order, stage) {
+      const buttons = [];
+      if (stage === 'NEW') {
+        buttons.push('<button class="btn" data-status-set="ORDER_CONFIRMED">Accept Order</button>');
+      }
+      if (stage === 'PROCESSING') {
+        buttons.push('<button class="btn violet" data-status-set="OUT_FOR_DELIVERY">Mark as Delivery sent</button>');
+      }
+      if (stage === 'DELIVERY_SENT') {
+        buttons.push('<button class="btn soft" disabled>You will be notified on completion</button>');
+      }
+      if (stage === 'COMPLETED') {
+        buttons.push('<button class="btn soft" disabled>Order completed</button>');
+      }
+      if (stage === 'CANCELLED') {
+        buttons.push('<button class="btn soft" disabled>Order cancelled</button>');
+      }
+      return buttons.join('');
+    }
+
+    function stageDescription(stage, paymentType) {
+      const paymentText = paymentType === 'ONLINE' ? 'pay now' : 'cash on delivery';
+      if (stage === 'NEW') {
+        return `Review the items above and accept this ${paymentText} order to begin preparing the delivery.`;
+      }
+      if (stage === 'PROCESSING') {
+        return `Once you've packed and dispatched the ${paymentText} order, tap below to notify the parent.`;
+      }
+      if (stage === 'DELIVERY_SENT') {
+        return 'Delivery has been sent. Waiting for the parent app to confirm receipt and close the flow.';
+      }
+      if (stage === 'COMPLETED') {
+        return 'This order has been completed successfully. All progress steps are now locked.';
+      }
+      if (stage === 'CANCELLED') {
+        return 'This order is cancelled and no further partner action is required.';
+      }
+      return 'Order state unknown.';
+    }
+
+    function stageBanner(order, stage) {
+      if (stage === 'DELIVERY_SENT') {
+        return `
+          <div class="stage-banner delivery">
+            <strong>Awaiting Confirmation</strong>
+            <p>Delivery has been sent. Waiting for the parent to confirm receipt in the app.</p>
+          </div>
+        `;
+      }
+      if (stage === 'COMPLETED') {
+        return `
+          <div class="stage-banner completed">
+            <strong>Order Completed</strong>
+            <p>The order is fully completed. The parent confirmed receipt successfully.</p>
+          </div>
+        `;
+      }
+      if (stage === 'CANCELLED') {
+        return `
+          <div class="stage-banner" style="background: var(--danger-soft); color: var(--danger);">
+            <strong>Order Cancelled</strong>
+            <p>This order is in a cancelled state and should remain read only.</p>
+          </div>
+        `;
+      }
+      return '';
+    }
+
+    function stepGlyph(stage) {
+      return {
+        NEW: '✚',
+        PROCESSING: '↻',
+        DELIVERY_SENT: '🛵',
+        COMPLETED: '✓',
+      }[stage] || '•';
+    }
+
+    function formatMoney(value, currency = 'AED') {
+      const amount = Number(value || 0);
+      return `${currency} ${amount.toFixed(2)}`;
+    }
+
+    function formatDateTime(value) {
+      if (!value) return 'Unknown time';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return new Intl.DateTimeFormat('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(date);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    ui.baseUrlInput.addEventListener('change', saveBaseUrl);
+    ui.loginBtn.addEventListener('click', login);
+    ui.meBtn.addEventListener('click', fetchProfile);
+    ui.logoutBtn.addEventListener('click', clearSession);
+    ui.saveTokenBtn.addEventListener('click', () => {
+      saveTokenState(ui.tokenInput.value.trim(), state.refreshToken, state.user);
+      setNotice('Token saved locally. You can fetch orders now.', 'success');
+    });
+    ui.refreshAllBtn.addEventListener('click', () => fetchOrders(true));
+    ui.reloadOrdersBtn.addEventListener('click', () => fetchOrders());
+    ui.reloadDetailBtn.addEventListener('click', () => fetchOrderDetail(state.selectedOrderId));
+
+    loadSavedState();
+    if (state.accessToken) {
+      fetchProfile().catch(() => {});
+      fetchOrders(true).catch(() => {});
+    } else {
+      renderOrderList();
+      renderOrderDetail();
+    }
+  </script>
+</body>
+</html>

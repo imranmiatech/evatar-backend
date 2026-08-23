@@ -224,6 +224,22 @@ async function bootstrap() {
   );
 
   expressApp.get(
+    ['/partner-order-flow-ui', '/partner-orders-ui', '/partner-order-flow'],
+    (req: any, res: any) => {
+      const fs = require('fs');
+      const path = require('path');
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'public/partner-order-flow.html'),
+        path.resolve(__dirname, '../public/partner-order-flow.html'),
+        path.resolve(__dirname, '../../public/partner-order-flow.html'),
+      ];
+      const targetPath =
+        possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+      res.sendFile(targetPath);
+    },
+  );
+
+  expressApp.get(
     ['/manage-system-ui', '/manage-caregivers-ui', '/public/manage-system.html'],
     (req: any, res: any) => {
       const fs = require('fs');
@@ -332,6 +348,22 @@ async function bootstrap() {
         path.resolve(process.cwd(), 'public/payment-tips.html'),
         path.resolve(__dirname, '../public/payment-tips.html'),
         path.resolve(__dirname, '../../public/payment-tips.html'),
+      ];
+      const targetPath =
+        possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+      res.sendFile(targetPath);
+    },
+  );
+
+  expressApp.get(
+    ['/admin-rewards-ui', '/admin-rewards', '/public/admin-rewards.html'],
+    (req: any, res: any) => {
+      const fs = require('fs');
+      const path = require('path');
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'public/admin-rewards.html'),
+        path.resolve(__dirname, '../public/admin-rewards.html'),
+        path.resolve(__dirname, '../../public/admin-rewards.html'),
       ];
       const targetPath =
         possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];

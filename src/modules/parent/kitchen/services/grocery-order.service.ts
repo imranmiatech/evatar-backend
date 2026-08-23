@@ -19,9 +19,13 @@ import {
   GroceryCheckoutPreviewDto,
   GroceryOrderAction,
   UpdateGroceryOrderDto,
-  UpdatePartnerGroceryOrderDto,
 } from '../dto/grocery-order.dto';
 import { KitchenAccessService } from './kitchen-access.service';
+import {
+  formatGroceryOrder,
+  formatStore,
+  groceryOrderInclude,
+} from '../utils/grocery-order-response.util';
 
 @Injectable()
 export class GroceryOrderService {
@@ -60,7 +64,7 @@ export class GroceryOrderService {
       message: 'Partner stores fetched successfully',
       data: {
         ownerUserId,
-        stores: stores.map((store) => this.formatStore(store)),
+        stores: stores.map((store) => formatStore(store)),
       },
     };
   }
@@ -124,8 +128,8 @@ export class GroceryOrderService {
         itemCount: pricedItems.length,
         voucherItems: pricedItems,
         finalNote: '',
-        selectedStore: selectedStore ? this.formatStore(selectedStore) : null,
-        storeOptions: stores.map((store) => this.formatStore(store)),
+        selectedStore: selectedStore ? formatStore(selectedStore) : null,
+        storeOptions: stores.map((store) => formatStore(store)),
         paymentMethods,
         pricing,
       },
@@ -200,7 +204,7 @@ export class GroceryOrderService {
             })),
           },
         },
-        include: this.orderInclude(),
+        include: groceryOrderInclude(),
       });
 
       await tx.shoppingListItem.updateMany({
@@ -227,13 +231,13 @@ export class GroceryOrderService {
 
     const freshOrder = await this.prisma.groceryOrder.findUnique({
       where: { id: order.id },
-      include: this.orderInclude(),
+      include: groceryOrderInclude(),
     });
 
     return {
       success: true,
       message: 'Grocery order created successfully',
-      data: this.formatOrder(freshOrder!),
+      data: formatGroceryOrder(freshOrder!),
     };
   }
 
@@ -246,21 +250,21 @@ export class GroceryOrderService {
 
     const orders = await this.prisma.groceryOrder.findMany({
       where: readableParentIds ? { userId: { in: readableParentIds } } : {},
-      include: this.orderInclude(),
+      include: groceryOrderInclude(),
       orderBy: { createdAt: 'desc' },
     });
 
     return {
       success: true,
       message: 'Grocery orders fetched successfully',
-      data: orders.map((order) => this.formatOrder(order)),
+      data: orders.map((order) => formatGroceryOrder(order)),
     };
   }
 
   async getOrderById(user: CurrentUserPayload, orderId: string) {
     const order = await this.prisma.groceryOrder.findUnique({
       where: { id: orderId },
-      include: this.orderInclude(),
+      include: groceryOrderInclude(),
     });
 
     if (!order) {
@@ -280,7 +284,7 @@ export class GroceryOrderService {
     return {
       success: true,
       message: 'Grocery order fetched successfully',
-      data: this.formatOrder(order),
+      data: formatGroceryOrder(order),
     };
   }
 
@@ -314,82 +318,13 @@ export class GroceryOrderService {
     const updated = await this.prisma.groceryOrder.update({
       where: { id: orderId },
       data: { status: GroceryOrderStatus.CANCELLED },
-      include: this.orderInclude(),
+      include: groceryOrderInclude(),
     });
 
     return {
       success: true,
       message: 'Grocery order updated successfully',
-      data: this.formatOrder(updated),
-    };
-  }
-
-  async listPartnerOrders(user: CurrentUserPayload) {
-    if (user.role !== UserRole.PARTNER) {
-      throw new ForbiddenException('Only partner users can access store orders');
-    }
-
-    const orders = await this.prisma.groceryOrder.findMany({
-      where: { store: { userId: user.userId } },
-      include: this.orderInclude(),
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return {
-      success: true,
-      message: 'Partner grocery orders fetched successfully',
-      data: orders.map((order) => this.formatOrder(order)),
-    };
-  }
-
-  async getPartnerOrderById(user: CurrentUserPayload, orderId: string) {
-    if (user.role !== UserRole.PARTNER) {
-      throw new ForbiddenException('Only partner users can access store orders');
-    }
-
-    const order = await this.prisma.groceryOrder.findFirst({
-      where: { id: orderId, store: { userId: user.userId } },
-      include: this.orderInclude(),
-    });
-
-    if (!order) {
-      throw new NotFoundException('Partner grocery order not found');
-    }
-
-    return {
-      success: true,
-      message: 'Partner grocery order fetched successfully',
-      data: this.formatOrder(order),
-    };
-  }
-
-  async updatePartnerOrder(
-    user: CurrentUserPayload,
-    orderId: string,
-    dto: UpdatePartnerGroceryOrderDto,
-  ) {
-    if (user.role !== UserRole.PARTNER) {
-      throw new ForbiddenException('Only partner users can update store orders');
-    }
-
-    const order = await this.prisma.groceryOrder.findFirst({
-      where: { id: orderId, store: { userId: user.userId } },
-    });
-
-    if (!order) {
-      throw new NotFoundException('Partner grocery order not found');
-    }
-
-    const updated = await this.prisma.groceryOrder.update({
-      where: { id: orderId },
-      data: { status: dto.status },
-      include: this.orderInclude(),
-    });
-
-    return {
-      success: true,
-      message: 'Partner grocery order updated successfully',
-      data: this.formatOrder(updated),
+      data: formatGroceryOrder(updated),
     };
   }
 
@@ -484,134 +419,4 @@ export class GroceryOrderService {
     return `TRK-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
   }
 
-  private orderInclude() {
-    return {
-      items: true,
-      store: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-              phoneNumber: true,
-            },
-          },
-        },
-      },
-      transactions: {
-        orderBy: { createdAt: 'desc' as const },
-      },
-    };
-  }
-
-  private formatStore(store: any) {
-    return {
-      id: store.id,
-      name: store.name,
-      logoUrl: store.logoUrl,
-      description: store.description,
-      address: store.address,
-      city: store.city,
-      partner: {
-        id: store.user.id,
-        name: store.user.fullName,
-        email: store.user.email,
-        phoneNumber: store.user.phoneNumber,
-      },
-      deliveryLabel:
-        store.name?.toLowerCase().includes('carrefour')
-          ? 'Save 5% when you spend over 100 AED'
-          : 'Partner store available for family delivery',
-    };
-  }
-
-  private formatOrder(order: any, payment?: any) {
-    return {
-      id: order.id,
-      orderId: order.orderId,
-      trackingCode: order.trackingCode,
-      status: order.status,
-      paymentType: order.paymentType,
-      transactionId: order.transactionId,
-      finalNote: order.finalNote,
-      deliveryAddress: order.deliveryAddress,
-      receiverPhone: order.receiverPhone,
-      estimatedDeliveryAt: order.estimatedDeliveryAt,
-      pricing: {
-        subtotal: order.subtotal,
-        onlineDiscount: order.onlineDiscount,
-        deliveryFee: order.deliveryFee,
-        total: order.total,
-        currency: 'AED',
-      },
-      store: this.formatStore(order.store),
-      items: order.items.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        unit: item.unit,
-        quantity: item.quantity,
-        category: item.category,
-        note: item.note,
-        price: item.price,
-      })),
-      payment:
-        payment?.data ??
-        (order.transactions?.[0]
-          ? {
-              transactionId: order.transactions[0].id,
-              paymentIntentId: order.transactions[0].paymentIntentId,
-              amount: order.transactions[0].amount,
-              currency: order.transactions[0].currency,
-              status: order.transactions[0].status,
-            }
-          : null),
-      trackingTimeline: this.buildTrackingTimeline(order),
-      createdAt: order.createdAt,
-      updatedAt: order.updatedAt,
-    };
-  }
-
-  private buildTrackingTimeline(order: any) {
-    const createdAt = order.createdAt;
-    const updatedAt = order.updatedAt;
-
-    return [
-      {
-        key: 'PAYMENT_CONFIRMED',
-        title: 'Payment confirmed',
-        active: [
-          GroceryOrderStatus.ORDER_CONFIRMED,
-          GroceryOrderStatus.OUT_FOR_DELIVERY,
-          GroceryOrderStatus.DELIVERED,
-        ].includes(order.status),
-        timestamp: createdAt,
-      },
-      {
-        key: 'ORDER_CONFIRMED',
-        title: 'Order confirmed',
-        active: [
-          GroceryOrderStatus.ORDER_CONFIRMED,
-          GroceryOrderStatus.OUT_FOR_DELIVERY,
-          GroceryOrderStatus.DELIVERED,
-        ].includes(order.status),
-        timestamp: updatedAt,
-      },
-      {
-        key: 'OUT_FOR_DELIVERY',
-        title: 'Out for delivery',
-        active: [
-          GroceryOrderStatus.OUT_FOR_DELIVERY,
-          GroceryOrderStatus.DELIVERED,
-        ].includes(order.status),
-        timestamp: updatedAt,
-      },
-      {
-        key: 'DELIVERED',
-        title: 'Delivered',
-        active: order.status === GroceryOrderStatus.DELIVERED,
-        timestamp: updatedAt,
-      },
-    ];
-  }
 }

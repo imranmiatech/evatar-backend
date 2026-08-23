@@ -28,6 +28,7 @@ import {
   CreateRewardRuleDto,
   UpdateRewardRuleDto,
 } from './dto/reward-rule.dto';
+import { AdminTopRewardOffersQueryDto } from './dto/top-offers-query.dto';
 
 @ApiTags('Admin Rewards')
 @ApiBearerAuth()
@@ -60,6 +61,20 @@ export class AdminRewardController {
   @ApiQuery({ name: 'limit', required: false, example: 8 })
   getRecentActivity(@Query('limit') limit?: string) {
     return this.adminRewardService.getRecentActivity(Number(limit) || 8);
+  }
+
+  @Get('top-offers')
+  @ApiOperation({
+    summary: 'Get top reward offers for admin dashboard table',
+    description:
+      'Returns top reward offers with partner name, redeemed count, and derived display status for the Top Offers widget.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Top reward offers returned successfully.',
+  })
+  getTopOffers(@Query() query: AdminTopRewardOffersQueryDto) {
+    return this.adminRewardService.getTopOffers(query);
   }
 
   @Get('rules')

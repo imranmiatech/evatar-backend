@@ -42,6 +42,17 @@ export class DashboardController {
     return this.dashboardService.getRewardsOverview();
   }
 
+  @Get('subscription-distribution')
+  @ApiOperation({ summary: 'Get admin subscription plan distribution for dashboard charts' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Returns parent membership distribution across Free, Monthly, Yearly, and Global plan buckets with counts and percentages.',
+  })
+  getSubscriptionDistribution() {
+    return this.dashboardService.getSubscriptionDistribution();
+  }
+
   @Get('user-growth')
   @ApiOperation({ summary: 'Get user growth chart analytics with period filtering (7D, 30D, 90D, 12M)' })
   @ApiResponse({

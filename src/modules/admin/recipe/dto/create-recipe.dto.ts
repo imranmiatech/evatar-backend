@@ -60,6 +60,14 @@ export class CreateRecipeDto {
   title: string;
 
   @ApiPropertyOptional({
+    example: 'Mediterranean',
+    description: 'Cuisine classification shown in admin and recipe detail views.',
+  })
+  @IsOptional()
+  @IsString()
+  cuisineType?: string;
+
+  @ApiPropertyOptional({
     example:
       'Soft, naturally sweet pancakes made with bananas and oats, suitable for toddlers.',
   })

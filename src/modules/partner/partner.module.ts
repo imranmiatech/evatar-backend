@@ -7,6 +7,8 @@ import { AdminOfferService } from './offer/admin-offer.service';
 import { AdminPartnerOfferController } from './offer/admin-partner-offer.controller';
 import { PartnerOfferController } from './offer/partner-offer.controller';
 import { PartnerOfferService } from './offer/partner-offer.service';
+import { PartnerOrderController } from './order/partner-order.controller';
+import { PartnerOrderService } from './order/partner-order.service';
 import { PartnerProductController } from './product/partner-product.controller';
 import { PartnerProductService } from './product/partner-product.service';
 
@@ -17,12 +19,14 @@ import { PartnerProductService } from './product/partner-product.service';
     PartnerOfferController,
     AdminPartnerOfferController,
     PartnerDashboardController,
+    PartnerOrderController,
   ],
   providers: [
     PartnerProductService,
     PartnerOfferService,
     AdminOfferService,
     PartnerDashboardService,
+    PartnerOrderService,
   ],
   exports: [PartnerOfferService],
 })

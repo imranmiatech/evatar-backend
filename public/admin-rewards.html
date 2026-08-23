@@ -1,0 +1,1800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alurei Admin Rewards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sidebar: #07292d;
+      --sidebar-2: #0d3a40;
+      --brand: #0b666e;
+      --brand-2: #0f7a83;
+      --bg: #eef2f4;
+      --panel: #ffffff;
+      --line: #e5ecef;
+      --muted: #75838f;
+      --text: #13222f;
+      --soft: #f7fafb;
+      --success-bg: #e8f8ef;
+      --success-text: #18945a;
+      --danger-bg: #fff0ef;
+      --danger-text: #ea6255;
+      --warning-bg: #fff5de;
+      --warning-text: #d48a19;
+      --info-bg: #edf6ff;
+      --info-text: #3483d9;
+      --shadow: 0 18px 46px rgba(17, 34, 41, 0.08);
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(11, 102, 110, 0.08), transparent 20%),
+        linear-gradient(180deg, #f8fafb 0%, var(--bg) 100%);
+      min-height: 100vh;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: 0;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      background:
+        radial-gradient(circle at top, rgba(18, 183, 198, 0.18), transparent 30%),
+        linear-gradient(180deg, var(--sidebar) 0%, #062225 100%);
+      color: #dbeff1;
+      padding: 18px 16px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .logo {
+      padding: 10px 8px 6px;
+    }
+
+    .logo strong {
+      display: block;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: #fff;
+    }
+
+    .logo span {
+      display: block;
+      color: #89aeb2;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .nav-group {
+      display: grid;
+      gap: 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      padding: 0 12px;
+      color: #a7c1c5;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .nav-item.active {
+      background: rgba(26, 149, 160, 0.18);
+      color: #fff;
+    }
+
+    .nav-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.85;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 14px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .sidebar-footer strong {
+      display: block;
+      color: #fff;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-footer span {
+      color: #9fbdc1;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .main {
+      padding: 20px 20px 28px;
+    }
+
+    .header {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 14px;
+      z-index: 5;
+      backdrop-filter: blur(16px);
+    }
+
+    .searchbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .searchbar input {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 0 14px;
+      background: var(--soft);
+      outline: none;
+    }
+
+    .searchbar input:focus,
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus,
+    .login-card input:focus,
+    .login-card textarea:focus {
+      border-color: #8fcbd0;
+      box-shadow: 0 0 0 4px rgba(11, 102, 110, 0.12);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      min-height: 38px;
+      padding: 0 14px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .chip.success {
+      background: var(--success-bg);
+      color: var(--success-text);
+    }
+
+    .chip.warning {
+      background: var(--warning-bg);
+      color: var(--warning-text);
+    }
+
+    .btn {
+      min-height: 42px;
+      border-radius: 12px;
+      padding: 0 14px;
+      font-size: 13px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn.primary {
+      background: var(--brand);
+      color: #fff;
+    }
+
+    .btn.primary:hover {
+      background: var(--brand-2);
+    }
+
+    .btn.soft {
+      background: #edf4f5;
+      color: var(--text);
+    }
+
+    .btn.soft:hover {
+      background: #dfeaec;
+    }
+
+    .btn.ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .btn.danger {
+      background: var(--danger-bg);
+      color: var(--danger-text);
+    }
+
+    .page {
+      margin-top: 18px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .notice {
+      border-radius: 18px;
+      padding: 14px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.55;
+    }
+
+    .notice.info {
+      background: #eef8fb;
+      color: #2f6d79;
+    }
+
+    .notice.success {
+      background: var(--success-bg);
+      color: var(--success-text);
+    }
+
+    .notice.error {
+      background: var(--danger-bg);
+      color: var(--danger-text);
+    }
+
+    .section-card {
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      backdrop-filter: blur(18px);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .section-head h2,
+    .section-head h3 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .section-head p {
+      margin: 5px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric {
+      background: #fff;
+      border: 1px solid #edf2f4;
+      border-radius: 20px;
+      padding: 16px;
+      min-height: 120px;
+      display: grid;
+      align-content: start;
+      gap: 10px;
+    }
+
+    .metric:nth-child(1) { background: linear-gradient(180deg, #fff 0%, #f8fbff 100%); }
+    .metric:nth-child(2) { background: linear-gradient(180deg, #fff 0%, #fff9f1 100%); }
+    .metric:nth-child(3) { background: linear-gradient(180deg, #fff 0%, #f3fffb 100%); }
+    .metric:nth-child(4) { background: linear-gradient(180deg, #fff 0%, #f5f8ff 100%); }
+    .metric:nth-child(5) { background: linear-gradient(180deg, #fff 0%, #faf7ff 100%); }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .metric-value {
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .metric-sub {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .metric-change {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 11px;
+      font-weight: 800;
+      background: var(--success-bg);
+      color: var(--success-text);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 14px 10px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      font-size: 13px;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding-top: 0;
+    }
+
+    td strong {
+      display: block;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    td span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      min-height: 28px;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: lowercase;
+    }
+
+    .status-active {
+      background: var(--success-bg);
+      color: var(--success-text);
+    }
+
+    .status-expired {
+      background: var(--danger-bg);
+      color: var(--danger-text);
+    }
+
+    .status-scheduled {
+      background: var(--info-bg);
+      color: var(--info-text);
+    }
+
+    .status-inactive,
+    .status-disabled {
+      background: #f0f2f4;
+      color: #71808c;
+    }
+
+    .status-draft {
+      background: var(--warning-bg);
+      color: var(--warning-text);
+    }
+
+    .activity-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .activity-item {
+      display: grid;
+      grid-template-columns: 42px 1fr auto;
+      gap: 12px;
+      align-items: start;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .activity-item:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .activity-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .icon-green {
+      background: var(--success-bg);
+      color: var(--success-text);
+    }
+
+    .icon-blue {
+      background: var(--info-bg);
+      color: var(--info-text);
+    }
+
+    .icon-orange {
+      background: var(--warning-bg);
+      color: var(--warning-text);
+    }
+
+    .activity-title {
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .activity-meta {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .activity-points {
+      font-weight: 800;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .toolbar .field {
+      min-width: 180px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 10px 12px;
+      outline: none;
+    }
+
+    .field textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+
+    .table-actions {
+      display: inline-flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: 1px solid transparent;
+      color: #7c848d;
+      transition: 0.18s ease;
+    }
+
+    .icon-btn:hover {
+      background: #f3f7f8;
+      border-color: #dce7ea;
+    }
+
+    .icon-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .icon-btn.play {
+      color: var(--success-text);
+    }
+
+    .icon-btn.pause {
+      color: var(--warning-text);
+    }
+
+    .icon-btn.delete {
+      background: var(--danger-bg);
+      color: var(--danger-text);
+    }
+
+    .icon-btn.delete:hover {
+      border-color: #f7cbc6;
+      background: #ffe4e0;
+    }
+
+    .console {
+      background: #0e1a1d;
+      color: #d6eef0;
+      border-radius: 18px;
+      padding: 14px;
+      min-height: 160px;
+      max-height: 260px;
+      overflow: auto;
+      white-space: pre-wrap;
+      font-size: 12px;
+      line-height: 1.6;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 22, 26, 0.46);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 20px;
+    }
+
+    .overlay.open {
+      display: flex;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 460px;
+      background: #fff;
+      border-radius: 26px;
+      box-shadow: 0 24px 60px rgba(8, 23, 27, 0.22);
+      padding: 24px;
+    }
+
+    .login-card h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.1;
+    }
+
+    .login-card p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .login-card .field-grid {
+      margin-top: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .login-card input,
+    .login-card textarea {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 10px 12px;
+      outline: none;
+    }
+
+    .login-card textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+
+    .modal-actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 20, 23, 0.38);
+      display: none;
+      justify-content: flex-end;
+      z-index: 40;
+    }
+
+    .drawer-overlay.open {
+      display: flex;
+    }
+
+    .drawer {
+      width: min(540px, 100%);
+      height: 100%;
+      background: #fff;
+      box-shadow: -18px 0 42px rgba(8, 24, 26, 0.14);
+      display: flex;
+      flex-direction: column;
+      animation: slideIn 0.22s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+
+    .drawer-head {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .drawer-body {
+      flex: 1;
+      overflow: auto;
+      padding: 18px 20px 24px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .drawer-foot {
+      padding: 16px 20px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: #fff;
+    }
+
+    .check-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .check-item {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 0 12px;
+      background: #fff;
+    }
+
+    .empty {
+      padding: 22px 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 1280px) {
+      .overview-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        height: auto;
+        position: static;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .main {
+        padding: 12px;
+      }
+
+      .header {
+        border-radius: 18px;
+      }
+
+      .overview-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .check-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header-actions,
+      .toolbar,
+      .modal-actions,
+      .drawer-foot {
+        width: 100%;
+      }
+
+      .header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="logo">
+        <strong>alurei</strong>
+        <span>Admin reward workspace</span>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-item"><span class="nav-dot"></span>Dashboard</div>
+        <div class="nav-item"><span class="nav-dot"></span>Users</div>
+        <div class="nav-item"><span class="nav-dot"></span>Subscription</div>
+        <div class="nav-item active"><span class="nav-dot"></span>Rewards</div>
+        <div class="nav-item"><span class="nav-dot"></span>Partner</div>
+        <div class="nav-item"><span class="nav-dot"></span>Child Management</div>
+        <div class="nav-item"><span class="nav-dot"></span>Content</div>
+        <div class="nav-item"><span class="nav-dot"></span>Support</div>
+      </div>
+
+      <div class="sidebar-footer">
+        <strong>Reward APIs live here</strong>
+        <span>
+          Overview, top offers, recent activity, and reward rule CRUD are all wired to
+          <code>/api/v1/admin/rewards/*</code>.
+        </span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="header">
+        <div class="searchbar">
+          <input id="globalSearchInput" type="text" placeholder="Search reward rules or activities" />
+        </div>
+        <div class="header-actions">
+          <div id="tokenBadge" class="chip warning">No admin token</div>
+          <button id="openAuthBtn" class="btn ghost">Auth Config</button>
+          <button id="refreshBtn" class="btn soft">Refresh Data</button>
+          <button id="createRuleBtn" class="btn primary">+ Add New Reward</button>
+        </div>
+      </header>
+
+      <div class="page">
+        <div id="pageNotice" class="notice info">
+          Login with an admin account to load reward data. Default seeded admin credentials are usually <code>a@e.com</code> and <code>123456</code>.
+        </div>
+
+        <section class="section-card">
+          <div class="section-head">
+            <div>
+              <h2>Rewards</h2>
+              <p>Live reward dashboard powered by the APIs inside <code>src/modules/admin/adminreward/</code>.</p>
+            </div>
+            <div class="toolbar">
+              <div class="field">
+                <label for="topOffersStatusFilter">Top Offer Status</label>
+                <select id="topOffersStatusFilter">
+                  <option value="ALL">All</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="EXPIRED">Expired</option>
+                  <option value="SCHEDULED">Scheduled</option>
+                  <option value="INACTIVE">Inactive</option>
+                  <option value="DRAFT">Draft</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="recentLimitSelect">Recent Activity Limit</label>
+                <select id="recentLimitSelect">
+                  <option value="5">5</option>
+                  <option value="8" selected>8</option>
+                  <option value="12">12</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div id="overviewGrid" class="overview-grid">
+            <div class="metric"><div class="metric-label">Loading</div><div class="metric-value">...</div></div>
+          </div>
+        </section>
+
+        <section class="grid">
+          <section class="section-card">
+            <div class="section-head">
+              <div>
+                <h3>Top Offers</h3>
+                <p>Same table style as your screenshot, now backed by live data.</p>
+              </div>
+              <button id="viewAllOffersBtn" class="btn soft">View all</button>
+            </div>
+            <div style="overflow:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Offer</th>
+                    <th>Partner</th>
+                    <th>Redeemed</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="topOffersBody">
+                  <tr><td colspan="4" class="empty">Loading top offers...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="section-card">
+            <div class="section-head">
+              <div>
+                <h3>Recent Reward Activity</h3>
+                <p>Earn, spend, and redemption activity stream.</p>
+              </div>
+            </div>
+            <div id="recentActivityList" class="activity-list">
+              <div class="empty">Loading activity...</div>
+            </div>
+          </section>
+        </section>
+
+        <section class="section-card">
+          <div class="section-head">
+            <div>
+              <h3>Reward Management</h3>
+              <p>Create, search, edit, and delete rules from the same adminreward module.</p>
+            </div>
+            <div class="toolbar">
+              <div class="field">
+                <label for="rulesStatusFilter">Rule Status</label>
+                <select id="rulesStatusFilter">
+                  <option value="">All</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="DISABLED">Disabled</option>
+                </select>
+              </div>
+              <button id="filterRulesBtn" class="btn soft">Filter</button>
+            </div>
+          </div>
+
+          <div style="overflow:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Activity</th>
+                  <th>User Types</th>
+                  <th>Alurei</th>
+                  <th>Weekly Limit</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="rulesBody">
+                <tr><td colspan="6" class="empty">Loading reward rules...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="section-card">
+          <div class="section-head">
+            <div>
+              <h3>API Console</h3>
+              <p>Last request and response from this admin reward test page.</p>
+            </div>
+          </div>
+          <pre id="consoleOutput" class="console">Ready.</pre>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="authOverlay" class="overlay">
+    <div class="login-card">
+      <h2>Admin Login</h2>
+      <p>
+        Sign in with your admin account or paste an access token. The token and API base URL
+        are saved automatically in your browser.
+      </p>
+
+      <div class="field-grid">
+        <div class="field">
+          <label for="apiBaseUrlInput">API Base URL</label>
+          <input id="apiBaseUrlInput" type="text" placeholder="http://127.0.0.1:5000/api/v1" />
+        </div>
+        <div class="field">
+          <label for="loginEmailInput">Admin Email</label>
+          <input id="loginEmailInput" type="email" placeholder="a@e.com" value="a@e.com" />
+        </div>
+        <div class="field">
+          <label for="loginPasswordInput">Password</label>
+          <input id="loginPasswordInput" type="password" placeholder="123456" value="123456" />
+        </div>
+        <div class="field">
+          <label for="manualTokenInput">Access Token</label>
+          <textarea id="manualTokenInput" placeholder="Paste a Bearer token if you want to skip email/password login"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="closeAuthBtn" class="btn soft">Close</button>
+        <button id="saveTokenBtn" class="btn ghost">Save Token Only</button>
+        <button id="loginBtn" class="btn primary">Login & Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ruleDrawerOverlay" class="drawer-overlay">
+    <div class="drawer">
+      <div class="drawer-head">
+        <div>
+          <h3 id="drawerTitle" style="margin:0; font-size: 20px;">Add Reward Rule</h3>
+          <p id="drawerSubtitle" style="margin:6px 0 0; color: var(--muted); font-size: 13px;">
+            Create or update a reward rule using the adminreward APIs.
+          </p>
+        </div>
+        <button id="closeDrawerBtn" class="btn ghost" style="min-height: 38px;">Close</button>
+      </div>
+
+      <div class="drawer-body">
+        <div class="field">
+          <label for="ruleActivityKey">Activity Key</label>
+          <select id="ruleActivityKey">
+            <option value="COMPLETE_DAILY_FLOW">COMPLETE_DAILY_FLOW</option>
+            <option value="COMPLETE_CARE_MODULE">COMPLETE_CARE_MODULE</option>
+            <option value="RECORD_BEDTIME_STORY">RECORD_BEDTIME_STORY</option>
+            <option value="WEEKLY_CARE_COMPLETION">WEEKLY_CARE_COMPLETION</option>
+            <option value="PARENT_APPRECIATION">PARENT_APPRECIATION</option>
+            <option value="DAILY_CARE_LOG">DAILY_CARE_LOG</option>
+            <option value="CUSTOM">CUSTOM</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="ruleActivityName">Activity Name</label>
+          <input id="ruleActivityName" type="text" placeholder="Complete Care Module" />
+        </div>
+
+        <div class="field">
+          <label>Eligible User Types</label>
+          <div class="check-grid" id="eligibleUserTypes">
+            <label class="check-item"><input type="checkbox" value="PARENT" /> Parent</label>
+            <label class="check-item"><input type="checkbox" value="NANNY" /> Nanny</label>
+            <label class="check-item"><input type="checkbox" value="FAMILY_MEMBER" /> Family Member</label>
+            <label class="check-item"><input type="checkbox" value="ALL" /> All</label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="ruleAlureiValue">Alurei Value</label>
+          <input id="ruleAlureiValue" type="number" min="1" placeholder="50" />
+        </div>
+
+        <div class="field">
+          <label for="ruleWeeklyLimit">Weekly Limit</label>
+          <input id="ruleWeeklyLimit" type="number" min="1" placeholder="10" />
+        </div>
+
+        <div class="field">
+          <label for="ruleStatus">Status</label>
+          <select id="ruleStatus">
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="DISABLED">DISABLED</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="ruleNotes">Internal Notes</label>
+          <textarea id="ruleNotes" placeholder="Awarded when a user completes a care module quiz."></textarea>
+        </div>
+      </div>
+
+      <div class="drawer-foot">
+        <button id="deleteRuleBtn" class="btn danger" style="display:none;">Delete</button>
+        <button id="cancelDrawerBtn" class="btn soft">Cancel</button>
+        <button id="saveRuleBtn" class="btn primary">Save Reward</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const storageKeys = {
+      baseUrl: 'admin-rewards.baseUrl',
+      token: 'admin-rewards.token',
+      user: 'admin-rewards.user',
+    };
+
+    const state = {
+      token: '',
+      user: null,
+      rules: [],
+      editingRuleId: null,
+    };
+
+    const ui = {
+      authOverlay: document.getElementById('authOverlay'),
+      ruleDrawerOverlay: document.getElementById('ruleDrawerOverlay'),
+      apiBaseUrlInput: document.getElementById('apiBaseUrlInput'),
+      loginEmailInput: document.getElementById('loginEmailInput'),
+      loginPasswordInput: document.getElementById('loginPasswordInput'),
+      manualTokenInput: document.getElementById('manualTokenInput'),
+      tokenBadge: document.getElementById('tokenBadge'),
+      overviewGrid: document.getElementById('overviewGrid'),
+      topOffersBody: document.getElementById('topOffersBody'),
+      recentActivityList: document.getElementById('recentActivityList'),
+      rulesBody: document.getElementById('rulesBody'),
+      consoleOutput: document.getElementById('consoleOutput'),
+      pageNotice: document.getElementById('pageNotice'),
+      globalSearchInput: document.getElementById('globalSearchInput'),
+      rulesStatusFilter: document.getElementById('rulesStatusFilter'),
+      topOffersStatusFilter: document.getElementById('topOffersStatusFilter'),
+      recentLimitSelect: document.getElementById('recentLimitSelect'),
+      drawerTitle: document.getElementById('drawerTitle'),
+      drawerSubtitle: document.getElementById('drawerSubtitle'),
+      ruleActivityKey: document.getElementById('ruleActivityKey'),
+      ruleActivityName: document.getElementById('ruleActivityName'),
+      ruleAlureiValue: document.getElementById('ruleAlureiValue'),
+      ruleWeeklyLimit: document.getElementById('ruleWeeklyLimit'),
+      ruleStatus: document.getElementById('ruleStatus'),
+      ruleNotes: document.getElementById('ruleNotes'),
+      deleteRuleBtn: document.getElementById('deleteRuleBtn'),
+    };
+
+    function defaultBaseUrl() {
+      const { protocol, hostname, port, origin } = window.location;
+      const localHosts = new Set(['localhost', '127.0.0.1']);
+
+      if (localHosts.has(hostname) && port && port !== '5000') {
+        return `${protocol}//${hostname}:5000/api/v1`;
+      }
+
+      return `${origin.replace(/\/$/, '')}/api/v1`;
+    }
+
+    function normalizeBaseUrl(value) {
+      const fallback = defaultBaseUrl();
+      const raw = String(value || '').trim();
+
+      if (!raw) return fallback;
+
+      try {
+        const url = new URL(raw);
+        const localHosts = new Set(['localhost', '127.0.0.1']);
+        if (localHosts.has(url.hostname) && url.port && url.port !== '5000') {
+          url.port = '5000';
+        }
+        if (!url.pathname || url.pathname === '/') {
+          url.pathname = '/api/v1';
+        }
+        return url.toString().replace(/\/$/, '');
+      } catch {
+        return fallback;
+      }
+    }
+
+    function parseJson(value) {
+      try {
+        return value ? JSON.parse(value) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function saveBaseUrl() {
+      const normalized = normalizeBaseUrl(ui.apiBaseUrlInput.value);
+      ui.apiBaseUrlInput.value = normalized;
+      localStorage.setItem(storageKeys.baseUrl, normalized);
+    }
+
+    function loadState() {
+      ui.apiBaseUrlInput.value = normalizeBaseUrl(localStorage.getItem(storageKeys.baseUrl));
+      state.token = localStorage.getItem(storageKeys.token) || '';
+      state.user = parseJson(localStorage.getItem(storageKeys.user));
+      ui.manualTokenInput.value = state.token;
+      saveBaseUrl();
+      renderTokenBadge();
+    }
+
+    function renderTokenBadge() {
+      if (state.token) {
+        ui.tokenBadge.className = 'chip success';
+        ui.tokenBadge.textContent = state.user?.email
+          ? `Logged in as ${state.user.email}`
+          : 'Saved admin token';
+      } else {
+        ui.tokenBadge.className = 'chip warning';
+        ui.tokenBadge.textContent = 'No admin token';
+      }
+    }
+
+    function setNotice(message, type = 'info') {
+      ui.pageNotice.className = `notice ${type}`;
+      ui.pageNotice.innerHTML = message;
+    }
+
+    function setToken(token, user = state.user) {
+      state.token = token || '';
+      state.user = user || null;
+      localStorage.setItem(storageKeys.token, state.token);
+      localStorage.setItem(storageKeys.user, JSON.stringify(state.user || null));
+      ui.manualTokenInput.value = state.token;
+      renderTokenBadge();
+    }
+
+    function logConsole(title, payload) {
+      const time = new Date().toLocaleTimeString();
+      ui.consoleOutput.textContent =
+        `[${time}] ${title}\n` +
+        (typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2));
+    }
+
+    function apiBaseUrl() {
+      return ui.apiBaseUrlInput.value.trim().replace(/\/$/, '');
+    }
+
+    async function request(path, options = {}) {
+      saveBaseUrl();
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      };
+
+      if (state.token) {
+        headers.Authorization = `Bearer ${state.token}`;
+      }
+
+      const response = await fetch(`${apiBaseUrl()}${path}`, {
+        ...options,
+        headers,
+        credentials: 'include',
+      }).catch(() => {
+        throw new Error(
+          `Could not reach API server at ${apiBaseUrl()}. Start backend on port 5000 and try again.`,
+        );
+      });
+
+      const rawText = await response.text();
+      const data = rawText ? parseJson(rawText) ?? rawText : null;
+      logConsole(`${options.method || 'GET'} ${path}`, data || 'No response body');
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          setNotice(
+            'Admin access required. Current token does not belong to an admin user. Please log in with <code>a@e.com</code> / <code>123456</code> or another admin account.',
+            'error',
+          );
+          openAuth();
+        }
+        throw new Error(data?.message || `Request failed with status ${response.status}`);
+      }
+
+      return data;
+    }
+
+    function responseData(result) {
+      return result?.data !== undefined ? result.data : result;
+    }
+
+    function openAuth() {
+      ui.authOverlay.classList.add('open');
+    }
+
+    function closeAuth() {
+      ui.authOverlay.classList.remove('open');
+    }
+
+    async function loginWithCredentials() {
+      const email = ui.loginEmailInput.value.trim();
+      const password = ui.loginPasswordInput.value;
+      if (!email || !password) {
+        throw new Error('Admin email and password are required.');
+      }
+
+      const result = await request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+
+      const payload = responseData(result);
+      setToken(payload.accessToken || '', payload.user || null);
+      setNotice('Login successful. Admin token saved locally.', 'success');
+      closeAuth();
+      return payload;
+    }
+
+    async function fetchProfile() {
+      const result = await request('/auth/me');
+      state.user = responseData(result);
+      if (state.user?.role !== 'ADMIN') {
+        throw new Error(
+          `Logged in user role is ${state.user?.role || 'UNKNOWN'}. Admin rewards page requires ADMIN role.`,
+        );
+      }
+      localStorage.setItem(storageKeys.user, JSON.stringify(state.user || null));
+      renderTokenBadge();
+      return state.user;
+    }
+
+    async function refreshAll() {
+      if (!state.token) {
+        openAuth();
+        throw new Error('Please log in first.');
+      }
+
+      await Promise.all([
+        loadOverview(),
+        loadTopOffers(),
+        loadRecentActivity(),
+        loadRules(),
+      ]);
+      setNotice('Admin reward data loaded successfully.', 'success');
+    }
+
+    function metricValue(metric) {
+      return metric?.formattedValue || metric?.value || '0';
+    }
+
+    function metricChange(metric) {
+      return metric?.changeLabel || '0%';
+    }
+
+    async function loadOverview() {
+      const result = await request('/admin/rewards/overview');
+      const payload = responseData(result);
+      const metrics = payload.metrics || [];
+
+      ui.overviewGrid.innerHTML = metrics.map((metric) => `
+        <article class="metric">
+          <div class="metric-label">${escapeHtml(metric.label)}</div>
+          <div class="metric-value">${escapeHtml(metricValue(metric))}</div>
+          <div class="metric-change">${escapeHtml(metricChange(metric))}</div>
+          <div class="metric-sub">
+            Current month: ${escapeHtml(String(metric.currentMonthValue ?? 0))}
+          </div>
+        </article>
+      `).join('');
+    }
+
+    function statusClass(statusLabel) {
+      const map = {
+        active: 'status-active',
+        expired: 'status-expired',
+        scheduled: 'status-scheduled',
+        inactive: 'status-inactive',
+        disabled: 'status-disabled',
+        draft: 'status-draft',
+      };
+      return map[statusLabel] || 'status-inactive';
+    }
+
+    function iconSvg(name) {
+      const icons = {
+        edit: `
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+          </svg>
+        `,
+        play: `
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M10 8l6 4-6 4z" fill="currentColor" stroke="none"></path>
+          </svg>
+        `,
+        pause: `
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M10 9v6"></path>
+            <path d="M14 9v6"></path>
+          </svg>
+        `,
+        delete: `
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 6h18"></path>
+            <path d="M8 6V4h8v2"></path>
+            <path d="M19 6l-1 14H6L5 6"></path>
+            <path d="M10 11v6"></path>
+            <path d="M14 11v6"></path>
+          </svg>
+        `,
+      };
+
+      return icons[name] || '';
+    }
+
+    async function loadTopOffers() {
+      const status = document.getElementById('topOffersStatusFilter').value;
+      const result = await request(`/admin/rewards/top-offers?limit=5&status=${encodeURIComponent(status)}`);
+      const payload = responseData(result);
+      const items = payload.items || [];
+
+      if (!items.length) {
+        ui.topOffersBody.innerHTML = '<tr><td colspan="4" class="empty">No top offers found.</td></tr>';
+        return;
+      }
+
+      ui.topOffersBody.innerHTML = items.map((item) => `
+        <tr>
+          <td>
+            <strong>${escapeHtml(item.offerTitle)}</strong>
+            <span>${escapeHtml(item.offerSubtitle || 'No subtitle')}</span>
+          </td>
+          <td>${escapeHtml(item.partnerName)}</td>
+          <td>${escapeHtml(String(item.redeemedCount))}</td>
+          <td><span class="status-badge ${statusClass(item.statusLabel)}">${escapeHtml(item.statusLabel)}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function activityIconClass(type) {
+      if (type === 'ALUREI_EARNED') return 'icon-green';
+      if (type === 'REWARD_REDEEMED') return 'icon-orange';
+      return 'icon-blue';
+    }
+
+    function activityGlyph(type) {
+      if (type === 'ALUREI_EARNED') return '+';
+      if (type === 'REWARD_REDEEMED') return '↗';
+      return '-';
+    }
+
+    async function loadRecentActivity() {
+      const limit = document.getElementById('recentLimitSelect').value;
+      const result = await request(`/admin/rewards/recent-activity?limit=${encodeURIComponent(limit)}`);
+      const items = responseData(result) || [];
+
+      if (!items.length) {
+        ui.recentActivityList.innerHTML = '<div class="empty">No recent reward activity found.</div>';
+        return;
+      }
+
+      ui.recentActivityList.innerHTML = items.map((item) => `
+        <article class="activity-item">
+          <div class="activity-icon ${activityIconClass(item.type)}">${activityGlyph(item.type)}</div>
+          <div>
+            <div class="activity-title">${escapeHtml(item.title)}</div>
+            <div class="activity-meta">${escapeHtml(item.subtitle || '')}</div>
+          </div>
+          <div class="activity-points">${escapeHtml(String(item.points ?? 0))}</div>
+        </article>
+      `).join('');
+    }
+
+    function eligibleTypesLabel(items) {
+      return Array.isArray(items) && items.length ? items.join(', ') : '-';
+    }
+
+    async function loadRules() {
+      const search = document.getElementById('globalSearchInput').value.trim();
+      const status = document.getElementById('rulesStatusFilter').value;
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      if (status) params.set('status', status);
+
+      const suffix = params.toString() ? `?${params.toString()}` : '';
+      const result = await request(`/admin/rewards/rules${suffix}`);
+      state.rules = responseData(result) || [];
+
+      if (!state.rules.length) {
+        ui.rulesBody.innerHTML = '<tr><td colspan="6" class="empty">No reward rules found.</td></tr>';
+        setNotice(
+          'No reward rules found in the current database. You can create one from the “Add New Reward” drawer.',
+          'info',
+        );
+        return;
+      }
+
+      ui.rulesBody.innerHTML = state.rules.map((rule) => `
+        <tr>
+          <td>
+            <strong>${escapeHtml(rule.activityName)}</strong>
+            <span>${escapeHtml(rule.activityKey)}</span>
+          </td>
+          <td>${escapeHtml(eligibleTypesLabel(rule.eligibleUserTypes))}</td>
+          <td>${escapeHtml(String(rule.alureiValue))}</td>
+          <td>${escapeHtml(rule.weeklyLimit == null ? '-' : String(rule.weeklyLimit))}</td>
+          <td><span class="status-badge ${statusClass(String(rule.status).toLowerCase())}">${escapeHtml(String(rule.status).toLowerCase())}</span></td>
+          <td>
+            <div class="table-actions">
+              <button class="icon-btn" data-edit-rule="${rule.id}" title="Edit reward rule" aria-label="Edit reward rule">${iconSvg('edit')}</button>
+              <button
+                class="icon-btn ${rule.status === 'ACTIVE' ? 'pause' : 'play'}"
+                data-toggle-rule-status="${rule.id}"
+                data-next-status="${rule.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE'}"
+                title="${rule.status === 'ACTIVE' ? 'Disable reward rule' : 'Enable reward rule'}"
+                aria-label="${rule.status === 'ACTIVE' ? 'Disable reward rule' : 'Enable reward rule'}"
+              >${iconSvg(rule.status === 'ACTIVE' ? 'pause' : 'play')}</button>
+              <button class="icon-btn delete" data-delete-rule="${rule.id}" title="Delete reward rule" aria-label="Delete reward rule">${iconSvg('delete')}</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
+      ui.rulesBody.querySelectorAll('[data-edit-rule]').forEach((button) => {
+        button.addEventListener('click', () => openRuleDrawer(button.dataset.editRule));
+      });
+
+      ui.rulesBody.querySelectorAll('[data-delete-rule]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          if (!confirm('Delete this reward rule?')) return;
+          await deleteRule(button.dataset.deleteRule);
+        });
+      });
+
+      ui.rulesBody.querySelectorAll('[data-toggle-rule-status]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          try {
+            await toggleRuleStatus(
+              button.dataset.toggleRuleStatus,
+              button.dataset.nextStatus,
+            );
+          } catch (error) {
+            setNotice(error.message, 'error');
+          }
+        });
+      });
+    }
+
+    function resetDrawerForm() {
+      state.editingRuleId = null;
+      ui.drawerTitle.textContent = 'Add Reward Rule';
+      ui.drawerSubtitle.textContent = 'Create or update a reward rule using the adminreward APIs.';
+      ui.ruleActivityKey.value = 'COMPLETE_DAILY_FLOW';
+      ui.ruleActivityName.value = '';
+      ui.ruleAlureiValue.value = '';
+      ui.ruleWeeklyLimit.value = '';
+      ui.ruleStatus.value = 'ACTIVE';
+      ui.ruleNotes.value = '';
+      ui.deleteRuleBtn.style.display = 'none';
+      document.querySelectorAll('#eligibleUserTypes input[type="checkbox"]').forEach((checkbox) => {
+        checkbox.checked = false;
+      });
+    }
+
+    function openRuleDrawer(id) {
+      resetDrawerForm();
+      ui.ruleDrawerOverlay.classList.add('open');
+      if (id) {
+        loadRuleDetail(id).catch((error) => setNotice(error.message, 'error'));
+      }
+    }
+
+    function closeRuleDrawer() {
+      ui.ruleDrawerOverlay.classList.remove('open');
+      resetDrawerForm();
+    }
+
+    async function loadRuleDetail(id) {
+      const result = await request(`/admin/rewards/rules/${id}`);
+      const rule = responseData(result);
+      state.editingRuleId = rule.id;
+      ui.drawerTitle.textContent = 'Edit Reward Rule';
+      ui.drawerSubtitle.textContent = 'Update an existing reward rule from the live adminreward API.';
+      ui.ruleActivityKey.value = rule.activityKey;
+      ui.ruleActivityName.value = rule.activityName;
+      ui.ruleAlureiValue.value = rule.alureiValue;
+      ui.ruleWeeklyLimit.value = rule.weeklyLimit ?? '';
+      ui.ruleStatus.value = rule.status;
+      ui.ruleNotes.value = rule.internalNotes || '';
+      ui.deleteRuleBtn.style.display = 'inline-flex';
+
+      const selectedTypes = new Set(rule.eligibleUserTypes || []);
+      document.querySelectorAll('#eligibleUserTypes input[type="checkbox"]').forEach((checkbox) => {
+        checkbox.checked = selectedTypes.has(checkbox.value);
+      });
+    }
+
+    function selectedEligibleUserTypes() {
+      return Array.from(document.querySelectorAll('#eligibleUserTypes input[type="checkbox"]:checked'))
+        .map((input) => input.value);
+    }
+
+    function buildRulePayload() {
+      const eligibleUserTypes = selectedEligibleUserTypes();
+      if (!eligibleUserTypes.length) {
+        throw new Error('Select at least one eligible user type.');
+      }
+
+      return {
+        activityKey: ui.ruleActivityKey.value,
+        activityName: ui.ruleActivityName.value.trim(),
+        eligibleUserTypes,
+        alureiValue: Number(ui.ruleAlureiValue.value),
+        weeklyLimit: ui.ruleWeeklyLimit.value ? Number(ui.ruleWeeklyLimit.value) : undefined,
+        status: ui.ruleStatus.value,
+        internalNotes: ui.ruleNotes.value.trim() || undefined,
+      };
+    }
+
+    async function saveRule() {
+      const payload = buildRulePayload();
+      if (!payload.activityName) {
+        throw new Error('Activity name is required.');
+      }
+      if (!Number.isFinite(payload.alureiValue) || payload.alureiValue < 1) {
+        throw new Error('Alurei value must be at least 1.');
+      }
+
+      if (state.editingRuleId) {
+        await request(`/admin/rewards/rules/${state.editingRuleId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+        setNotice('Reward rule updated successfully.', 'success');
+      } else {
+        await request('/admin/rewards/rules', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        setNotice('Reward rule created successfully.', 'success');
+      }
+
+      closeRuleDrawer();
+      await loadRules();
+    }
+
+    async function toggleRuleStatus(id, nextStatus) {
+      if (!id || !nextStatus) return;
+
+      await request(`/admin/rewards/rules/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: nextStatus }),
+      });
+
+      setNotice(
+        `Reward rule ${nextStatus === 'ACTIVE' ? 'enabled' : 'disabled'} successfully.`,
+        'success',
+      );
+      await loadRules();
+    }
+
+    async function deleteRule(id = state.editingRuleId) {
+      if (!id) return;
+      await request(`/admin/rewards/rules/${id}`, { method: 'DELETE' });
+      setNotice('Reward rule deleted successfully.', 'success');
+      closeRuleDrawer();
+      await loadRules();
+    }
+
+    function viewAllOffers() {
+      window.scrollTo({ top: document.body.scrollHeight * 0.25, behavior: 'smooth' });
+    }
+
+    document.getElementById('openAuthBtn').addEventListener('click', openAuth);
+    document.getElementById('closeAuthBtn').addEventListener('click', closeAuth);
+    document.getElementById('saveTokenBtn').addEventListener('click', async () => {
+      const manualToken = ui.manualTokenInput.value.trim();
+      if (!manualToken) {
+        setNotice('Paste a token first.', 'error');
+        return;
+      }
+      setToken(manualToken, state.user);
+      closeAuth();
+      try {
+        await fetchProfile();
+        await refreshAll();
+      } catch (error) {
+        setNotice(error.message, 'error');
+      }
+    });
+
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      try {
+        await loginWithCredentials();
+        await fetchProfile();
+        await refreshAll();
+      } catch (error) {
+        setNotice(error.message, 'error');
+      }
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', async () => {
+      try {
+        await refreshAll();
+      } catch (error) {
+        setNotice(error.message, 'error');
+      }
+    });
+
+    document.getElementById('createRuleBtn').addEventListener('click', () => openRuleDrawer());
+    document.getElementById('closeDrawerBtn').addEventListener('click', closeRuleDrawer);
+    document.getElementById('cancelDrawerBtn').addEventListener('click', closeRuleDrawer);
+    document.getElementById('saveRuleBtn').addEventListener('click', async () => {
+      try {
+        await saveRule();
+      } catch (error) {
+        if (String(error.message).includes('Reward rule already exists for this activity')) {
+          setNotice(
+            'This activity key already has a reward rule. Edit the existing rule instead of creating another one with the same activity key.',
+            'error',
+          );
+        } else {
+          setNotice(error.message, 'error');
+        }
+      }
+    });
+
+    ui.deleteRuleBtn.addEventListener('click', async () => {
+      if (!state.editingRuleId) return;
+      if (!confirm('Delete this reward rule?')) return;
+      try {
+        await deleteRule();
+      } catch (error) {
+        setNotice(error.message, 'error');
+      }
+    });
+
+    document.getElementById('filterRulesBtn').addEventListener('click', async () => {
+      try {
+        await loadRules();
+      } catch (error) {
+        setNotice(error.message, 'error');
+      }
+    });
+
+    document.getElementById('topOffersStatusFilter').addEventListener('change', async () => {
+      try {
+        await loadTopOffers();
+      } catch (error) {
+        setNotice(error.message, 'error');
+      }
+    });
+
+    document.getElementById('recentLimitSelect').addEventListener('change', async () => {
+      try {
+        await loadRecentActivity();
+      } catch (error) {
+        setNotice(error.message, 'error');
+      }
+    });
+
+    document.getElementById('viewAllOffersBtn').addEventListener('click', viewAllOffers);
+    document.getElementById('globalSearchInput').addEventListener('keydown', async (event) => {
+      if (event.key === 'Enter') {
+        try {
+          await loadRules();
+        } catch (error) {
+          setNotice(error.message, 'error');
+        }
+      }
+    });
+
+    ui.authOverlay.addEventListener('click', (event) => {
+      if (event.target === ui.authOverlay) closeAuth();
+    });
+    ui.ruleDrawerOverlay.addEventListener('click', (event) => {
+      if (event.target === ui.ruleDrawerOverlay) closeRuleDrawer();
+    });
+
+    loadState();
+    if (!state.token) {
+      openAuth();
+    } else {
+      fetchProfile()
+        .then(refreshAll)
+        .catch((error) => {
+          setNotice(error.message, 'error');
+          openAuth();
+        });
+    }
+  </script>
+</body>
+</html>

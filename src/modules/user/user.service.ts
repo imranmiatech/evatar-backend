@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { CareModuleProgressStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   UpdateParentProfileDto,
@@ -34,13 +35,24 @@ export class UserService {
             country: true,
             postalCode: true,
           }
-        }
-      }
+        },
+        nannyProfile: {
+          select: {
+            averageRating: true,
+          },
+        },
+      },
     });
-    
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
+    const careScore = await this.calculateUserCareScore(
+      user.id,
+      user.role,
+      user.nannyProfile?.averageRating,
+    );
 
     let address: string | null = null;
     if (user.parentProfile) {
@@ -49,10 +61,11 @@ export class UserService {
       address = addressParts.length > 0 ? addressParts.join(', ') : null;
     }
 
-    const { parentProfile, ...restUser } = user;
+    const { parentProfile, nannyProfile, ...restUser } = user;
     return {
       ...restUser,
       address,
+      careScore,
     };
   }
 
@@ -159,5 +172,60 @@ export class UserService {
         email: true,
       },
     });
+  }
+
+  private async calculateUserCareScore(
+    userId: string,
+    role: UserRole,
+    profileRating?: number | null,
+  ): Promise<number> {
+    if (role === UserRole.NANNY) {
+      return this.calculateNannyCareScore(userId, profileRating);
+    }
+
+    const completedModules = await this.prisma.careModuleProgress.findMany({
+      where: {
+        userId,
+        status: CareModuleProgressStatus.COMPLETED,
+        score: { not: null },
+      },
+      select: {
+        score: true,
+      },
+    });
+
+    if (completedModules.length === 0) {
+      return 0;
+    }
+
+    const totalScore = completedModules.reduce(
+      (sum, module) => sum + (module.score ?? 0),
+      0,
+    );
+
+    return Math.round(totalScore / completedModules.length);
+  }
+
+  private async calculateNannyCareScore(
+    userId: string,
+    profileRating?: number | null,
+  ): Promise<number> {
+    const [completedProofs, completedCareAssignments] = await Promise.all([
+      this.prisma.dayActivityProof.count({
+        where: { uploadedByUserId: userId },
+      }),
+      this.prisma.careModuleProgress.count({
+        where: {
+          userId,
+          status: CareModuleProgressStatus.COMPLETED,
+        },
+      }),
+    ]);
+
+    const baseScore = profileRating ? Math.round(profileRating * 20) : 80;
+    const activityBonus = Math.min(completedProofs * 2, 10);
+    const careModuleBonus = Math.min(completedCareAssignments * 5, 10);
+
+    return Math.min(100, Math.max(0, baseScore + activityBonus + careModuleBonus));
   }
 }

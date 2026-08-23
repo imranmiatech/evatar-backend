@@ -14,6 +14,11 @@ export class AdminRecipeQueryDto {
   @IsEnum(RecipeMealType)
   recipeMealType?: RecipeMealType;
 
+  @ApiPropertyOptional({ example: 'Mediterranean' })
+  @IsOptional()
+  @IsString()
+  cuisineType?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)

@@ -3,6 +3,8 @@ import {
   Prisma,
   RewardLedgerEntryType,
   RewardRedemptionStatus,
+  SubscriptionInterval,
+  SubscriptionStatus,
   SupportTicketStatus,
   TransactionStatus,
   UserRole,
@@ -32,6 +34,101 @@ type MetricKey =
 @Injectable()
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getSubscriptionDistribution() {
+    const now = new Date();
+    const parents = await this.prisma.user.findMany({
+      where: { role: UserRole.PARENT },
+      select: {
+        id: true,
+        userSubscription: {
+          select: {
+            status: true,
+            trialEndsAt: true,
+            accessEndsAt: true,
+            isCancelled: true,
+            plan: {
+              select: {
+                name: true,
+                interval: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const bucketCounts = {
+      free: 0,
+      monthly: 0,
+      yearly: 0,
+      global: 0,
+    };
+
+    for (const parent of parents) {
+      const subscription = parent.userSubscription;
+
+      if (!subscription?.plan) {
+        bucketCounts.free += 1;
+        continue;
+      }
+
+      const planName = subscription.plan.name.trim().toLowerCase();
+      const isTrial =
+        subscription.status === SubscriptionStatus.FREE_TRIAL ||
+        (!!subscription.trialEndsAt && subscription.trialEndsAt > now);
+      const hasPaidAccess =
+        subscription.status === SubscriptionStatus.ACTIVE &&
+        !subscription.isCancelled &&
+        (!subscription.accessEndsAt || subscription.accessEndsAt > now);
+
+      if (isTrial || !hasPaidAccess) {
+        bucketCounts.free += 1;
+        continue;
+      }
+
+      if (planName.includes('global')) {
+        bucketCounts.global += 1;
+        continue;
+      }
+
+      if (
+        planName.includes('yearly') ||
+        subscription.plan.interval === SubscriptionInterval.ANNUALLY
+      ) {
+        bucketCounts.yearly += 1;
+        continue;
+      }
+
+      bucketCounts.monthly += 1;
+    }
+
+    const totalUsers = parents.length;
+    const paidUsers =
+      bucketCounts.monthly + bucketCounts.yearly + bucketCounts.global;
+    const chart = [
+      this.subscriptionDistributionItem('free', 'Free', bucketCounts.free, totalUsers),
+      this.subscriptionDistributionItem(
+        'monthly',
+        'Monthly',
+        bucketCounts.monthly,
+        totalUsers,
+      ),
+      this.subscriptionDistributionItem('yearly', 'Yearly', bucketCounts.yearly, totalUsers),
+      this.subscriptionDistributionItem('global', 'Global', bucketCounts.global, totalUsers),
+    ];
+
+    return {
+      message: 'Subscription distribution fetched successfully',
+      data: {
+        totalParents: totalUsers,
+        freeUsers: bucketCounts.free,
+        paidUsers,
+        buckets: bucketCounts,
+        chart,
+      },
+    };
+  }
 
   async getOverview() {
     const now = new Date();
@@ -794,5 +891,19 @@ export class DashboardService {
     }
 
     return Number((((current - previous) / previous) * 100).toFixed(1));
+  }
+
+  private subscriptionDistributionItem(
+    key: 'free' | 'monthly' | 'yearly' | 'global',
+    label: string,
+    count: number,
+    total: number,
+  ) {
+    return {
+      key,
+      label,
+      count,
+      percentage: total === 0 ? 0 : Number(((count / total) * 100).toFixed(1)),
+    };
   }
 }

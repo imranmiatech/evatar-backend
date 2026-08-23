@@ -4,7 +4,6 @@ import { GroceryOrderController } from './controllers/grocery-order.controller';
 import { KitchenItemController } from './controllers/kitchen-item.controller';
 import { ShoppingListController } from './controllers/shopping-list.controller';
 import { KitchenSuggestionController } from './controllers/kitchen-suggestion.controller';
-import { PartnerGroceryOrderController } from './controllers/partner-grocery-order.controller';
 import { GroceryOrderService } from './services/grocery-order.service';
 import { KitchenItemService } from './services/kitchen-item.service';
 import { ShoppingListService } from './services/shopping-list.service';
@@ -18,7 +17,6 @@ import { KitchenAccessService } from './services/kitchen-access.service';
     ShoppingListController,
     KitchenSuggestionController,
     GroceryOrderController,
-    PartnerGroceryOrderController,
   ],
   providers: [
     KitchenAccessService,
