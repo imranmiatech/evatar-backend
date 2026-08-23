@@ -1,16 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IdentityDocType } from '@prisma/client';
-import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional } from 'class-validator';
+
+const MY_DOCUMENT_ALLOWED_DOC_TYPES = [
+  IdentityDocType.PASSPORT,
+  IdentityDocType.NATIONAL_ID,
+] as const;
 
 export class UploadDocumentDto {
   @ApiProperty({
     description:
       'High-level document category for the current KYC upload flow.',
-    enum: IdentityDocType,
+    enum: MY_DOCUMENT_ALLOWED_DOC_TYPES,
     example: IdentityDocType.PASSPORT,
   })
   @IsNotEmpty()
-  @IsEnum(IdentityDocType)
+  @IsIn(MY_DOCUMENT_ALLOWED_DOC_TYPES)
   docType!: IdentityDocType;
 
   @ApiProperty({
