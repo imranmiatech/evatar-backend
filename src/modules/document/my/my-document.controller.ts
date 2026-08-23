@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   UploadedFiles,
   UseGuards,
@@ -77,5 +78,37 @@ export class MyDocumentController {
     },
   ) {
     return this.myDocumentService.uploadMyDocument(user.userId, dto.docType, files);
+  }
+
+  @Patch()
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'passport', maxCount: 1 },
+      { name: 'nidFront', maxCount: 1 },
+      { name: 'nidBack', maxCount: 1 },
+    ]),
+  )
+  @ApiOperation({
+    summary: 'Screen 1: Replace or re-upload my Passport or National ID document files',
+    description:
+      'Re-uploads the logged-in user document files by creating a fresh verification submission for the selected document type.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: UploadDocumentDto })
+  updateMyDocument(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: UploadDocumentDto,
+    @UploadedFiles()
+    files: {
+      passport?: Express.Multer.File[];
+      nidFront?: Express.Multer.File[];
+      nidBack?: Express.Multer.File[];
+    },
+  ) {
+    return this.myDocumentService.updateMyDocument(
+      user.userId,
+      dto.docType,
+      files,
+    );
   }
 }

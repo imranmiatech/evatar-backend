@@ -30,6 +30,22 @@ export class DocumentService {
     return this.myDocumentService.uploadMyDocument(userId, docType, files);
   }
 
+  updateMyDocument(
+    userId: string,
+    docType: IdentityDocType,
+    files: {
+      passport?: Express.Multer.File[];
+      nidFront?: Express.Multer.File[];
+      nidBack?: Express.Multer.File[];
+    },
+  ) {
+    return this.myDocumentService.updateMyDocument(
+      userId,
+      docType,
+      files,
+    );
+  }
+
   getAssignedNanniesDocuments(parentUserId: string) {
     return this.nannyDocumentService.getAssignedNanniesDocuments(parentUserId);
   }
