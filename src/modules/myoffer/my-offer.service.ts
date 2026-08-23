@@ -191,6 +191,12 @@ export class MyOfferService {
         },
         requiredAlurei: offer.requiredAlurei,
         requiredPointsLabel: `${offer.requiredAlurei} ALR`,
+        deductionPercentage: offer.deductionPercentage
+          ? Number(offer.deductionPercentage)
+          : null,
+        discountLabel: offer.deductionPercentage
+          ? `${Number(offer.deductionPercentage)}% OFF`
+          : null,
         redemptionFlow: offer.redemptionFlow,
         redemptionFlowLabel:
           offer.redemptionFlow === 'IN_STORE' ? 'In-store' : 'Online',
@@ -423,6 +429,12 @@ export class MyOfferService {
         partnerLogoUrl: item.offer.partnerUser.profilePictureUrl,
         redeemedPoints: item.offer.requiredAlurei,
         redeemedPointsLabel: `${item.offer.requiredAlurei} ALR`,
+        deductionPercentage: item.offer.deductionPercentage
+          ? Number(item.offer.deductionPercentage)
+          : null,
+        discountLabel: item.offer.deductionPercentage
+          ? `${Number(item.offer.deductionPercentage)}% OFF`
+          : null,
         redemptionFlow: item.offer.redemptionFlow,
         redeemedAt: item.createdAt,
         redemptionCode: `ALR-${item.offer.id.slice(0, 5).toUpperCase()}-${item.id.slice(0, 4).toUpperCase()}`,
@@ -434,6 +446,9 @@ export class MyOfferService {
    * Helper to format summary for offer card listing
    */
   private formatOfferSummary(offer: any, userId: string) {
+    const deductionPercentage = offer.deductionPercentage
+      ? Number(offer.deductionPercentage)
+      : null;
     return {
       id: offer.id,
       title: offer.title,
@@ -451,6 +466,8 @@ export class MyOfferService {
       },
       requiredAlurei: offer.requiredAlurei,
       requiredPointsLabel: `${offer.requiredAlurei} ALR`,
+      deductionPercentage,
+      discountLabel: deductionPercentage ? `${deductionPercentage}% OFF` : null,
       redemptionFlow: offer.redemptionFlow,
       redemptionFlowLabel:
         offer.redemptionFlow === 'IN_STORE' ? 'In-store' : 'Online',
