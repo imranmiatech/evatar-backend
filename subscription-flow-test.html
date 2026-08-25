@@ -1,1065 +1,1453 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Payment Flow Test</title>
-  <link
-    rel="icon"
-    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230f6674'/%3E%3Cpath d='M16 24h32v18H16z' fill='white'/%3E%3Cpath d='M16 31h32' stroke='%230f6674' stroke-width='4'/%3E%3C/svg%3E"
-  />
-  <style>
-    :root {
-      --bg: #eef3f4;
-      --card: #ffffff;
-      --ink: #22303a;
-      --muted: #60717d;
-      --line: #d7e7ec;
-      --brand: #0f6674;
-      --brand-dark: #0a4d57;
-      --accent: #e57e19;
-      --soft: #f7fafb;
-      --ok: #dff5e6;
-      --warn: #fff3d8;
-      --shadow: 0 22px 48px rgba(22, 46, 61, 0.12);
-    }
-
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(180deg, #f7f9fa 0%, #eaf0f2 100%);
-      color: var(--ink);
-      padding: 24px 12px 48px;
-    }
-
-    .shell {
-      width: 100%;
-      max-width: 980px;
-      margin: 0 auto;
-    }
-
-    .hero {
-      margin-bottom: 18px;
-      padding: 24px;
-      border-radius: 24px;
-      background:
-        radial-gradient(circle at top right, rgba(229, 126, 25, 0.18), transparent 28%),
-        linear-gradient(135deg, #0f6674 0%, #114956 100%);
-      color: #fff;
-      box-shadow: var(--shadow);
-    }
-
-    .hero h1 {
-      margin: 0 0 8px;
-      font-size: 28px;
-    }
-
-    .hero p {
-      margin: 0;
-      line-height: 1.6;
-      color: rgba(255, 255, 255, 0.86);
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 18px;
-      align-items: start;
-    }
-
-    .panel {
-      background: var(--card);
-      border: 1px solid #e6edf0;
-      border-radius: 20px;
-      padding: 18px;
-      box-shadow: 0 10px 30px rgba(20, 42, 57, 0.06);
-    }
-
-    .panel h2 {
-      margin: 0 0 14px;
-      font-size: 18px;
-    }
-
-    .stack {
-      display: grid;
-      gap: 18px;
-    }
-
-    .field {
-      display: grid;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .field label {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--muted);
-    }
-
-    input, select, textarea, button {
-      font: inherit;
-    }
-
-    input, select, textarea {
-      width: 100%;
-      border: 1px solid var(--line);
-      background: #fff;
-      color: var(--ink);
-      border-radius: 14px;
-      padding: 12px 14px;
-      outline: none;
-    }
-
-    textarea {
-      min-height: 88px;
-      resize: vertical;
-    }
-
-    .row-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .btn {
-      border: 0;
-      border-radius: 14px;
-      padding: 12px 16px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .btn-primary {
-      background: var(--brand);
-      color: #fff;
-    }
-
-    .btn-primary:hover {
-      background: var(--brand-dark);
-    }
-
-    .btn-secondary {
-      background: #fff;
-      color: var(--brand);
-      border: 1px solid var(--line);
-    }
-
-    .btn-accent {
-      background: var(--accent);
-      color: #fff;
-    }
-
-    .hint {
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .status {
-      margin-top: 12px;
-      padding: 12px 14px;
-      border-radius: 14px;
-      background: var(--soft);
-      border: 1px dashed var(--line);
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .status.ok {
-      background: var(--ok);
-      border-style: solid;
-    }
-
-    .status.warn {
-      background: var(--warn);
-      border-style: solid;
-    }
-
-    .cards {
-      display: grid;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .card-item {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 14px;
-      background: #fff;
-    }
-
-    .card-copy {
-      min-width: 0;
-    }
-
-    .card-title {
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .card-subtitle {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      border-radius: 999px;
-      padding: 6px 10px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #fff;
-      background: var(--brand);
-    }
-
-    .pill.orange {
-      background: var(--accent);
-    }
-
-    .json {
-      background: #081318;
-      color: #c7f1ff;
-      border-radius: 18px;
-      padding: 16px;
-      font-size: 12px;
-      line-height: 1.6;
-      white-space: pre-wrap;
-      word-break: break-word;
-      min-height: 320px;
-      margin: 0;
-      overflow: auto;
-    }
-
-    .tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-
-    .tab {
-      border: 1px solid var(--line);
-      background: #fff;
-      color: var(--muted);
-      border-radius: 999px;
-      padding: 9px 14px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .tab.active {
-      background: var(--brand);
-      border-color: var(--brand);
-      color: #fff;
-    }
-
-    .section {
-      display: none;
-    }
-
-    .section.active {
-      display: block;
-    }
-
-    .membership-shell {
-      display: grid;
-      gap: 18px;
-    }
-
-    .membership-current {
-      border: 1px solid #d6e5ea;
-      border-radius: 22px;
-      background: #ffffff;
-      overflow: hidden;
-    }
-
-    .trial-banner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 16px 18px;
-      background: #f8b22e;
-      color: #1f2b36;
-      font-weight: 700;
-    }
-
-    .trial-clock {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border-radius: 999px;
-      background: rgba(255, 248, 229, 0.7);
-      padding: 8px 12px;
-      font-size: 13px;
-    }
-
-    .membership-current-body {
-      padding: 18px;
-    }
-
-    .eyebrow {
-      font-size: 13px;
-      color: #7a8790;
-      margin-bottom: 8px;
-    }
-
-    .current-plan-title {
-      font-size: 22px;
-      font-weight: 800;
-      margin-bottom: 10px;
-    }
-
-    .current-plan-price {
-      display: flex;
-      align-items: baseline;
-      gap: 8px;
-      margin-bottom: 18px;
-      color: #0f6674;
-    }
-
-    .current-plan-price strong {
-      font-size: 46px;
-      line-height: 1;
-      letter-spacing: -0.03em;
-    }
-
-    .current-plan-copy {
-      border-top: 1px solid #e5ecef;
-      padding-top: 18px;
-      color: #51616d;
-      line-height: 1.5;
-      font-size: 15px;
-    }
-
-    .membership-current-actions {
-      display: grid;
-      gap: 12px;
-      margin-top: 18px;
-    }
-
-    .membership-card-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    .membership-card {
-      position: relative;
-      border-radius: 28px;
-      padding: 24px 22px 20px;
-      min-height: 100%;
-      border: 2px solid transparent;
-      display: grid;
-      gap: 16px;
-      cursor: pointer;
-      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-    }
-
-    .membership-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 18px 36px rgba(20, 42, 57, 0.1);
-    }
-
-    .membership-card.selected {
-      border-color: #0f6674;
-      box-shadow: 0 18px 36px rgba(15, 102, 116, 0.18);
-    }
-
-    .membership-card.global,
-    .membership-card.yearly {
-      background: #edf3f4;
-      color: #21303c;
-    }
-
-    .membership-card.monthly {
-      background: #073942;
-      color: #f2fbfd;
-    }
-
-    .membership-card-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .membership-card-name {
-      font-size: 20px;
-      font-weight: 700;
-    }
-
-    .membership-card-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 7px 14px;
-      border-radius: 999px;
-      background: #0f6674;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .membership-card-price {
-      display: flex;
-      align-items: baseline;
-      gap: 7px;
-      flex-wrap: wrap;
-    }
-
-    .membership-card-price strong {
-      font-size: 34px;
-      line-height: 1;
-      letter-spacing: -0.03em;
-    }
-
-    .membership-card-copy {
-      font-size: 15px;
-      line-height: 1.45;
-      min-height: 42px;
-      color: inherit;
-      opacity: 0.9;
-    }
-
-    .membership-feature-list {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-      display: grid;
-      gap: 12px;
-    }
-
-    .membership-feature-list li {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      line-height: 1.45;
-    }
-
-    .membership-feature-list li::before {
-      content: "○";
-      font-weight: 700;
-      line-height: 1;
-      margin-top: 2px;
-    }
-
-    .membership-additional {
-      border-radius: 18px;
-      padding: 14px 16px;
-      font-size: 14px;
-      line-height: 1.45;
-      border: 1px solid rgba(15, 102, 116, 0.26);
-      background: rgba(255, 255, 255, 0.56);
-    }
-
-    .membership-card.monthly .membership-additional {
-      background: rgba(4, 26, 31, 0.16);
-      border-color: rgba(146, 208, 221, 0.35);
-    }
-
-    .membership-card-cta {
-      margin-top: auto;
-      border: 0;
-      border-radius: 18px;
-      padding: 16px 18px;
-      font-weight: 800;
-      cursor: pointer;
-      background: #0f6674;
-      color: #fff;
-    }
-
-    .membership-card.monthly .membership-card-cta {
-      background: #ffffff;
-      color: #0f6674;
-    }
-
-    .membership-manage {
-      display: grid;
-      gap: 12px;
-      margin-top: 4px;
-    }
-
-    .hidden-plan-select {
-      display: none;
-    }
-
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(14, 23, 31, 0.62);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 18px;
-      z-index: 50;
-    }
-
-    .modal-backdrop.open {
-      display: flex;
-    }
-
-    .modal {
-      width: 100%;
-      max-width: 420px;
-      background: #fff;
-      border-radius: 24px;
-      padding: 20px;
-      box-shadow: var(--shadow);
-    }
-
-    .modal h3 {
-      margin: 0 0 8px;
-      font-size: 22px;
-    }
-
-    .modal p {
-      margin: 0 0 16px;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    @media (max-width: 900px) {
-      .layout {
-        grid-template-columns: 1fr;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Membership Flow Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #252525;
+        --phone-bg: #f4f4f3;
+        --card: #ffffff;
+        --ink: #20313c;
+        --muted: #7f8c96;
+        --line: #dde7eb;
+        --brand: #0d6674;
+        --brand-dark: #094d58;
+        --brand-soft: #edf6f8;
+        --accent: #f4b02a;
+        --danger: #c0392b;
+        --danger-soft: #fff0ee;
+        --success: #32b36b;
+        --success-soft: #e8f8ee;
+        --warning: #c56010;
+        --warning-soft: #fff3e7;
+        --shadow: 0 28px 56px rgba(17, 42, 54, 0.18);
       }
 
-      .membership-card-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="shell">
-    <div class="hero">
-      <h1>Payment Flow Test Console</h1>
-      <p>
-        Login, save payer cards, and test membership subscription, nanny tip, and
-        partner product payment flows from one HTML page.
-      </p>
-    </div>
-
-    <div class="layout">
-      <div class="stack">
-        <div class="panel">
-          <h2>Session</h2>
-          <form id="loginForm">
-            <div class="field">
-              <label for="baseUrl">Base URL</label>
-              <input id="baseUrl" placeholder="http://127.0.0.1:5000" />
-            </div>
-            <div class="field">
-              <label for="email">Email</label>
-              <input id="email" placeholder="parent@example.com" />
-            </div>
-            <div class="field">
-              <label for="password">Password</label>
-              <input id="password" type="password" placeholder="Password123!" autocomplete="current-password" />
-            </div>
-            <div class="actions">
-              <button class="btn btn-primary" type="submit">Login</button>
-              <button class="btn btn-secondary" id="logoutBtn" type="button">Logout</button>
-            </div>
-          </form>
-          <div class="status" id="authStatus">Not logged in.</div>
-        </div>
-
-        <div class="panel">
-          <h2>Saved Cards</h2>
-          <div class="hint">
-            Card save করলে full card Stripe-এ যাবে, আর backend শুধু token/reference,
-            brand, last 4, expiry month/year save করবে. CVV কখনও stored হবে না.
-          </div>
-          <div class="hint">
-            Supported Stripe test cards: `4242 4242 4242 4242` (Visa), `5555 5555 5555 4444`
-            (Mastercard), `3782 822463 10005` (Amex), `6011 1111 1111 1117` (Discover).
-          </div>
-          <form id="saveCardForm">
-            <div class="field">
-              <label for="cardholderName">Cardholder Name</label>
-              <input id="cardholderName" value="Test User" autocomplete="cc-name" />
-            </div>
-            <div class="field">
-              <label for="cardNumber">Card Number</label>
-              <input id="cardNumber" value="4242 4242 4242 4242" inputmode="numeric" autocomplete="cc-number" />
-            </div>
-            <div class="row-2">
-              <div class="field">
-                <label for="expMonth">Expiry Month</label>
-                <input id="expMonth" type="number" value="12" min="1" max="12" autocomplete="cc-exp-month" />
-              </div>
-              <div class="field">
-                <label for="expYear">Expiry Year</label>
-                <input id="expYear" type="number" value="2028" min="2024" autocomplete="cc-exp-year" />
-              </div>
-            </div>
-            <div class="row-2">
-              <div class="field">
-                <label for="cvv">CVV</label>
-                <input id="cvv" value="123" inputmode="numeric" maxlength="4" autocomplete="cc-csc" />
-              </div>
-              <div class="field">
-                <label for="saveAsDefault">Save As Default</label>
-                <select id="saveAsDefault">
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
-                </select>
-              </div>
-            </div>
-            <div class="actions">
-              <button class="btn btn-primary" id="saveCardBtn" type="submit">Save Card</button>
-              <button class="btn btn-secondary" id="refreshCardsBtn" type="button">Refresh</button>
-            </div>
-          </form>
-          <div class="status" id="cardSaveStatus">No card saved in this session yet.</div>
-          <div class="cards" id="savedCards"></div>
-        </div>
-      </div>
-
-      <div class="stack">
-        <div class="panel">
-          <div class="tabs">
-            <button class="tab active" data-tab="membership">Membership</button>
-            <button class="tab" data-tab="tips">Nanny Tip</button>
-            <button class="tab" data-tab="product">Partner Product</button>
-          </div>
-
-          <div class="section active" data-section="membership">
-            <h2>Membership</h2>
-            <div class="hint">Uses `GET /membership/plans`, `GET /membership/me`, `POST /membership/claim-trial`, and unified `POST /payment/checkout`.</div>
-            <div class="membership-shell">
-              <div class="membership-current" id="membershipCurrentCard">
-                <div class="trial-banner" id="trialBanner">
-                  <span id="trialBannerText">Free trial</span>
-                  <span class="trial-clock" id="trialCountdown">--:--:--</span>
-                </div>
-                <div class="membership-current-body">
-                  <div class="eyebrow">Current Plan</div>
-                  <div class="current-plan-title" id="currentMembershipTitle">Free Trial</div>
-                  <div class="current-plan-price">
-                    <strong id="currentMembershipAmount">0</strong>
-                    <span id="currentMembershipCurrency">AED / month</span>
-                  </div>
-                  <div class="current-plan-copy" id="currentMembershipCopy">
-                    Free trial active. The 1 Child Subscription Plan will start automatically when your trial ends.
-                  </div>
-                  <div class="membership-current-actions">
-                    <button class="btn btn-primary" id="membershipUpgradeBtn" type="button">Upgrade Plan</button>
-                    <button class="btn btn-secondary" id="membershipCancelBtn" type="button">Cancel Subscription</button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="membership-card-grid" id="membershipPlansGrid">
-                <div class="hint">Loading membership plans...</div>
-              </div>
-            </div>
-
-            <div class="field hidden-plan-select">
-              <label for="membershipPlan">Plan</label>
-              <select id="membershipPlan"></select>
-            </div>
-            <div class="field">
-              <label for="membershipCard">Pay With Card</label>
-              <select id="membershipCard"></select>
-            </div>
-            <div class="actions">
-              <button class="btn btn-secondary" id="loadPlansBtn" type="button">Refresh Plans</button>
-              <button class="btn btn-primary" id="membershipSubscribeBtn" type="button">Pay Selected Plan</button>
-            </div>
-          </div>
-
-          <div class="section" data-section="tips">
-            <h2>Nanny Tip</h2>
-            <div class="hint">Any logged-in user can pay. Receiver is resolved from the chosen nanny.</div>
-            <div class="hint">If no nanny shows here, paste a real nanny user ID manually and test the tip flow anyway.</div>
-            <div class="field">
-              <label for="nannySelect">Nanny</label>
-              <select id="nannySelect"></select>
-            </div>
-            <div class="field">
-              <label for="manualNannyUserId">Manual Nanny User ID</label>
-              <input id="manualNannyUserId" placeholder="Paste nanny user id if list is empty" />
-            </div>
-            <div class="status" id="nannyStatus">Load nannies to test tip payment.</div>
-            <div class="row-2">
-              <div class="field">
-                <label for="tipAmount">Amount</label>
-                <input id="tipAmount" type="number" value="30" min="1" />
-              </div>
-              <div class="field">
-                <label for="tipCard">Pay With Card</label>
-                <select id="tipCard"></select>
-              </div>
-            </div>
-            <div class="field">
-              <label for="tipNote">Note</label>
-              <textarea id="tipNote">Thank you for taking care of our child this week.</textarea>
-            </div>
-            <div class="actions">
-              <button class="btn btn-secondary" id="loadNanniesBtn" type="button">Load Nannies</button>
-              <button class="btn btn-primary" id="createTipBtn" type="button">Create Tip Payment</button>
-            </div>
-          </div>
-
-          <div class="section" data-section="product">
-            <h2>Partner Product Pay</h2>
-            <div class="hint">Use this if parent or nanny wants to buy a partner product.</div>
-            <div class="field">
-              <label for="productId">Partner Product ID</label>
-              <input id="productId" placeholder="Paste partner product id" />
-            </div>
-            <div class="row-2">
-              <div class="field">
-                <label for="productAmount">Amount</label>
-                <input id="productAmount" type="number" value="59.99" step="0.01" min="1" />
-              </div>
-              <div class="field">
-                <label for="productCard">Pay With Card</label>
-                <select id="productCard"></select>
-              </div>
-            </div>
-            <div class="actions">
-              <button class="btn btn-primary" id="createProductPaymentBtn" type="button">Create Product Payment</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h2>Response</h2>
-          <pre class="json" id="responseBox">Ready.</pre>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-backdrop" id="loginModal">
-    <div class="modal">
-      <h3>Login Required</h3>
-      <p>
-        Use your backend account here first. This page auto-saves the token and then
-        uses that token for save-card and payment test requests.
-      </p>
-      <button class="btn btn-primary" id="focusLoginBtn" type="button">Open Login</button>
-      <div style="height: 10px;"></div>
-      <button class="btn btn-secondary" id="closeModalBtn" type="button">Close</button>
-    </div>
-  </div>
-
-  <script>
-    const state = {
-      paymentMethods: [],
-      membershipPlans: [],
-      nannies: [],
-      selectedMembershipPlanId: '',
-    };
-
-    let membershipCountdownTimer = null;
-
-    const els = {
-      baseUrl: document.getElementById('baseUrl'),
-      email: document.getElementById('email'),
-      password: document.getElementById('password'),
-      loginForm: document.getElementById('loginForm'),
-      logoutBtn: document.getElementById('logoutBtn'),
-      authStatus: document.getElementById('authStatus'),
-      saveCardForm: document.getElementById('saveCardForm'),
-      saveCardBtn: document.getElementById('saveCardBtn'),
-      refreshCardsBtn: document.getElementById('refreshCardsBtn'),
-      cardSaveStatus: document.getElementById('cardSaveStatus'),
-      savedCards: document.getElementById('savedCards'),
-      responseBox: document.getElementById('responseBox'),
-      membershipPlan: document.getElementById('membershipPlan'),
-      membershipCard: document.getElementById('membershipCard'),
-      loadPlansBtn: document.getElementById('loadPlansBtn'),
-      membershipSubscribeBtn: document.getElementById('membershipSubscribeBtn'),
-      membershipPlansGrid: document.getElementById('membershipPlansGrid'),
-      membershipCurrentCard: document.getElementById('membershipCurrentCard'),
-      trialBanner: document.getElementById('trialBanner'),
-      trialBannerText: document.getElementById('trialBannerText'),
-      trialCountdown: document.getElementById('trialCountdown'),
-      currentMembershipTitle: document.getElementById('currentMembershipTitle'),
-      currentMembershipAmount: document.getElementById('currentMembershipAmount'),
-      currentMembershipCurrency: document.getElementById('currentMembershipCurrency'),
-      currentMembershipCopy: document.getElementById('currentMembershipCopy'),
-      membershipUpgradeBtn: document.getElementById('membershipUpgradeBtn'),
-      membershipCancelBtn: document.getElementById('membershipCancelBtn'),
-      nannySelect: document.getElementById('nannySelect'),
-      manualNannyUserId: document.getElementById('manualNannyUserId'),
-      nannyStatus: document.getElementById('nannyStatus'),
-      tipAmount: document.getElementById('tipAmount'),
-      tipCard: document.getElementById('tipCard'),
-      tipNote: document.getElementById('tipNote'),
-      loadNanniesBtn: document.getElementById('loadNanniesBtn'),
-      createTipBtn: document.getElementById('createTipBtn'),
-      productId: document.getElementById('productId'),
-      productAmount: document.getElementById('productAmount'),
-      productCard: document.getElementById('productCard'),
-      createProductPaymentBtn: document.getElementById('createProductPaymentBtn'),
-      loginModal: document.getElementById('loginModal'),
-      focusLoginBtn: document.getElementById('focusLoginBtn'),
-      closeModalBtn: document.getElementById('closeModalBtn'),
-      tabs: Array.from(document.querySelectorAll('[data-tab]')),
-      sections: Array.from(document.querySelectorAll('[data-section]')),
-    };
-
-    const storage = {
-      token: 'payment-test-token',
-      baseUrl: 'payment-test-base-url',
-      email: 'payment-test-email',
-    };
-
-    function inferBaseUrl() {
-      const { protocol, hostname, port } = window.location;
-      if (port === '5500' || port === '5501' || port === '4173' || port === '3000') {
-        return `${protocol}//${hostname}:5000`;
-      }
-      return window.location.origin || 'http://127.0.0.1:5000';
-    }
-
-    function getBaseUrl() {
-      return (els.baseUrl.value.trim() || inferBaseUrl()).replace(/\/$/, '');
-    }
-
-    function getToken() {
-      return localStorage.getItem(storage.token) || '';
-    }
-
-    function setToken(token) {
-      if (token) {
-        localStorage.setItem(storage.token, token);
-      } else {
-        localStorage.removeItem(storage.token);
-      }
-    }
-
-    function setStatus(message, type = '') {
-      els.authStatus.textContent = message;
-      els.authStatus.className = `status ${type}`.trim();
-    }
-
-    function writeResponse(data, title = '') {
-      const payload = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-      els.responseBox.textContent = title ? `${title}\n\n${payload}` : payload;
-    }
-
-    function setCardSaveStatus(message, type = '') {
-      els.cardSaveStatus.textContent = message;
-      els.cardSaveStatus.className = `status ${type}`.trim();
-    }
-
-    function setNannyStatus(message, type = '') {
-      els.nannyStatus.textContent = message;
-      els.nannyStatus.className = `status ${type}`.trim();
-    }
-
-    function unwrapResponse(payload) {
-      if (payload && typeof payload === 'object' && 'data' in payload) {
-        return payload.data;
+      * {
+        box-sizing: border-box;
       }
 
-      return payload;
-    }
-
-    function getAuthPayload(payload) {
-      const body = unwrapResponse(payload);
-      return body && typeof body === 'object' ? body : {};
-    }
-
-    function getNestedResultPayload(payload) {
-      const body = unwrapResponse(payload);
-      if (body && typeof body === 'object' && body.result && typeof body.result === 'object') {
-        return body.result.data || body.result;
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Manrope', sans-serif;
+        background:
+          radial-gradient(
+            circle at top left,
+            rgba(244, 176, 42, 0.12),
+            transparent 18%
+          ),
+          radial-gradient(
+            circle at bottom right,
+            rgba(13, 102, 116, 0.16),
+            transparent 24%
+          ),
+          var(--bg);
+        color: #fff;
+        padding: 24px 14px 48px;
       }
 
-      return body;
-    }
-
-    function getMembershipCheckoutPayload(payload) {
-      const body = unwrapResponse(payload);
-      if (body && typeof body === 'object' && body.result) {
-        return body.result;
+      button,
+      input,
+      textarea,
+      select {
+        font: inherit;
       }
 
-      return body;
-    }
-
-    function getPlanVariant(plan) {
-      const normalized = String(plan.name || '').toLowerCase();
-      if (normalized.includes('global')) return 'global';
-      if (normalized.includes('year')) return 'yearly';
-      return 'monthly';
-    }
-
-    function formatPlanPrice(plan) {
-      const amount = Number(plan.price || 0).toLocaleString('en-US', {
-        minimumFractionDigits: Number(plan.price || 0) % 1 ? 2 : 0,
-        maximumFractionDigits: 2,
-      });
-      return plan.currency === 'USD' ? `$${amount} USD` : `${plan.currency} ${amount}`;
-    }
-
-    function formatCurrentAmount(amount) {
-      return Number(amount || 0).toLocaleString('en-US', {
-        minimumFractionDigits: Number(amount || 0) % 1 ? 2 : 0,
-        maximumFractionDigits: 2,
-      });
-    }
-
-    function selectMembershipPlan(planId) {
-      state.selectedMembershipPlanId = planId;
-      els.membershipPlan.value = planId;
-      els.membershipPlansGrid.querySelectorAll('.membership-card').forEach((card) => {
-        card.classList.toggle('selected', card.getAttribute('data-plan-id') === planId);
-      });
-    }
-
-    function clearMembershipCountdown() {
-      if (membershipCountdownTimer) {
-        clearInterval(membershipCountdownTimer);
-        membershipCountdownTimer = null;
-      }
-    }
-
-    function renderMembershipCountdown(trialEndsAt) {
-      clearMembershipCountdown();
-      if (!trialEndsAt) {
-        els.trialCountdown.textContent = '--:--:--';
-        return;
+      .workspace {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(320px, 390px) minmax(320px, 430px);
+        gap: 28px;
+        justify-content: center;
+        align-items: start;
       }
 
-      const tick = () => {
-        const diffMs = new Date(trialEndsAt).getTime() - Date.now();
-        if (diffMs <= 0) {
-          els.trialCountdown.textContent = '00:00:00';
-          clearMembershipCountdown();
-          return;
+      .control-panel {
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 16px 42px rgba(0, 0, 0, 0.18);
+        padding: 22px;
+        color: rgba(255, 255, 255, 0.92);
+        display: grid;
+        gap: 18px;
+      }
+
+      .panel-head h1 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.05;
+      }
+
+      .panel-head p {
+        margin: 8px 0 0;
+        color: rgba(255, 255, 255, 0.74);
+        line-height: 1.6;
+        font-size: 14px;
+      }
+
+      .form-card {
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 22px;
+        padding: 16px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .form-card h2 {
+        margin: 0;
+        font-size: 16px;
+        color: #fff;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+      }
+
+      .field label {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.64);
+      }
+
+      .field input,
+      .field textarea,
+      .field select {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        background: rgba(11, 22, 30, 0.42);
+        color: #fff;
+        padding: 13px 14px;
+        outline: none;
+      }
+
+      .field textarea {
+        min-height: 92px;
+        resize: vertical;
+      }
+
+      .row-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 16px;
+        cursor: pointer;
+        font-weight: 800;
+        transition:
+          transform 0.18s ease,
+          opacity 0.18s ease,
+          background 0.18s ease;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+      .btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.7;
+        transform: none;
+      }
+      .btn-primary {
+        background: #fff;
+        color: #102a35;
+      }
+      .btn-secondary {
+        background: transparent;
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+      }
+      .btn-danger {
+        background: var(--danger);
+        color: #fff;
+      }
+
+      .helper {
+        font-size: 12px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .status-box {
+        border-radius: 16px;
+        padding: 14px 15px;
+        font-size: 13px;
+        line-height: 1.55;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .status-ok {
+        color: #d9ffe9;
+        background: rgba(50, 179, 107, 0.2);
+        border-color: rgba(50, 179, 107, 0.26);
+      }
+
+      .status-warn {
+        color: #fff0d6;
+        background: rgba(244, 176, 42, 0.18);
+        border-color: rgba(244, 176, 42, 0.24);
+      }
+
+      .status-error {
+        color: #ffe4e0;
+        background: rgba(192, 57, 43, 0.18);
+        border-color: rgba(192, 57, 43, 0.24);
+      }
+
+      .quick-links {
+        display: grid;
+        gap: 10px;
+      }
+
+      .quick-item {
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 13px 14px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .phone-wrap {
+        display: flex;
+        justify-content: center;
+      }
+
+      .phone {
+        width: 100%;
+        max-width: 390px;
+        min-height: 844px;
+        background: var(--phone-bg);
+        border-radius: 34px;
+        padding: 0 0 24px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        position: relative;
+        color: var(--ink);
+      }
+
+      .phone-top {
+        padding: 16px 18px 6px;
+        background: #fff;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+      }
+
+      .status-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 14px;
+      }
+
+      .status-icons {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        color: #1d2a34;
+      }
+
+      .app-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .app-title {
+        font-size: 20px;
+        font-weight: 800;
+        text-align: center;
+        flex: 1;
+      }
+
+      .nav-btn {
+        width: 34px;
+        height: 34px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--brand);
+        font-size: 20px;
+        cursor: pointer;
+      }
+
+      .nav-btn.hidden {
+        visibility: hidden;
+      }
+
+      .screen {
+        display: none;
+        padding: 12px 16px 0;
+        gap: 16px;
+      }
+
+      .screen.active {
+        display: grid;
+      }
+
+      .banner {
+        border-radius: 18px;
+        padding: 12px 14px;
+        font-size: 12px;
+        line-height: 1.45;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-weight: 700;
+      }
+
+      .banner.trial {
+        background: var(--accent);
+        color: #362100;
+      }
+      .banner.failed {
+        background: var(--warning);
+        color: #fff;
+      }
+
+      .timer-pill {
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.46);
+        padding: 8px 10px;
+        min-width: 108px;
+        text-align: center;
+        font-size: 11px;
+        letter-spacing: 0.04em;
+      }
+
+      .stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .card {
+        background: var(--card);
+        border-radius: 20px;
+        padding: 16px;
+        border: 1px solid rgba(13, 102, 116, 0.08);
+        box-shadow: 0 10px 24px rgba(21, 49, 63, 0.05);
+      }
+
+      .eyebrow {
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 5px 9px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 800;
+        color: #fff;
+        background: var(--success);
+      }
+
+      .card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .plan-title {
+        font-size: 26px;
+        line-height: 1.1;
+        font-weight: 800;
+        margin: 0 0 12px;
+      }
+
+      .price-line {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        color: var(--brand);
+        margin-bottom: 12px;
+      }
+
+      .price-line strong {
+        font-size: 46px;
+        line-height: 1;
+        letter-spacing: -0.05em;
+      }
+
+      .price-line span {
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .next-line {
+        border-top: 1px solid #edf1f3;
+        padding-top: 12px;
+        color: #5f707b;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .full-btn,
+      .ghost-btn,
+      .danger-link {
+        width: 100%;
+        border-radius: 14px;
+        padding: 14px 16px;
+        font-weight: 800;
+        cursor: pointer;
+        text-align: center;
+      }
+
+      .full-btn {
+        border: 0;
+        background: var(--brand);
+        color: #fff;
+      }
+
+      .ghost-btn {
+        border: 1px solid #7aa8b2;
+        background: #fff;
+        color: var(--brand);
+      }
+
+      .danger-link {
+        border: 0;
+        background: transparent;
+        color: #ef4444;
+        font-size: 12px;
+        padding: 8px 0 0;
+      }
+
+      .section-title {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--ink);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .micro {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .pay-row,
+      .history-row,
+      .card-row {
+        border-radius: 14px;
+        border: 1px solid #d8e7ec;
+        padding: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        background: #fff;
+      }
+
+      .pay-row-left,
+      .history-left,
+      .card-row-left {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .icon-box {
+        width: 24px;
+        height: 24px;
+        border-radius: 8px;
+        background: #edf5f7;
+        color: var(--brand);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 800;
+        flex-shrink: 0;
+      }
+
+      .icon-box.fail {
+        background: #fff0ee;
+        color: #ea4335;
+      }
+      .icon-box.success {
+        background: #ebf8ef;
+        color: var(--success);
+      }
+
+      .primary-copy {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+
+      .secondary-copy {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 3px;
+      }
+
+      .mini-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .mini-pill.default {
+        color: var(--brand);
+        background: #eef7f8;
+      }
+      .mini-pill.success {
+        color: var(--success);
+        background: var(--success-soft);
+      }
+      .mini-pill.fail {
+        color: #e04a3a;
+        background: #fff0ee;
+      }
+
+      .text-link {
+        border: 0;
+        background: transparent;
+        padding: 0;
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .upgrade-card {
+        border-radius: 18px;
+        background: linear-gradient(180deg, #0c6674 0%, #0a5160 100%);
+        color: #fff;
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .upgrade-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .upgrade-name {
+        font-size: 24px;
+        font-weight: 800;
+        margin: 0;
+      }
+
+      .upgrade-price {
+        text-align: right;
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1.2;
+      }
+
+      .upgrade-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 10px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .upgrade-list li::before {
+        content: '●';
+        margin-right: 8px;
+        color: #c4f0f8;
+      }
+
+      .support-card {
+        display: grid;
+        gap: 10px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .support-card::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 14px;
+        bottom: 14px;
+        width: 3px;
+        background: #27d8e0;
+        border-radius: 999px;
+      }
+
+      .support-copy {
+        padding-left: 14px;
+        font-size: 12px;
+        line-height: 1.55;
+        color: #657782;
+      }
+
+      .subtle-center {
+        text-align: center;
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .reason-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .reason-btn,
+      .duration-btn {
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid #e2eaed;
+        background: #fff;
+        color: var(--ink);
+        padding: 12px 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .reason-btn.selected,
+      .duration-btn.selected {
+        border-color: var(--brand);
+        background: #eef8fa;
+        color: var(--brand);
+      }
+
+      .info-list {
+        display: grid;
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .info-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #5f707b;
+      }
+
+      .hero-illustration {
+        width: 88px;
+        height: 88px;
+        border-radius: 999px;
+        margin: 8px auto 4px;
+        background: radial-gradient(
+          circle at 35% 30%,
+          #2499ff,
+          #1273d8 60%,
+          #0b5ab7 100%
+        );
+        position: relative;
+        box-shadow: 0 20px 30px rgba(17, 93, 168, 0.28);
+      }
+
+      .hero-illustration::before,
+      .hero-illustration::after {
+        content: '';
+        position: absolute;
+        border-radius: 999px;
+        background: #f3c18f;
+      }
+
+      .hero-illustration::before {
+        width: 26px;
+        height: 26px;
+        top: 16px;
+        left: 18px;
+        box-shadow: 28px 0 0 0 #5a76ef;
+      }
+
+      .hero-illustration::after {
+        width: 54px;
+        height: 34px;
+        bottom: 14px;
+        left: 17px;
+        background: linear-gradient(90deg, #0f6674 0 54%, #5a76ef 54% 100%);
+      }
+
+      .success-card,
+      .pause-card {
+        padding-top: 24px;
+        padding-bottom: 24px;
+      }
+
+      .big-icon {
+        width: 86px;
+        height: 86px;
+        border-radius: 24px;
+        margin: 8px auto 18px;
+        border: 3px solid #e7ecef;
+        color: #9ca7b1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+      }
+
+      .rotate {
+        border-radius: 999px;
+        border-color: #0b6574;
+        color: #0b6574;
+        width: 58px;
+        height: 58px;
+        font-size: 26px;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .toast-wrap {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 100;
+        display: grid;
+        gap: 10px;
+        pointer-events: none;
+      }
+
+      .toast {
+        min-width: 260px;
+        max-width: 340px;
+        border-radius: 16px;
+        padding: 14px 16px;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+        pointer-events: auto;
+      }
+
+      .toast.ok {
+        background: #117248;
+      }
+      .toast.warn {
+        background: #b8650e;
+      }
+      .toast.error {
+        background: #af3528;
+      }
+
+      @media (max-width: 960px) {
+        .workspace {
+          grid-template-columns: 1fr;
         }
+        .control-panel {
+          order: 2;
+        }
+      }
 
-        const totalSeconds = Math.floor(diffMs / 1000);
-        const hours = String(Math.floor((totalSeconds % 86400) / 3600)).padStart(2, '0');
-        const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
-        const seconds = String(totalSeconds % 60).padStart(2, '0');
-        els.trialCountdown.textContent = `${hours}:${minutes}:${seconds}`;
+      @media (max-width: 420px) {
+        body {
+          padding-left: 0;
+          padding-right: 0;
+        }
+        .phone {
+          border-radius: 0;
+          min-height: 100vh;
+        }
+        .control-panel {
+          margin: 0 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toast-wrap" id="toastWrap"></div>
+
+    <div class="workspace">
+      <aside class="control-panel">
+        <div class="panel-head">
+          <h1>Membership UI</h1>
+          <p>
+            Same flow style membership HTML. Sign in once, token auto-save hobe,
+            tarpor membership, payment method, pause, cancel, reactivate, ar
+            Stripe checkout sob backend diye handle hobe.
+          </p>
+        </div>
+
+        <section class="form-card">
+          <h2>Login</h2>
+          <div class="field">
+            <label for="baseUrl">Base URL</label>
+            <input id="baseUrl" placeholder="http://localhost:5000" />
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input
+              id="email"
+              placeholder="parent@example.com"
+              autocomplete="username"
+            />
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              placeholder="Password123!"
+              autocomplete="current-password"
+            />
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" id="loginBtn" type="button">
+              Login & Save Token
+            </button>
+            <button class="btn btn-secondary" id="logoutBtn" type="button">
+              Logout
+            </button>
+          </div>
+          <div class="status-box" id="authStatus">Not logged in yet.</div>
+        </section>
+
+        <section class="form-card">
+          <h2>Payment Route</h2>
+          <div class="helper">
+            Main upgrade button first saved/default card diye backend charge
+            korar try korbe. Card na thakle hosted Stripe Checkout session
+            create kore redirect korbe.
+          </div>
+          <div class="quick-links">
+            <div class="quick-item">
+              POST `/api/v1/membership/subscribe` for direct charge with saved
+              card
+            </div>
+            <div class="quick-item">
+              POST `/api/v1/membership/stripe/create-checkout-session` for
+              hosted Stripe payment
+            </div>
+            <div class="quick-item">
+              GET `/api/v1/membership/me` + `billing-history` diye payment
+              result refresh
+            </div>
+          </div>
+        </section>
+
+        <section class="form-card">
+          <h2>Last Action</h2>
+          <div class="status-box" id="actionStatus">Ready.</div>
+        </section>
+      </aside>
+
+      <div class="phone-wrap">
+        <main class="phone">
+          <div class="phone-top">
+            <div class="status-bar">
+              <span>9:41</span>
+              <span class="status-icons"
+                ><span>◖◗</span><span>⌁</span><span>▮</span></span
+              >
+            </div>
+            <div class="app-bar">
+              <button class="nav-btn hidden" id="backBtn" type="button">
+                ‹
+              </button>
+              <div class="app-title" id="screenTitle">Membership</div>
+              <button class="nav-btn hidden" type="button">•</button>
+            </div>
+          </div>
+
+          <section
+            class="screen active"
+            data-screen="membership"
+            data-title="Membership"
+          >
+            <div class="banner trial hidden" id="trialBanner">
+              <span id="trialBannerText">Free trial</span>
+              <span class="timer-pill" id="trialCountdown">00:00:00</span>
+            </div>
+
+            <div class="banner failed hidden" id="failedBanner">
+              <span id="failedBannerText">Payment failed</span>
+              <button
+                class="btn btn-primary"
+                id="failedBannerAction"
+                type="button"
+                style="padding: 10px 12px"
+              >
+                Reactivate membership
+              </button>
+            </div>
+
+            <div class="stack">
+              <div class="card">
+                <div class="card-head">
+                  <div>
+                    <div class="eyebrow">Current Plan</div>
+                    <div class="plan-title" id="currentPlanName">
+                      Free Trial
+                    </div>
+                  </div>
+                  <span class="status-pill" id="currentStatusPill">ACTIVE</span>
+                </div>
+
+                <div class="price-line">
+                  <strong id="currentPlanAmount">0</strong>
+                  <span id="currentPlanMeta">AED / month</span>
+                </div>
+
+                <div class="next-line" id="nextBillingLine">
+                  Next billing: --
+                </div>
+                <p
+                  class="subtle-center"
+                  id="currentPlanDescription"
+                  style="margin: 14px 0 16px; text-align: left"
+                >
+                  Free trial active.
+                </p>
+                <button class="ghost-btn" id="changePlanBtn" type="button">
+                  Change Plan
+                </button>
+              </div>
+
+              <div class="card">
+                <div class="section-title">
+                  <span>Payment Method</span>
+                  <span class="micro" id="paymentMethodState">No card</span>
+                </div>
+                <div id="paymentMethodPreview"></div>
+              </div>
+
+              <div class="card">
+                <div class="section-title">
+                  <span>Billing history</span>
+                  <span class="micro">Showing last 3 months</span>
+                </div>
+                <div class="stack" id="billingHistoryList"></div>
+              </div>
+
+              <div>
+                <div class="section-title" style="margin-bottom: 12px">
+                  <span>Switch to Annual Billing</span>
+                </div>
+                <div id="upgradePlanArea"></div>
+              </div>
+
+              <div class="card support-card">
+                <div class="support-copy">
+                  <strong>Need help with your payment?</strong><br />
+                  Our concierge team is available 24/7 to assist with billing
+                  discrepancies.
+                </div>
+                <button
+                  class="text-link"
+                  id="supportBtn"
+                  type="button"
+                  style="padding-left: 14px; text-align: left"
+                >
+                  Support Center
+                </button>
+              </div>
+
+              <button class="full-btn" id="pauseMembershipBtn" type="button">
+                Pause Subscriptions
+              </button>
+              <button
+                class="danger-link"
+                id="cancelMembershipLink"
+                type="button"
+              >
+                Cancel membership
+              </button>
+            </div>
+          </section>
+
+          <section
+            class="screen"
+            data-screen="payment"
+            data-title="Payment Method"
+          >
+            <div class="stack">
+              <div class="card">
+                <div class="section-title">
+                  <span>Saved cards</span>
+                  <span class="micro" id="savedCardCount">0 cards</span>
+                </div>
+                <div class="stack" id="paymentMethodList"></div>
+              </div>
+
+              <div class="card">
+                <div class="section-title">
+                  <span>Add new payment method</span>
+                </div>
+                <div class="field">
+                  <label for="cardNumber">Card Number</label>
+                  <input
+                    id="cardNumber"
+                    value="4242 4242 4242 4242"
+                    inputmode="numeric"
+                    autocomplete="cc-number"
+                  />
+                </div>
+                <div class="row-2">
+                  <div class="field">
+                    <label for="expiryValue">Expiry Date</label>
+                    <input
+                      id="expiryValue"
+                      value="12/2028"
+                      placeholder="MM/YYYY"
+                      autocomplete="cc-exp"
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="cvv">CVV</label>
+                    <input
+                      id="cvv"
+                      value="123"
+                      maxlength="4"
+                      autocomplete="cc-csc"
+                    />
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="cardholderName">Cardholder Name</label>
+                  <input
+                    id="cardholderName"
+                    value="Test User"
+                    autocomplete="cc-name"
+                  />
+                </div>
+                <button class="full-btn" id="saveCardBtn" type="button">
+                  Save Card Details
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section class="screen" data-screen="plans" data-title="Membership">
+            <div class="stack">
+              <div class="card">
+                <div class="section-title">
+                  <span>Choose a plan</span>
+                  <span class="micro" id="planCountLabel">0 plans</span>
+                </div>
+                <div class="stack" id="planList"></div>
+              </div>
+            </div>
+          </section>
+
+          <section
+            class="screen"
+            data-screen="cancel-reasons"
+            data-title="Cancel Membership"
+          >
+            <div class="stack">
+              <div class="card">
+                <div class="subtle-center" style="margin-bottom: 14px">
+                  <strong>Before you go</strong><br />
+                  We are sorry to see you leave. Could you tell us why you're
+                  cancelling? It helps us improve for other families.
+                </div>
+                <div class="reason-grid" id="cancelReasonList"></div>
+                <div class="field" style="margin-top: 6px">
+                  <label for="cancelDetailNote"
+                    >Describe your issue in detail</label
+                  >
+                  <textarea
+                    id="cancelDetailNote"
+                    placeholder="Optional note"
+                  ></textarea>
+                </div>
+                <button class="full-btn" id="cancelContinueBtn" type="button">
+                  Continue
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section
+            class="screen"
+            data-screen="cancel-confirm"
+            data-title="Cancel Membership"
+          >
+            <div class="stack">
+              <div class="card">
+                <div class="subtle-center" style="margin-bottom: 16px">
+                  <strong>What happens when you cancel</strong>
+                </div>
+                <ul class="info-list">
+                  <li class="info-item">
+                    <span class="icon-box">1</span
+                    ><span id="cancelInfoAccess"
+                      >Access continues until your paid period ends.</span
+                    >
+                  </li>
+                  <li class="info-item">
+                    <span class="icon-box">2</span
+                    ><span
+                      >Saved stories and photos remain downloadable for 30
+                      days.</span
+                    >
+                  </li>
+                  <li class="info-item">
+                    <span class="icon-box">3</span
+                    ><span
+                      >Your household members lose access on the same
+                      date.</span
+                    >
+                  </li>
+                </ul>
+                <div style="height: 8px"></div>
+                <button
+                  class="btn btn-danger"
+                  id="confirmCancelBtn"
+                  type="button"
+                  style="width: 100%; padding: 14px 16px"
+                >
+                  Cancel membership
+                </button>
+                <button
+                  class="danger-link"
+                  id="keepMembershipBtn"
+                  type="button"
+                >
+                  Keep my membership
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section
+            class="screen"
+            data-screen="cancel-success"
+            data-title="Cancel Membership"
+          >
+            <div class="stack">
+              <div class="card success-card">
+                <div class="big-icon">OK</div>
+                <div class="subtle-center">
+                  <strong
+                    style="
+                      font-size: 22px;
+                      color: var(--ink);
+                      display: block;
+                      margin-bottom: 8px;
+                    "
+                    >Membership cancelled</strong
+                  >
+                  <span id="cancelledAccessText"
+                    >Your access continues until the end of your current billing
+                    period.</span
+                  >
+                </div>
+                <div style="height: 12px"></div>
+                <button
+                  class="full-btn"
+                  id="backHomeAfterCancelBtn"
+                  type="button"
+                >
+                  Back to home
+                </button>
+                <div class="subtle-center">
+                  Changed your mind?<br />
+                  <button
+                    class="text-link"
+                    id="reactivateLinkBtn"
+                    type="button"
+                  >
+                    Reactivate membership
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section
+            class="screen"
+            data-screen="pause"
+            data-title="Pause Membership"
+          >
+            <div class="stack">
+              <div class="card">
+                <div class="hero-illustration"></div>
+                <p class="subtle-center" style="margin-bottom: 14px">
+                  Take a break for up to 4 weeks a year, split across up to 4
+                  blocks. Billing pauses too. Your Care Moments and streak stay
+                  exactly where you left them.
+                </p>
+                <div class="section-title" style="margin-bottom: 10px">
+                  <span>Select Duration</span>
+                </div>
+                <div
+                  class="actions"
+                  id="pauseDurationActions"
+                  style="display: grid; grid-template-columns: repeat(3, 1fr)"
+                >
+                  <button
+                    class="duration-btn selected"
+                    data-weeks="2"
+                    type="button"
+                  >
+                    2 weeks
+                  </button>
+                  <button class="duration-btn" data-weeks="4" type="button">
+                    4 weeks
+                  </button>
+                  <button
+                    class="duration-btn"
+                    data-weeks="custom"
+                    type="button"
+                  >
+                    Choose date
+                  </button>
+                </div>
+                <div class="field hidden" id="customPauseDateField">
+                  <label for="customResumeDate">Resume Date</label>
+                  <input id="customResumeDate" type="date" />
+                </div>
+                <p class="secondary-copy" id="pauseHint">
+                  Your next billing date will move automatically.
+                </p>
+                <button class="full-btn" id="confirmPauseBtn" type="button">
+                  Pause Subscriptions
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section
+            class="screen"
+            data-screen="pause-success"
+            data-title="Pause Membership"
+          >
+            <div class="stack">
+              <div class="card pause-card">
+                <div class="subtle-center" style="margin-bottom: 14px">
+                  <strong
+                    style="
+                      font-size: 22px;
+                      color: var(--ink);
+                      display: block;
+                      margin-bottom: 8px;
+                    "
+                    >Pause Membership</strong
+                  >
+                  <span id="pausedUntilText"
+                    >Your subscription was paused successfully.</span
+                  >
+                </div>
+                <div class="big-icon rotate">◀</div>
+                <button class="full-btn" id="resumeMembershipBtn" type="button">
+                  Resume Subscriptions
+                </button>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script>
+      const state = {
+        user: null,
+        membership: null,
+        plans: [],
+        paymentMethods: [],
+        billingHistory: [],
+        selectedPlanId: '',
+        selectedCancelReason: 'TOO_EXPENSIVE',
+        selectedPauseWeeks: '2',
+        screenHistory: ['membership'],
+        checkoutReturnHandled: false,
       };
 
-      tick();
-      membershipCountdownTimer = setInterval(tick, 1000);
-    }
+      const STORAGE_KEYS = {
+        baseUrl: 'membership-ui-base-url',
+        email: 'membership-ui-email',
+        token: 'membership-ui-token',
+      };
 
-    function renderMembershipPlans() {
-      if (!state.membershipPlans.length) {
-        els.membershipPlansGrid.innerHTML = '<div class="hint">No membership plans found.</div>';
-        return;
+      const els = {
+        baseUrl: document.getElementById('baseUrl'),
+        email: document.getElementById('email'),
+        password: document.getElementById('password'),
+        loginBtn: document.getElementById('loginBtn'),
+        logoutBtn: document.getElementById('logoutBtn'),
+        authStatus: document.getElementById('authStatus'),
+        actionStatus: document.getElementById('actionStatus'),
+        screenTitle: document.getElementById('screenTitle'),
+        backBtn: document.getElementById('backBtn'),
+        screens: Array.from(document.querySelectorAll('.screen')),
+        trialBanner: document.getElementById('trialBanner'),
+        trialBannerText: document.getElementById('trialBannerText'),
+        trialCountdown: document.getElementById('trialCountdown'),
+        failedBanner: document.getElementById('failedBanner'),
+        failedBannerText: document.getElementById('failedBannerText'),
+        failedBannerAction: document.getElementById('failedBannerAction'),
+        currentPlanName: document.getElementById('currentPlanName'),
+        currentStatusPill: document.getElementById('currentStatusPill'),
+        currentPlanAmount: document.getElementById('currentPlanAmount'),
+        currentPlanMeta: document.getElementById('currentPlanMeta'),
+        currentPlanDescription: document.getElementById(
+          'currentPlanDescription',
+        ),
+        nextBillingLine: document.getElementById('nextBillingLine'),
+        paymentMethodPreview: document.getElementById('paymentMethodPreview'),
+        paymentMethodState: document.getElementById('paymentMethodState'),
+        paymentMethodList: document.getElementById('paymentMethodList'),
+        savedCardCount: document.getElementById('savedCardCount'),
+        cardNumber: document.getElementById('cardNumber'),
+        expiryValue: document.getElementById('expiryValue'),
+        cvv: document.getElementById('cvv'),
+        cardholderName: document.getElementById('cardholderName'),
+        saveCardBtn: document.getElementById('saveCardBtn'),
+        billingHistoryList: document.getElementById('billingHistoryList'),
+        upgradePlanArea: document.getElementById('upgradePlanArea'),
+        planList: document.getElementById('planList'),
+        planCountLabel: document.getElementById('planCountLabel'),
+        changePlanBtn: document.getElementById('changePlanBtn'),
+        pauseMembershipBtn: document.getElementById('pauseMembershipBtn'),
+        cancelMembershipLink: document.getElementById('cancelMembershipLink'),
+        supportBtn: document.getElementById('supportBtn'),
+        cancelReasonList: document.getElementById('cancelReasonList'),
+        cancelDetailNote: document.getElementById('cancelDetailNote'),
+        cancelContinueBtn: document.getElementById('cancelContinueBtn'),
+        cancelInfoAccess: document.getElementById('cancelInfoAccess'),
+        confirmCancelBtn: document.getElementById('confirmCancelBtn'),
+        keepMembershipBtn: document.getElementById('keepMembershipBtn'),
+        cancelledAccessText: document.getElementById('cancelledAccessText'),
+        backHomeAfterCancelBtn: document.getElementById(
+          'backHomeAfterCancelBtn',
+        ),
+        reactivateLinkBtn: document.getElementById('reactivateLinkBtn'),
+        pauseDurationActions: document.getElementById('pauseDurationActions'),
+        customPauseDateField: document.getElementById('customPauseDateField'),
+        customResumeDate: document.getElementById('customResumeDate'),
+        confirmPauseBtn: document.getElementById('confirmPauseBtn'),
+        pausedUntilText: document.getElementById('pausedUntilText'),
+        resumeMembershipBtn: document.getElementById('resumeMembershipBtn'),
+        toastWrap: document.getElementById('toastWrap'),
+      };
+
+      const cancelReasons = [
+        { code: 'TOO_EXPENSIVE', label: 'Too expensive' },
+        { code: 'NOT_USING_ENOUGH', label: 'Not using it enough' },
+        { code: 'SWITCHING_PROVIDERS', label: 'Switching providers' },
+        { code: 'SOMETHING_ELSE', label: 'Something else' },
+      ];
+
+      let countdownTimer = null;
+
+      function inferBaseUrl() {
+        const { protocol, hostname, port } = window.location;
+        if (port && port !== '5000') return `${protocol}//${hostname}:5000`;
+        return `${protocol}//${hostname}${port ? `:${port}` : ''}`;
       }
 
-      if (!state.selectedMembershipPlanId) {
-        state.selectedMembershipPlanId = state.membershipPlans[0].id;
+      function getBaseUrl() {
+        return (els.baseUrl.value.trim() || inferBaseUrl()).replace(/\/$/, '');
       }
 
-      els.membershipPlansGrid.innerHTML = state.membershipPlans.map((plan) => {
-        const variant = getPlanVariant(plan);
-        const badge = plan.badgeText
-          ? `<span class="membership-card-badge">${plan.badgeText}</span>`
-          : '';
+      function getToken() {
+        return localStorage.getItem(STORAGE_KEYS.token) || '';
+      }
 
-        return `
-          <article class="membership-card ${variant} ${state.selectedMembershipPlanId === plan.id ? 'selected' : ''}" data-plan-id="${plan.id}">
-            <div class="membership-card-top">
-              <div class="membership-card-name">${plan.name}</div>
-              ${badge}
-            </div>
-            <div class="membership-card-price">
-              <strong>${formatPlanPrice(plan)}</strong>
-              <span>${plan.periodSuffix || (plan.interval === 'ANNUALLY' ? '/ per year' : '/ per month')}</span>
-            </div>
-            <div class="membership-card-copy">${plan.description || ''}</div>
-            <ul class="membership-feature-list">
-              ${(plan.features || []).map((feature) => `<li>${feature}</li>`).join('')}
-            </ul>
-            <div class="membership-additional">${plan.additionalChildText || ''}</div>
-            <button class="membership-card-cta" data-action="claim-trial" data-plan-id="${plan.id}" type="button">Start Free Trial</button>
-          </article>
-        `;
-      }).join('');
+      function setToken(token) {
+        if (token) localStorage.setItem(STORAGE_KEYS.token, token);
+        else localStorage.removeItem(STORAGE_KEYS.token);
+      }
 
-      els.membershipPlansGrid.querySelectorAll('.membership-card').forEach((card) => {
-        card.addEventListener('click', (event) => {
-          const target = event.target;
-          if (target instanceof HTMLElement && target.closest('[data-action="claim-trial"]')) {
-            return;
-          }
-          selectMembershipPlan(card.getAttribute('data-plan-id'));
+      function unwrap(payload) {
+        if (payload && typeof payload === 'object' && 'data' in payload)
+          return payload.data;
+        return payload;
+      }
+
+      function setAuthStatus(message, type = '') {
+        els.authStatus.textContent = message;
+        els.authStatus.className = `status-box ${type}`.trim();
+      }
+
+      function setActionStatus(message, type = '') {
+        els.actionStatus.textContent = message;
+        els.actionStatus.className = `status-box ${type}`.trim();
+      }
+
+      function showToast(message, type = 'ok') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        els.toastWrap.appendChild(toast);
+        setTimeout(() => toast.remove(), 3400);
+      }
+
+      function formatAmount(amount) {
+        return Number(amount || 0).toLocaleString('en-US', {
+          minimumFractionDigits: Number(amount || 0) % 1 ? 2 : 0,
+          maximumFractionDigits: 2,
         });
-      });
-
-      els.membershipPlansGrid.querySelectorAll('[data-action="claim-trial"]').forEach((button) => {
-        button.addEventListener('click', async (event) => {
-          event.stopPropagation();
-          const planId = button.getAttribute('data-plan-id');
-          selectMembershipPlan(planId);
-          await claimMembershipTrial(planId);
-        });
-      });
-
-      selectMembershipPlan(state.selectedMembershipPlanId);
-    }
-
-    function renderMembershipSummary(summary) {
-      const displayPrice = summary?.displayPrice ?? 0;
-      const displayCurrency = summary?.displayCurrency || 'AED';
-      const displayPeriod = summary?.displayPeriod || 'month';
-      const trialDaysRemaining = Number(summary?.trialDaysRemaining || 0);
-      const isTrial = summary?.status === 'FREE_TRIAL' || summary?.currentPlan === 'Free Trial';
-
-      els.currentMembershipTitle.textContent = summary?.currentPlan || 'Free Trial';
-      els.currentMembershipAmount.textContent = formatCurrentAmount(displayPrice);
-      els.currentMembershipCurrency.textContent = `${displayCurrency} / ${displayPeriod}`;
-      els.currentMembershipCopy.textContent =
-        summary?.trialDescription ||
-        `Your ${summary?.currentPlan || 'membership'} is currently active.`;
-      els.trialBanner.style.display = isTrial ? 'flex' : 'none';
-      els.trialBannerText.textContent = isTrial
-        ? `Free trial — ${trialDaysRemaining} day${trialDaysRemaining === 1 ? '' : 's'} remaining`
-        : `${summary?.currentPlan || 'Membership'} active`;
-
-      if (isTrial) {
-        renderMembershipCountdown(summary?.trialEndsAt);
-      } else {
-        clearMembershipCountdown();
       }
-    }
 
-    function openLoginModal() {
-      els.loginModal.classList.add('open');
-    }
+      function formatCurrency(amount, currency) {
+        const normalized = (currency || 'AED').toUpperCase();
+        return normalized === 'USD'
+          ? `$${formatAmount(amount)}`
+          : `${normalized} ${formatAmount(amount)}`;
+      }
 
-    function closeLoginModal() {
-      els.loginModal.classList.remove('open');
-    }
+      function formatDate(value) {
+        if (!value) return '--';
+        return new Date(value).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        });
+      }
 
-    async function request(path, options = {}) {
-      const prefixes = ['/api/v1', ''];
-      let lastError = 'Endpoint not found';
-
-      for (const prefix of prefixes) {
-        const res = await fetch(`${getBaseUrl()}${prefix}${path}`, {
+      async function api(path, options = {}) {
+        const response = await fetch(`${getBaseUrl()}/api/v1${path}`, {
           ...options,
           headers: {
             'Content-Type': 'application/json',
@@ -1068,7 +1456,7 @@
           },
         });
 
-        const text = await res.text();
+        const text = await response.text();
         let payload = null;
         try {
           payload = text ? JSON.parse(text) : null;
@@ -1076,522 +1464,873 @@
           payload = text;
         }
 
-        if (res.ok) return payload;
-
-        if (res.status !== 404) {
-          throw new Error(
-            (payload && typeof payload === 'object' && payload.message) ||
+        if (!response.ok) {
+          const message =
+            (payload &&
+              typeof payload === 'object' &&
+              (payload.message || payload.error)) ||
             payload ||
-            `Request failed with ${res.status}`,
-          );
+            `Request failed with status ${response.status}`;
+          throw new Error(message);
         }
 
-        lastError = payload || `404 on ${prefix}${path}`;
+        return payload;
       }
 
-      throw new Error(typeof lastError === 'string' ? lastError : 'Endpoint not found');
-    }
-
-    function ensureLoggedIn(actionLabel) {
-      if (getToken()) return true;
-      setStatus(`Login required before ${actionLabel}.`, 'warn');
-      setCardSaveStatus(`Login required before ${actionLabel}.`, 'warn');
-      openLoginModal();
-      return false;
-    }
-
-    function normalizeDigits(value) {
-      return String(value || '').replace(/\s+/g, '').trim();
-    }
-
-    function validateCardForm() {
-      const cardNumber = normalizeDigits(document.getElementById('cardNumber').value);
-      const expMonth = Number(document.getElementById('expMonth').value);
-      const expYear = Number(document.getElementById('expYear').value);
-      const cvv = normalizeDigits(document.getElementById('cvv').value);
-      const currentYear = new Date().getFullYear();
-
-      if (cardNumber.length < 12 || cardNumber.length > 19) {
-        throw new Error('Enter a valid card number.');
+      function requireAuth(label) {
+        if (getToken()) return true;
+        setAuthStatus(`Login required before ${label}.`, 'status-warn');
+        showToast(`Login required before ${label}.`, 'warn');
+        return false;
       }
 
-      if (!expMonth || expMonth < 1 || expMonth > 12) {
-        throw new Error('Expiry month must be between 1 and 12.');
+      function goToScreen(name, push = true) {
+        const target = els.screens.find(
+          (screen) => screen.getAttribute('data-screen') === name,
+        );
+        if (!target) return;
+
+        els.screens.forEach((screen) => {
+          screen.classList.toggle('active', screen === target);
+        });
+
+        if (push) {
+          if (state.screenHistory[state.screenHistory.length - 1] !== name) {
+            state.screenHistory.push(name);
+          }
+        } else {
+          state.screenHistory[state.screenHistory.length - 1] = name;
+        }
+
+        els.backBtn.classList.toggle('hidden', name === 'membership');
+        els.screenTitle.textContent =
+          target.getAttribute('data-title') || 'Membership';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
 
-      if (!expYear || expYear < currentYear) {
-        throw new Error(`Expiry year must be ${currentYear} or later.`);
+      function goBack() {
+        if (state.screenHistory.length <= 1)
+          return goToScreen('membership', false);
+        state.screenHistory.pop();
+        goToScreen(state.screenHistory[state.screenHistory.length - 1], false);
       }
 
-      if (cvv.length < 3 || cvv.length > 4) {
-        throw new Error('CVV must be 3 or 4 digits.');
+      function clearCountdown() {
+        if (countdownTimer) {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+        }
       }
 
-      return {
-        cardNumber,
-        expMonth,
-        expYear,
-        cvv,
-      };
-    }
+      function startCountdown(trialEndsAt) {
+        clearCountdown();
+        if (!trialEndsAt) {
+          els.trialCountdown.textContent = '00:00:00';
+          return;
+        }
 
-    function refreshCardSelectors() {
-      const selectors = [els.membershipCard, els.tipCard, els.productCard];
-      const options = state.paymentMethods.length
-        ? state.paymentMethods.map((item) => ({
-            value: item.id,
-            label: `${item.brand || 'Card'} ending ${item.last4 || '0000'}${item.isDefault ? ' (Default)' : ''}`,
-          }))
-        : [{ value: '', label: 'No saved cards yet' }];
+        const tick = () => {
+          const diff = new Date(trialEndsAt).getTime() - Date.now();
+          if (diff <= 0) {
+            els.trialCountdown.textContent = '00:00:00';
+            clearCountdown();
+            return;
+          }
+          const totalSeconds = Math.floor(diff / 1000);
+          const hours = String(
+            Math.floor((totalSeconds % 86400) / 3600),
+          ).padStart(2, '0');
+          const minutes = String(
+            Math.floor((totalSeconds % 3600) / 60),
+          ).padStart(2, '0');
+          const seconds = String(totalSeconds % 60).padStart(2, '0');
+          els.trialCountdown.textContent = `${hours}:${minutes}:${seconds}`;
+        };
 
-      selectors.forEach((select) => {
-        select.innerHTML = options
-          .map((option) => `<option value="${option.value}">${option.label}</option>`)
-          .join('');
-      });
-    }
-
-    function renderSavedCards() {
-      if (!state.paymentMethods.length) {
-        els.savedCards.innerHTML = '<div class="hint">No saved cards yet.</div>';
-        refreshCardSelectors();
-        return;
+        tick();
+        countdownTimer = setInterval(tick, 1000);
       }
 
-      els.savedCards.innerHTML = state.paymentMethods.map((card) => `
-        <div class="card-item">
-          <div class="card-copy">
-            <div class="card-title">${card.brand || 'Card'} ending ${card.last4 || '0000'}</div>
-            <div class="card-subtitle">${card.cardholderName || 'Unnamed'} • ${card.expMonth}/${card.expYear}</div>
-            <div class="card-subtitle">Stripe token: ${card.paymentToken || card.stripePaymentMethodId || 'not available'}</div>
+      function normalizeStatusLabel(summary) {
+        if (!summary) return 'ACTIVE';
+        if (summary.isPaymentFailed) return 'PAUSED';
+        if (summary.status === 'FREE_TRIAL') return 'ACTIVE';
+        return summary.status || 'ACTIVE';
+      }
+
+      function getPrimaryPaymentMethod() {
+        return (
+          state.paymentMethods.find((method) => method.isDefault) ||
+          state.paymentMethods[0] ||
+          null
+        );
+      }
+
+      function renderPaymentMethodPreview() {
+        const primary = getPrimaryPaymentMethod();
+        els.paymentMethodState.textContent = primary
+          ? `${state.paymentMethods.length} saved`
+          : 'No card';
+
+        if (!primary) {
+          els.paymentMethodPreview.innerHTML = `
+          <div class="pay-row">
+            <div class="pay-row-left">
+              <span class="icon-box">+</span>
+              <div>
+                <div class="primary-copy">No saved payment method</div>
+                <div class="secondary-copy">Add a card to pay directly from the membership screen.</div>
+              </div>
+            </div>
+            <button class="text-link" type="button" id="previewManageCardBtn">Add</button>
           </div>
-          <div class="actions">
-            <span class="pill ${card.isDefault ? 'orange' : ''}">${card.isDefault ? 'Default' : 'Saved'}</span>
-            <button class="btn btn-secondary" data-action="toggle-default" data-id="${card.id}" type="button">
-              ${card.isDefault ? 'Remove default' : 'Make default'}
-            </button>
+        `;
+        } else {
+          els.paymentMethodPreview.innerHTML = `
+          <div class="pay-row">
+            <div class="pay-row-left">
+              <span class="icon-box">CC</span>
+              <div>
+                <div class="primary-copy">${primary.brand || 'Card'} ${primary.last4 || ''}</div>
+                <div class="secondary-copy">${primary.cardholderName || 'Saved card'}${primary.expMonth && primary.expYear ? ` • ${primary.expMonth}/${primary.expYear}` : ''}</div>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="mini-pill default">Default</span>
+              <button class="text-link" type="button" id="previewManageCardBtn">Manage</button>
+            </div>
+          </div>
+        `;
+        }
+
+        document
+          .getElementById('previewManageCardBtn')
+          ?.addEventListener('click', () => goToScreen('payment'));
+      }
+
+      function renderBillingHistory() {
+        if (!state.billingHistory.length) {
+          els.billingHistoryList.innerHTML =
+            '<div class="secondary-copy">No billing history found yet.</div>';
+          return;
+        }
+
+        els.billingHistoryList.innerHTML = state.billingHistory
+          .map((invoice) => {
+            const successful = invoice.status === 'SUCCESS';
+            return `
+          <div class="history-row">
+            <div class="history-left">
+              <span class="icon-box ${successful ? 'success' : 'fail'}">${successful ? '$' : '!'}</span>
+              <div>
+                <div class="primary-copy">${invoice.planName}</div>
+                <div class="secondary-copy">${formatDate(invoice.invoiceDate)}</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div class="primary-copy">${formatCurrency(invoice.amount, invoice.currency)}</div>
+              <div style="margin-top:4px;">
+                <span class="mini-pill ${successful ? 'success' : 'fail'}">${successful ? 'Paid' : 'Failed'}</span>
+              </div>
+            </div>
+          </div>
+        `;
+          })
+          .join('');
+      }
+
+      function renderPlanList() {
+        els.planCountLabel.textContent = `${state.plans.length} plan${state.plans.length === 1 ? '' : 's'}`;
+        if (!state.plans.length) {
+          els.planList.innerHTML =
+            '<div class="secondary-copy">No membership plans available.</div>';
+          return;
+        }
+
+        els.planList.innerHTML = state.plans
+          .map((plan) => {
+            const pricing = formatCurrency(plan.price, plan.currency);
+            const selected = state.selectedPlanId === plan.id;
+            return `
+          <div class="card-row" style="border-color:${selected ? '#8fc4cf' : '#d8e7ec'}; background:${selected ? '#f2fafb' : '#fff'};">
+            <div class="card-row-left" style="align-items:flex-start;">
+              <span class="icon-box">${selected ? 'OK' : 'O'}</span>
+              <div>
+                <div class="primary-copy">${plan.name}</div>
+                <div class="secondary-copy">${pricing} / ${plan.interval === 'ANNUALLY' ? 'year' : 'month'}</div>
+                <div class="secondary-copy">${plan.description || ''}</div>
+              </div>
+            </div>
+            <button class="text-link" type="button" data-plan-select="${plan.id}">${selected ? 'Selected' : 'Choose'}</button>
+          </div>
+        `;
+          })
+          .join('');
+
+        document.querySelectorAll('[data-plan-select]').forEach((button) => {
+          button.addEventListener('click', () => {
+            state.selectedPlanId =
+              button.getAttribute('data-plan-select') || '';
+            renderPlanList();
+            goToScreen('membership');
+            showToast('Plan selected. Use upgrade button to pay.', 'ok');
+          });
+        });
+      }
+
+      function getSuggestedUpgradePlan() {
+        if (!state.plans.length) return null;
+        const currentPlanId = state.membership?.plan?.id;
+        const currentInterval = state.membership?.plan?.interval;
+        const nonCurrent = state.plans.filter(
+          (plan) => plan.id !== currentPlanId,
+        );
+        return (
+          nonCurrent.find(
+            (plan) =>
+              plan.interval === 'ANNUALLY' && currentInterval !== 'ANNUALLY',
+          ) ||
+          nonCurrent.find(
+            (plan) =>
+              plan.interval === 'MONTHLY' && currentInterval === 'ANNUALLY',
+          ) ||
+          nonCurrent[0] ||
+          null
+        );
+      }
+
+      function renderUpgradeArea() {
+        const plan = getSuggestedUpgradePlan();
+        if (!plan) {
+          els.upgradePlanArea.innerHTML =
+            '<div class="secondary-copy">No switchable plan available right now.</div>';
+          return;
+        }
+
+        const pricing = formatCurrency(plan.price, plan.currency);
+        const bullets = (plan.savingsText ? [plan.savingsText] : []).concat(
+          (plan.features || []).slice(0, 2),
+        );
+        const cta = state.paymentMethods.length
+          ? `Upgrade to ${plan.name}`
+          : 'Pay with Stripe Checkout';
+
+        els.upgradePlanArea.innerHTML = `
+        <div class="upgrade-card">
+          <div class="upgrade-top">
+            <div><p class="upgrade-name">${plan.name}</p></div>
+            <div class="upgrade-price">${pricing}<br /><span style="font-size:12px; opacity:0.85;">per ${plan.interval === 'ANNUALLY' ? 'year' : 'month'}</span></div>
+          </div>
+          <ul class="upgrade-list">
+            ${bullets.map((item) => `<li>${item}</li>`).join('')}
+          </ul>
+          <button class="full-btn" id="upgradeNowBtn" type="button">${cta}</button>
+        </div>
+      `;
+
+        document
+          .getElementById('upgradeNowBtn')
+          ?.addEventListener('click', async () => {
+            state.selectedPlanId = plan.id;
+            await handleMembershipPayment(plan.id);
+          });
+      }
+
+      function renderPaymentMethods() {
+        els.savedCardCount.textContent = `${state.paymentMethods.length} card${state.paymentMethods.length === 1 ? '' : 's'}`;
+        if (!state.paymentMethods.length) {
+          els.paymentMethodList.innerHTML =
+            '<div class="secondary-copy">No saved cards yet. Add one below.</div>';
+          return;
+        }
+
+        els.paymentMethodList.innerHTML = state.paymentMethods
+          .map(
+            (method) => `
+        <div class="card-row">
+          <div class="card-row-left">
+            <span class="icon-box">CC</span>
+            <div>
+              <div class="primary-copy">${method.brand || 'Card'} ${method.last4 || ''}</div>
+              <div class="secondary-copy">${method.expMonth || '--'}/${method.expYear || '--'}${method.cardholderName ? ` • ${method.cardholderName}` : ''}</div>
+            </div>
+          </div>
+          <div style="display:grid; gap:8px; justify-items:end;">
+            ${method.isDefault ? '<span class="mini-pill default">Default</span>' : `<button class="text-link" type="button" data-set-default="${method.id}">Set as default</button>`}
+            ${method.isDefault ? `<button class="text-link" type="button" data-remove-default="${method.id}">Remove default</button>` : ''}
+            <button class="text-link" type="button" data-delete-card="${method.id}" style="color:#d4493c;">Delete</button>
           </div>
         </div>
-      `).join('');
+      `,
+          )
+          .join('');
 
-      els.savedCards.querySelectorAll('[data-action="toggle-default"]').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const id = btn.getAttribute('data-id');
-          const target = state.paymentMethods.find((item) => item.id === id);
-          if (!target) return;
-
-          const path = target.isDefault
-            ? `/payment/payment-methods/${id}/remove-default`
-            : `/payment/payment-methods/${id}/default`;
-
-          try {
-            const data = await request(path, { method: 'POST' });
-            writeResponse(data, 'Card default status updated');
-            await loadPaymentMethods();
-          } catch (error) {
-            writeResponse(error.message, 'Card default status failed');
-          }
-        });
-      });
-
-      refreshCardSelectors();
-    }
-
-    async function loadMe() {
-      if (!getToken()) {
-        setStatus('Not logged in.', 'warn');
-        renderMembershipSummary({
-          currentPlan: 'Free Trial',
-          displayPrice: 0,
-          displayCurrency: 'AED',
-          displayPeriod: 'month',
-          trialDescription:
-            'Free trial active. The 1 Child Subscription Plan will start automatically when your trial ends.',
-          trialDaysRemaining: 0,
-          status: 'FREE_TRIAL',
-        });
-        openLoginModal();
-        return;
-      }
-
-      try {
-        const data = await request('/auth/me');
-        const user = unwrapResponse(data) || {};
-        setStatus(`Logged in as ${user.fullName || user.email || 'User'} (${user.role || 'Unknown'})`, 'ok');
-        closeLoginModal();
-        await loadMembershipSummary();
-      } catch (error) {
-        setStatus(`Token check failed: ${error.message}`, 'warn');
-        openLoginModal();
-      }
-    }
-
-    async function loadPaymentMethods() {
-      if (!getToken()) {
-        state.paymentMethods = [];
-        renderSavedCards();
-        setCardSaveStatus('Login first, then save a card.', 'warn');
-        return;
-      }
-
-      try {
-        const data = await request('/payment/payment-methods');
-        state.paymentMethods = Array.isArray(unwrapResponse(data)) ? unwrapResponse(data) : [];
-        renderSavedCards();
-        if (state.paymentMethods.length) {
-          const firstCard = state.paymentMethods[0];
-          setCardSaveStatus(
-            `Saved card ready: ${firstCard.brand || 'Card'} ending ${firstCard.last4 || '0000'}. Stripe token saved.`,
-            'ok',
-          );
-        } else {
-          setCardSaveStatus('No saved cards yet for this account.', '');
-        }
-      } catch (error) {
-        writeResponse(error.message, 'Load saved cards failed');
-        setCardSaveStatus(`Could not load saved cards: ${error.message}`, 'warn');
-      }
-    }
-
-    async function loadMembershipPlans() {
-      try {
-        const data = await request('/membership/plans');
-        state.membershipPlans = Array.isArray(unwrapResponse(data)) ? unwrapResponse(data) : [];
-        els.membershipPlan.innerHTML = state.membershipPlans.length
-          ? state.membershipPlans
-              .map((plan) => `<option value="${plan.id}">${plan.name} - ${plan.price} ${plan.currency}</option>`)
-          .join('')
-          : '<option value="">No plans found</option>';
-        if (state.membershipPlans.length && !state.selectedMembershipPlanId) {
-          state.selectedMembershipPlanId = state.membershipPlans[0].id;
-        }
-        renderMembershipPlans();
-        writeResponse(state.membershipPlans, 'Membership plans loaded');
-      } catch (error) {
-        els.membershipPlansGrid.innerHTML = `<div class="hint">Could not load plans: ${error.message}</div>`;
-        writeResponse(error.message, 'Load plans failed');
-      }
-    }
-
-    async function loadMembershipSummary() {
-      if (!getToken()) return;
-
-      try {
-        const data = await request('/membership/me');
-        const summary = unwrapResponse(data) || {};
-        renderMembershipSummary(summary);
-      } catch (error) {
-        writeResponse(error.message, 'Load membership summary failed');
-      }
-    }
-
-    async function claimMembershipTrial(planId) {
-      if (!ensureLoggedIn('claiming a membership trial')) return;
-
-      try {
-        const data = await request('/membership/claim-trial', {
-          method: 'POST',
-          body: JSON.stringify({ planId }),
-        });
-        writeResponse(data, 'Membership trial claimed');
-        await loadMembershipSummary();
-      } catch (error) {
-        writeResponse(error.message, 'Claim trial failed');
-      }
-    }
-
-    async function loadNannies() {
-      if (!ensureLoggedIn('loading nannies')) return;
-
-      try {
-        const data = await request('/payment/tips/nannies');
-        const body = unwrapResponse(data);
-        state.nannies = body?.nannies || [];
-        els.nannySelect.innerHTML = state.nannies.length
-          ? state.nannies
-              .map((nanny) => `<option value="${nanny.nannyUserId}">${nanny.nannyName}</option>`)
-              .join('')
-          : '<option value="">No nannies found</option>';
-        if (state.nannies.length) {
-          const firstNanny = state.nannies[0];
-          els.manualNannyUserId.value = '';
-          setNannyStatus(
-            `Loaded ${state.nannies.length} nanny${state.nannies.length > 1 ? 'ies' : ''}. First: ${firstNanny.nannyName}.`,
-            'ok',
-          );
-        } else {
-          setNannyStatus('No nanny returned from API. Paste a nanny user ID manually to continue testing.', 'warn');
-        }
-        writeResponse(data, 'Nannies loaded');
-      } catch (error) {
-        setNannyStatus(`Load nanny failed: ${error.message}`, 'warn');
-        writeResponse(error.message, 'Load nannies failed');
-      }
-    }
-
-    els.loginForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-
-      try {
-        const data = await request('/auth/login', {
-          method: 'POST',
-          body: JSON.stringify({
-            email: els.email.value.trim(),
-            password: els.password.value,
-          }),
+        document.querySelectorAll('[data-set-default]').forEach((button) => {
+          button.addEventListener('click', async () => {
+            try {
+              await api(
+                `/membership/payment-methods/${button.getAttribute('data-set-default')}/default`,
+                { method: 'PATCH' },
+              );
+              showToast('Default card updated.', 'ok');
+              await loadPaymentMethods();
+            } catch (error) {
+              showToast(error.message, 'error');
+            }
+          });
         });
 
-        const authData = getAuthPayload(data);
-        const token = authData.accessToken;
-        if (!token) throw new Error('accessToken missing in login response.');
-
-        setToken(token);
-        localStorage.setItem(storage.baseUrl, getBaseUrl());
-        localStorage.setItem(storage.email, els.email.value.trim());
-
-        writeResponse(data, 'Login success');
-        await loadMe();
-        await loadPaymentMethods();
-        await loadMembershipPlans();
-        await loadNannies();
-      } catch (error) {
-        writeResponse(error.message, 'Login failed');
-        setStatus(`Login failed: ${error.message}`, 'warn');
-      }
-    });
-
-    els.logoutBtn.addEventListener('click', async () => {
-      try {
-        await request('/auth/logout', { method: 'POST' });
-      } catch (_) {
-      }
-
-      setToken('');
-      els.password.value = '';
-      state.paymentMethods = [];
-      renderSavedCards();
-      clearMembershipCountdown();
-      renderMembershipSummary({
-        currentPlan: 'Free Trial',
-        displayPrice: 0,
-        displayCurrency: 'AED',
-        displayPeriod: 'month',
-        trialDescription:
-          'Free trial active. The 1 Child Subscription Plan will start automatically when your trial ends.',
-        trialDaysRemaining: 0,
-        status: 'FREE_TRIAL',
-      });
-      setStatus('Logged out.', 'warn');
-      openLoginModal();
-      writeResponse('Local token cleared.', 'Logout');
-    });
-
-    els.saveCardForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-
-      if (!ensureLoggedIn('saving a card')) return;
-
-      try {
-        const validated = validateCardForm();
-        els.saveCardBtn.disabled = true;
-        els.saveCardBtn.textContent = 'Saving...';
-
-        const data = await request('/payment/payment-methods', {
-          method: 'POST',
-          body: JSON.stringify({
-            cardholderName: document.getElementById('cardholderName').value.trim(),
-            cardNumber: validated.cardNumber,
-            expMonth: validated.expMonth,
-            expYear: validated.expYear,
-            cvv: validated.cvv,
-            isDefault: document.getElementById('saveAsDefault').value === 'true',
-          }),
+        document.querySelectorAll('[data-remove-default]').forEach((button) => {
+          button.addEventListener('click', async () => {
+            try {
+              await api(
+                `/membership/payment-methods/${button.getAttribute('data-remove-default')}/remove-default`,
+                { method: 'PATCH' },
+              );
+              showToast('Default marker removed.', 'ok');
+              await loadPaymentMethods();
+            } catch (error) {
+              showToast(error.message, 'error');
+            }
+          });
         });
 
-        const savedCard = unwrapResponse(data) || {};
-        setCardSaveStatus(
-          `Card saved successfully. Token: ${savedCard.paymentToken || savedCard.stripePaymentMethodId || 'n/a'} | Last4: ${savedCard.last4 || 'n/a'}`,
-          'ok',
+        document.querySelectorAll('[data-delete-card]').forEach((button) => {
+          button.addEventListener('click', async () => {
+            if (!confirm('Delete this saved payment method?')) return;
+            try {
+              await api(
+                `/membership/payment-methods/${button.getAttribute('data-delete-card')}`,
+                { method: 'DELETE' },
+              );
+              showToast('Payment method removed.', 'ok');
+              await loadPaymentMethods();
+            } catch (error) {
+              showToast(error.message, 'error');
+            }
+          });
+        });
+      }
+
+      function renderCancelReasons() {
+        els.cancelReasonList.innerHTML = cancelReasons
+          .map(
+            (reason) => `
+        <button class="reason-btn ${state.selectedCancelReason === reason.code ? 'selected' : ''}" type="button" data-reason="${reason.code}">
+          ${reason.label}
+        </button>
+      `,
+          )
+          .join('');
+
+        document.querySelectorAll('[data-reason]').forEach((button) => {
+          button.addEventListener('click', () => {
+            state.selectedCancelReason =
+              button.getAttribute('data-reason') || 'TOO_EXPENSIVE';
+            renderCancelReasons();
+          });
+        });
+      }
+
+      function renderPauseDuration() {
+        els.pauseDurationActions
+          .querySelectorAll('[data-weeks]')
+          .forEach((button) => {
+            const value = button.getAttribute('data-weeks');
+            button.classList.toggle(
+              'selected',
+              value === state.selectedPauseWeeks,
+            );
+          });
+        els.customPauseDateField.classList.toggle(
+          'hidden',
+          state.selectedPauseWeeks !== 'custom',
         );
-        writeResponse(data, 'Card saved');
-        await loadPaymentMethods();
-      } catch (error) {
-        setCardSaveStatus(`Save card failed: ${error.message}`, 'warn');
-        writeResponse(error.message, 'Save card failed');
-      } finally {
-        els.saveCardBtn.disabled = false;
-        els.saveCardBtn.textContent = 'Save Card';
       }
-    });
 
-    els.refreshCardsBtn.addEventListener('click', loadPaymentMethods);
-    els.loadPlansBtn.addEventListener('click', loadMembershipPlans);
-    els.loadNanniesBtn.addEventListener('click', loadNannies);
+      function renderMembershipSummary() {
+        const summary = state.membership;
+        const currentPlanName =
+          summary?.currentPlan || summary?.plan?.name || 'Free Trial';
+        const price = summary?.displayPrice ?? 0;
+        const currency =
+          summary?.displayCurrency || summary?.pricing?.totalCurrency || 'AED';
+        const period =
+          summary?.displayPeriod || summary?.pricing?.periodLabel || 'month';
+        const statusLabel = normalizeStatusLabel(summary);
+        const nextDate = summary?.isCancelled
+          ? summary?.accessEndsAt
+          : summary?.nextBillingDate;
+        const description =
+          summary?.trialDescription ||
+          (summary?.isCancelled
+            ? `Your membership is cancelled. Access remains until ${formatDate(summary?.accessEndsAt)}.`
+            : summary?.isPaused
+              ? `Your membership is paused${summary?.resumeAt ? ` until ${formatDate(summary.resumeAt)}` : ''}.`
+              : `Your ${currentPlanName} plan is currently active.`);
 
-    els.membershipSubscribeBtn.addEventListener('click', async () => {
-      if (!ensureLoggedIn('paying membership')) return;
+        els.currentPlanName.textContent = currentPlanName;
+        els.currentPlanAmount.textContent = formatAmount(price);
+        els.currentPlanMeta.textContent = `${currency} / ${period}`;
+        els.currentPlanDescription.textContent = description;
+        els.currentStatusPill.textContent = statusLabel;
+        els.currentStatusPill.style.background = summary?.isCancelled
+          ? '#d86b4f'
+          : summary?.isPaused
+            ? '#f0a321'
+            : '#32b36b';
+        els.nextBillingLine.textContent = summary?.isCancelled
+          ? `Access until: ${formatDate(nextDate)}`
+          : `Next billing: ${formatDate(nextDate)}`;
 
-      try {
-        const selectedPlanId = state.selectedMembershipPlanId || els.membershipPlan.value;
-        if (!selectedPlanId) {
-          throw new Error('Select a membership plan first.');
-        }
+        const isTrial = summary?.status === 'FREE_TRIAL';
+        els.trialBanner.classList.toggle('hidden', !isTrial);
+        els.trialBannerText.textContent = `Free trial — ${summary?.trialDaysRemaining || 0} days remaining`;
+        if (isTrial) startCountdown(summary?.trialEndsAt);
+        else clearCountdown();
 
-        const data = await request('/payment/checkout', {
-          method: 'POST',
-          body: JSON.stringify({
-            paymentType: 'MEMBERSHIP',
-            planId: selectedPlanId,
-            paymentMethodId: els.membershipCard.value || undefined,
-          }),
-        });
-        const result = getMembershipCheckoutPayload(data) || {};
-        writeResponse(data, 'Membership checkout response');
+        const paymentFailed = !!summary?.isPaymentFailed;
+        els.failedBanner.classList.toggle('hidden', !paymentFailed);
+        els.failedBannerText.textContent = paymentFailed
+          ? 'Your Alurei access is currently paused. Update your payment method or reactivate your membership.'
+          : '';
 
-        if (result.checkoutUrl) {
-          setStatus('Redirecting to Stripe checkout for card entry...', 'ok');
-          window.location.href = result.checkoutUrl;
+        els.pauseMembershipBtn.textContent =
+          summary?.isPaused && !summary?.isPaymentFailed
+            ? 'Paused right now'
+            : 'Pause Subscriptions';
+        els.pauseMembershipBtn.disabled =
+          !!summary?.isPaused && !summary?.isPaymentFailed;
+      }
+
+      async function loadMe() {
+        if (!getToken()) {
+          state.user = null;
+          setAuthStatus('Not logged in yet.', '');
           return;
         }
 
-        await loadMembershipSummary();
-      } catch (error) {
-        writeResponse(error.message, 'Membership checkout failed');
-      }
-    });
-
-    els.createTipBtn.addEventListener('click', async () => {
-      if (!ensureLoggedIn('creating a nanny tip')) return;
-
-      try {
-        const nannyUserId = els.nannySelect.value || els.manualNannyUserId.value.trim();
-        if (!nannyUserId) {
-          throw new Error('Select a nanny or paste a manual nanny user ID first.');
-        }
-
-        const data = await request('/payment/checkout', {
-          method: 'POST',
-          body: JSON.stringify({
-            paymentType: 'NANNY_TIP',
-            nannyUserId,
-            amount: Number(els.tipAmount.value),
-            currency: 'AED',
-            note: els.tipNote.value.trim(),
-            paymentMethodId: els.tipCard.value || undefined,
-          }),
-        });
-        const result = getNestedResultPayload(data) || {};
-        writeResponse(data, 'Nanny tip checkout complete');
-
-        if (result.checkoutUrl) {
-          setNannyStatus(
-            `Redirecting to Stripe checkout for ${result.nannyName || 'the nanny'} tip payment...`,
-            'ok',
+        try {
+          const payload = await api('/auth/me');
+          state.user = unwrap(payload);
+          setAuthStatus(
+            `Logged in as ${state.user?.fullName || state.user?.email || 'User'} (${state.user?.role || 'UNKNOWN'})`,
+            'status-ok',
           );
-          window.location.href = result.checkoutUrl;
+        } catch (error) {
+          state.user = null;
+          setToken('');
+          setAuthStatus(`Session invalid: ${error.message}`, 'status-error');
+          showToast('Saved token expired. Login again.', 'warn');
+        }
+      }
+
+      async function loadMembership() {
+        if (!getToken()) return;
+        const payload = await api('/membership/me');
+        state.membership = unwrap(payload);
+        renderMembershipSummary();
+      }
+
+      async function loadPlans() {
+        const payload = await api('/membership/plans');
+        state.plans = Array.isArray(unwrap(payload)) ? unwrap(payload) : [];
+        if (!state.selectedPlanId && state.plans.length)
+          state.selectedPlanId = state.plans[0].id;
+        renderPlanList();
+        renderUpgradeArea();
+      }
+
+      async function loadPaymentMethods() {
+        if (!getToken()) {
+          state.paymentMethods = [];
+          renderPaymentMethodPreview();
+          renderPaymentMethods();
+          return;
+        }
+        const payload = await api('/membership/payment-methods');
+        state.paymentMethods = Array.isArray(unwrap(payload))
+          ? unwrap(payload)
+          : [];
+        renderPaymentMethodPreview();
+        renderPaymentMethods();
+        renderUpgradeArea();
+      }
+
+      async function loadBillingHistory() {
+        if (!getToken()) {
+          state.billingHistory = [];
+          renderBillingHistory();
+          return;
+        }
+        const payload = await api('/membership/billing-history');
+        state.billingHistory = Array.isArray(unwrap(payload))
+          ? unwrap(payload)
+          : [];
+        renderBillingHistory();
+      }
+
+      async function refreshDashboard(showReadyToast = false) {
+        try {
+          await loadMe();
+          if (!getToken()) return;
+          await Promise.all([
+            loadMembership(),
+            loadPlans(),
+            loadPaymentMethods(),
+            loadBillingHistory(),
+          ]);
+          renderCancelReasons();
+          renderPauseDuration();
+          if (showReadyToast) showToast('Membership dashboard loaded.', 'ok');
+        } catch (error) {
+          setActionStatus(error.message, 'status-error');
+          showToast(error.message, 'error');
+        }
+      }
+
+      async function signIn() {
+        try {
+          els.loginBtn.disabled = true;
+          setActionStatus('Signing in...', 'status-warn');
+          const payload = await api('/auth/signin', {
+            method: 'POST',
+            body: JSON.stringify({
+              email: els.email.value.trim(),
+              password: els.password.value,
+            }),
+          });
+          const authData = unwrap(payload) || {};
+          if (!authData.accessToken)
+            throw new Error('accessToken missing in signin response.');
+          setToken(authData.accessToken);
+          localStorage.setItem(STORAGE_KEYS.baseUrl, getBaseUrl());
+          localStorage.setItem(STORAGE_KEYS.email, els.email.value.trim());
+          els.password.value = '';
+          setActionStatus(
+            'Login successful. Token saved locally.',
+            'status-ok',
+          );
+          showToast('Login successful. Token saved.', 'ok');
+          await refreshDashboard(true);
+        } catch (error) {
+          setActionStatus(error.message, 'status-error');
+          setAuthStatus(`Login failed: ${error.message}`, 'status-error');
+          showToast(error.message, 'error');
+        } finally {
+          els.loginBtn.disabled = false;
+        }
+      }
+
+      async function signOut() {
+        try {
+          if (getToken()) await api('/auth/logout', { method: 'POST' });
+        } catch (_) {}
+
+        setToken('');
+        state.user = null;
+        state.membership = null;
+        state.paymentMethods = [];
+        state.billingHistory = [];
+        setAuthStatus('Logged out.', 'status-warn');
+        setActionStatus('Token removed from local storage.', 'status-warn');
+        clearCountdown();
+        renderPaymentMethodPreview();
+        renderPaymentMethods();
+        renderBillingHistory();
+        showToast('Logged out successfully.', 'ok');
+        goToScreen('membership', false);
+      }
+
+      function parseExpiry(value) {
+        const normalized = String(value || '').trim();
+        const match = normalized.match(/^(\d{1,2})\s*\/\s*(\d{4})$/);
+        if (!match) throw new Error('Expiry date must be MM/YYYY format.');
+        const month = Number(match[1]);
+        const year = Number(match[2]);
+        if (month < 1 || month > 12)
+          throw new Error('Expiry month must be between 1 and 12.');
+        return { month, year };
+      }
+
+      async function saveCard() {
+        if (!requireAuth('saving a payment method')) return;
+        try {
+          els.saveCardBtn.disabled = true;
+          const cardNumber = String(els.cardNumber.value || '').replace(
+            /\s+/g,
+            '',
+          );
+          if (cardNumber.length < 12)
+            throw new Error('Enter a valid card number.');
+          const cvv = String(els.cvv.value || '').trim();
+          if (cvv.length < 3 || cvv.length > 4)
+            throw new Error('CVV must be 3 or 4 digits.');
+          const expiry = parseExpiry(els.expiryValue.value);
+
+          await api('/membership/payment-methods', {
+            method: 'POST',
+            body: JSON.stringify({
+              cardholderName: els.cardholderName.value.trim(),
+              cardNumber,
+              expMonth: expiry.month,
+              expYear: expiry.year,
+              cvv,
+              isDefault: !state.paymentMethods.length,
+            }),
+          });
+
+          setActionStatus('Payment method saved successfully.', 'status-ok');
+          showToast('Card saved successfully.', 'ok');
+          await loadPaymentMethods();
+        } catch (error) {
+          setActionStatus(error.message, 'status-error');
+          showToast(error.message, 'error');
+        } finally {
+          els.saveCardBtn.disabled = false;
+        }
+      }
+
+      function buildCheckoutUrls() {
+        const current = new URL(window.location.href);
+        current.searchParams.set('checkout', 'success');
+        current.searchParams.set('session_id', '{CHECKOUT_SESSION_ID}');
+        const successUrl = current.toString();
+        const cancel = new URL(window.location.href);
+        cancel.searchParams.set('canceled', 'true');
+        return { successUrl, cancelUrl: cancel.toString() };
+      }
+
+      async function handleMembershipPayment(planId) {
+        if (!requireAuth('paying for membership')) return;
+        const targetPlanId = planId || state.selectedPlanId;
+        if (!targetPlanId) {
+          showToast('Select a plan first.', 'warn');
           return;
         }
 
-        if (result.status === 'SUCCEEDED') {
-          setNannyStatus(
-            `Tip payment completed successfully for ${result.nannyName || 'the nanny'}.`,
+        try {
+          setActionStatus('Processing membership payment...', 'status-warn');
+          const primaryCard = getPrimaryPaymentMethod();
+
+          if (primaryCard) {
+            await api('/membership/subscribe', {
+              method: 'POST',
+              body: JSON.stringify({
+                planId: targetPlanId,
+                paymentMethodId: primaryCard.id,
+              }),
+            });
+            setActionStatus(
+              'Membership payment completed with saved card.',
+              'status-ok',
+            );
+            showToast('Membership updated successfully.', 'ok');
+            await Promise.all([
+              loadMembership(),
+              loadBillingHistory(),
+              loadPlans(),
+            ]);
+            goToScreen('membership');
+            return;
+          }
+
+          const urls = buildCheckoutUrls();
+          const payload = await api(
+            '/membership/stripe/create-checkout-session',
+            {
+              method: 'POST',
+              body: JSON.stringify({
+                planId: targetPlanId,
+                successUrl: urls.successUrl,
+                cancelUrl: urls.cancelUrl,
+              }),
+            },
+          );
+          const result = unwrap(payload) || {};
+          if (!result.checkoutUrl)
+            throw new Error('Stripe checkout URL was not returned.');
+          setActionStatus('Redirecting to Stripe Checkout...', 'status-ok');
+          window.location.href = result.checkoutUrl;
+        } catch (error) {
+          setActionStatus(error.message, 'status-error');
+          showToast(error.message, 'error');
+        }
+      }
+
+      function continueCancelFlow() {
+        if (!requireAuth('cancelling membership')) return;
+        const accessText = state.membership?.currentPeriodEnd
+          ? `Access continues until ${formatDate(state.membership.currentPeriodEnd)}.`
+          : 'Access continues until your paid period ends.';
+        els.cancelInfoAccess.textContent = accessText;
+        goToScreen('cancel-confirm');
+      }
+
+      async function confirmCancel() {
+        if (!requireAuth('cancelling membership')) return;
+        try {
+          const payload = await api('/membership/cancel', {
+            method: 'POST',
+            body: JSON.stringify({
+              reason: state.selectedCancelReason,
+              detailNote: els.cancelDetailNote.value.trim() || undefined,
+            }),
+          });
+          const result = unwrap(payload) || {};
+          els.cancelledAccessText.textContent = result.accessEndsAt
+            ? `Your access continues until ${formatDate(result.accessEndsAt)}.`
+            : 'Your access continues until the end of your current billing period.';
+          setActionStatus('Membership cancelled successfully.', 'status-ok');
+          showToast('Membership cancelled.', 'ok');
+          await Promise.all([loadMembership(), loadBillingHistory()]);
+          goToScreen('cancel-success');
+        } catch (error) {
+          setActionStatus(error.message, 'status-error');
+          showToast(error.message, 'error');
+        }
+      }
+
+      async function reactivateMembership() {
+        if (!requireAuth('reactivating membership')) return;
+        try {
+          await api('/membership/reactivate', { method: 'POST' });
+          setActionStatus('Membership reactivated.', 'status-ok');
+          showToast('Membership reactivated successfully.', 'ok');
+          await Promise.all([loadMembership(), loadBillingHistory()]);
+          goToScreen('membership');
+        } catch (error) {
+          setActionStatus(error.message, 'status-error');
+          showToast(error.message, 'error');
+        }
+      }
+
+      async function pauseMembership() {
+        if (!requireAuth('pausing membership')) return;
+        try {
+          const payload = {
+            durationWeeks:
+              state.selectedPauseWeeks === 'custom'
+                ? undefined
+                : Number(state.selectedPauseWeeks),
+            customResumeDate:
+              state.selectedPauseWeeks === 'custom'
+                ? els.customResumeDate.value || undefined
+                : undefined,
+          };
+
+          const response = await api('/membership/pause', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          });
+          const result = unwrap(response) || {};
+          const resumeAt =
+            result.subscription?.resumeAt || state.membership?.resumeAt;
+          els.pausedUntilText.textContent = resumeAt
+            ? `Your subscription was paused successfully until ${formatDate(resumeAt)}. Resume any time to continue supporting your child's care and development.`
+            : 'Your subscription was paused successfully.';
+          setActionStatus('Membership paused successfully.', 'status-ok');
+          showToast('Membership paused.', 'ok');
+          await loadMembership();
+          goToScreen('pause-success');
+        } catch (error) {
+          setActionStatus(error.message, 'status-error');
+          showToast(error.message, 'error');
+        }
+      }
+
+      async function resumeMembership() {
+        if (!requireAuth('resuming membership')) return;
+        try {
+          await api('/membership/resume', { method: 'POST' });
+          setActionStatus('Membership resumed successfully.', 'status-ok');
+          showToast('Membership resumed.', 'ok');
+          await loadMembership();
+          goToScreen('membership');
+        } catch (error) {
+          setActionStatus(error.message, 'status-error');
+          showToast(error.message, 'error');
+        }
+      }
+
+      function handleCheckoutReturn() {
+        if (state.checkoutReturnHandled) return;
+        state.checkoutReturnHandled = true;
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('canceled') === 'true') {
+          showToast('Stripe checkout was canceled.', 'warn');
+          setActionStatus('Stripe checkout was canceled.', 'status-warn');
+        }
+        const sessionId = params.get('session_id');
+        if (params.get('checkout') === 'success' || sessionId) {
+          showToast(
+            'Stripe checkout finished. Refreshing membership data...',
             'ok',
           );
-        } else {
-          setNannyStatus(
-            `Tip payment initialized for ${result.nannyName || 'the nanny'}.`,
-            'ok',
+          setActionStatus(
+            'Stripe checkout finished. Waiting for webhook sync...',
+            'status-ok',
           );
         }
-      } catch (error) {
-        setNannyStatus(`Nanny tip failed: ${error.message}`, 'warn');
-        writeResponse(error.message, 'Nanny tip failed');
       }
-    });
 
-    els.createProductPaymentBtn.addEventListener('click', async () => {
-      if (!ensureLoggedIn('buying a partner product')) return;
-
-      try {
-        const data = await request('/payment/checkout', {
-          method: 'POST',
-          body: JSON.stringify({
-            paymentType: 'PARTNER_PRODUCT',
-            productId: els.productId.value.trim(),
-            amount: Number(els.productAmount.value),
-            currency: 'AED',
-            paymentMethodId: els.productCard.value || undefined,
-          }),
+      function bindEvents() {
+        els.loginBtn.addEventListener('click', signIn);
+        els.logoutBtn.addEventListener('click', signOut);
+        els.backBtn.addEventListener('click', goBack);
+        els.changePlanBtn.addEventListener('click', () => goToScreen('plans'));
+        els.pauseMembershipBtn.addEventListener('click', () => {
+          if (!requireAuth('opening pause membership')) return;
+          goToScreen('pause');
         });
-        writeResponse(data, 'Partner product checkout complete');
-      } catch (error) {
-        writeResponse(error.message, 'Partner product payment failed');
-      }
-    });
-
-    els.tabs.forEach((tab) => {
-      tab.addEventListener('click', () => {
-        const name = tab.getAttribute('data-tab');
-        els.tabs.forEach((item) => item.classList.toggle('active', item === tab));
-        els.sections.forEach((section) => {
-          section.classList.toggle('active', section.getAttribute('data-section') === name);
+        els.cancelMembershipLink.addEventListener('click', () => {
+          if (!requireAuth('opening cancel membership')) return;
+          goToScreen('cancel-reasons');
         });
-      });
-    });
-
-    els.focusLoginBtn.addEventListener('click', () => {
-      closeLoginModal();
-      els.email.focus();
-    });
-
-    els.membershipUpgradeBtn.addEventListener('click', async () => {
-      if (!ensureLoggedIn('upgrading the membership plan')) return;
-      await loadMembershipPlans();
-      const selected = state.selectedMembershipPlanId || (state.membershipPlans[0] && state.membershipPlans[0].id);
-      if (selected) {
-        selectMembershipPlan(selected);
-        els.membershipCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    });
-
-    els.membershipCancelBtn.addEventListener('click', async () => {
-      if (!ensureLoggedIn('cancelling the membership plan')) return;
-
-      try {
-        const data = await request('/membership/cancel', {
-          method: 'POST',
-          body: JSON.stringify({}),
+        els.supportBtn.addEventListener('click', () => {
+          showToast('Support Center shortcut triggered.', 'ok');
+          setActionStatus('Support Center button tapped.', 'status-ok');
         });
-        writeResponse(data, 'Membership cancelled');
-        await loadMembershipSummary();
-      } catch (error) {
-        writeResponse(error.message, 'Cancel membership failed');
+        els.saveCardBtn.addEventListener('click', saveCard);
+        els.cancelContinueBtn.addEventListener('click', continueCancelFlow);
+        els.confirmCancelBtn.addEventListener('click', confirmCancel);
+        els.keepMembershipBtn.addEventListener('click', () =>
+          goToScreen('membership'),
+        );
+        els.backHomeAfterCancelBtn.addEventListener('click', () =>
+          goToScreen('membership'),
+        );
+        els.reactivateLinkBtn.addEventListener('click', reactivateMembership);
+        els.failedBannerAction.addEventListener('click', reactivateMembership);
+        els.confirmPauseBtn.addEventListener('click', pauseMembership);
+        els.resumeMembershipBtn.addEventListener('click', resumeMembership);
+
+        els.pauseDurationActions
+          .querySelectorAll('[data-weeks]')
+          .forEach((button) => {
+            button.addEventListener('click', () => {
+              state.selectedPauseWeeks =
+                button.getAttribute('data-weeks') || '2';
+              renderPauseDuration();
+            });
+          });
       }
-    });
 
-    els.closeModalBtn.addEventListener('click', closeLoginModal);
+      async function boot() {
+        els.baseUrl.value =
+          localStorage.getItem(STORAGE_KEYS.baseUrl) || inferBaseUrl();
+        els.email.value = localStorage.getItem(STORAGE_KEYS.email) || '';
+        renderCancelReasons();
+        renderPauseDuration();
+        renderPaymentMethodPreview();
+        renderPaymentMethods();
+        renderBillingHistory();
+        handleCheckoutReturn();
+        bindEvents();
+        await refreshDashboard(true);
+      }
 
-    els.loginModal.addEventListener('click', (event) => {
-      if (event.target === els.loginModal) closeLoginModal();
-    });
-
-    els.baseUrl.value = localStorage.getItem(storage.baseUrl) || inferBaseUrl();
-    els.email.value = localStorage.getItem(storage.email) || '';
-
-    renderMembershipSummary({
-      currentPlan: 'Free Trial',
-      displayPrice: 0,
-      displayCurrency: 'AED',
-      displayPeriod: 'month',
-      trialDescription:
-        'Free trial active. The 1 Child Subscription Plan will start automatically when your trial ends.',
-      trialDaysRemaining: 0,
-      status: 'FREE_TRIAL',
-    });
-    loadMe();
-    loadPaymentMethods();
-    loadMembershipPlans();
-    loadNannies();
-  </script>
-</body>
+      boot();
+    </script>
+  </body>
 </html>

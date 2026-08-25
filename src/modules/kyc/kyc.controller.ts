@@ -75,6 +75,8 @@ export class KycController {
   ) {
     return this.sumsubService.generateSdkAccessToken(user.userId, {
       lang: dto?.lang,
+      externalActionId: dto?.externalActionId,
+      levelNameOverride: dto?.levelNameOverride,
     });
   }
 
@@ -83,7 +85,8 @@ export class KycController {
   @ApiBearerAuth()
   @UseInterceptors(AnyFilesInterceptor())
   @ApiOperation({
-    summary: 'Upload identity documents through your custom UI via Sumsub REST API',
+    summary:
+      'Upload identity documents through your custom UI via Sumsub REST API',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -161,6 +164,19 @@ export class KycController {
     return this.kycService.createLivenessAction(user.userId, dto);
   }
 
+  @Post('sdk-log')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Forward WebSDK client events to backend logger',
+  })
+  logSdkEvent(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: { event: string; tag?: string; message?: string; data?: any },
+  ) {
+    return this.kycService.logSdkEvent(user.userId, dto);
+  }
+
   @Get('status')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -186,7 +202,12 @@ export class KycController {
         ? req.rawBody
         : Buffer.from(JSON.stringify(payload || {}));
 
-    return this.sumsubService.handleWebhook(payload, rawBody, digest, digestAlg);
+    return this.sumsubService.handleWebhook(
+      payload,
+      rawBody,
+      digest,
+      digestAlg,
+    );
   }
 
   private static groupFilesByField(uploadedFiles: Express.Multer.File[]) {

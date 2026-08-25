@@ -6,6 +6,7 @@ import { AdminRecipeModule } from './recipe/admin-recipe.module';
 import { AdminActivityModule } from './activity/admin-activity.module';
 import { AdminPartnerModule } from './adminPartner/admin-partner.module';
 import { AdminRewardModule } from './adminreward/admin-reward.module';
+import { AdminMembershipModule } from './membership/admin-membership.module';
 import { AdminUsersController } from './users/admin-users.controller';
 import { AdminUsersService } from './users/admin-users.service';
 import { CareManageModule } from './care-manage/care-manage.module';
@@ -17,9 +18,10 @@ import { CareManageModule } from './care-manage/care-manage.module';
     AdminActivityModule,
     AdminPartnerModule,
     AdminRewardModule,
+    AdminMembershipModule,
     CareManageModule,
   ],
   controllers: [DashboardController, AdminUsersController],
   providers: [DashboardService, AdminUsersService],
 })
-export class AdminModule { }
+export class AdminModule {}

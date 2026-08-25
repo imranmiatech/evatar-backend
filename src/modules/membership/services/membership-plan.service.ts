@@ -1,7 +1,14 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { SubscriptionInterval } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateMembershipPlanDto } from '../dto/create-plan.dto';
+import { UpdateMembershipPlanDto } from '../dto/update-plan.dto';
 import {
   computeMembershipPricing,
   formatMoneyInline,
@@ -134,12 +141,38 @@ export class MembershipPlanService implements OnModuleInit {
   }
 
   async getPlanById(planId: string) {
-    return this.prisma.subscriptionPlan.findUnique({
-      where: { id: planId },
+    return this.prisma.subscriptionPlan.findFirst({
+      where: { id: planId, isActive: true },
     });
   }
 
-  createPlan(dto: CreateMembershipPlanDto) {
+  getAdminPlans() {
+    return this.prisma.subscriptionPlan.findMany({
+      orderBy: [
+        { isActive: 'desc' },
+        { sortOrder: 'asc' },
+        { interval: 'asc' },
+        { price: 'asc' },
+        { createdAt: 'desc' },
+      ],
+    });
+  }
+
+  async getAdminPlanById(planId: string) {
+    const plan = await this.prisma.subscriptionPlan.findUnique({
+      where: { id: planId },
+    });
+
+    if (!plan) {
+      throw new NotFoundException('Membership plan not found.');
+    }
+
+    return plan;
+  }
+
+  async createPlan(dto: CreateMembershipPlanDto) {
+    await this.validatePlanPayload(dto);
+
     return this.prisma.subscriptionPlan.create({
       data: {
         name: dto.name,
@@ -156,6 +189,60 @@ export class MembershipPlanService implements OnModuleInit {
         features: dto.features,
       },
     });
+  }
+
+  async updatePlan(planId: string, dto: UpdateMembershipPlanDto) {
+    const existing = await this.prisma.subscriptionPlan.findUnique({
+      where: { id: planId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Membership plan not found.');
+    }
+
+    await this.validatePlanPayload(dto, existing);
+
+    return this.prisma.subscriptionPlan.update({
+      where: { id: planId },
+      data: {
+        name: dto.name ?? existing.name,
+        maxChildren: dto.maxChildren ?? existing.maxChildren,
+        price: dto.price ?? existing.price,
+        currency: dto.currency ?? existing.currency,
+        description:
+          dto.description !== undefined ? dto.description : existing.description,
+        badgeText: dto.badgeText !== undefined ? dto.badgeText : existing.badgeText,
+        interval: dto.interval ?? existing.interval,
+        savingsText:
+          dto.savingsText !== undefined
+            ? dto.savingsText
+            : existing.savingsText,
+        additionalChildPrice:
+          dto.additionalChildPrice ?? existing.additionalChildPrice,
+        additionalChildCurrency:
+          dto.additionalChildCurrency ?? dto.currency ?? existing.additionalChildCurrency,
+        sortOrder: dto.sortOrder ?? existing.sortOrder,
+        features: dto.features ?? existing.features,
+        isActive: true,
+      },
+    });
+  }
+
+  async deletePlan(planId: string) {
+    const existing = await this.prisma.subscriptionPlan.findUnique({
+      where: { id: planId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Membership plan not found.');
+    }
+
+    await this.prisma.subscriptionPlan.update({
+      where: { id: planId },
+      data: { isActive: false },
+    });
+
+    return { message: 'Membership plan deactivated successfully.' };
   }
 
   private async ensurePlan(
@@ -223,5 +310,47 @@ export class MembershipPlanService implements OnModuleInit {
         isActive: false,
       },
     });
+  }
+
+  private async validatePlanPayload(
+    dto: Partial<CreateMembershipPlanDto>,
+    existing?: {
+      id: string;
+      name: string;
+      interval: SubscriptionInterval;
+      currency: string;
+      features: string[];
+    },
+  ) {
+    const features = dto.features ?? existing?.features ?? [];
+    if (!features.length) {
+      throw new BadRequestException(
+        'Membership plan must contain at least one feature.',
+      );
+    }
+
+    const name = dto.name?.trim() || existing?.name;
+    const interval = dto.interval ?? existing?.interval;
+    const currency = (dto.currency || existing?.currency || 'AED').toUpperCase();
+
+    if (!name || !interval) {
+      return;
+    }
+
+    const duplicate = await this.prisma.subscriptionPlan.findFirst({
+      where: {
+        id: existing ? { not: existing.id } : undefined,
+        name,
+        interval,
+        currency,
+        isActive: true,
+      },
+    });
+
+    if (duplicate) {
+      throw new BadRequestException(
+        'An active membership plan already exists with the same name, interval, and currency.',
+      );
+    }
   }
 }

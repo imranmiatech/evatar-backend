@@ -14,6 +14,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { AddMembershipPaymentMethodDto } from '../../dto/add-payment-method.dto';
+import { CreateMembershipCheckoutSessionDto } from '../../dto/checkout-session.dto';
 import { CreateMembershipStripePaymentIntentDto } from '../../dto/stripe-payment.dto';
 import { MembershipPaymentMethodService } from '../../services/membership-payment-method.service';
 import { MembershipBillingService } from '../../services/membership-billing.service';
@@ -110,11 +111,13 @@ export class MembershipBillingController {
   @ApiOperation({ summary: 'Stripe: create hosted checkout session' })
   createStripeCheckoutSession(
     @CurrentUser() user: any,
-    @Body('planId') planId: string,
+    @Body() dto: CreateMembershipCheckoutSessionDto,
   ) {
     return this.membershipBillingService.createStripeCheckoutSession(
       user,
-      planId,
+      dto.planId,
+      dto.successUrl,
+      dto.cancelUrl,
     );
   }
 

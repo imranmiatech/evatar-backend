@@ -26,7 +26,7 @@ export class MembershipBillingService {
       where: { id: dto.planId },
     });
 
-    if (!plan) {
+    if (!plan || !plan.isActive) {
       throw new BadRequestException('Membership plan not found.');
     }
 
@@ -97,7 +97,7 @@ export class MembershipBillingService {
       where: { id: planId },
     });
 
-    if (!plan) {
+    if (!plan || !plan.isActive) {
       throw new BadRequestException('Membership plan not found.');
     }
 
@@ -187,6 +187,23 @@ export class MembershipBillingService {
                 'Stripe payment attempt failed.',
             },
           );
+        }
+        break;
+      }
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const userId = session.metadata?.userId;
+        const planId = session.metadata?.planId;
+        const paymentIntentId =
+          typeof session.payment_intent === 'string'
+            ? session.payment_intent
+            : undefined;
+
+        if (userId && planId) {
+          await this.membershipSubscriptionService.subscribePlan(userId, {
+            planId,
+            paymentIntentId,
+          });
         }
         break;
       }

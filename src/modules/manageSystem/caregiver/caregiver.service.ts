@@ -7,6 +7,7 @@ import {
   CaregiverAccessRole,
   CaregiverAccessStatus,
   Prisma,
+  UserRole,
   UserStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -246,18 +247,14 @@ export class CaregiverService {
   async searchUsers(userId: string, dto: SearchManageSystemDto) {
     const query = dto.query?.trim();
 
-    if (!query) {
-      return this.getManageCaregivers(userId);
-    }
-
     const users = await this.prisma.user.findMany({
       where: {
         status: UserStatus.ACTIVE,
+        role: UserRole.NANNY,
         ...(query && {
           OR: [
             { fullName: { contains: query, mode: 'insensitive' } },
             { email: { contains: query, mode: 'insensitive' } },
-            { phoneNumber: { contains: query, mode: 'insensitive' } },
           ],
         }),
       },
@@ -265,8 +262,6 @@ export class CaregiverService {
         id: true,
         fullName: true,
         email: true,
-        phoneNumber: true,
-        role: true,
         profilePictureUrl: true,
       },
       orderBy: { fullName: 'asc' },
@@ -277,10 +272,8 @@ export class CaregiverService {
       success: true,
       data: users.map((user) => ({
         id: user.id,
-        fullName: user.fullName,
+        name: user.fullName,
         email: user.email,
-        phoneNumber: user.phoneNumber,
-        role: user.role,
         image: user.profilePictureUrl,
       })),
     };

@@ -160,6 +160,16 @@ export class MembershipStripeService {
         },
       ],
       mode: 'payment',
+      payment_intent_data: {
+        metadata: {
+          userId,
+          planId: plan.id,
+          planName: plan.name,
+          ...(recipientMetadata || {}),
+          ...(chargeOverride?.metadata || {}),
+        },
+        description: chargeOverride?.description || `Membership - ${plan.name}`,
+      },
       success_url:
         successUrl ||
         `${appBaseUrl}/api/v1/membership/membership-flow-test.html?session_id={CHECKOUT_SESSION_ID}&plan_id=${plan.id}`,

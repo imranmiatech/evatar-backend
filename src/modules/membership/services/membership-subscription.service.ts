@@ -56,6 +56,12 @@ export class MembershipSubscriptionService {
       });
     }
 
+    subscription = await this.normalizeLifecycleState(subscription);
+
+    if (!subscription) {
+      throw new NotFoundException('Membership record could not be initialized.');
+    }
+
     let trialDaysRemaining = 0;
     if (
       subscription.status === SubscriptionStatus.FREE_TRIAL &&
@@ -120,12 +126,53 @@ export class MembershipSubscriptionService {
       where: { id: dto.planId },
     });
 
-    if (!plan) {
+    if (!plan || !plan.isActive) {
       throw new NotFoundException('Membership plan not found.');
     }
 
     const childCount = await this.getChildCount(userId);
     const pricing = computeMembershipPricing(plan, childCount);
+    const existingSubscription = await this.prisma.userSubscription.findUnique({
+      where: { userId },
+      include: { plan: true },
+    });
+
+    if (
+      dto.paymentIntentId &&
+      existingSubscription &&
+      existingSubscription.planId === plan.id &&
+      existingSubscription.status === SubscriptionStatus.ACTIVE &&
+      !existingSubscription.isCancelled &&
+      !existingSubscription.isPaused &&
+      existingSubscription.currentPeriodEnd > new Date()
+    ) {
+      const recentInvoice = await this.prisma.subscriptionInvoice.findFirst({
+        where: {
+          userId,
+          planName: plan.name,
+          amount: pricing.totalAmount,
+          currency: pricing.totalCurrency,
+          status: TransactionStatus.SUCCESS,
+          invoiceDate: {
+            gte: new Date(Date.now() - 15 * 60 * 1000),
+          },
+        },
+        orderBy: { invoiceDate: 'desc' },
+      });
+
+      if (recentInvoice) {
+        return {
+          message: `Successfully subscribed to ${plan.name}`,
+          stripePaymentIntentId: dto.paymentIntentId,
+          subscription: existingSubscription,
+          invoice: recentInvoice,
+          pricing,
+          billingRecipient: null,
+          chargedPaymentMethod: null,
+        };
+      }
+    }
+
     let paymentMethod = await this.resolvePaymentMethod(userId, dto);
     let stripePaymentIntentId: string | null = dto.paymentIntentId || null;
     const stripeChargeSource =
@@ -199,6 +246,7 @@ export class MembershipSubscriptionService {
         userId,
         planId: plan.id,
         status: SubscriptionStatus.ACTIVE,
+        trialEndsAt: null,
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
         nextBillingDate: periodEnd,
@@ -209,6 +257,7 @@ export class MembershipSubscriptionService {
       update: {
         planId: plan.id,
         status: SubscriptionStatus.ACTIVE,
+        trialEndsAt: null,
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
         nextBillingDate: periodEnd,
@@ -253,11 +302,24 @@ export class MembershipSubscriptionService {
   }
 
   async claimComplimentaryTrial(userId: string, planId?: string) {
+    const existingSubscription = await this.prisma.userSubscription.findUnique({
+      where: { userId },
+    });
+
+    if (
+      existingSubscription &&
+      existingSubscription.status !== SubscriptionStatus.FREE_TRIAL
+    ) {
+      throw new BadRequestException(
+        'Complimentary trial can only be claimed before a paid membership starts.',
+      );
+    }
+
     let plan = planId
       ? await this.prisma.subscriptionPlan.findUnique({ where: { id: planId } })
       : null;
 
-    if (!plan) {
+    if (!plan || !plan.isActive) {
       plan = await this.findDefaultTrialPlan();
     }
 
@@ -316,6 +378,16 @@ export class MembershipSubscriptionService {
       throw new NotFoundException('No active membership found.');
     }
 
+    if (subscription.isCancelled) {
+      throw new BadRequestException(
+        'Cancelled memberships cannot be paused. Reactivate or subscribe again first.',
+      );
+    }
+
+    if (subscription.status === SubscriptionStatus.FREE_TRIAL) {
+      throw new BadRequestException('Free trial memberships cannot be paused.');
+    }
+
     const now = new Date();
     const weeks = dto.durationWeeks || 2;
     const resumeAt = dto.customResumeDate
@@ -355,6 +427,10 @@ export class MembershipSubscriptionService {
 
     if (!subscription) {
       throw new NotFoundException('No membership found.');
+    }
+
+    if (!subscription.isPaused) {
+      throw new BadRequestException('Membership is not paused.');
     }
 
     const updated = await this.prisma.userSubscription.update({
@@ -423,6 +499,10 @@ export class MembershipSubscriptionService {
       throw new NotFoundException('No active membership found.');
     }
 
+    if (subscription.isCancelled) {
+      throw new BadRequestException('Membership is already cancelled.');
+    }
+
     const now = new Date();
     const accessEndsAt =
       subscription.currentPeriodEnd ||
@@ -453,6 +533,12 @@ export class MembershipSubscriptionService {
 
     if (!subscription) {
       throw new NotFoundException('No membership record found to reactivate.');
+    }
+
+    if (!subscription.isCancelled && !subscription.isPaused) {
+      throw new BadRequestException(
+        'Membership is already active and does not need reactivation.',
+      );
     }
 
     const updated = await this.prisma.userSubscription.update({
@@ -576,5 +662,61 @@ export class MembershipSubscriptionService {
     return this.prisma.child.count({
       where: { parentUserId: userId },
     });
+  }
+
+  private async normalizeLifecycleState(subscription: any) {
+    const now = new Date();
+
+    if (
+      subscription.status === SubscriptionStatus.FREE_TRIAL &&
+      subscription.trialEndsAt &&
+      subscription.trialEndsAt <= now
+    ) {
+      subscription = await this.prisma.userSubscription.update({
+        where: { userId: subscription.userId },
+        data: {
+          status: SubscriptionStatus.EXPIRED,
+          nextBillingDate: null,
+        },
+        include: { plan: true },
+      });
+    }
+
+    if (
+      subscription.status === SubscriptionStatus.CANCELLED &&
+      subscription.accessEndsAt &&
+      subscription.accessEndsAt <= now
+    ) {
+      subscription = await this.prisma.userSubscription.update({
+        where: { userId: subscription.userId },
+        data: {
+          status: SubscriptionStatus.EXPIRED,
+          isCancelled: true,
+          nextBillingDate: null,
+        },
+        include: { plan: true },
+      });
+    }
+
+    if (
+      subscription.status === SubscriptionStatus.PAUSED &&
+      subscription.resumeAt &&
+      subscription.resumeAt <= now &&
+      !subscription.isPaymentFailed
+    ) {
+      subscription = await this.prisma.userSubscription.update({
+        where: { userId: subscription.userId },
+        data: {
+          status: SubscriptionStatus.ACTIVE,
+          isPaused: false,
+          pausedAt: null,
+          resumeAt: null,
+          pauseDurationWeeks: null,
+        },
+        include: { plan: true },
+      });
+    }
+
+    return subscription;
   }
 }
