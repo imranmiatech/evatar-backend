@@ -8,9 +8,15 @@ import { PaymentTipsController } from './controllers/payment-tips.controller';
 import { UnifiedPaymentsController } from './controllers/unified-payments.controller';
 import { MembershipModule } from '../membership/membership.module';
 import { UnifiedPaymentService } from './unified-payment.service';
+import { MyOfferModule } from '../myoffer/my-offer.module';
 
 @Module({
-  imports: [PrismaModule, NotificationModule, forwardRef(() => MembershipModule)],
+  imports: [
+    PrismaModule,
+    NotificationModule,
+    forwardRef(() => MembershipModule),
+    MyOfferModule,
+  ],
   controllers: [
     PaymentMethodsController,
     PaymentTipsController,

@@ -6,13 +6,10 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import {
   CurrentUser,
@@ -27,6 +24,7 @@ import {
   UpdateGroceryOrderDto,
 } from '../dto/grocery-order.dto';
 import { GroceryOrderService } from '../services/grocery-order.service';
+import type { Response } from 'express';
 
 @ApiTags('(Parent) > Kitchen > Grocery Orders')
 @ApiBearerAuth()
@@ -57,6 +55,25 @@ export class GroceryOrderController {
     return this.groceryOrderService.previewCheckout(user, dto);
   }
 
+  @Post('checkout/preview/pdf')
+  @ApiOperation({
+    summary:
+      'Download printable shopping voucher PDF with totals and personalized store savings',
+  })
+  async downloadPreviewPdf(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: GroceryCheckoutPreviewDto,
+    @Res() res: Response,
+  ) {
+    const file = await this.groceryOrderService.getPreviewVoucherPdf(user, dto);
+    res.setHeader('Content-Type', file.contentType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${file.filename}"`,
+    );
+    res.send(file.buffer);
+  }
+
   @Post('orders')
   @ApiOperation({
     summary:
@@ -84,8 +101,29 @@ export class GroceryOrderController {
     return this.groceryOrderService.getOrderById(user, orderId);
   }
 
+  @Get('orders/:id/invoice')
+  @ApiOperation({ summary: 'Download grocery order invoice PDF' })
+  async downloadOrderInvoice(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') orderId: string,
+    @Res() res: Response,
+  ) {
+    const file = await this.groceryOrderService.getOrderInvoicePdf(
+      user,
+      orderId,
+    );
+    res.setHeader('Content-Type', file.contentType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${file.filename}"`,
+    );
+    res.send(file.buffer);
+  }
+
   @Patch('orders/:id')
-  @ApiOperation({ summary: 'Update a grocery order with a compact action payload' })
+  @ApiOperation({
+    summary: 'Update a grocery order with a compact action payload',
+  })
   updateOrder(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') orderId: string,

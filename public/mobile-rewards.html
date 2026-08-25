@@ -1,806 +1,3988 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alurei Rewards - Mobile App</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --ink: #10212b;
-      --muted: #7b8996;
-      --line: #e8eef2;
-      --page: #f8fafc;
-      --card: #ffffff;
-      --teal: #00666a;
-      --teal-dark: #004d50;
-      --teal-soft: #e6f4f4;
-      --cyan: #46d4cc;
-      --alr-bg: #e6f4f4;
-      --alr-text: #00666a;
-      --shadow: 0 10px 30px rgba(15, 33, 43, 0.08);
-      --radius: 16px;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alurei Rewards</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #29313c;
+        --phone: #f7fafc;
+        --card: #ffffff;
+        --ink: #122433;
+        --muted: #70808d;
+        --line: #e4edf1;
+        --teal: #0b6673;
+        --teal-dark: #084b54;
+        --teal-soft: #e9f6f6;
+        --teal-soft-2: #dff1f1;
+        --pill: #eef7f7;
+        --danger: #db4c42;
+        --danger-soft: #fff0ee;
+        --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+        --radius: 18px;
+      }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family:
+          'Plus Jakarta Sans',
+          system-ui,
+          -apple-system,
+          sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
 
-    body {
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      background: #1e293b;
-      color: var(--ink);
-      padding: 20px;
-    }
+      body {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(
+            circle at top,
+            rgba(11, 102, 115, 0.22),
+            transparent 20%
+          ),
+          var(--bg);
+        color: var(--ink);
+        padding: 16px;
+      }
 
-    .phone {
-      width: min(390px, 100vw);
-      height: min(844px, 100vh);
-      background: var(--page);
-      border-radius: 40px;
-      overflow: hidden;
-      position: relative;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
-      display: flex;
-      flex-direction: column;
-      border: 8px solid #0f172a;
-    }
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
 
-    .statusbar {
-      height: 44px;
-      background: var(--card);
-      display: flex;
-      align-items: end;
-      justify-content: space-between;
-      padding: 0 24px 8px;
-      color: #0f1720;
-      font-size: 13px;
-      font-weight: 700;
-      flex-shrink: 0;
-      z-index: 10;
-    }
+      .phone {
+        width: min(390px, 100vw);
+        height: min(844px, 100vh);
+        background: var(--phone);
+        border-radius: 40px;
+        border: 8px solid #101722;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--shadow);
+        position: relative;
+      }
 
-    .signal {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-    }
+      .statusbar {
+        height: 44px;
+        background: #fff;
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        padding: 0 22px 8px;
+        font-size: 13px;
+        font-weight: 700;
+        flex-shrink: 0;
+        z-index: 6;
+      }
 
-    /* Screen Container */
-    .screen {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-      display: none;
-      scrollbar-width: none;
-    }
-    .screen::-webkit-scrollbar { display: none; }
-    .screen.active { display: flex; }
+      .signal {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 11px;
+      }
 
-    /* Header */
-    .app-bar {
-      height: 56px;
-      background: var(--card);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      flex-shrink: 0;
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      border-bottom: 1px solid var(--line);
-    }
+      .screen {
+        display: none;
+        flex: 1;
+        overflow-y: auto;
+        scrollbar-width: none;
+        background: var(--phone);
+      }
 
-    .nav-btn {
-      width: 36px;
-      height: 36px;
-      border: 0;
-      background: transparent;
-      color: var(--teal);
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      border-radius: 50%;
-    }
-    .nav-btn:hover { background: var(--teal-soft); }
+      .screen::-webkit-scrollbar {
+        display: none;
+      }
 
-    .header-title {
-      font-size: 17px;
-      font-weight: 700;
-      color: var(--ink);
-    }
+      .screen.active {
+        display: block;
+      }
 
-    .badge-instore {
-      background: var(--teal-soft);
-      color: var(--teal);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 20px;
-    }
+      .app-bar {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        height: 56px;
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+      }
 
-    /* Tabs */
-    .tabs-container {
-      padding: 16px 20px 8px;
-      background: var(--card);
-      flex-shrink: 0;
-    }
+      .nav-btn {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        background: transparent;
+        color: var(--teal);
+        border-radius: 999px;
+        cursor: pointer;
+      }
 
-    .tabs {
-      background: #f1f5f9;
-      padding: 4px;
-      border-radius: 30px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4px;
-    }
+      .nav-btn:hover {
+        background: var(--teal-soft);
+      }
 
-    .tab-btn {
-      padding: 10px;
-      border: 0;
-      background: transparent;
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 700;
-      border-radius: 24px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
+      .app-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--ink);
+      }
 
-    .tab-btn.active {
-      background: var(--teal);
-      color: white;
-      box-shadow: 0 4px 12px rgba(0, 102, 106, 0.25);
-    }
+      .app-side {
+        width: 36px;
+        display: grid;
+        place-items: center;
+      }
 
-    /* Main Content */
-    .main-body {
-      padding: 16px 20px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
+      .header-pill {
+        padding: 4px 9px;
+        border-radius: 999px;
+        background: var(--teal-soft);
+        color: var(--teal);
+        font-size: 10px;
+        font-weight: 800;
+      }
 
-    /* Offer Card */
-    .offer-card {
-      background: var(--card);
-      border-radius: var(--radius);
-      overflow: hidden;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
-      border: 1px solid var(--line);
-      display: flex;
-      flex-direction: column;
-    }
+      .main {
+        padding: 16px 16px 28px;
+      }
 
-    .card-banner {
-      height: 170px;
-      width: 100%;
-      object-fit: cover;
-      position: relative;
-      background: #e2e8f0;
-    }
+      .toolbar {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
 
-    .card-banner-wrapper {
-      position: relative;
-    }
+      .auth-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: space-between;
+        padding: 10px 12px;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        font-size: 11px;
+        color: var(--muted);
+      }
 
-    .bookmark-btn {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.9);
-      border: 0;
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      color: var(--ink);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      backdrop-filter: blur(4px);
-    }
-    .bookmark-btn.saved svg {
-      fill: var(--teal);
-      stroke: var(--teal);
-    }
+      .auth-copy {
+        min-width: 0;
+      }
 
-    .card-content {
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+      .auth-title {
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 2px;
+      }
 
-    .partner-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+      .toolbar-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
 
-    .partner-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+      .search-row {
+        display: flex;
+        gap: 8px;
+      }
 
-    .partner-logo {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 1px solid var(--line);
-    }
+      .search-row input {
+        flex: 1;
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: #fff;
+        padding: 0 14px;
+        outline: none;
+      }
 
-    .partner-name {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--ink);
-    }
+      .icon-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        border: 0;
+        background: var(--teal);
+        color: #fff;
+        cursor: pointer;
+        font-weight: 800;
+      }
 
-    .alr-pill {
-      background: var(--alr-bg);
-      color: var(--alr-text);
-      font-size: 11px;
-      font-weight: 800;
-      padding: 4px 10px;
-      border-radius: 20px;
-    }
+      .tabs {
+        padding: 4px;
+        background: #eff4f7;
+        border-radius: 30px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        margin-bottom: 16px;
+      }
 
-    .offer-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--ink);
-      line-height: 1.3;
-    }
+      .tab-btn {
+        height: 40px;
+        border-radius: 24px;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        font-weight: 700;
+        cursor: pointer;
+      }
 
-    .offer-sub {
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.4;
-    }
+      .tab-btn.active {
+        background: var(--teal);
+        color: #fff;
+        box-shadow: 0 8px 18px rgba(11, 102, 115, 0.22);
+      }
 
-    .expiry-tag {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      color: var(--teal);
-      font-weight: 600;
-    }
+      .offer-list {
+        display: grid;
+        gap: 14px;
+      }
 
-    .card-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 6px;
-    }
+      .offer-card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: 0 6px 16px rgba(15, 33, 43, 0.04);
+      }
 
-    .btn-teal {
-      background: var(--teal);
-      color: white;
-      border: 0;
-      padding: 12px;
-      border-radius: 24px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      text-align: center;
-      transition: background 0.2s;
-    }
-    .btn-teal:hover { background: var(--teal-dark); }
+      .offer-hero-wrap {
+        position: relative;
+      }
 
-    .btn-outline {
-      background: transparent;
-      color: var(--teal);
-      border: 1px solid var(--teal);
-      padding: 12px;
-      border-radius: 24px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      text-align: center;
-    }
+      .offer-hero {
+        width: 100%;
+        height: 148px;
+        object-fit: cover;
+        display: block;
+        background: #dde7ed;
+      }
 
-    .footer-note {
-      text-align: center;
-      font-size: 11px;
-      color: var(--muted);
-      line-height: 1.5;
-      padding: 10px 20px 20px;
-    }
+      .save-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        border: 0;
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--ink);
+        font-size: 15px;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+      }
 
-    /* Screen 2: Details */
-    .details-banner {
-      width: 100%;
-      height: 220px;
-      object-fit: cover;
-    }
+      .save-btn.saved {
+        color: var(--teal);
+      }
 
-    .details-body {
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      background: var(--card);
-    }
+      .offer-body {
+        padding: 12px 12px 14px;
+        display: grid;
+        gap: 10px;
+      }
 
-    .section-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--ink);
-      margin-bottom: 12px;
-    }
+      .offer-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+      }
 
-    .included-box {
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+      .partner-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-width: 0;
+      }
 
-    .included-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-    }
+      .partner-logo {
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        object-fit: cover;
+        border: 1px solid var(--line);
+        background: #eef3f7;
+      }
 
-    .check-icon {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--teal-soft);
-      color: var(--teal);
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-      font-size: 12px;
-    }
+      .partner-name {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--ink);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
 
-    .terms-box {
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 14px 16px;
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.6;
-    }
+      .alr-pill {
+        background: #e9f5ef;
+        color: #1f8b61;
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 10px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
 
-    .location-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
+      .offer-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink);
+      }
 
-    .location-card {
-      background: #f8fafc;
-      border-radius: 12px;
-      padding: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
+      .offer-sub {
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.45;
+      }
 
-    .loc-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+      .expiry {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--teal);
+        font-size: 10px;
+        font-weight: 700;
+      }
 
-    .loc-icon {
-      width: 36px;
-      height: 36px;
-      background: #edf2f7;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      color: var(--teal);
-    }
+      .card-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
 
-    .loc-name { font-size: 13px; font-weight: 700; color: var(--ink); }
-    .loc-sub { font-size: 11px; color: var(--muted); }
-    .loc-link { font-size: 11px; font-weight: 700; color: var(--teal); text-decoration: none; }
+      .btn-primary,
+      .btn-secondary,
+      .btn-soft {
+        height: 38px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 800;
+        cursor: pointer;
+      }
 
-    .sticky-bottom {
-      position: sticky;
-      bottom: 0;
-      background: var(--card);
-      padding: 16px 20px 24px;
-      border-top: 1px solid var(--line);
-    }
+      .btn-primary {
+        border: 0;
+        background: var(--teal);
+        color: #fff;
+      }
 
-    /* Screen 3: QR Scanner */
-    .scanner-body {
-      flex: 1;
-      padding: 30px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 30px;
-    }
+      .btn-primary:hover {
+        background: var(--teal-dark);
+      }
 
-    .viewfinder {
-      width: 260px;
-      height: 260px;
-      border: 3px solid #cbd5e1;
-      border-radius: 28px;
-      display: grid;
-      place-items: center;
-      background: #f1f5f9;
-      position: relative;
-    }
+      .btn-secondary {
+        border: 1px solid #8bc0c7;
+        background: #fff;
+        color: var(--teal);
+      }
 
-    .camera-icon {
-      width: 50px;
-      height: 50px;
-      color: #94a3b8;
-    }
+      .btn-soft {
+        border: 0;
+        background: var(--teal-soft);
+        color: var(--teal);
+        padding: 0 14px;
+      }
 
-    /* Screen 4: Success */
-    .success-body {
-      flex: 1;
-      padding: 40px 24px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      gap: 20px;
-    }
+      .empty-state,
+      .notice {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 22px 18px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
 
-    .success-circle {
-      width: 90px;
-      height: 90px;
-      border-radius: 50%;
-      background: var(--teal);
-      color: white;
-      display: grid;
-      place-items: center;
-      box-shadow: 0 10px 25px rgba(0, 102, 106, 0.3);
-      position: relative;
-    }
+      .footer-note {
+        margin-top: 16px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.6;
+        padding-bottom: 20px;
+      }
 
-    .success-circle svg { width: 44px; height: 44px; }
+      .details-hero {
+        width: 100%;
+        height: 232px;
+        object-fit: cover;
+        display: block;
+        background: #dde7ed;
+      }
 
-    .success-title {
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--teal);
-    }
+      .details-body {
+        background: #fff;
+        padding: 16px;
+        display: grid;
+        gap: 18px;
+      }
 
-    .success-sub {
-      font-size: 13px;
-      color: var(--muted);
-    }
+      .section-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 10px;
+      }
 
-    .success-actions {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-top: 20px;
-    }
-  </style>
-</head>
-<body>
+      .included-box,
+      .terms-box,
+      .location-card,
+      .history-card {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #fff;
+      }
 
-  <div class="phone">
-    <!-- Status Bar -->
-    <div class="statusbar">
-      <span>9:41</span>
-      <div class="signal">
-        <span>5G</span>
-        <span>100%</span>
-      </div>
-    </div>
+      .included-box,
+      .terms-box {
+        padding: 14px;
+      }
 
-    <!-- SCREEN 1: LISTING -->
-    <div id="screen-list" class="screen active">
-      <div class="app-bar">
-        <button class="nav-btn">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </button>
-        <span class="header-title">Alurei Rewards</span>
-        <div style="width: 36px;"></div>
-      </div>
+      .included-item {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
 
-      <div class="tabs-container">
-        <div class="tabs">
-          <button id="tab-all" class="tab-btn active" onclick="switchTab('ALL')">All</button>
-          <button id="tab-saved" class="tab-btn" onclick="switchTab('SAVED')">Saved</button>
+      .check-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        background: var(--teal-soft);
+        color: var(--teal);
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 800;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      .detail-subtle {
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .detail-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .detail-tag {
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: #eef5f6;
+        color: var(--teal);
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .promo-box {
+        border: 1px solid #8bc0c7;
+        border-radius: 16px;
+        background: #f8fcfc;
+        padding: 14px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .promo-title {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--teal);
+      }
+
+      .promo-caption {
+        font-size: 10px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .location-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .location-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .location-card {
+        padding: 12px;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        background: #f9fbfc;
+      }
+
+      .location-left {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        min-width: 0;
+      }
+
+      .location-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        background: #edf6f6;
+        color: var(--teal);
+        display: grid;
+        place-items: center;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+
+      .location-name {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+
+      .location-sub {
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 3px;
+      }
+
+      .location-link {
+        color: var(--teal);
+        font-size: 11px;
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .sticky-bar {
+        position: sticky;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid var(--line);
+        padding: 14px 16px 18px;
+      }
+
+      .scanner-main {
+        padding: 32px 16px;
+        display: grid;
+        gap: 18px;
+        align-content: center;
+        min-height: calc(100% - 56px);
+      }
+
+      .scanner-box {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        border-radius: 24px;
+        border: 2px solid #b8c8d2;
+        background: #f1f5f9;
+        display: grid;
+        place-items: center;
+        color: #9aacb7;
+        font-size: 42px;
+        overflow: hidden;
+      }
+
+      .scanner-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        background: #d9e4ea;
+        display: none;
+      }
+
+      .scanner-video.ready {
+        display: block;
+      }
+
+      .scanner-placeholder {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        text-align: center;
+        gap: 10px;
+      }
+
+      .scanner-placeholder.hidden {
+        display: none;
+      }
+
+      .scanner-copy {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      .scanner-frame {
+        position: absolute;
+        inset: 16% 12%;
+        border: 3px solid rgba(255, 255, 255, 0.9);
+        border-radius: 22px;
+        box-shadow: 0 0 0 999px rgba(8, 20, 28, 0.24);
+        pointer-events: none;
+        display: none;
+      }
+
+      .scanner-video.ready + .scanner-frame {
+        display: block;
+      }
+
+      .scanner-status {
+        border-radius: 14px;
+        padding: 12px 14px;
+        background: #f7fafc;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .scanner-form {
+        display: grid;
+        gap: 10px;
+      }
+
+      .scanner-form input,
+      .scanner-form select {
+        height: 46px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: #fff;
+        padding: 0 14px;
+        outline: none;
+      }
+
+      .scanner-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .scanner-upload {
+        display: none;
+      }
+
+      .success-main {
+        min-height: calc(100% - 56px);
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        text-align: center;
+        gap: 18px;
+        padding: 36px 24px;
+      }
+
+      .success-badge {
+        width: 90px;
+        height: 90px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: var(--teal);
+        color: #fff;
+        font-size: 44px;
+        box-shadow: 0 20px 32px rgba(11, 102, 115, 0.25);
+      }
+
+      .success-title {
+        color: var(--teal);
+        font-size: 20px;
+        font-weight: 800;
+      }
+
+      .success-sub {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .success-actions {
+        width: 100%;
+        display: grid;
+        gap: 10px;
+        margin-top: 8px;
+      }
+
+      .history-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .history-card {
+        padding: 12px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .grocery-stack {
+        padding: 14px 16px 28px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .grocery-sheet {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 14px;
+        box-shadow: 0 8px 20px rgba(18, 36, 51, 0.05);
+      }
+
+      .grocery-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .grocery-greeting {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .grocery-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #b8d7de, #0b6673);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .grocery-greeting small {
+        display: block;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .grocery-greeting strong {
+        display: block;
+        font-size: 12px;
+      }
+
+      .grocery-icons {
+        display: flex;
+        gap: 8px;
+      }
+
+      .grocery-icon {
+        width: 30px;
+        height: 30px;
+        border: 0;
+        border-radius: 10px;
+        background: #eff5f7;
+        color: var(--teal);
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .grocery-tabs {
+        margin-bottom: 14px;
+        padding: 4px;
+        background: #edf2f4;
+        border-radius: 999px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+
+      .grocery-tab {
+        border: 0;
+        height: 40px;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .grocery-tab.active {
+        background: var(--teal);
+        color: #fff;
+      }
+
+      .grocery-title {
+        text-align: center;
+        font-size: 17px;
+        font-weight: 800;
+        margin: 4px 0 14px;
+      }
+
+      .grocery-summary {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .grocery-summary small {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+        margin-bottom: 4px;
+      }
+
+      .grocery-summary strong {
+        font-size: 31px;
+        line-height: 1;
+      }
+
+      .status-card {
+        border-radius: 14px;
+        padding: 12px 14px;
+        background: #eaf6f7;
+        color: var(--teal);
+        font-size: 11px;
+        line-height: 1.5;
+        margin-bottom: 12px;
+      }
+
+      .grocery-full-btn {
+        width: 100%;
+        margin-bottom: 12px;
+      }
+
+      .shopping-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .shopping-item {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #fff;
+        padding: 12px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .shopping-item.expanded {
+        border-color: #9dcbd0;
+      }
+
+      .shopping-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .shopping-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .warning-mark {
+        color: #f2a529;
+        font-size: 13px;
+      }
+
+      .shopping-tools {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--teal);
+      }
+
+      .shopping-tool {
+        border: 0;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        font-size: 15px;
+      }
+
+      .shopping-expand {
+        display: none;
+        gap: 10px;
+      }
+
+      .shopping-item.expanded .shopping-expand {
+        display: grid;
+      }
+
+      .qty-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .qty-btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: #fff;
+      }
+
+      .qty-pill {
+        min-width: 66px;
+        text-align: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #edf5f6;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .grocery-field {
+        display: grid;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .grocery-field input,
+      .grocery-field textarea,
+      .grocery-field select {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #fbfcfd;
+        padding: 12px 14px;
+        font: inherit;
+        color: var(--ink);
+      }
+
+      .grocery-field textarea {
+        min-height: 74px;
+        resize: vertical;
+      }
+
+      .grocery-two {
+        display: grid;
+        grid-template-columns: 88px 1fr;
+        gap: 10px;
+      }
+
+      .grocery-chips {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+
+      .grocery-chip {
+        border: 1px solid #dbe3e7;
+        border-radius: 12px;
+        background: #fff;
+        padding: 10px 6px;
+        font-size: 10px;
+        cursor: pointer;
+      }
+
+      .grocery-chip.active {
+        border-color: var(--teal);
+        background: var(--teal-soft);
+        color: var(--teal);
+        font-weight: 700;
+      }
+
+      .grocery-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .voucher-list,
+      .store-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .voucher-card,
+      .store-card {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: #fff;
+        padding: 12px;
+      }
+
+      .store-card.selected {
+        border-color: #9dcbd0;
+      }
+
+      .store-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .store-logo {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: #f7fafb;
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--teal);
+        overflow: hidden;
+      }
+
+      .store-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .store-sub {
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      .radio {
+        width: 18px;
+        height: 18px;
+        border: 1px solid #c6d1d8;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        margin-top: 3px;
+      }
+
+      .radio.active::after {
+        content: '';
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--teal);
+      }
+
+      .voucher-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .voucher-code {
+        border-top: 1px dashed var(--line);
+        padding-top: 12px;
+        margin-top: 10px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .history-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .history-partner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .history-logo {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        object-fit: cover;
+        background: #eef3f7;
+        flex-shrink: 0;
+      }
+
+      .history-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+
+      .history-sub {
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 3px;
+      }
+
+      .danger {
+        color: var(--danger);
+      }
+
+      .sheet {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.55);
+        display: none;
+        align-items: end;
+        z-index: 20;
+      }
+
+      .sheet.open {
+        display: flex;
+      }
+
+      .sheet-card {
+        width: 100%;
+        background: #fff;
+        border-radius: 26px 26px 0 0;
+        padding: 20px 18px 24px;
+        display: grid;
+        gap: 12px;
+        box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.22);
+      }
+
+      .order-card,
+      .payment-method-card,
+      .tracking-card,
+      .partner-card {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: #fff;
+        padding: 14px;
+        box-shadow: 0 10px 24px rgba(18, 36, 51, 0.05);
+      }
+
+      .order-card + .order-card,
+      .order-card + .payment-method-card,
+      .tracking-card + .tracking-card,
+      .partner-card + .tracking-card {
+        margin-top: 12px;
+      }
+
+      .section-label {
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      .row-between {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .order-item-row,
+      .price-row,
+      .timeline-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .order-item-row {
+        padding: 12px 0;
+        border-bottom: 1px solid #edf2f4;
+      }
+
+      .order-item-row:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+
+      .price-stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .price-row {
+        font-size: 12px;
+      }
+
+      .price-row strong {
+        font-size: 15px;
+      }
+
+      .payment-choice {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #fff;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        cursor: pointer;
+      }
+
+      .payment-choice.active {
+        border-color: #9dcbd0;
+        background: var(--teal-soft);
+      }
+
+      .payment-choice + .payment-choice {
+        margin-top: 10px;
+      }
+
+      .payment-method-list {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .payment-method-card {
+        cursor: pointer;
+      }
+
+      .payment-method-card.active {
+        border-color: #9dcbd0;
+        background: var(--teal-soft);
+      }
+
+      .payment-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 54px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #edf5f6;
+        color: var(--teal);
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .payment-grid {
+        display: grid;
+        grid-template-columns: 1fr 86px;
+        gap: 10px;
+      }
+
+      .success-panel {
+        min-height: calc(100% - 56px);
+        display: grid;
+        place-items: center;
+        padding: 28px;
+        text-align: center;
+      }
+
+      .success-card {
+        width: 100%;
+        display: grid;
+        gap: 16px;
+      }
+
+      .success-mark {
+        width: 94px;
+        height: 94px;
+        border-radius: 999px;
+        margin: 0 auto;
+        border: 5px solid var(--teal);
+        color: var(--teal);
+        display: grid;
+        place-items: center;
+        font-size: 42px;
+        font-weight: 800;
+        box-shadow: inset 0 0 0 6px #dff1f1;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 14px;
+        margin-top: 8px;
+      }
+
+      .timeline-item {
+        align-items: start;
+      }
+
+      .timeline-left {
+        display: flex;
+        align-items: start;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .timeline-dot {
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        border: 1px solid #d6e0e5;
+        display: grid;
+        place-items: center;
+        color: var(--muted);
+        background: #fff;
+        flex: 0 0 auto;
+      }
+
+      .timeline-dot.active {
+        border-color: var(--teal);
+        background: var(--teal);
+        color: #fff;
+      }
+
+      .timeline-copy {
+        min-width: 0;
+      }
+
+      .timeline-copy strong {
+        display: block;
+        font-size: 12px;
+      }
+
+      .timeline-copy span {
+        display: block;
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 3px;
+        line-height: 1.45;
+      }
+
+      .partner-row-card {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .tiny-link {
+        border: 0;
+        background: transparent;
+        color: var(--teal);
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .inline-note {
+        font-size: 10px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .dialog {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        display: none;
+        align-items: end;
+        justify-content: center;
+        z-index: 22;
+        padding: 18px;
+      }
+
+      .dialog.open {
+        display: flex;
+      }
+
+      .dialog-card {
+        width: 100%;
+        background: #fff;
+        border-radius: 20px;
+        padding: 18px;
+        text-align: center;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.22);
+      }
+
+      .dialog-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .sheet-head {
+        text-align: center;
+        margin-bottom: 4px;
+      }
+
+      .sheet-title {
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--ink);
+        margin-bottom: 6px;
+      }
+
+      .sheet-sub {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .sheet-card input {
+        height: 46px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        padding: 0 14px;
+        outline: none;
+      }
+
+      .sheet-status {
+        border-radius: 14px;
+        padding: 12px 14px;
+        background: #f7fafc;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+        border: 1px solid var(--line);
+      }
+
+      .toast {
+        position: absolute;
+        left: 16px;
+        right: 16px;
+        bottom: 24px;
+        z-index: 30;
+        border-radius: 14px;
+        padding: 12px 14px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        box-shadow: 0 16px 30px rgba(0, 0, 0, 0.22);
+        display: none;
+      }
+
+      .toast.show {
+        display: block;
+      }
+
+      .toast.ok {
+        background: #0f7d53;
+      }
+      .toast.error {
+        background: #c43d32;
+      }
+      .toast.warn {
+        background: #b56810;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="phone">
+      <div class="statusbar">
+        <span>9:41</span>
+        <div class="signal">
+          <span>5G</span>
+          <span>100%</span>
         </div>
       </div>
 
-      <div id="offers-list" class="main-body">
-        <!-- Rendered via JS -->
-      </div>
-
-      <p class="footer-note">
-        Thank you for making every care moment count. Your dedication deserves to be celebrated.
-      </p>
-    </div>
-
-    <!-- SCREEN 2: DETAILS -->
-    <div id="screen-details" class="screen">
-      <div class="app-bar">
-        <button class="nav-btn" onclick="showScreen('screen-list')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </button>
-        <span class="header-title">Offer details</span>
-        <span class="badge-instore">In-store</span>
-      </div>
-
-      <img id="detail-hero" class="details-banner" src="" alt="Offer" />
-
-      <div class="details-body">
-        <div class="partner-header">
-          <div class="partner-info">
-            <img id="detail-logo" class="partner-logo" src="" alt="Partner" />
-            <span id="detail-partner-name" class="partner-name">Serenity Spa</span>
-          </div>
-          <span id="detail-alr" class="alr-pill">300 ALR</span>
+      <section id="screen-list" class="screen active">
+        <div class="app-bar">
+          <button
+            class="nav-btn"
+            type="button"
+            onclick="toggleLoginSheet(true)"
+          >
+            ☰
+          </button>
+          <div class="app-title">Alurei Rewards</div>
+          <div class="app-side"></div>
         </div>
 
-        <div>
-          <h2 id="detail-title" class="offer-title" style="font-size: 18px;">Spa Discount</h2>
-          <p id="detail-sub" class="offer-sub" style="margin-top: 4px;">Grab 25% discount with 300 Alurei</p>
-          <div id="detail-expiry" class="expiry-tag" style="margin-top: 8px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <span>Expires Jan 20, 2025</span>
-          </div>
-        </div>
-
-        <div>
-          <h3 class="section-title">What's Included</h3>
-          <div class="included-box">
-            <div class="included-item">
-              <div class="check-icon">✓</div>
-              <div>
-                <div id="inc-title" style="font-size: 13px; font-weight: 700; color: var(--ink);">Grab 25% discount with 300 Alurei</div>
-                <div id="inc-desc" style="font-size: 11px; color: var(--muted); margin-top: 2px;">AED 30 Instant Discount. Applied directly at checkout on your total bill.</div>
+        <div class="main">
+          <div class="toolbar">
+            <div class="auth-bar">
+              <div class="auth-copy">
+                <div class="auth-title" id="authTitle">Not logged in</div>
+                <div id="authSub">
+                  Open login to test real partner offers on phone.
+                </div>
+              </div>
+              <div class="toolbar-actions">
+                <button
+                  class="btn-soft"
+                  type="button"
+                  onclick="toggleLoginSheet(true)"
+                >
+                  Login
+                </button>
+                <button class="btn-soft" type="button" onclick="logout()">
+                  Logout
+                </button>
               </div>
             </div>
+
+            <div class="search-row">
+              <input
+                id="searchInput"
+                placeholder="Search offer title or partner"
+              />
+              <button class="icon-btn" type="button" onclick="applySearch()">
+                Go
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div>
-          <h3 class="section-title">Terms & Conditions</h3>
-          <div id="detail-terms" class="terms-box">
-            AED 30 Instant Discount. Applied directly at checkout on your total bill. Points non-refundable once redeemed.
-          </div>
-        </div>
-
-        <div>
-          <div class="location-header">
-            <h3 class="section-title" style="margin-bottom: 0;">Available Locations</h3>
-            <button class="btn-outline" style="padding: 6px 12px; font-size: 11px; border-radius: 16px;">Visit website</button>
-          </div>
-          <div id="locations-list">
-            <!-- Locations rendered JS -->
-          </div>
-        </div>
-      </div>
-
-      <div class="sticky-bottom">
-        <button class="btn-teal" style="width: 100%;" onclick="openScanner()">Redeem Offer</button>
-      </div>
-    </div>
-
-    <!-- SCREEN 3: QR SCANNER -->
-    <div id="screen-scanner" class="screen">
-      <div class="app-bar">
-        <button class="nav-btn" onclick="showScreen('screen-details')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </button>
-        <span id="scanner-title" class="header-title">Banana Oat Pancakes</span>
-        <div style="width: 36px;"></div>
-      </div>
-
-      <div class="scanner-body">
-        <div class="viewfinder">
-          <svg class="camera-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6v6H9z"/></svg>
-        </div>
-        <button class="btn-teal" style="width: 100%;" onclick="processRedemption()">Scan Now</button>
-      </div>
-    </div>
-
-    <!-- SCREEN 4: SUCCESS -->
-    <div id="screen-success" class="screen">
-      <div class="app-bar">
-        <button class="nav-btn" onclick="showScreen('screen-list')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </button>
-        <span class="header-title">Offer details</span>
-        <div style="width: 36px;"></div>
-      </div>
-
-      <div class="success-body">
-        <div class="success-circle">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
-        </div>
-
-        <div>
-          <h2 class="success-title">Offer Redeemed Successfully</h2>
-          <p id="success-points-sub" class="success-sub" style="margin-top: 6px;">You've successfully redeemed 300 ALR.</p>
-        </div>
-
-        <div class="success-actions">
-          <button class="btn-teal" onclick="showScreen('screen-list')">Back to home</button>
-          <button class="btn-outline" onclick="showRewardsHistory()">Visit my rewards</button>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <script>
-    let currentTab = 'ALL';
-    let currentOfferId = null;
-    let authToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
-
-    const sampleOffers = [
-      {
-        id: "c82c41bc-f305-4623-aee7-e50953f386a3",
-        title: "Spa Discount",
-        sub: "Grab 25% discount with 300 Alurei",
-        partner: "Serenity Spa",
-        logo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
-        hero: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=600&q=80",
-        alr: "300 ALR",
-        expiry: "Expires Jan 20, 2025",
-        isSaved: false
-      },
-      {
-        id: "offer-2",
-        title: "Fresh Meal Combo",
-        sub: "Enjoy 15% discount on organic healthy meals",
-        partner: "Green Garden",
-        logo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80",
-        hero: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=600&q=80",
-        alr: "250 ALR",
-        expiry: "Expires Feb 15, 2025",
-        isSaved: true
-      }
-    ];
-
-    function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-    }
-
-    function switchTab(tab) {
-      currentTab = tab;
-      document.getElementById('tab-all').classList.toggle('active', tab === 'ALL');
-      document.getElementById('tab-saved').classList.toggle('active', tab === 'SAVED');
-      renderOffers();
-    }
-
-    function toggleSave(id, event) {
-      event.stopPropagation();
-      const offer = sampleOffers.find(o => o.id === id);
-      if (offer) {
-        offer.isSaved = !offer.isSaved;
-        renderOffers();
-      }
-    }
-
-    function renderOffers() {
-      const container = document.getElementById('offers-list');
-      const filtered = sampleOffers.filter(o => currentTab === 'ALL' || o.isSaved);
-
-      if (filtered.length === 0) {
-        container.innerHTML = `<div style="text-align: center; padding: 40px 10px; color: var(--muted); font-size: 13px;">No saved offers yet.</div>`;
-        return;
-      }
-
-      container.innerHTML = filtered.map(o => `
-        <div class="offer-card">
-          <div class="card-banner-wrapper">
-            <img class="card-banner" src="${o.hero}" alt="${o.title}" />
-            <button class="bookmark-btn ${o.isSaved ? 'saved' : ''}" onclick="toggleSave('${o.id}', event)">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <div class="tabs">
+            <button
+              id="tab-all"
+              class="tab-btn active"
+              type="button"
+              onclick="switchTab('ALL')"
+            >
+              All
+            </button>
+            <button
+              id="tab-saved"
+              class="tab-btn"
+              type="button"
+              onclick="switchTab('SAVED')"
+            >
+              Saved
             </button>
           </div>
-          <div class="card-content">
-            <div class="partner-header">
-              <div class="partner-info">
-                <img class="partner-logo" src="${o.logo}" alt="${o.partner}" />
-                <span class="partner-name">${o.partner}</span>
+
+          <div id="offersList" class="offer-list"></div>
+
+          <p class="footer-note">
+            Thank you for making every care moment count. Your dedication
+            deserves to be celebrated.
+          </p>
+        </div>
+      </section>
+
+      <section id="screen-details" class="screen">
+        <div class="app-bar">
+          <button
+            class="nav-btn"
+            type="button"
+            onclick="showScreen('screen-list')"
+          >
+            ←
+          </button>
+          <div class="app-title">Offer details</div>
+          <div class="app-side">
+            <span id="detailsFlowPill" class="header-pill">In-store</span>
+          </div>
+        </div>
+
+        <img id="detailsHero" class="details-hero" src="" alt="Offer image" />
+
+        <div class="details-body">
+          <div class="offer-top">
+            <div class="partner-row">
+              <img
+                id="detailsLogo"
+                class="partner-logo"
+                src=""
+                alt="Partner logo"
+              />
+              <div>
+                <div id="detailsPartner" class="partner-name">Partner</div>
+                <div id="detailsTitle" class="offer-title">Offer</div>
               </div>
-              <span class="alr-pill">${o.alr}</span>
             </div>
-            <h3 class="offer-title">${o.title}</h3>
-            <p class="offer-sub">${o.sub}</p>
-            <div class="expiry-tag">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              <span>${o.expiry}</span>
+            <span id="detailsPoints" class="alr-pill">0 ALR</span>
+          </div>
+
+          <div>
+            <div id="detailsSub" class="offer-sub"></div>
+            <div id="detailsExpiry" class="expiry" style="margin-top: 8px">
+              Expires --
             </div>
-            <div class="card-actions">
-              <button class="btn-teal" onclick="openDetails('${o.id}')">Redeem Offer</button>
-              <button class="btn-outline" onclick="openDetails('${o.id}')">View Details</button>
+          </div>
+
+          <div id="detailsTags" class="detail-tags"></div>
+
+          <div id="includedSection">
+            <div class="section-title">What's Included</div>
+            <div id="includedBox" class="included-box">
+              <div class="included-item">
+                <div class="check-icon">✓</div>
+                <div>
+                  <div id="includedTitle" class="offer-title"></div>
+                  <div
+                    id="includedDescription"
+                    class="detail-subtle"
+                    style="margin-top: 4px"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="termsSection">
+            <div class="section-title">Terms & Conditions</div>
+            <div id="detailsTerms" class="terms-box detail-subtle"></div>
+          </div>
+
+          <div id="locationsSection">
+            <div class="location-head">
+              <div class="section-title" style="margin-bottom: 0">
+                Available Locations
+              </div>
+              <button
+                id="visitWebsiteBtn"
+                class="btn-secondary"
+                type="button"
+                style="height: 32px; padding: 0 12px"
+              >
+                Visit website
+              </button>
+            </div>
+            <div id="locationsList" class="location-list"></div>
+          </div>
+        </div>
+
+        <div class="sticky-bar">
+          <button
+            id="redeemBtn"
+            class="btn-primary"
+            type="button"
+            style="width: 100%; height: 46px"
+          >
+            Redeem Offer
+          </button>
+        </div>
+      </section>
+
+      <section id="screen-scanner" class="screen">
+        <div class="app-bar">
+          <button
+            class="nav-btn"
+            type="button"
+            onclick="showScreen('screen-details')"
+          >
+            ←
+          </button>
+          <div class="app-title">Scan to redeem</div>
+          <div class="app-side"></div>
+        </div>
+
+        <div class="scanner-main">
+          <div class="scanner-box">
+            <video
+              id="scannerVideo"
+              class="scanner-video"
+              autoplay
+              playsinline
+              muted
+            ></video>
+            <div id="scannerFrame" class="scanner-frame"></div>
+            <div id="scannerPlaceholder" class="scanner-placeholder">
+              <div style="font-size: 52px">⌁</div>
+              <div class="scanner-copy">
+                Align the partner QR code inside the frame to redeem this
+                in-store offer.
+              </div>
+            </div>
+          </div>
+          <div id="scannerStatus" class="scanner-status">
+            Camera not started yet.
+          </div>
+          <div class="scanner-form">
+            <select id="storeLocationInput">
+              <option value="">Select store location</option>
+            </select>
+            <input
+              id="qrPayloadInput"
+              placeholder="Fallback QR payload for unsupported browsers"
+            />
+            <div class="scanner-row">
+              <button
+                class="btn-secondary"
+                type="button"
+                style="width: 100%; height: 46px"
+                onclick="startScanner()"
+              >
+                Start Camera
+              </button>
+              <button
+                class="btn-secondary"
+                type="button"
+                style="width: 100%; height: 46px"
+                onclick="stopScanner()"
+              >
+                Stop Camera
+              </button>
+            </div>
+            <button
+              class="btn-secondary"
+              type="button"
+              style="width: 100%; height: 46px"
+              onclick="pickQrImage()"
+            >
+              Upload QR image
+            </button>
+            <input
+              id="scannerUploadInput"
+              class="scanner-upload"
+              type="file"
+              accept="image/*"
+              capture="environment"
+            />
+          </div>
+          <button
+            class="btn-primary"
+            type="button"
+            style="width: 100%; height: 46px"
+            onclick="processRedemption()"
+          >
+            Scan Now
+          </button>
+        </div>
+      </section>
+
+      <section id="screen-success" class="screen">
+        <div class="app-bar">
+          <button
+            class="nav-btn"
+            type="button"
+            onclick="showScreen('screen-list')"
+          >
+            ←
+          </button>
+          <div class="app-title">Offer details</div>
+          <div class="app-side"></div>
+        </div>
+
+        <div class="success-main">
+          <div class="success-badge">✓</div>
+          <div>
+            <div class="success-title">Offer Redeemed Successfully</div>
+            <div id="successSub" class="success-sub" style="margin-top: 8px">
+              You've successfully redeemed 0 ALR.
+            </div>
+          </div>
+
+          <div class="success-actions">
+            <button
+              class="btn-primary"
+              type="button"
+              style="width: 100%; height: 46px"
+              onclick="showScreen('screen-list')"
+            >
+              Back to home
+            </button>
+            <button
+              class="btn-secondary"
+              type="button"
+              style="width: 100%; height: 46px"
+              onclick="openRewardsHistory()"
+            >
+              Visit my rewards
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-history" class="screen">
+        <div class="app-bar">
+          <button
+            class="nav-btn"
+            type="button"
+            onclick="showScreen('screen-list')"
+          >
+            ←
+          </button>
+          <div class="app-title">My rewards</div>
+          <div class="app-side"></div>
+        </div>
+
+        <div class="main">
+          <div id="historyList" class="history-list"></div>
+        </div>
+      </section>
+
+      <section id="screen-grocery-list" class="screen">
+        <div class="app-bar">
+          <button
+            class="nav-btn"
+            type="button"
+            onclick="showScreen('screen-details')"
+          >
+            ←
+          </button>
+          <div class="app-title">Kitchen</div>
+          <div class="app-side"></div>
+        </div>
+        <div class="grocery-stack">
+          <div class="grocery-sheet">
+            <div class="grocery-topbar">
+              <div class="grocery-greeting">
+                <div class="grocery-avatar" id="groceryAvatar">M</div>
+                <div>
+                  <small>Good Morning</small>
+                  <strong id="groceryUserName">Monica Steve</strong>
+                </div>
+              </div>
+              <div class="grocery-icons">
+                <button class="grocery-icon" type="button">≡</button>
+                <button class="grocery-icon" type="button">◔</button>
+                <button class="grocery-icon" type="button">◌</button>
+              </div>
+            </div>
+
+            <div class="grocery-tabs">
+              <button class="grocery-tab" type="button">Recipes</button>
+              <button class="grocery-tab active" type="button">
+                Kitchen Inventory
+              </button>
+            </div>
+
+            <div class="grocery-title">My Shopping List</div>
+
+            <div class="grocery-summary">
+              <div>
+                <small>Total items (recommended)</small>
+                <strong id="groceryCountText">0 Needed</strong>
+              </div>
+              <button
+                class="btn-secondary"
+                type="button"
+                style="height: 38px; padding: 0 14px"
+                onclick="openRewardsVoucher()"
+              >
+                Build Voucher
+              </button>
+            </div>
+
+            <div class="status-card">
+              Tap the cart icon to add items to your voucher, generate a PDF, or
+              order them from the store.
+            </div>
+
+            <button
+              class="btn-secondary grocery-full-btn"
+              type="button"
+              onclick="openRewardsCustomItem()"
+            >
+              + Add Custom Item
+            </button>
+
+            <div id="groceryShoppingList" class="shopping-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-grocery-custom" class="screen">
+        <div class="app-bar">
+          <button
+            class="nav-btn"
+            type="button"
+            onclick="showScreen('screen-grocery-list')"
+          >
+            ←
+          </button>
+          <div class="app-title">Add Custom Item</div>
+          <div class="app-side"></div>
+        </div>
+        <div class="grocery-stack">
+          <div class="grocery-sheet">
+            <div class="grocery-topbar">
+              <div class="grocery-greeting">
+                <div class="grocery-avatar" id="groceryAvatarSmall">M</div>
+                <div>
+                  <small>Good Morning</small>
+                  <strong id="groceryUserNameSmall">Monica Steve</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="grocery-tabs">
+              <button class="grocery-tab" type="button">Recipes</button>
+              <button class="grocery-tab active" type="button">
+                Groceries
+              </button>
+            </div>
+
+            <div class="grocery-field">
+              <span>Item name*</span>
+              <input
+                id="groceryItemName"
+                placeholder="Item name"
+                autocomplete="off"
+                list="groceryItemSuggestions"
+              />
+              <datalist id="groceryItemSuggestions"></datalist>
+            </div>
+
+            <div class="grocery-field">
+              <span>Unit*</span>
+              <select id="groceryItemUnit">
+                <option value="LITER">Liter</option>
+                <option value="GM" selected>gm</option>
+                <option value="KG">kg</option>
+                <option value="PCS">pcs</option>
+              </select>
+            </div>
+
+            <div class="grocery-field">
+              <span>Quantity*</span>
+              <div class="grocery-two">
+                <input
+                  id="groceryItemQty"
+                  value="250"
+                  inputmode="numeric"
+                  autocomplete="off"
+                />
+                <input id="groceryItemQtyLabel" value="gm" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="grocery-field">
+              <span>Note: (Optional)</span>
+              <textarea
+                id="groceryItemNote"
+                placeholder="eg: please send fresh brand's milk"
+              ></textarea>
+            </div>
+
+            <div class="grocery-actions">
+              <button
+                class="btn-secondary"
+                type="button"
+                onclick="showScreen('screen-grocery-list')"
+              >
+                Cancel
+              </button>
+              <button
+                class="btn-primary"
+                type="button"
+                onclick="addRewardsShoppingItem()"
+              >
+                Add
+              </button>
             </div>
           </div>
         </div>
-      `).join('');
-    }
+      </section>
 
-    function openDetails(id) {
-      const offer = sampleOffers.find(o => o.id === id) || sampleOffers[0];
-      currentOfferId = offer.id;
-
-      document.getElementById('detail-hero').src = offer.hero;
-      document.getElementById('detail-logo').src = offer.logo;
-      document.getElementById('detail-partner-name').innerText = offer.partner;
-      document.getElementById('detail-alr').innerText = offer.alr;
-      document.getElementById('detail-title').innerText = offer.title;
-      document.getElementById('detail-sub').innerText = offer.sub;
-      document.getElementById('detail-expiry').querySelector('span').innerText = offer.expiry;
-      document.getElementById('inc-title').innerText = offer.sub;
-
-      const locContainer = document.getElementById('locations-list');
-      locContainer.innerHTML = `
-        <div class="location-card">
-          <div class="loc-left">
-            <div class="loc-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <section id="screen-grocery-voucher" class="screen">
+        <div class="app-bar">
+          <button
+            class="nav-btn"
+            type="button"
+            onclick="showScreen('screen-grocery-list')"
+          >
+            ←
+          </button>
+          <div class="app-title">Shopping Voucher</div>
+          <div class="app-side">⤴</div>
+        </div>
+        <div class="grocery-stack">
+          <div class="grocery-sheet">
+            <div class="voucher-meta">
+              <div>
+                <div class="offer-title">Shopping List Voucher</div>
+                <div id="rewardsVoucherMeta" class="detail-subtle">
+                  June 15, 2026 • 0 items total
+                </div>
+              </div>
+              <div class="mini-icon">🧾</div>
             </div>
+            <div id="rewardsVoucherList" class="voucher-list"></div>
+            <div class="voucher-code">
+              <div>▥▥▥</div>
+              <div id="rewardsVoucherCode">VOUCHER-ID: AL-2026-X892</div>
+            </div>
+            <div class="grocery-field" style="margin-top: 12px">
+              <span>Final Note: (Optional)</span>
+              <textarea
+                id="rewardsFinalNote"
+                placeholder="Please check expiry dates and prioritize the organic brands."
+              ></textarea>
+            </div>
+            <div class="grocery-actions">
+              <button
+                class="btn-primary"
+                type="button"
+                onclick="openRewardsStoreChooser()"
+              >
+                Order from store
+              </button>
+              <button
+                class="btn-secondary"
+                type="button"
+                onclick="downloadRewardsVoucher()"
+              >
+                Download PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-grocery-stores" class="screen">
+        <div class="app-bar">
+          <button
+            class="nav-btn"
+            type="button"
+            onclick="showScreen('screen-grocery-voucher')"
+          >
+            ←
+          </button>
+          <div class="app-title">Shopping Voucher</div>
+          <div class="app-side">⤴</div>
+        </div>
+        <div class="grocery-stack">
+          <div class="grocery-sheet">
+            <div class="voucher-meta">
+              <div>
+                <div class="offer-title">Choose Store</div>
+              </div>
+              <button
+                class="nav-btn"
+                type="button"
+                onclick="showScreen('screen-grocery-voucher')"
+              >
+                ×
+              </button>
+            </div>
+            <div id="rewardsStoreList" class="store-list"></div>
+            <div class="store-card">
+              <div class="store-brand">
+                <div class="store-logo">⌖</div>
+                <div>
+                  <div class="offer-title">Find Nearby grocery Store</div>
+                  <div class="store-sub">See stores on the map</div>
+                </div>
+              </div>
+            </div>
+            <button
+              class="btn-primary"
+              type="button"
+              style="width: 100%; margin-top: 12px"
+              onclick="openRewardsOrderSummary()"
+            >
+              Send order
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-grocery-order" class="screen">
+        <div class="app-bar">
+          <button
+            class="nav-btn"
+            type="button"
+            onclick="showScreen('screen-grocery-stores')"
+          >
+            ←
+          </button>
+          <div class="app-title">My order</div>
+          <div class="app-side"></div>
+        </div>
+        <div class="grocery-stack">
+          <div class="order-card">
+            <div class="section-label" id="groceryOrderStoreText">Store: -</div>
+            <div class="detail-subtle" id="groceryOrderCodeText">
+              Order ID: -
+            </div>
+          </div>
+
+          <div class="order-card">
+            <div class="offer-title" style="margin-bottom: 8px">
+              Voucher Items
+            </div>
+            <div id="groceryOrderItems"></div>
+          </div>
+
+          <div class="order-card">
+            <div class="price-stack" id="groceryOrderPricing"></div>
+          </div>
+
+          <div class="order-card">
+            <label class="grocery-field">
+              <span>Delivery address *</span>
+              <input
+                id="groceryDeliveryAddress"
+                placeholder="4517 Washington Ave, Kentucky 39495"
+              />
+            </label>
+            <label class="grocery-field" style="margin-top: 12px">
+              <span>Receiver phone number *</span>
+              <input id="groceryReceiverPhone" placeholder="+880 1700000000" />
+            </label>
+          </div>
+
+          <div class="order-card">
+            <div class="offer-title" style="margin-bottom: 10px">
+              Payment Method
+            </div>
+            <button
+              id="groceryPayOnlineChoice"
+              class="payment-choice active"
+              type="button"
+              onclick="selectGroceryPaymentType('ONLINE')"
+            >
+              <div>
+                <div class="offer-title">Pay Now (Online)</div>
+                <div class="store-sub">Secure card payment</div>
+              </div>
+              <div class="radio active"></div>
+            </button>
+            <button
+              id="groceryCodChoice"
+              class="payment-choice"
+              type="button"
+              onclick="selectGroceryPaymentType('CASH_ON_DELIVERY')"
+            >
+              <div>
+                <div class="offer-title">Cash on Delivery</div>
+                <div class="store-sub">Pay when order arrives</div>
+              </div>
+              <div class="radio"></div>
+            </button>
+          </div>
+
+          <div class="grocery-actions">
+            <button
+              class="btn-primary"
+              type="button"
+              onclick="openGroceryPaymentScreen()"
+            >
+              Pay now
+            </button>
+            <button
+              class="btn-primary"
+              type="button"
+              onclick="confirmGroceryOrder()"
+            >
+              Confirm Order
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-grocery-payment" class="screen">
+        <div class="app-bar">
+          <button
+            class="nav-btn"
+            type="button"
+            onclick="showScreen('screen-grocery-order')"
+          >
+            ←
+          </button>
+          <div class="app-title">Payment Method</div>
+          <div class="app-side"></div>
+        </div>
+        <div class="grocery-stack">
+          <div id="groceryPaymentMethodList" class="payment-method-list"></div>
+
+          <div class="order-card">
+            <div class="offer-title" style="margin-bottom: 10px">
+              Add new payment method
+            </div>
+            <label class="grocery-field">
+              <span>Card Number</span>
+              <input id="groceryCardNumber" placeholder="4654 6575 4356 4444" />
+            </label>
+            <div class="payment-grid" style="margin-top: 12px">
+              <label class="grocery-field">
+                <span>Expiry Date</span>
+                <input id="groceryCardExpiry" placeholder="MM/YYYY" />
+              </label>
+              <label class="grocery-field">
+                <span>CVV</span>
+                <input id="groceryCardCvv" placeholder="123" />
+              </label>
+            </div>
+            <label class="grocery-field" style="margin-top: 12px">
+              <span>Cardholder Name</span>
+              <input id="groceryCardName" placeholder="Full Name as on card" />
+            </label>
+          </div>
+
+          <button
+            class="btn-primary"
+            type="button"
+            style="width: 100%"
+            onclick="saveGroceryPaymentMethodAndConfirm()"
+          >
+            Confirm order
+          </button>
+        </div>
+      </section>
+
+      <section id="screen-grocery-order-success" class="screen">
+        <div class="app-bar">
+          <div class="app-side"></div>
+          <div class="app-title"></div>
+          <div class="app-side"></div>
+        </div>
+        <div class="success-panel">
+          <div class="success-card">
+            <div class="success-mark">✓</div>
             <div>
-              <div class="loc-name">Dubai Mall</div>
-              <div class="loc-sub">Downtown Dubai, Level LG</div>
+              <div class="app-title">Payment Confirmed</div>
+              <div
+                class="detail-subtle"
+                id="grocerySuccessCopy"
+                style="margin-top: 8px"
+              >
+                Your order has been placed successfully.
+              </div>
+            </div>
+            <button
+              class="btn-primary"
+              type="button"
+              onclick="showScreen('screen-list')"
+            >
+              Back to home
+            </button>
+            <button
+              class="btn-secondary"
+              type="button"
+              onclick="openGroceryTracking()"
+            >
+              Track Status
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-grocery-tracking" class="screen">
+        <div class="app-bar">
+          <button
+            class="nav-btn"
+            type="button"
+            onclick="showScreen('screen-grocery-order-success')"
+          >
+            ←
+          </button>
+          <div class="app-title">My order</div>
+          <div class="app-side"></div>
+        </div>
+        <div class="grocery-stack">
+          <div class="order-card">
+            <div class="row-between">
+              <button
+                class="btn-primary"
+                type="button"
+                style="width: auto; padding: 0 16px"
+                onclick="showScreen('screen-grocery-voucher')"
+              >
+                View voucher
+              </button>
             </div>
           </div>
-          <a class="loc-link" href="#">View location</a>
-        </div>
-        <div class="location-card">
-          <div class="loc-left">
-            <div class="loc-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+
+          <div class="partner-card">
+            <div class="row-between" style="margin-bottom: 10px">
+              <div class="offer-title">Partner Details</div>
+              <button
+                class="tiny-link"
+                type="button"
+                onclick="togglePartnerDetails()"
+              >
+                <span id="groceryPartnerToggle">▾</span>
+              </button>
             </div>
-            <div>
-              <div class="loc-name">Mall of the Emirates</div>
-              <div class="loc-sub">Al Barsha 1, Level 1</div>
+            <div id="groceryPartnerBody">
+              <div class="partner-row-card">
+                <div>
+                  <div class="offer-title" id="groceryPartnerName">Partner</div>
+                  <div class="detail-subtle">Partner</div>
+                </div>
+                <div class="mini-icon">☎</div>
+              </div>
+              <div
+                class="inline-note"
+                id="groceryPartnerAddress"
+                style="margin-top: 12px"
+              ></div>
+              <div
+                class="inline-note"
+                id="groceryPartnerContact"
+                style="margin-top: 10px"
+              ></div>
             </div>
           </div>
-          <a class="loc-link" href="#">View location</a>
+
+          <div class="tracking-card">
+            <div class="offer-title" id="groceryTrackingCode">
+              Tracking Voucher -
+            </div>
+            <div
+              class="detail-subtle"
+              id="groceryTrackingEta"
+              style="margin-top: 4px"
+            ></div>
+            <div id="groceryTimeline" class="timeline"></div>
+          </div>
+
+          <button
+            class="btn-secondary"
+            type="button"
+            style="width: 100%; color: var(--danger); border-color: #f0c7c2"
+            onclick="toggleGroceryCancelDialog(true)"
+          >
+            Cancel Order
+          </button>
         </div>
-      `;
+      </section>
 
-      showScreen('screen-details');
-    }
+      <div id="loginSheet" class="sheet">
+        <div class="sheet-card">
+          <div class="sheet-head">
+            <div class="sheet-title">Connect to backend</div>
+            <div class="sheet-sub">
+              Login once, token auto-save hobe. Tarpor real my-offers list,
+              details, save, redeem, ar redeemed history test korte parba.
+            </div>
+          </div>
 
-    function openScanner() {
-      const offer = sampleOffers.find(o => o.id === currentOfferId) || sampleOffers[0];
-      document.getElementById('scanner-title').innerText = offer.title;
-      showScreen('screen-scanner');
-    }
+          <input id="baseUrlInput" placeholder="http://localhost:5000" />
+          <input id="emailInput" placeholder="Email" autocomplete="username" />
+          <input
+            id="passwordInput"
+            type="password"
+            placeholder="Password"
+            autocomplete="current-password"
+          />
 
-    function processRedemption() {
-      const offer = sampleOffers.find(o => o.id === currentOfferId) || sampleOffers[0];
-      document.getElementById('success-points-sub').innerText = `You've successfully redeemed ${offer.alr}.`;
-      showScreen('screen-success');
-    }
+          <div style="display: flex; gap: 10px">
+            <button
+              class="btn-primary"
+              type="button"
+              style="flex: 1; height: 46px"
+              onclick="login()"
+            >
+              Login
+            </button>
+            <button
+              class="btn-secondary"
+              type="button"
+              style="flex: 1; height: 46px"
+              onclick="toggleLoginSheet(false)"
+            >
+              Close
+            </button>
+          </div>
 
-    function showRewardsHistory() {
-      alert("Redirecting to My Rewards history...");
-      showScreen('screen-list');
-    }
+          <div id="sheetStatus" class="sheet-status">Ready to sign in.</div>
+        </div>
+      </div>
 
-    // Initialize
-    renderOffers();
-  </script>
-</body>
+      <div id="groceryCancelDialog" class="dialog">
+        <div class="dialog-card">
+          <div class="offer-title">Order cancel?</div>
+          <div class="detail-subtle" style="margin-top: 8px">
+            Are you sure you want to cancel this order
+          </div>
+          <div class="dialog-actions">
+            <button
+              class="btn-secondary"
+              type="button"
+              onclick="cancelGroceryOrder()"
+            >
+              Yes
+            </button>
+            <button
+              class="btn-primary"
+              type="button"
+              onclick="toggleGroceryCancelDialog(false)"
+            >
+              No
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="toast" class="toast"></div>
+    </div>
+
+    <script>
+      const state = {
+        tab: 'ALL',
+        offers: [],
+        offerDetail: null,
+        redemptions: [],
+        search: '',
+        token: '',
+        user: null,
+        grocery: {
+          items: [],
+          expandedItemId: '',
+          stores: [],
+          selectedStoreId: '',
+          latestPreview: null,
+          category: 'DAIRY',
+          suggestions: [],
+          selectedSuggestion: null,
+          paymentType: 'ONLINE',
+          selectedPaymentMethodId: '',
+          currentOrder: null,
+          partnerOpen: true,
+          pendingOfferId: '',
+        },
+        scanner: {
+          stream: null,
+          detector: null,
+          timer: null,
+          active: false,
+          lastValue: '',
+          processing: false,
+        },
+      };
+
+      const storageKeys = {
+        token: 'mobile-rewards-token',
+        baseUrl: 'mobile-rewards-base-url',
+        email: 'mobile-rewards-email',
+      };
+
+      const els = {
+        authTitle: document.getElementById('authTitle'),
+        authSub: document.getElementById('authSub'),
+        offersList: document.getElementById('offersList'),
+        searchInput: document.getElementById('searchInput'),
+        tabAll: document.getElementById('tab-all'),
+        tabSaved: document.getElementById('tab-saved'),
+        detailsHero: document.getElementById('detailsHero'),
+        detailsLogo: document.getElementById('detailsLogo'),
+        detailsPartner: document.getElementById('detailsPartner'),
+        detailsTitle: document.getElementById('detailsTitle'),
+        detailsPoints: document.getElementById('detailsPoints'),
+        detailsSub: document.getElementById('detailsSub'),
+        detailsExpiry: document.getElementById('detailsExpiry'),
+        detailsTags: document.getElementById('detailsTags'),
+        detailsTerms: document.getElementById('detailsTerms'),
+        includedSection: document.getElementById('includedSection'),
+        includedBox: document.getElementById('includedBox'),
+        includedTitle: document.getElementById('includedTitle'),
+        includedDescription: document.getElementById('includedDescription'),
+        termsSection: document.getElementById('termsSection'),
+        locationsSection: document.getElementById('locationsSection'),
+        locationsList: document.getElementById('locationsList'),
+        detailsFlowPill: document.getElementById('detailsFlowPill'),
+        redeemBtn: document.getElementById('redeemBtn'),
+        visitWebsiteBtn: document.getElementById('visitWebsiteBtn'),
+        scannerVideo: document.getElementById('scannerVideo'),
+        scannerPlaceholder: document.getElementById('scannerPlaceholder'),
+        scannerStatus: document.getElementById('scannerStatus'),
+        qrPayloadInput: document.getElementById('qrPayloadInput'),
+        storeLocationInput: document.getElementById('storeLocationInput'),
+        scannerUploadInput: document.getElementById('scannerUploadInput'),
+        successSub: document.getElementById('successSub'),
+        historyList: document.getElementById('historyList'),
+        groceryAvatar: document.getElementById('groceryAvatar'),
+        groceryAvatarSmall: document.getElementById('groceryAvatarSmall'),
+        groceryUserName: document.getElementById('groceryUserName'),
+        groceryUserNameSmall: document.getElementById('groceryUserNameSmall'),
+        groceryCountText: document.getElementById('groceryCountText'),
+        groceryShoppingList: document.getElementById('groceryShoppingList'),
+        groceryItemName: document.getElementById('groceryItemName'),
+        groceryItemUnit: document.getElementById('groceryItemUnit'),
+        groceryItemQty: document.getElementById('groceryItemQty'),
+        groceryItemQtyLabel: document.getElementById('groceryItemQtyLabel'),
+        groceryItemNote: document.getElementById('groceryItemNote'),
+        groceryItemSuggestions: document.getElementById(
+          'groceryItemSuggestions',
+        ),
+        rewardsVoucherMeta: document.getElementById('rewardsVoucherMeta'),
+        rewardsVoucherList: document.getElementById('rewardsVoucherList'),
+        rewardsVoucherCode: document.getElementById('rewardsVoucherCode'),
+        rewardsFinalNote: document.getElementById('rewardsFinalNote'),
+        rewardsStoreList: document.getElementById('rewardsStoreList'),
+        groceryOrderStoreText: document.getElementById('groceryOrderStoreText'),
+        groceryOrderCodeText: document.getElementById('groceryOrderCodeText'),
+        groceryOrderItems: document.getElementById('groceryOrderItems'),
+        groceryOrderPricing: document.getElementById('groceryOrderPricing'),
+        groceryDeliveryAddress: document.getElementById(
+          'groceryDeliveryAddress',
+        ),
+        groceryReceiverPhone: document.getElementById('groceryReceiverPhone'),
+        groceryPayOnlineChoice: document.getElementById(
+          'groceryPayOnlineChoice',
+        ),
+        groceryCodChoice: document.getElementById('groceryCodChoice'),
+        groceryPaymentMethodList: document.getElementById(
+          'groceryPaymentMethodList',
+        ),
+        groceryCardNumber: document.getElementById('groceryCardNumber'),
+        groceryCardExpiry: document.getElementById('groceryCardExpiry'),
+        groceryCardCvv: document.getElementById('groceryCardCvv'),
+        groceryCardName: document.getElementById('groceryCardName'),
+        grocerySuccessCopy: document.getElementById('grocerySuccessCopy'),
+        groceryPartnerToggle: document.getElementById('groceryPartnerToggle'),
+        groceryPartnerBody: document.getElementById('groceryPartnerBody'),
+        groceryPartnerName: document.getElementById('groceryPartnerName'),
+        groceryPartnerAddress: document.getElementById('groceryPartnerAddress'),
+        groceryPartnerContact: document.getElementById('groceryPartnerContact'),
+        groceryTrackingCode: document.getElementById('groceryTrackingCode'),
+        groceryTrackingEta: document.getElementById('groceryTrackingEta'),
+        groceryTimeline: document.getElementById('groceryTimeline'),
+        groceryCancelDialog: document.getElementById('groceryCancelDialog'),
+        loginSheet: document.getElementById('loginSheet'),
+        baseUrlInput: document.getElementById('baseUrlInput'),
+        emailInput: document.getElementById('emailInput'),
+        passwordInput: document.getElementById('passwordInput'),
+        sheetStatus: document.getElementById('sheetStatus'),
+        toast: document.getElementById('toast'),
+      };
+
+      function inferBaseUrl() {
+        const { protocol, hostname, port } = window.location;
+        if (port && port !== '5000') {
+          return `${protocol}//${hostname}:5000`;
+        }
+        return `${protocol}//${hostname}${port ? `:${port}` : ''}`;
+      }
+
+      function getBaseUrl() {
+        return (els.baseUrlInput.value.trim() || inferBaseUrl()).replace(
+          /\/$/,
+          '',
+        );
+      }
+
+      function setToken(token) {
+        state.token = token || '';
+        if (token) {
+          localStorage.setItem(storageKeys.token, token);
+        } else {
+          localStorage.removeItem(storageKeys.token);
+        }
+      }
+
+      function toggleLoginSheet(force) {
+        const shouldOpen =
+          typeof force === 'boolean'
+            ? force
+            : !els.loginSheet.classList.contains('open');
+        els.loginSheet.classList.toggle('open', shouldOpen);
+      }
+
+      function showToast(message, type = 'ok') {
+        els.toast.textContent = message;
+        els.toast.className = `toast show ${type}`;
+        clearTimeout(showToast.timer);
+        showToast.timer = setTimeout(() => {
+          els.toast.className = 'toast';
+        }, 3200);
+      }
+
+      function updateAuthBanner() {
+        if (!state.token) {
+          els.authTitle.textContent = 'Not logged in';
+          els.authSub.textContent =
+            'Open login to test real partner offers on phone.';
+          return;
+        }
+        els.authTitle.textContent =
+          state.user?.fullName || state.user?.email || 'Connected';
+        els.authSub.textContent = state.user?.role
+          ? `${state.user.role} account connected`
+          : 'Saved token loaded';
+        const initials = (
+          state.user?.fullName ||
+          state.user?.email ||
+          'M'
+        ).trim();
+        if (els.groceryUserName) {
+          els.groceryUserName.textContent =
+            state.user?.fullName || 'Monica Steve';
+          els.groceryUserNameSmall.textContent =
+            state.user?.fullName || 'Monica Steve';
+          els.groceryAvatar.textContent = initials.charAt(0).toUpperCase();
+          els.groceryAvatarSmall.textContent = initials.charAt(0).toUpperCase();
+        }
+      }
+
+      function showScreen(id) {
+        if (id !== 'screen-scanner') {
+          stopScanner();
+        }
+        document.querySelectorAll('.screen').forEach((screen) => {
+          screen.classList.toggle('active', screen.id === id);
+        });
+      }
+
+      async function request(path, options = {}) {
+        const response = await fetch(`${getBaseUrl()}/api/v1${path}`, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}),
+            ...(options.headers || {}),
+          },
+        });
+
+        const text = await response.text();
+        let payload = null;
+        try {
+          payload = text ? JSON.parse(text) : null;
+        } catch {
+          payload = text;
+        }
+
+        if (!response.ok) {
+          const message =
+            (payload &&
+              typeof payload === 'object' &&
+              (payload.message || payload.error)) ||
+            payload ||
+            `Request failed with ${response.status}`;
+          throw new Error(message);
+        }
+
+        return payload;
+      }
+
+      function requireAuth(label) {
+        if (state.token) return true;
+        els.sheetStatus.textContent = `Login required before ${label}.`;
+        toggleLoginSheet(true);
+        showToast(`Login required before ${label}.`, 'warn');
+        return false;
+      }
+
+      function formatDate(dateValue) {
+        if (!dateValue) return 'No expiration date';
+        return new Date(dateValue).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        });
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function getOfferTags(offer) {
+        const tags = [];
+        const partnerName = (offer?.partner?.name || '').toLowerCase();
+
+        if (partnerName.includes('carrefour')) {
+          tags.push('Groceries', 'Family Savings', 'Daily Essentials');
+        } else if (offer?.redemptionFlow === 'IN_ALUREI') {
+          tags.push('Online Offer', 'Member Benefit', 'Special Access');
+        } else {
+          tags.push('In-store Offer', 'Member Benefit');
+        }
+
+        return tags.slice(0, 3);
+      }
+
+      function splitGroceryQuantity(raw) {
+        const value = String(raw || '').trim();
+        const match = value.match(/^(\d+(?:\.\d+)?)(?:\s*(.*))?$/);
+        if (!match) return { amount: 1, label: value || '' };
+        return {
+          amount: Number(match[1]) || 1,
+          label: match[2]?.trim() || '',
+        };
+      }
+
+      function formatGroceryQuantity(amount, label) {
+        return `${amount}${label ? ` ${label}` : ''}`.trim();
+      }
+
+      function renderGroceryCategoryChips() {
+        document
+          .querySelectorAll('.grocery-chip[data-category]')
+          .forEach((chip) => {
+            chip.classList.toggle(
+              'active',
+              chip.dataset.category === state.grocery.category,
+            );
+          });
+      }
+
+      function renderGrocerySuggestions() {
+        if (!els.groceryItemSuggestions) return;
+        els.groceryItemSuggestions.innerHTML = (state.grocery.suggestions || [])
+          .map(
+            (item) =>
+              `<option value="${escapeHtml(item.name)}">${escapeHtml(item.unit || '')}</option>`,
+          )
+          .join('');
+      }
+
+      async function loadGrocerySuggestions(search = '') {
+        const payload = await request('/parent/kitchen/suggestions?limit=100');
+        const allSuggestions = payload?.data || [];
+        const normalizedSearch = search.trim().toLowerCase();
+        state.grocery.suggestions = normalizedSearch
+          ? allSuggestions.filter((item) =>
+              String(item.name || '')
+                .toLowerCase()
+                .includes(normalizedSearch),
+            )
+          : allSuggestions;
+        renderGrocerySuggestions();
+      }
+
+      function syncGrocerySuggestionSelection() {
+        const normalizedName = els.groceryItemName.value.trim().toLowerCase();
+        const matchedSuggestion = (state.grocery.suggestions || []).find(
+          (item) =>
+            String(item.name || '')
+              .trim()
+              .toLowerCase() === normalizedName,
+        );
+
+        state.grocery.selectedSuggestion = matchedSuggestion || null;
+
+        if (!matchedSuggestion) return;
+
+        if (matchedSuggestion.unit) {
+          els.groceryItemUnit.value = matchedSuggestion.unit;
+          els.groceryItemQtyLabel.value = matchedSuggestion.unit
+            .toLowerCase()
+            .replace('pcs', 'pcs');
+        }
+
+        if (matchedSuggestion.category) {
+          state.grocery.category = matchedSuggestion.category;
+        }
+      }
+
+      async function handleGroceryItemNameInput() {
+        await loadGrocerySuggestions(els.groceryItemName.value);
+        syncGrocerySuggestionSelection();
+      }
+
+      async function openRewardsCustomItem() {
+        state.grocery.category = 'OTHER';
+        state.grocery.selectedSuggestion = null;
+        els.groceryItemName.value = '';
+        els.groceryItemQty.value = '250';
+        els.groceryItemQtyLabel.value = 'gm';
+        els.groceryItemNote.value = '';
+        els.groceryItemUnit.value = 'GM';
+        await loadGrocerySuggestions();
+        showScreen('screen-grocery-custom');
+      }
+
+      function renderRewardsShoppingList() {
+        els.groceryCountText.textContent = `${state.grocery.items.length} Needed`;
+        if (!state.grocery.items.length) {
+          els.groceryShoppingList.innerHTML =
+            '<div class="notice">No shopping items yet. Add a custom item to get started.</div>';
+          return;
+        }
+        els.groceryShoppingList.innerHTML = state.grocery.items
+          .map((item) => {
+            const expanded = state.grocery.expandedItemId === item.id;
+            const quantity = splitGroceryQuantity(item.quantity);
+            const inVoucher = item.status === 'ADDED_TO_VOUCHER';
+            return `
+              <div class="shopping-item ${expanded ? 'expanded' : ''}">
+                <div class="shopping-head">
+                  <div>
+                    <div class="offer-title">${escapeHtml(item.name)}</div>
+                    <div class="shopping-meta">
+                      <span class="warning-mark">⚠</span>
+                      <span class="detail-subtle">${escapeHtml(item.category || 'Item')}</span>
+                    </div>
+                  </div>
+                  <div class="shopping-tools">
+                    <button class="shopping-tool" type="button" onclick="addItemToRewardsVoucher('${item.id}')" title="${inVoucher ? 'Added to voucher' : 'Add to voucher'}">${inVoucher ? '🛒' : '🛍'}</button>
+                    <button class="shopping-tool" type="button" onclick="toggleRewardsShoppingItem('${item.id}')">${expanded ? '▾' : '▸'}</button>
+                  </div>
+                </div>
+                <div class="shopping-expand">
+                  <div class="detail-subtle">Quantity</div>
+                  <div class="qty-controls">
+                    <button class="qty-btn" type="button" onclick="changeRewardsShoppingQuantity('${item.id}', -1)">−</button>
+                    <div class="qty-pill">${escapeHtml(formatGroceryQuantity(quantity.amount, quantity.label || item.unit?.toLowerCase() || ''))}</div>
+                    <button class="qty-btn" type="button" onclick="changeRewardsShoppingQuantity('${item.id}', 1)">+</button>
+                  </div>
+                  <label class="grocery-field">
+                    <span>Note: (Optional)</span>
+                    <textarea id="rewards-note-${item.id}">${escapeHtml(item.note || '')}</textarea>
+                  </label>
+                  <div class="grocery-actions">
+                    <button class="btn-secondary" type="button" onclick="saveRewardsShoppingItem('${item.id}')">Save</button>
+                    <button class="btn-secondary" type="button" style="color: var(--danger)" onclick="deleteRewardsShoppingItem('${item.id}')">Delete</button>
+                  </div>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+      }
+
+      async function loadRewardsShoppingItems() {
+        const payload = await request('/parent/kitchen/shopping');
+        state.grocery.items = payload?.data || [];
+        renderRewardsShoppingList();
+      }
+
+      function toggleRewardsShoppingItem(itemId) {
+        state.grocery.expandedItemId =
+          state.grocery.expandedItemId === itemId ? '' : itemId;
+        renderRewardsShoppingList();
+      }
+
+      async function addItemToRewardsVoucher(itemId) {
+        await request(`/parent/kitchen/shopping/${itemId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'ADDED_TO_VOUCHER',
+          }),
+        });
+        showToast('Item added to shopping voucher.', 'ok');
+        await loadRewardsShoppingItems();
+      }
+
+      async function changeRewardsShoppingQuantity(itemId, delta) {
+        const item = state.grocery.items.find((entry) => entry.id === itemId);
+        if (!item) return;
+        const quantity = splitGroceryQuantity(item.quantity);
+        const nextAmount = Math.max(1, quantity.amount + delta);
+        await request(`/parent/kitchen/shopping/${itemId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            quantity: formatGroceryQuantity(
+              nextAmount,
+              quantity.label || item.unit?.toLowerCase() || '',
+            ),
+          }),
+        });
+        state.grocery.expandedItemId = itemId;
+        await loadRewardsShoppingItems();
+      }
+
+      async function saveRewardsShoppingItem(itemId) {
+        const note =
+          document.getElementById(`rewards-note-${itemId}`)?.value || '';
+        await request(`/parent/kitchen/shopping/${itemId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ note: note.trim() }),
+        });
+        state.grocery.expandedItemId = itemId;
+        await loadRewardsShoppingItems();
+      }
+
+      async function deleteRewardsShoppingItem(itemId) {
+        await request(`/parent/kitchen/shopping/${itemId}`, {
+          method: 'DELETE',
+        });
+        if (state.grocery.expandedItemId === itemId) {
+          state.grocery.expandedItemId = '';
+        }
+        await loadRewardsShoppingItems();
+      }
+
+      async function addRewardsShoppingItem() {
+        const quantity = formatGroceryQuantity(
+          els.groceryItemQty.value.trim(),
+          els.groceryItemQtyLabel.value.trim(),
+        );
+        syncGrocerySuggestionSelection();
+        await request('/parent/kitchen/shopping', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: els.groceryItemName.value.trim(),
+            unit: els.groceryItemUnit.value,
+            quantity,
+            category:
+              state.grocery.selectedSuggestion?.category ||
+              state.grocery.category ||
+              'OTHER',
+            note: els.groceryItemNote.value.trim() || undefined,
+            isCustomOrder: true,
+          }),
+        });
+        await loadRewardsShoppingItems();
+        showScreen('screen-grocery-list');
+      }
+
+      function renderRewardsVoucher() {
+        const preview = state.grocery.latestPreview;
+        const items = preview?.voucherItems || [];
+        els.rewardsVoucherMeta.textContent = `${formatDate(preview?.voucherDate || new Date())} • ${items.length} items total`;
+        els.rewardsVoucherList.innerHTML = items.length
+          ? items
+              .map(
+                (item) => `
+                <div class="voucher-card">
+                  <div class="offer-top">
+                    <div>
+                      <div class="offer-title">${escapeHtml(item.name)}</div>
+                      <div class="detail-subtle">${escapeHtml(item.note || 'No special note provided')}</div>
+                    </div>
+                    <div class="detail-subtle">Qty: ${escapeHtml(item.quantity)}</div>
+                  </div>
+                </div>
+              `,
+              )
+              .join('')
+          : '<div class="notice">No voucher items ready yet.</div>';
+      }
+
+      async function openRewardsVoucher() {
+        await loadRewardsShoppingItems();
+        const selectedItems = state.grocery.items.filter(
+          (item) => item.status === 'ADDED_TO_VOUCHER' || item.isCustomOrder,
+        );
+        if (!selectedItems.length) {
+          showToast(
+            'Tap the cart icon first to add items to your voucher.',
+            'warn',
+          );
+          return;
+        }
+        const payload = await request('/parent/kitchen/checkout/preview', {
+          method: 'POST',
+          body: JSON.stringify({
+            itemIds: selectedItems.map((item) => item.id),
+            storeId: state.grocery.selectedStoreId || undefined,
+          }),
+        });
+        state.grocery.latestPreview = payload?.data || null;
+        els.rewardsVoucherCode.textContent = `VOUCHER-ID: ${state.grocery.latestPreview?.voucherCode || 'AL-VOUCHER'}`;
+        renderRewardsVoucher();
+        showScreen('screen-grocery-voucher');
+      }
+
+      function renderRewardsStores() {
+        els.rewardsStoreList.innerHTML = (state.grocery.stores || [])
+          .map((store) => {
+            const selected = store.id === state.grocery.selectedStoreId;
+            const logo = store.logoUrl
+              ? `<img src="${escapeHtml(store.logoUrl)}" alt="${escapeHtml(store.name)}" />`
+              : escapeHtml((store.name || 'S').slice(0, 1).toUpperCase());
+            return `
+              <button class="store-card ${selected ? 'selected' : ''}" type="button" onclick="selectRewardsStore('${store.id}')">
+                <div class="offer-top">
+                  <div class="store-brand">
+                    <div class="store-logo">${logo}</div>
+                    <div>
+                      <div class="offer-title">${escapeHtml(store.name)}</div>
+                      <div class="store-sub">${escapeHtml(store.deliveryLabel || 'Partner store available')}</div>
+                    </div>
+                  </div>
+                  <div class="radio ${selected ? 'active' : ''}"></div>
+                </div>
+              </button>
+            `;
+          })
+          .join('');
+      }
+
+      async function selectRewardsStore(storeId) {
+        state.grocery.selectedStoreId = storeId;
+        renderRewardsStores();
+      }
+
+      async function openRewardsStoreChooser() {
+        if (!state.grocery.latestPreview) {
+          await openRewardsVoucher();
+        }
+        state.grocery.stores = state.grocery.latestPreview?.storeOptions?.length
+          ? state.grocery.latestPreview.storeOptions
+          : [];
+        if (!state.grocery.stores.length) {
+          const payload = await request('/parent/kitchen/stores');
+          state.grocery.stores = payload?.data?.stores || [];
+        }
+        if (!state.grocery.selectedStoreId && state.grocery.stores[0]) {
+          state.grocery.selectedStoreId = state.grocery.stores[0].id;
+        }
+        renderRewardsStores();
+        showScreen('screen-grocery-stores');
+      }
+
+      function getSelectedGroceryVoucherItems() {
+        return state.grocery.items.filter(
+          (item) => item.status === 'ADDED_TO_VOUCHER' || item.isCustomOrder,
+        );
+      }
+
+      function formatCurrency(amount, currency = 'AED') {
+        const safeAmount = Number(amount || 0).toFixed(2);
+        return `${safeAmount} ${currency}`;
+      }
+
+      async function refreshGroceryPreview(storeId) {
+        const selectedItems = getSelectedGroceryVoucherItems();
+        if (!selectedItems.length) {
+          throw new Error('Add items to the shopping voucher first.');
+        }
+        const payload = await request('/parent/kitchen/checkout/preview', {
+          method: 'POST',
+          body: JSON.stringify({
+            itemIds: selectedItems.map((item) => item.id),
+            storeId: storeId || state.grocery.selectedStoreId || undefined,
+          }),
+        });
+        state.grocery.latestPreview = payload?.data || null;
+        state.grocery.selectedStoreId =
+          state.grocery.latestPreview?.selectedStore?.id ||
+          state.grocery.selectedStoreId;
+        const methods = state.grocery.latestPreview?.paymentMethods || [];
+        const defaultMethod =
+          methods.find((method) => method.isDefault) || methods[0] || null;
+        if (!state.grocery.selectedPaymentMethodId && defaultMethod) {
+          state.grocery.selectedPaymentMethodId = defaultMethod.id;
+        }
+      }
+
+      function renderGroceryOrderSummary() {
+        const preview = state.grocery.latestPreview;
+        if (!preview) return;
+
+        const storeName = preview.selectedStore?.name || 'Selected store';
+        els.groceryOrderStoreText.textContent = `Store: ${storeName}`;
+        els.groceryOrderCodeText.textContent = `Order ID: ${preview.voucherCode || '-'}`;
+        els.groceryOrderItems.innerHTML = (preview.voucherItems || [])
+          .map(
+            (item) => `
+              <div class="order-item-row">
+                <div>
+                  <div class="offer-title">${escapeHtml(item.name)}</div>
+                  <div class="detail-subtle">${escapeHtml(item.quantity)}</div>
+                </div>
+                <strong>${escapeHtml(formatCurrency(item.price, preview.pricing?.currency || 'AED'))}</strong>
+              </div>
+            `,
+          )
+          .join('');
+
+        const pricing = preview.pricing || {};
+        els.groceryOrderPricing.innerHTML = `
+          <div class="price-row">
+            <span>Subtotal</span>
+            <span>${escapeHtml(formatCurrency(pricing.subtotal, pricing.currency))}</span>
+          </div>
+          <div class="price-row" style="color: var(--teal)">
+            <span>Online Discount (5%)</span>
+            <span>-${escapeHtml(formatCurrency(pricing.onlineDiscount, pricing.currency))}</span>
+          </div>
+          <div class="price-row">
+            <span>Delivery Fee</span>
+            <span>${escapeHtml(formatCurrency(pricing.deliveryFee, pricing.currency))}</span>
+          </div>
+          <div class="price-row">
+            <strong>Total</strong>
+            <strong>${escapeHtml(formatCurrency(pricing.total, pricing.currency))}</strong>
+          </div>
+        `;
+
+        els.groceryPayOnlineChoice.classList.toggle(
+          'active',
+          state.grocery.paymentType === 'ONLINE',
+        );
+        els.groceryCodChoice.classList.toggle(
+          'active',
+          state.grocery.paymentType === 'CASH_ON_DELIVERY',
+        );
+        els.groceryPayOnlineChoice
+          .querySelector('.radio')
+          .classList.toggle('active', state.grocery.paymentType === 'ONLINE');
+        els.groceryCodChoice
+          .querySelector('.radio')
+          .classList.toggle(
+            'active',
+            state.grocery.paymentType === 'CASH_ON_DELIVERY',
+          );
+
+        if (!els.groceryDeliveryAddress.value.trim()) {
+          els.groceryDeliveryAddress.value =
+            state.user?.address ||
+            state.user?.streetAddress ||
+            state.user?.location ||
+            '';
+        }
+        if (!els.groceryReceiverPhone.value.trim()) {
+          els.groceryReceiverPhone.value =
+            state.user?.phoneNumber || state.user?.phone || '';
+        }
+      }
+
+      async function openRewardsOrderSummary() {
+        await refreshGroceryPreview(state.grocery.selectedStoreId);
+        renderGroceryOrderSummary();
+        showScreen('screen-grocery-order');
+      }
+
+      function renderGroceryPaymentMethods() {
+        const methods = state.grocery.latestPreview?.paymentMethods || [];
+        if (!methods.length) {
+          els.groceryPaymentMethodList.innerHTML =
+            '<div class="notice">No saved card found. Add one below to continue.</div>';
+          return;
+        }
+
+        els.groceryPaymentMethodList.innerHTML = methods
+          .map((method) => {
+            const active = method.id === state.grocery.selectedPaymentMethodId;
+            return `
+              <button class="payment-method-card ${active ? 'active' : ''}" type="button" onclick="selectGroceryPaymentMethod('${method.id}')">
+                <div class="row-between">
+                  <div>
+                    <div class="offer-title">${escapeHtml(method.brand || 'Card')} ${escapeHtml(method.last4 || '')}</div>
+                    <div class="store-sub">Expires ${escapeHtml(`${String(method.expMonth || '').padStart(2, '0')}/${method.expYear || ''}`)}</div>
+                  </div>
+                  <span class="payment-badge">${method.isDefault ? 'Default' : active ? 'Selected' : 'Saved'}</span>
+                </div>
+              </button>
+            `;
+          })
+          .join('');
+      }
+
+      function selectGroceryPaymentType(type) {
+        if (type === 'CASH_ON_DELIVERY' && state.grocery.pendingOfferId) {
+          showToast(
+            'COD selected. This order will continue as a normal grocery order without applying the online offer.',
+            'warn',
+          );
+        }
+        state.grocery.paymentType = type;
+        renderGroceryOrderSummary();
+      }
+
+      function selectGroceryPaymentMethod(paymentMethodId) {
+        state.grocery.selectedPaymentMethodId = paymentMethodId;
+        renderGroceryPaymentMethods();
+      }
+
+      async function openGroceryPaymentScreen() {
+        if (state.grocery.paymentType !== 'ONLINE') {
+          showToast('Online payment select korle ei step lagbe.', 'warn');
+          return;
+        }
+        await refreshGroceryPreview(state.grocery.selectedStoreId);
+        renderGroceryPaymentMethods();
+        showScreen('screen-grocery-payment');
+      }
+
+      async function saveGroceryPaymentMethodAndConfirm() {
+        const cardNumber = els.groceryCardNumber.value.trim();
+        const expiry = els.groceryCardExpiry.value.trim();
+        const cvv = els.groceryCardCvv.value.trim();
+        const cardholderName = els.groceryCardName.value.trim();
+
+        if (cardNumber || expiry || cvv || cardholderName) {
+          const [monthRaw, yearRaw] = expiry.split('/');
+          if (!cardNumber || !monthRaw || !yearRaw || !cvv) {
+            showToast('Complete card number, expiry, and CVV first.', 'warn');
+            return;
+          }
+
+          const expMonth = Number(monthRaw);
+          const expYear = Number(
+            yearRaw.length === 2 ? `20${yearRaw}` : yearRaw,
+          );
+          const created = await request('/payment/payment-methods', {
+            method: 'POST',
+            body: JSON.stringify({
+              cardNumber,
+              expMonth,
+              expYear,
+              cvv,
+              cardholderName: cardholderName || undefined,
+              isDefault: true,
+            }),
+          });
+
+          const newMethod = created?.data || created;
+          state.grocery.selectedPaymentMethodId = newMethod?.id || '';
+          els.groceryCardNumber.value = '';
+          els.groceryCardExpiry.value = '';
+          els.groceryCardCvv.value = '';
+          els.groceryCardName.value = '';
+        }
+
+        await refreshGroceryPreview(state.grocery.selectedStoreId);
+        await confirmGroceryOrder(true);
+      }
+
+      async function confirmGroceryOrder(fromPaymentScreen = false) {
+        try {
+          const selectedItems = getSelectedGroceryVoucherItems();
+          if (!selectedItems.length) {
+            throw new Error('No voucher items selected for order.');
+          }
+          if (!els.groceryDeliveryAddress.value.trim()) {
+            throw new Error('Delivery address is required.');
+          }
+          if (!els.groceryReceiverPhone.value.trim()) {
+            throw new Error('Receiver phone number is required.');
+          }
+          if (
+            state.grocery.paymentType === 'ONLINE' &&
+            !state.grocery.selectedPaymentMethodId
+          ) {
+            if (!fromPaymentScreen) {
+              await openGroceryPaymentScreen();
+              return;
+            }
+            throw new Error('Select or add a payment method first.');
+          }
+
+          const payload = await request('/parent/kitchen/orders', {
+            method: 'POST',
+            body: JSON.stringify({
+              offerId:
+                state.grocery.paymentType === 'ONLINE'
+                  ? state.grocery.pendingOfferId || undefined
+                  : undefined,
+              itemIds: selectedItems.map((item) => item.id),
+              storeId: state.grocery.selectedStoreId,
+              finalNote: els.rewardsFinalNote.value.trim() || undefined,
+              deliveryAddress: els.groceryDeliveryAddress.value.trim(),
+              receiverPhone: els.groceryReceiverPhone.value.trim(),
+              paymentType: state.grocery.paymentType,
+              paymentMethodId:
+                state.grocery.paymentType === 'ONLINE'
+                  ? state.grocery.selectedPaymentMethodId
+                  : undefined,
+            }),
+          });
+
+          state.grocery.currentOrder = payload?.data || null;
+          state.grocery.pendingOfferId = '';
+          els.grocerySuccessCopy.textContent =
+            state.grocery.paymentType === 'ONLINE'
+              ? 'Your order has been placed successfully. You will be notified once it is delivered.'
+              : 'Cash on delivery order confirmed. The store will prepare your voucher now.';
+          await loadRewardsShoppingItems();
+          showScreen('screen-grocery-order-success');
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
+      }
+
+      async function openGroceryTracking() {
+        if (!state.grocery.currentOrder?.id) {
+          showToast('No recent order found to track.', 'warn');
+          return;
+        }
+        const payload = await request(
+          `/parent/kitchen/orders/${state.grocery.currentOrder.id}`,
+        );
+        state.grocery.currentOrder =
+          payload?.data || state.grocery.currentOrder;
+        renderGroceryTracking();
+        showScreen('screen-grocery-tracking');
+      }
+
+      function togglePartnerDetails() {
+        state.grocery.partnerOpen = !state.grocery.partnerOpen;
+        els.groceryPartnerBody.style.display = state.grocery.partnerOpen
+          ? ''
+          : 'none';
+        els.groceryPartnerToggle.textContent = state.grocery.partnerOpen
+          ? '▾'
+          : '▸';
+      }
+
+      function renderGroceryTracking() {
+        const order = state.grocery.currentOrder;
+        if (!order) return;
+
+        els.groceryPartnerName.textContent = order.store?.name || 'Partner';
+        els.groceryPartnerAddress.textContent = `Address: ${order.store?.address || '-'}${order.store?.city ? `, ${order.store.city}` : ''}`;
+        els.groceryPartnerContact.textContent = `Contact: ${order.store?.partner?.phoneNumber || '-'} • ${order.store?.partner?.email || '-'}`;
+        els.groceryTrackingCode.textContent =
+          order.trackingCode || order.orderId || 'Tracking';
+        els.groceryTrackingEta.textContent = order.estimatedDeliveryAt
+          ? `Estimated delivery: ${formatDate(order.estimatedDeliveryAt)}`
+          : 'Estimated delivery will be shared soon.';
+        els.groceryTimeline.innerHTML = (order.trackingTimeline || [])
+          .map(
+            (step) => `
+              <div class="timeline-item">
+                <div class="timeline-left">
+                  <div class="timeline-dot ${step.active ? 'active' : ''}">${step.active ? '✓' : '○'}</div>
+                  <div class="timeline-copy">
+                    <strong>${escapeHtml(step.title || 'Update')}</strong>
+                    <span>${step.active ? 'Status updated' : 'Pending next update'}${step.timestamp ? ` • ${escapeHtml(formatDate(step.timestamp))}` : ''}</span>
+                  </div>
+                </div>
+              </div>
+            `,
+          )
+          .join('');
+        els.groceryPartnerBody.style.display = state.grocery.partnerOpen
+          ? ''
+          : 'none';
+        els.groceryPartnerToggle.textContent = state.grocery.partnerOpen
+          ? '▾'
+          : '▸';
+      }
+
+      function toggleGroceryCancelDialog(open) {
+        els.groceryCancelDialog.classList.toggle('open', !!open);
+      }
+
+      async function cancelGroceryOrder() {
+        try {
+          if (!state.grocery.currentOrder?.id) {
+            throw new Error('No order found to cancel.');
+          }
+          const payload = await request(
+            `/parent/kitchen/orders/${state.grocery.currentOrder.id}`,
+            {
+              method: 'PATCH',
+              body: JSON.stringify({ action: 'CANCEL' }),
+            },
+          );
+          state.grocery.currentOrder =
+            payload?.data || state.grocery.currentOrder;
+          toggleGroceryCancelDialog(false);
+          renderGroceryTracking();
+          showToast('Order cancelled successfully.', 'ok');
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
+      }
+
+      async function downloadRewardsVoucher() {
+        try {
+          const selectedItems = getSelectedGroceryVoucherItems();
+          if (!selectedItems.length) {
+            throw new Error('Add items to the shopping voucher first.');
+          }
+
+          const response = await fetch(
+            `${getBaseUrl()}/api/v1/parent/kitchen/checkout/preview/pdf`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(state.token
+                  ? { Authorization: `Bearer ${state.token}` }
+                  : {}),
+              },
+              body: JSON.stringify({
+                itemIds: selectedItems.map((item) => item.id),
+                storeId: state.grocery.selectedStoreId || undefined,
+                finalNote: els.rewardsFinalNote.value.trim() || undefined,
+              }),
+            },
+          );
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Unable to download voucher PDF.');
+          }
+
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'shopping-voucher.pdf';
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          window.URL.revokeObjectURL(url);
+          showToast('Voucher PDF downloaded.', 'ok');
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
+      }
+
+      function renderOffers() {
+        if (!state.offers.length) {
+          els.offersList.innerHTML = `
+          <div class="empty-state">
+            ${
+              state.tab === 'SAVED'
+                ? 'No saved offers found yet.'
+                : 'No active offers found right now.'
+            }
+          </div>
+        `;
+          return;
+        }
+
+        els.offersList.innerHTML = state.offers
+          .map(
+            (offer) => `
+            <article class="offer-card">
+              <div class="offer-hero-wrap">
+                <img class="offer-hero" src="${escapeHtml(offer.heroImageUrl)}" alt="${escapeHtml(offer.title)}" />
+                <button class="save-btn ${offer.isSaved ? 'saved' : ''}" type="button" onclick="toggleSave('${offer.id}')">${offer.isSaved ? '♥' : '♡'}</button>
+              </div>
+              <div class="offer-body">
+                <div class="offer-top">
+                  <div class="partner-row">
+                    <img class="partner-logo" src="${escapeHtml(offer.partner?.logoUrl || '')}" alt="${escapeHtml(offer.partner?.name || '')}" />
+                    <div class="partner-name">${escapeHtml(offer.partner?.name || 'Partner')}</div>
+                  </div>
+                  <span class="alr-pill">${escapeHtml(offer.requiredPointsLabel || '0 ALR')}</span>
+                </div>
+                <div>
+                  <div class="offer-title">${escapeHtml(offer.title)}</div>
+                  <div class="offer-sub">${escapeHtml(offer.description || '')}</div>
+                </div>
+                <div class="expiry">🗓 ${escapeHtml(offer.formattedExpiry || 'No expiration date')}</div>
+                <div class="card-actions">
+                  <button class="btn-primary" type="button" onclick="openDetails('${offer.id}')">Redeem Offer</button>
+                  <button class="btn-secondary" type="button" onclick="openDetails('${offer.id}')">View Details</button>
+                </div>
+              </div>
+            </article>
+          `,
+          )
+          .join('');
+      }
+
+      function renderOfferDetails() {
+        const offer = state.offerDetail;
+        if (!offer) return;
+        const isOnlineOffer = offer.redemptionFlow === 'IN_ALUREI';
+
+        els.detailsHero.src = offer.heroImageUrl || '';
+        els.detailsLogo.src = offer.partner?.logoUrl || '';
+        els.detailsPartner.textContent = offer.partner?.name || 'Partner';
+        els.detailsTitle.textContent = offer.title || 'Offer';
+        els.detailsPoints.textContent =
+          offer.requiredPointsLabel || `${offer.requiredAlurei || 0} ALR`;
+        els.detailsSub.textContent = offer.description || '';
+        els.detailsExpiry.textContent =
+          offer.formattedExpiry || `Expires ${formatDate(offer.endDate)}`;
+        els.detailsTerms.textContent =
+          offer.termsAndConditions || 'Terms not available.';
+        els.includedTitle.textContent =
+          offer.whatsIncluded?.benefitTitle || offer.title || 'Offer included';
+        els.includedDescription.textContent =
+          offer.whatsIncluded?.benefitDescription || offer.description || '';
+        els.detailsFlowPill.textContent = offer.redemptionFlowLabel || 'Online';
+        els.redeemBtn.textContent = offer.canRedeem
+          ? isOnlineOffer
+            ? 'Visit groceries'
+            : 'Redeem Offer'
+          : `Need ${offer.requiredPointsLabel || `${offer.requiredAlurei || 0} ALR`}`;
+        els.redeemBtn.disabled = !offer.canRedeem;
+        els.qrPayloadInput.value = '';
+        els.detailsTags.innerHTML = getOfferTags(offer)
+          .map((tag) => `<span class="detail-tag">${escapeHtml(tag)}</span>`)
+          .join('');
+        els.includedBox.classList.toggle('promo-box', isOnlineOffer);
+        els.includedSection.querySelector('.section-title').textContent =
+          isOnlineOffer
+            ? 'Exclusive Alurei family discount'
+            : "What's Included";
+        els.termsSection.style.display = '';
+        els.locationsSection.style.display = isOnlineOffer ? 'none' : '';
+
+        const locations = offer.availableLocations || [];
+        els.storeLocationInput.innerHTML = [
+          '<option value="">Select store location</option>',
+          ...locations.map(
+            (location) =>
+              `<option value="${escapeHtml(location.id)}">${escapeHtml(location.name || location.address || 'Location')}</option>`,
+          ),
+        ].join('');
+
+        if (locations.length === 1) {
+          els.storeLocationInput.value = locations[0].id || '';
+        }
+
+        const websiteUrl =
+          offer.availableLocations?.find((location) => location.mapUrl)
+            ?.mapUrl || '';
+        els.visitWebsiteBtn.onclick = () => {
+          if (websiteUrl) {
+            window.open(websiteUrl, '_blank');
+          } else {
+            showToast(
+              'No website/location link available for this offer.',
+              'warn',
+            );
+          }
+        };
+
+        els.locationsList.innerHTML = (offer.availableLocations || []).length
+          ? offer.availableLocations
+              .map(
+                (location) => `
+                <div class="location-card">
+                  <div class="location-left">
+                    <div class="location-icon">⌖</div>
+                    <div>
+                      <div class="location-name">${escapeHtml(location.name || 'Location')}</div>
+                      <div class="location-sub">${escapeHtml(location.address || location.city || 'Address unavailable')}</div>
+                    </div>
+                  </div>
+                  ${
+                    location.mapUrl
+                      ? `<a class="location-link" href="${escapeHtml(location.mapUrl)}" target="_blank" rel="noreferrer">View location</a>`
+                      : '<span class="location-link">No map</span>'
+                  }
+                </div>
+              `,
+              )
+              .join('')
+          : '<div class="notice">No locations configured for this offer.</div>';
+      }
+
+      function updateScannerStatus(message, type = 'neutral') {
+        els.scannerStatus.textContent = message;
+        els.scannerStatus.style.color =
+          type === 'error'
+            ? 'var(--danger)'
+            : type === 'ok'
+              ? 'var(--teal)'
+              : 'var(--muted)';
+      }
+
+      function stopScanner() {
+        if (state.scanner.timer) {
+          clearInterval(state.scanner.timer);
+          state.scanner.timer = null;
+        }
+
+        if (state.scanner.stream) {
+          state.scanner.stream.getTracks().forEach((track) => track.stop());
+          state.scanner.stream = null;
+        }
+
+        state.scanner.active = false;
+        state.scanner.detector = null;
+        state.scanner.lastValue = '';
+        state.scanner.processing = false;
+        els.scannerVideo.pause();
+        els.scannerVideo.srcObject = null;
+        els.scannerVideo.classList.remove('ready');
+        els.scannerPlaceholder.classList.remove('hidden');
+      }
+
+      async function scanCurrentFrame() {
+        if (
+          !state.scanner.active ||
+          !state.scanner.detector ||
+          !els.scannerVideo.videoWidth
+        ) {
+          return;
+        }
+
+        try {
+          const barcodes = await state.scanner.detector.detect(
+            els.scannerVideo,
+          );
+          if (!barcodes.length) return;
+
+          const rawValue = barcodes[0].rawValue?.trim();
+          if (!rawValue || rawValue === state.scanner.lastValue) return;
+
+          state.scanner.lastValue = rawValue;
+          els.qrPayloadInput.value = rawValue;
+          updateScannerStatus('QR code captured. Redeeming offer...', 'ok');
+          showToast('QR code scanned successfully.', 'ok');
+          stopScanner();
+          state.scanner.processing = true;
+          setTimeout(() => {
+            processRedemption({ autoScanned: true }).finally(() => {
+              state.scanner.processing = false;
+            });
+          }, 150);
+        } catch (error) {
+          updateScannerStatus(
+            error?.message || 'Unable to detect QR code from camera.',
+            'error',
+          );
+        }
+      }
+
+      async function startScanner() {
+        if (!state.offerDetail) {
+          showToast('Open an offer first.', 'warn');
+          return;
+        }
+
+        if (
+          !('BarcodeDetector' in window) ||
+          !navigator.mediaDevices?.getUserMedia
+        ) {
+          updateScannerStatus(
+            'Live QR scanning is not supported on this browser. Use Upload QR image or paste payload.',
+            'error',
+          );
+          return;
+        }
+
+        try {
+          const supportedFormats =
+            await window.BarcodeDetector.getSupportedFormats();
+          if (!supportedFormats.includes('qr_code')) {
+            updateScannerStatus(
+              'This browser does not support QR format detection. Use Upload QR image or paste payload.',
+              'error',
+            );
+            return;
+          }
+
+          stopScanner();
+          state.scanner.detector = new window.BarcodeDetector({
+            formats: ['qr_code'],
+          });
+          state.scanner.stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: 'environment' },
+            },
+            audio: false,
+          });
+          els.scannerVideo.srcObject = state.scanner.stream;
+          await els.scannerVideo.play();
+          state.scanner.active = true;
+          els.scannerVideo.classList.add('ready');
+          els.scannerPlaceholder.classList.add('hidden');
+          updateScannerStatus(
+            'Camera started. Hold the store QR code inside the frame.',
+          );
+          state.scanner.timer = setInterval(scanCurrentFrame, 900);
+        } catch (error) {
+          stopScanner();
+          updateScannerStatus(
+            error?.message ||
+              'Camera permission denied or unavailable on this device.',
+            'error',
+          );
+        }
+      }
+
+      function pickQrImage() {
+        els.scannerUploadInput.click();
+      }
+
+      async function handleQrImageUpload(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (!('BarcodeDetector' in window)) {
+          updateScannerStatus(
+            'Image QR detection is not supported here. Paste payload manually for backend test.',
+            'error',
+          );
+          event.target.value = '';
+          return;
+        }
+
+        try {
+          const supportedFormats =
+            await window.BarcodeDetector.getSupportedFormats();
+          if (!supportedFormats.includes('qr_code')) {
+            throw new Error(
+              'QR image detection is not supported on this browser.',
+            );
+          }
+
+          const imageBitmap = await createImageBitmap(file);
+          const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+          const barcodes = await detector.detect(imageBitmap);
+          const rawValue = barcodes[0]?.rawValue?.trim();
+
+          if (!rawValue) {
+            throw new Error('No QR code found in the selected image.');
+          }
+
+          els.qrPayloadInput.value = rawValue;
+          updateScannerStatus('QR image decoded. Ready to redeem.', 'ok');
+          showToast('QR image decoded successfully.', 'ok');
+        } catch (error) {
+          updateScannerStatus(error.message, 'error');
+          showToast(error.message, 'error');
+        } finally {
+          event.target.value = '';
+        }
+      }
+
+      function renderHistory() {
+        if (!state.redemptions.length) {
+          els.historyList.innerHTML =
+            '<div class="empty-state">No redeemed offers found yet.</div>';
+          return;
+        }
+
+        els.historyList.innerHTML = state.redemptions
+          .map(
+            (item) => `
+            <article class="history-card">
+              <div class="history-top">
+                <div class="history-partner">
+                  <img class="history-logo" src="${escapeHtml(item.partnerLogoUrl || '')}" alt="${escapeHtml(item.partnerName || '')}" />
+                  <div>
+                    <div class="history-title">${escapeHtml(item.offerTitle || 'Offer')}</div>
+                    <div class="history-sub">${escapeHtml(item.partnerName || 'Partner')}</div>
+                  </div>
+                </div>
+                <span class="alr-pill">${escapeHtml(item.redeemedPointsLabel || '0 ALR')}</span>
+              </div>
+              <div class="detail-subtle">${escapeHtml(item.description || '')}</div>
+              <div class="detail-subtle">Redeemed on ${escapeHtml(formatDate(item.redeemedAt))}</div>
+              <div class="detail-subtle danger">Code: ${escapeHtml(item.redemptionCode || 'N/A')}</div>
+            </article>
+          `,
+          )
+          .join('');
+      }
+
+      async function login() {
+        try {
+          els.sheetStatus.textContent = 'Signing in...';
+          const payload = await request('/auth/signin', {
+            method: 'POST',
+            body: JSON.stringify({
+              email: els.emailInput.value.trim(),
+              password: els.passwordInput.value,
+            }),
+          });
+          const data = payload?.data || payload;
+          if (!data?.accessToken) {
+            throw new Error('accessToken missing from login response.');
+          }
+          setToken(data.accessToken);
+          state.user = data.user || null;
+          localStorage.setItem(storageKeys.baseUrl, getBaseUrl());
+          localStorage.setItem(storageKeys.email, els.emailInput.value.trim());
+          els.passwordInput.value = '';
+          updateAuthBanner();
+          els.sheetStatus.textContent =
+            'Login successful. Token saved on this phone/browser.';
+          toggleLoginSheet(false);
+          showToast('Login successful.', 'ok');
+          await loadOffers();
+        } catch (error) {
+          els.sheetStatus.textContent = error.message;
+          showToast(error.message, 'error');
+        }
+      }
+
+      async function fetchMe() {
+        if (!state.token) return;
+        try {
+          const payload = await request('/auth/me');
+          state.user = payload?.data || payload;
+        } catch (error) {
+          state.user = null;
+          setToken('');
+          showToast('Saved session expired. Login again.', 'warn');
+        }
+        updateAuthBanner();
+      }
+
+      async function loadOffers() {
+        if (!requireAuth('loading offers')) return;
+        try {
+          els.offersList.innerHTML =
+            '<div class="notice">Loading offers...</div>';
+          const params = new URLSearchParams({
+            tab: state.tab,
+            limit: '20',
+          });
+          if (state.search) {
+            params.set('search', state.search);
+          }
+          const payload = await request(`/my-offers?${params.toString()}`);
+          state.offers = payload?.data || [];
+          renderOffers();
+        } catch (error) {
+          els.offersList.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
+          showToast(error.message, 'error');
+        }
+      }
+
+      async function openDetails(offerId) {
+        if (!requireAuth('opening offer details')) return;
+        try {
+          const payload = await request(`/my-offers/${offerId}`);
+          state.offerDetail = payload?.data || null;
+          renderOfferDetails();
+          showScreen('screen-details');
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
+      }
+
+      async function toggleSave(offerId) {
+        if (!requireAuth('saving an offer')) return;
+        try {
+          await request(`/my-offers/${offerId}/toggle-save`, {
+            method: 'POST',
+            body: JSON.stringify({}),
+          });
+          showToast('Offer bookmark updated.', 'ok');
+          if (state.offerDetail?.id === offerId) {
+            await openDetails(offerId);
+          }
+          await loadOffers();
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
+      }
+
+      function openRedeemFlow() {
+        if (!state.offerDetail) return;
+        if (state.offerDetail.redemptionFlow === 'IN_ALUREI') {
+          processRedemption({ openGroceries: true });
+          return;
+        }
+        if (state.offerDetail.redemptionFlow === 'IN_STORE') {
+          updateScannerStatus(
+            'Start camera or upload the store QR code before redeeming.',
+          );
+          showScreen('screen-scanner');
+          return;
+        }
+        processRedemption();
+      }
+
+      async function processRedemption(options = {}) {
+        if (!requireAuth('redeeming an offer')) return;
+        if (!state.offerDetail) return;
+
+        try {
+          const isInStore = state.offerDetail.redemptionFlow === 'IN_STORE';
+          if (state.scanner.processing && !options.autoScanned) {
+            return;
+          }
+          if (isInStore && !els.qrPayloadInput.value.trim()) {
+            throw new Error(
+              'Scan the partner QR code first, then tap Redeem Offer.',
+            );
+          }
+          const path = isInStore
+            ? `/my-offers/${state.offerDetail.id}/redeem-instore`
+            : `/my-offers/${state.offerDetail.id}/redeem`;
+          const payload = await request(path, {
+            method: 'POST',
+            body: JSON.stringify({
+              qrPayload: els.qrPayloadInput.value.trim() || undefined,
+              storeLocationId: els.storeLocationInput.value.trim() || undefined,
+            }),
+          });
+          const data = payload?.data || payload;
+          els.successSub.textContent =
+            data?.subtitle ||
+            `You've successfully redeemed ${data?.redeemedPointsLabel || state.offerDetail.requiredPointsLabel}.`;
+          stopScanner();
+          if (options.openGroceries && !isInStore) {
+            state.grocery.pendingOfferId = state.offerDetail.id;
+            state.grocery.paymentType = 'ONLINE';
+            showToast('Offer unlocked. Opening groceries...', 'ok');
+            await loadRewardsShoppingItems();
+            showScreen('screen-grocery-list');
+            return;
+          }
+          showScreen('screen-success');
+          showToast('Offer redeemed successfully.', 'ok');
+          await Promise.all([loadOffers(), loadRewardsHistory()]);
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
+      }
+
+      async function loadRewardsHistory() {
+        if (!requireAuth('loading redeemed rewards')) return;
+        const payload = await request('/my-offers/redemptions/me');
+        state.redemptions = payload?.data || [];
+        renderHistory();
+      }
+
+      async function openRewardsHistory() {
+        try {
+          els.historyList.innerHTML =
+            '<div class="notice">Loading redeemed offers...</div>';
+          await loadRewardsHistory();
+          showScreen('screen-history');
+        } catch (error) {
+          els.historyList.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
+          showToast(error.message, 'error');
+        }
+      }
+
+      async function switchTab(tab) {
+        state.tab = tab;
+        els.tabAll.classList.toggle('active', tab === 'ALL');
+        els.tabSaved.classList.toggle('active', tab === 'SAVED');
+        await loadOffers();
+      }
+
+      async function applySearch() {
+        state.search = els.searchInput.value.trim();
+        await loadOffers();
+      }
+
+      function logout() {
+        setToken('');
+        state.user = null;
+        state.offers = [];
+        state.offerDetail = null;
+        state.redemptions = [];
+        updateAuthBanner();
+        renderOffers();
+        showToast('Saved token removed.', 'ok');
+      }
+
+      async function bootstrap() {
+        els.baseUrlInput.value =
+          localStorage.getItem(storageKeys.baseUrl) || inferBaseUrl();
+        els.emailInput.value = localStorage.getItem(storageKeys.email) || '';
+        state.token = localStorage.getItem(storageKeys.token) || '';
+        updateAuthBanner();
+
+        els.searchInput.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            applySearch();
+          }
+        });
+        els.redeemBtn.addEventListener('click', openRedeemFlow);
+        els.scannerUploadInput.addEventListener('change', handleQrImageUpload);
+        els.groceryItemName.addEventListener(
+          'input',
+          handleGroceryItemNameInput,
+        );
+        els.groceryItemName.addEventListener('change', () => {
+          syncGrocerySuggestionSelection();
+        });
+
+        if (state.token) {
+          await fetchMe();
+          if (state.token) {
+            await loadOffers();
+            return;
+          }
+        }
+
+        renderOffers();
+        toggleLoginSheet(true);
+      }
+
+      bootstrap();
+    </script>
+  </body>
 </html>

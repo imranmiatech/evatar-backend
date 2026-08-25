@@ -58,8 +58,14 @@ async function bootstrap() {
     .setDescription('The backend API for EvaTurner application')
     .setVersion('1.0')
     .addBearerAuth()
-    .addTag('Rewards', 'User reward hub, task completion rewards, and redemptions')
-    .addTag('Admin Rewards', 'Admin reward rules configuration and platform overview')
+    .addTag(
+      'Rewards',
+      'User reward hub, task completion rewards, and redemptions',
+    )
+    .addTag(
+      'Admin Rewards',
+      'Admin reward rules configuration and platform overview',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -114,7 +120,11 @@ async function bootstrap() {
   });
 
   expressApp.get(
-    ['/notification-test-ui', '/notification-lab', '/public/notification-test.html'],
+    [
+      '/notification-test-ui',
+      '/notification-lab',
+      '/public/notification-test.html',
+    ],
     (req: any, res: any) => {
       const fs = require('fs');
       const path = require('path');
@@ -240,7 +250,11 @@ async function bootstrap() {
   );
 
   expressApp.get(
-    ['/manage-system-ui', '/manage-caregivers-ui', '/public/manage-system.html'],
+    [
+      '/manage-system-ui',
+      '/manage-caregivers-ui',
+      '/public/manage-system.html',
+    ],
     (req: any, res: any) => {
       const fs = require('fs');
       const path = require('path');
@@ -294,6 +308,22 @@ async function bootstrap() {
     res.sendFile(targetPath);
   });
 
+  expressApp.get(
+    ['/grocery-order-ui', '/groceries-ui', '/public/grocery-order-ui.html'],
+    (req: any, res: any) => {
+      const fs = require('fs');
+      const path = require('path');
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'public/grocery-order-ui.html'),
+        path.resolve(__dirname, '../public/grocery-order-ui.html'),
+        path.resolve(__dirname, '../../public/grocery-order-ui.html'),
+      ];
+      const targetPath =
+        possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+      res.sendFile(targetPath);
+    },
+  );
+
   expressApp.get(['/meal-ui', '/recipes-ui', '/meal'], (req: any, res: any) => {
     const fs = require('fs');
     const path = require('path');
@@ -308,7 +338,12 @@ async function bootstrap() {
   });
 
   expressApp.get(
-    ['/parent-children-ui', '/children-ui', '/parent-children', '/public/parent-children.html'],
+    [
+      '/parent-children-ui',
+      '/children-ui',
+      '/parent-children',
+      '/public/parent-children.html',
+    ],
     (req: any, res: any) => {
       const fs = require('fs');
       const path = require('path');

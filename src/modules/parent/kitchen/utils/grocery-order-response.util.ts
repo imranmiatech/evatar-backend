@@ -1,4 +1,4 @@
-import { GroceryOrderStatus } from '@prisma/client';
+import { GroceryOrderStatus, PaymentMethodType } from '@prisma/client';
 
 export function groceryOrderInclude() {
   return {
@@ -21,7 +21,16 @@ export function groceryOrderInclude() {
   };
 }
 
-export function formatStore(store: any) {
+export function formatStore(
+  store: any,
+  savings?: {
+    savingsAmount?: number;
+    savingsPercent?: number;
+    savingsCurrency?: string;
+    savingsSubtitle?: string;
+    deliveryLabel?: string;
+  } | null,
+) {
   return {
     id: store.id,
     name: store.name,
@@ -35,10 +44,15 @@ export function formatStore(store: any) {
       email: store.user.email,
       phoneNumber: store.user.phoneNumber,
     },
+    savingsAmount: savings?.savingsAmount ?? null,
+    savingsPercent: savings?.savingsPercent ?? null,
+    savingsCurrency: savings?.savingsCurrency ?? null,
+    savingsSubtitle: savings?.savingsSubtitle ?? null,
     deliveryLabel:
-      store.name?.toLowerCase().includes('carrefour')
+      savings?.deliveryLabel ||
+      (store.name?.toLowerCase().includes('carrefour')
         ? 'Save 5% when you spend over 100 AED'
-        : 'Partner store available for family delivery',
+        : 'Partner store available for family delivery'),
   };
 }
 
@@ -91,17 +105,23 @@ export function formatGroceryOrder(order: any, payment?: any) {
 function buildTrackingTimeline(order: any) {
   const createdAt = order.createdAt;
   const updatedAt = order.updatedAt;
+  const isCashOnDelivery =
+    order.paymentType === PaymentMethodType.CASH_ON_DELIVERY;
 
   return [
     {
       key: 'PAYMENT_CONFIRMED',
-      title: 'Payment confirmed',
-      active: [
-        GroceryOrderStatus.ORDER_CONFIRMED,
-        GroceryOrderStatus.OUT_FOR_DELIVERY,
-        GroceryOrderStatus.DELIVERED,
-      ].includes(order.status),
-      timestamp: createdAt,
+      title: isCashOnDelivery
+        ? 'Payment pending (Cash on Delivery)'
+        : 'Payment confirmed',
+      active:
+        !isCashOnDelivery &&
+        [
+          GroceryOrderStatus.ORDER_CONFIRMED,
+          GroceryOrderStatus.OUT_FOR_DELIVERY,
+          GroceryOrderStatus.DELIVERED,
+        ].includes(order.status),
+      timestamp: isCashOnDelivery ? null : createdAt,
     },
     {
       key: 'ORDER_CONFIRMED',

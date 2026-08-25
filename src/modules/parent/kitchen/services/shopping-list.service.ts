@@ -210,6 +210,7 @@ export class ShoppingListService {
         ...(dto.quantity !== undefined && { quantity: dto.quantity }),
         ...(dto.category !== undefined && { category: dto.category }),
         ...(dto.note !== undefined && { note: dto.note }),
+        ...(dto.status !== undefined && { status: dto.status }),
       },
       include: {
         createdByUser: {

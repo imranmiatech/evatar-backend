@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  PartnerOfferRedemptionFlow,
   PartnerOfferStatus,
   Prisma,
   RewardLedgerEntryType,
@@ -54,10 +55,18 @@ export class MyOfferService {
       ? {
           OR: [
             { title: { contains: query.search.trim(), mode: 'insensitive' } },
-            { description: { contains: query.search.trim(), mode: 'insensitive' } },
+            {
+              description: {
+                contains: query.search.trim(),
+                mode: 'insensitive',
+              },
+            },
             {
               partnerUser: {
-                fullName: { contains: query.search.trim(), mode: 'insensitive' },
+                fullName: {
+                  contains: query.search.trim(),
+                  mode: 'insensitive',
+                },
               },
             },
           ],
@@ -284,6 +293,34 @@ export class MyOfferService {
   }
 
   /**
+   * Online offer claim flow.
+   * If the user has enough points, they can unlock the offer directly.
+   */
+  async redeemOffer(userId: string, offerId: string) {
+    const { offer, account } = await this.validateOnlineOfferEligibility(
+      userId,
+      offerId,
+    );
+
+    return {
+      success: true,
+      message: 'Offer unlocked successfully',
+      data: {
+        offerId: offer.id,
+        offerTitle: offer.title,
+        partnerName: offer.partnerUser.fullName,
+        partnerLogoUrl: offer.partnerUser.profilePictureUrl,
+        redeemedPoints: offer.requiredAlurei,
+        redeemedPointsLabel: `${offer.requiredAlurei} ALR`,
+        title: 'Offer unlocked successfully',
+        subtitle:
+          'Complete your grocery payment successfully to deduct points and claim this offer.',
+        remainingPointsBalance: account.balance,
+      },
+    };
+  }
+
+  /**
    * In-Store QR verification & Points Redemption Flow
    * Matches Screen 1 (QR Scanner) -> Screen 2 (Redemption success)
    */
@@ -292,46 +329,33 @@ export class MyOfferService {
     offerId: string,
     dto?: RedeemInStoreDto,
   ) {
-    const now = new Date();
+    const offer = await this.getRedeemableOffer(offerId);
 
-    const offer = await this.prisma.partnerOffer.findUnique({
-      where: { id: offerId },
-      include: {
-        partnerUser: {
-          select: {
-            fullName: true,
-            profilePictureUrl: true,
-          },
+    if (offer.redemptionFlow !== PartnerOfferRedemptionFlow.IN_STORE) {
+      throw new BadRequestException(
+        'This offer can be unlocked directly without QR scanning',
+      );
+    }
+
+    this.assertValidInStoreScan(offer.id, dto?.qrPayload);
+
+    if (dto?.storeLocationId) {
+      const location = await this.prisma.partnerOfferLocation.findFirst({
+        where: {
+          id: dto.storeLocationId,
+          partnerOfferId: offer.id,
         },
-      },
-    });
-
-    if (!offer) {
-      throw new NotFoundException('Offer not found');
-    }
-
-    if (offer.status !== PartnerOfferStatus.ACTIVE) {
-      throw new BadRequestException('This offer is not currently active');
-    }
-
-    if (offer.startDate && offer.startDate > now) {
-      throw new BadRequestException('This offer has not started yet');
-    }
-
-    if (offer.endDate && offer.endDate < now) {
-      throw new BadRequestException('This offer has expired');
-    }
-
-    // Get or create user reward account
-    let account = await this.prisma.rewardAccount.findUnique({
-      where: { userId },
-    });
-
-    if (!account) {
-      account = await this.prisma.rewardAccount.create({
-        data: { userId, balance: 0 },
+        select: { id: true },
       });
+
+      if (!location) {
+        throw new BadRequestException(
+          'Selected store location does not belong to this offer',
+        );
+      }
     }
+
+    const account = await this.ensureRewardAccount(userId);
 
     if (account.balance < offer.requiredAlurei) {
       throw new BadRequestException(
@@ -339,61 +363,7 @@ export class MyOfferService {
       );
     }
 
-    const redemptionCode = `ALR-${offer.id.slice(0, 5).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    // Execute atomic transaction for points deduction and redemption
-    const result = await this.prisma.$transaction(async (tx) => {
-      // Deduct ALR points
-      const updatedAccount = await tx.rewardAccount.update({
-        where: { id: account.id },
-        data: {
-          balance: { decrement: offer.requiredAlurei },
-          lifetimeSpent: { increment: offer.requiredAlurei },
-        },
-      });
-
-      // Create redemption record
-      const redemption = await tx.partnerOfferRedemption.create({
-        data: {
-          offerId: offer.id,
-          userId,
-        },
-      });
-
-      // Create ledger spend entry
-      await tx.rewardLedgerEntry.create({
-        data: {
-          userId,
-          entryType: RewardLedgerEntryType.SPEND,
-          sourceType: RewardLedgerSourceType.REWARD_REDEMPTION,
-          sourceId: redemption.id,
-          points: -offer.requiredAlurei,
-          balanceAfter: updatedAccount.balance,
-          description: `Redeemed offer: ${offer.title}`,
-        },
-      });
-
-      return { redemption, updatedAccount };
-    });
-
-    return {
-      success: true,
-      message: 'Offer Redeemed Successfully',
-      data: {
-        redemptionId: result.redemption.id,
-        offerId: offer.id,
-        offerTitle: offer.title,
-        partnerName: offer.partnerUser.fullName,
-        partnerLogoUrl: offer.partnerUser.profilePictureUrl,
-        redeemedPoints: offer.requiredAlurei,
-        redeemedPointsLabel: `${offer.requiredAlurei} ALR`,
-        title: 'Offer Redeemed Successfully',
-        subtitle: `You've successfully redeemed ${offer.requiredAlurei} ALR.`,
-        remainingPointsBalance: result.updatedAccount.balance,
-        redemptionCode,
-        redeemedAt: result.redemption.createdAt,
-      },
-    };
+    return this.completeOfferRedemption(userId, offer, account.id);
   }
 
   /**
@@ -501,5 +471,264 @@ export class MyOfferService {
     const day = date.getDate();
     const year = date.getFullYear();
     return `Expires ${month} ${day}, ${year}`;
+  }
+
+  private async getRedeemableOffer(offerId: string) {
+    const now = new Date();
+    const offer = await this.prisma.partnerOffer.findUnique({
+      where: { id: offerId },
+      include: {
+        partnerUser: {
+          select: {
+            fullName: true,
+            profilePictureUrl: true,
+          },
+        },
+      },
+    });
+
+    if (!offer) {
+      throw new NotFoundException('Offer not found');
+    }
+
+    if (offer.status !== PartnerOfferStatus.ACTIVE) {
+      throw new BadRequestException('This offer is not currently active');
+    }
+
+    if (offer.startDate && offer.startDate > now) {
+      throw new BadRequestException('This offer has not started yet');
+    }
+
+    if (offer.endDate && offer.endDate < now) {
+      throw new BadRequestException('This offer has expired');
+    }
+
+    return offer;
+  }
+
+  private async ensureRewardAccount(userId: string) {
+    let account = await this.prisma.rewardAccount.findUnique({
+      where: { userId },
+    });
+
+    if (!account) {
+      account = await this.prisma.rewardAccount.create({
+        data: { userId, balance: 0 },
+      });
+    }
+
+    return account;
+  }
+
+  async validateOnlineOfferEligibility(userId: string, offerId: string) {
+    const offer = await this.getRedeemableOffer(offerId);
+
+    if (offer.redemptionFlow !== PartnerOfferRedemptionFlow.IN_ALUREI) {
+      throw new BadRequestException(
+        'This offer requires in-store QR redemption',
+      );
+    }
+
+    const account = await this.ensureRewardAccount(userId);
+
+    if (account.balance < offer.requiredAlurei) {
+      throw new BadRequestException(
+        `Insufficient ALR points balance. You have ${account.balance} ALR, but ${offer.requiredAlurei} ALR is required.`,
+      );
+    }
+
+    return { offer, account };
+  }
+
+  async completeOnlineOfferAfterPayment(
+    userId: string,
+    offerId: string,
+    redemptionSourceId: string,
+  ) {
+    const existingLedger = await this.prisma.rewardLedgerEntry.findFirst({
+      where: {
+        userId,
+        entryType: RewardLedgerEntryType.SPEND,
+        sourceType: RewardLedgerSourceType.REWARD_REDEMPTION,
+        sourceId: redemptionSourceId,
+      },
+    });
+
+    if (existingLedger) {
+      const offer = await this.getRedeemableOffer(offerId);
+      const existingRedemption =
+        await this.prisma.partnerOfferRedemption.findFirst({
+          where: { offerId, userId },
+          orderBy: { createdAt: 'desc' },
+        });
+      const refreshedAccount = await this.ensureRewardAccount(userId);
+
+      return {
+        success: true,
+        message: 'Offer redemption already finalized for this payment',
+        data: {
+          redemptionId: existingRedemption?.id || null,
+          offerId: offer.id,
+          offerTitle: offer.title,
+          partnerName: offer.partnerUser.fullName,
+          partnerLogoUrl: offer.partnerUser.profilePictureUrl,
+          redeemedPoints: offer.requiredAlurei,
+          redeemedPointsLabel: `${offer.requiredAlurei} ALR`,
+          title: 'Offer Redeemed Successfully',
+          subtitle: `You've successfully redeemed ${offer.requiredAlurei} ALR.`,
+          remainingPointsBalance: refreshedAccount.balance,
+          redemptionCode: existingRedemption
+            ? `ALR-${offer.id.slice(0, 5).toUpperCase()}-${existingRedemption.id.slice(0, 4).toUpperCase()}`
+            : null,
+          redeemedAt: existingRedemption?.createdAt || null,
+        },
+      };
+    }
+
+    const { offer, account } = await this.validateOnlineOfferEligibility(
+      userId,
+      offerId,
+    );
+
+    try {
+      return await this.completeOfferRedemption(
+        userId,
+        offer,
+        account.id,
+        redemptionSourceId,
+      );
+    } catch (error: any) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          const existingRedemption =
+            await this.prisma.partnerOfferRedemption.findFirst({
+              where: { offerId, userId },
+              orderBy: { createdAt: 'desc' },
+            });
+          const refreshedAccount = await this.ensureRewardAccount(userId);
+
+          return {
+            success: true,
+            message: 'Offer redemption already finalized for this payment',
+            data: {
+              redemptionId: existingRedemption?.id || null,
+              offerId: offer.id,
+              offerTitle: offer.title,
+              partnerName: offer.partnerUser.fullName,
+              partnerLogoUrl: offer.partnerUser.profilePictureUrl,
+              redeemedPoints: offer.requiredAlurei,
+              redeemedPointsLabel: `${offer.requiredAlurei} ALR`,
+              title: 'Offer Redeemed Successfully',
+              subtitle: `You've successfully redeemed ${offer.requiredAlurei} ALR.`,
+              remainingPointsBalance: refreshedAccount.balance,
+              redemptionCode: existingRedemption
+                ? `ALR-${offer.id.slice(0, 5).toUpperCase()}-${existingRedemption.id.slice(0, 4).toUpperCase()}`
+                : null,
+              redeemedAt: existingRedemption?.createdAt || null,
+            },
+          };
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  private async completeOfferRedemption(
+    userId: string,
+    offer: {
+      id: string;
+      title: string;
+      requiredAlurei: number;
+      partnerUser: {
+        fullName: string;
+        profilePictureUrl: string | null;
+      };
+    },
+    rewardAccountId: string,
+    redemptionSourceId?: string,
+  ) {
+    const redemptionCode = `ALR-${offer.id.slice(0, 5).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const updatedAccount = await tx.rewardAccount.update({
+        where: { id: rewardAccountId },
+        data: {
+          balance: { decrement: offer.requiredAlurei },
+          lifetimeSpent: { increment: offer.requiredAlurei },
+        },
+      });
+
+      const redemption = await tx.partnerOfferRedemption.create({
+        data: {
+          offerId: offer.id,
+          userId,
+        },
+      });
+
+      await tx.rewardLedgerEntry.create({
+        data: {
+          userId,
+          entryType: RewardLedgerEntryType.SPEND,
+          sourceType: RewardLedgerSourceType.REWARD_REDEMPTION,
+          sourceId: redemptionSourceId || redemption.id,
+          points: -offer.requiredAlurei,
+          balanceAfter: updatedAccount.balance,
+          description: `Redeemed offer: ${offer.title}`,
+          metadata: redemptionSourceId
+            ? { redemptionId: redemption.id }
+            : undefined,
+        },
+      });
+
+      return { redemption, updatedAccount };
+    });
+
+    return {
+      success: true,
+      message: 'Offer Redeemed Successfully',
+      data: {
+        redemptionId: result.redemption.id,
+        offerId: offer.id,
+        offerTitle: offer.title,
+        partnerName: offer.partnerUser.fullName,
+        partnerLogoUrl: offer.partnerUser.profilePictureUrl,
+        redeemedPoints: offer.requiredAlurei,
+        redeemedPointsLabel: `${offer.requiredAlurei} ALR`,
+        title: 'Offer Redeemed Successfully',
+        subtitle: `You've successfully redeemed ${offer.requiredAlurei} ALR.`,
+        remainingPointsBalance: result.updatedAccount.balance,
+        redemptionCode,
+        redeemedAt: result.redemption.createdAt,
+      },
+    };
+  }
+
+  private assertValidInStoreScan(offerId: string, qrPayload?: string) {
+    const normalizedPayload = qrPayload?.trim();
+
+    if (!normalizedPayload) {
+      throw new BadRequestException(
+        'QR scan is required for in-store offer redemption',
+      );
+    }
+
+    let parsedPayload: { type?: string; offerId?: string } | null = null;
+
+    try {
+      parsedPayload = JSON.parse(normalizedPayload);
+    } catch {
+      throw new BadRequestException('Invalid QR code payload');
+    }
+
+    if (parsedPayload?.type !== 'ALUREI_PARTNER_OFFER') {
+      throw new BadRequestException('Unsupported QR code type');
+    }
+
+    if (parsedPayload.offerId !== offerId) {
+      throw new BadRequestException(
+        'Scanned QR code does not match the selected offer',
+      );
+    }
   }
 }

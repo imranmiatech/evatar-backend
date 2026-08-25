@@ -15,6 +15,7 @@ import {
 import Stripe from 'stripe';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
+import { MyOfferService } from '../myoffer/my-offer.service';
 import { CreateNannyTipDto } from './dto/create-nanny-tip.dto';
 import { CreatePartnerProductPaymentDto } from './dto/create-partner-product-payment.dto';
 import { PaymentAccountService } from './payment-account.service';
@@ -28,12 +29,11 @@ export class PaymentService {
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
     private readonly paymentAccountService: PaymentAccountService,
+    private readonly myOfferService: MyOfferService,
   ) {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     this.stripe =
-      stripeKey && !stripeKey.includes('dummy')
-        ? new Stripe(stripeKey)
-        : null;
+      stripeKey && !stripeKey.includes('dummy') ? new Stripe(stripeKey) : null;
   }
 
   async getAssignedNanniesForTips(senderUserId: string) {
@@ -151,10 +151,10 @@ export class PaymentService {
         senderUserId,
         dto.paymentMethodId,
       );
-    const payoutRecipient = await this.paymentAccountService.resolvePaymentRecipient(
-      'NANNY_TIP',
-      { nannyUserId: dto.nannyUserId },
-    );
+    const payoutRecipient =
+      await this.paymentAccountService.resolvePaymentRecipient('NANNY_TIP', {
+        nannyUserId: dto.nannyUserId,
+      });
 
     const tipRecord = await this.prisma.nannyTip.create({
       data: {
@@ -350,6 +350,18 @@ export class PaymentService {
         );
         await this.confirmTipPayment(tipId, paymentIntent.id);
       }
+
+      const groceryOrderId = paymentIntent.metadata?.groceryOrderId;
+      if (groceryOrderId && paymentIntent.metadata?.type === 'GROCERY_ORDER') {
+        this.logger.log(
+          `Stripe Webhook: PaymentIntent ${paymentIntent.id} succeeded for grocery order ${groceryOrderId}`,
+        );
+        await this.confirmGroceryOrderPayment(
+          groceryOrderId,
+          paymentIntent.id,
+          paymentIntent.metadata?.offerId || undefined,
+        );
+      }
     }
 
     return { received: true };
@@ -457,10 +469,11 @@ export class PaymentService {
         buyerUserId,
         dto.paymentMethodId,
       );
-    const payoutRecipient = await this.paymentAccountService.resolvePaymentRecipient(
-      'PARTNER_PRODUCT',
-      { productId: dto.productId },
-    );
+    const payoutRecipient =
+      await this.paymentAccountService.resolvePaymentRecipient(
+        'PARTNER_PRODUCT',
+        { productId: dto.productId },
+      );
 
     let clientSecret = `pi_mock_partner_${product.id}_secret_dummy`;
     let paymentIntentId = `pi_mock_partner_${product.id}`;
@@ -516,6 +529,7 @@ export class PaymentService {
     payerUserId: string,
     input: {
       groceryOrderId: string;
+      offerId?: string;
       currency?: string;
       paymentMethodId?: string | null;
       successUrl?: string;
@@ -567,9 +581,12 @@ export class PaymentService {
         !!input.paymentMethodId,
       );
     const payoutRecipient =
-      await this.paymentAccountService.resolvePaymentRecipient('GROCERY_ORDER', {
-        storeId: order.storeId,
-      });
+      await this.paymentAccountService.resolvePaymentRecipient(
+        'GROCERY_ORDER',
+        {
+          storeId: order.storeId,
+        },
+      );
     const destinationAccountId =
       payoutRecipient.payoutMethod?.stripeConnectedAccountId || null;
 
@@ -598,6 +615,7 @@ export class PaymentService {
       storeId: order.storeId,
       storeName: order.store.name,
       type: 'GROCERY_ORDER',
+      ...(input.offerId ? { offerId: input.offerId } : {}),
     };
     const description = `Grocery order payment for ${order.store.name}`;
 
@@ -665,7 +683,8 @@ export class PaymentService {
       checkoutUrl = checkoutSession.url || null;
       checkoutSessionId = checkoutSession.id;
       paymentStatus = 'CHECKOUT_REQUIRED';
-      paymentIntentId = checkoutSession.payment_intent as string || paymentIntentId;
+      paymentIntentId =
+        (checkoutSession.payment_intent as string) || paymentIntentId;
     }
 
     const transaction = await this.prisma.transaction.create({
@@ -690,6 +709,7 @@ export class PaymentService {
           checkoutUrl,
           checkoutSessionId,
           paymentStatus,
+          offerId: input.offerId || null,
           payoutRecipient,
         }),
       },
@@ -705,6 +725,14 @@ export class PaymentService {
             : GroceryOrderStatus.STORE_REVIEWED,
       },
     });
+
+    if (paymentStatus === 'SUCCEEDED' && input.offerId) {
+      await this.myOfferService.completeOnlineOfferAfterPayment(
+        payerUserId,
+        input.offerId,
+        transaction.id,
+      );
+    }
 
     return {
       success: true,
@@ -728,6 +756,61 @@ export class PaymentService {
     };
   }
 
+  async confirmGroceryOrderPayment(
+    groceryOrderId: string,
+    paymentIntentId?: string,
+    offerId?: string,
+  ) {
+    const order = await this.prisma.groceryOrder.findUnique({
+      where: { id: groceryOrderId },
+      include: {
+        transactions: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Grocery order not found');
+    }
+
+    const transaction =
+      order.transactions.find((entry) =>
+        paymentIntentId ? entry.paymentIntentId === paymentIntentId : true,
+      ) || null;
+
+    if (transaction) {
+      await this.prisma.transaction.update({
+        where: { id: transaction.id },
+        data: { status: TransactionStatus.SUCCESS },
+      });
+    }
+
+    await this.prisma.groceryOrder.update({
+      where: { id: groceryOrderId },
+      data: { status: GroceryOrderStatus.ORDER_CONFIRMED },
+    });
+
+    if (offerId && transaction) {
+      await this.myOfferService.completeOnlineOfferAfterPayment(
+        order.userId,
+        offerId,
+        transaction.id,
+      );
+    }
+
+    return {
+      success: true,
+      message: 'Grocery order payment confirmed successfully',
+      data: {
+        groceryOrderId,
+        paymentIntentId:
+          paymentIntentId || transaction?.paymentIntentId || null,
+        transactionId: transaction?.id || null,
+      },
+    };
+  }
+
   private async createStripePaymentIntent(input: {
     amount: number;
     currency: string;
@@ -747,7 +830,8 @@ export class PaymentService {
       amount: input.amount,
       currency: input.currency.toLowerCase(),
       payment_method_types: ['card'],
-      payment_method: input.stripeChargeSource.stripePaymentMethodId || undefined,
+      payment_method:
+        input.stripeChargeSource.stripePaymentMethodId || undefined,
       customer: input.stripeChargeSource.stripeCustomerId || undefined,
       confirm: !!input.stripeChargeSource.stripePaymentMethodId,
       metadata: input.metadata,
@@ -812,8 +896,7 @@ export class PaymentService {
 
   private appBaseUrl() {
     return (
-      process.env.APP_BASE_URL ||
-      `http://localhost:${process.env.PORT ?? 5000}`
+      process.env.APP_BASE_URL || `http://localhost:${process.env.PORT ?? 5000}`
     );
   }
 

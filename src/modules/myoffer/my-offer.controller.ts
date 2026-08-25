@@ -116,9 +116,8 @@ export class MyOfferController {
   redeemOffer(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') offerId: string,
-    @Body() dto?: RedeemInStoreDto,
   ) {
-    return this.myOfferService.redeemInStoreOffer(user.userId, offerId, dto);
+    return this.myOfferService.redeemOffer(user.userId, offerId);
   }
 
   @Post(':id/redeem-instore')

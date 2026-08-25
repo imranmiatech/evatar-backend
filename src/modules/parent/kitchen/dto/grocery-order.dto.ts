@@ -1,15 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  GroceryOrderStatus,
-  PaymentMethodType,
-} from '@prisma/client';
+import { GroceryOrderStatus, PaymentMethodType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   ArrayNotEmpty,
   IsArray,
   IsEnum,
   IsOptional,
-  IsPhoneNumber,
   IsString,
   MaxLength,
 } from 'class-validator';
@@ -42,9 +38,27 @@ export class GroceryCheckoutPreviewDto {
   @IsOptional()
   @IsString()
   storeId?: string;
+
+  @ApiPropertyOptional({
+    example: 'Please check expiry dates and prioritize organic products.',
+    description: 'Optional final note to print on the voucher PDF.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  finalNote?: string;
 }
 
 export class CreateGroceryOrderDto {
+  @ApiPropertyOptional({
+    example: 'partner-offer-id',
+    description:
+      'Optional online offer ID. When provided, ALR points are deducted only after payment succeeds.',
+  })
+  @IsOptional()
+  @IsString()
+  offerId?: string;
+
   @ApiPropertyOptional({
     example: 'parent-user-id',
     description:

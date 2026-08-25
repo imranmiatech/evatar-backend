@@ -52,28 +52,11 @@ export class ChildService {
       success: true,
       message: 'Children fetched successfully',
       data: children.map((child) => {
-        const age = this.formatChildPickerAge(child.birthDate);
-        const access = accessByChildId.get(child.id);
-
         return {
           id: child.id,
           name: child.name,
           image: child.avatar,
-          avatar: child.avatar,
-          birthDate: child.birthDate,
-          age,
-          ageLabel: age?.label ?? null,
-          isAccountOwner: child.parentUserId === userId,
-          accountOwner: {
-            id: child.parentUser.id,
-            name: child.parentUser.fullName,
-            email: child.parentUser.email,
-            image: child.parentUser.profilePictureUrl,
-          },
-          permissions: access?.permissions,
-          permissionItems: access?.permissionItems,
-          accessRole: access?.accessRole,
-          relationship: access?.relationship,
+          age: this.formatChildPickerAge(child.birthDate)?.label ?? null,
         };
       }),
     };
