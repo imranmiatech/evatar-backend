@@ -16,6 +16,7 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import { StorageService } from '../../../../common/storage/storage.service';
 import { AddChildDto } from '../dto/add-child.dto';
 import { UpdateChildDto } from '../dto/update-child.dto';
+import { MembershipSubscriptionService } from '../../../membership/services/membership-subscription.service';
 
 @Injectable()
 export class ChildService {
@@ -23,6 +24,7 @@ export class ChildService {
     private readonly prisma: PrismaService,
     private readonly caregiverService: ManageSystemService,
     private readonly storageService: StorageService,
+    private readonly membershipSubscriptionService: MembershipSubscriptionService,
   ) {}
 
   private timeToMinutes(time: string): number {
@@ -60,6 +62,11 @@ export class ChildService {
       healthConditions.push(HealthCondition.FOOD_ALLERGIES);
     }
 
+    const childAccessValidation =
+      await this.membershipSubscriptionService.validateChildAddition(
+        parentUserId,
+      );
+
     const child = await this.prisma.child.create({
       data: {
         parentUserId,
@@ -83,6 +90,7 @@ export class ChildService {
       data: {
         ...child,
         hasAllergy: this.computeHasAllergy(child),
+        membershipCharge: childAccessValidation.additionalChildCharge ?? null,
       },
     };
   }

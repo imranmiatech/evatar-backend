@@ -1,6 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { PaymentModule } from '../payment/payment.module';
+import { RewardsModule } from '../rewards/rewards.module';
 import { MembershipAdminController } from './controllers/admin/membership-admin.controller';
 import { MembershipBillingController } from './controllers/billing/membership-billing.controller';
 import { MembershipPlansController } from './controllers/plans/membership-plans.controller';
@@ -12,7 +13,7 @@ import { MembershipStripeService } from './services/membership-stripe.service';
 import { MembershipSubscriptionService } from './services/membership-subscription.service';
 
 @Module({
-  imports: [PrismaModule, forwardRef(() => PaymentModule)],
+  imports: [PrismaModule, forwardRef(() => PaymentModule), RewardsModule],
   controllers: [
     MembershipAdminController,
     MembershipBillingController,

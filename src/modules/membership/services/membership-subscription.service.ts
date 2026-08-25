@@ -1,12 +1,17 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
+  OnModuleDestroy,
+  OnModuleInit,
 } from '@nestjs/common';
 import {
+  RewardLedgerSourceType,
   SubscriptionInterval,
   SubscriptionStatus,
   TransactionStatus,
+  UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CancelMembershipFeedbackDto } from '../dto/cancel-feedback.dto';
@@ -17,16 +22,42 @@ import { SubscribeMembershipPlanDto } from '../dto/subscribe-plan.dto';
 import { MembershipStripeService } from './membership-stripe.service';
 import { PaymentAccountService } from '../../payment/payment-account.service';
 import { computeMembershipPricing } from '../utils/membership-pricing.util';
+import { RewardsService } from '../../rewards/rewards.service';
 
 const COMPLIMENTARY_TRIAL_DAYS = 14;
+const FREE_PLAN_MAX_CHILDREN = 1;
+const YEARLY_MEMBERSHIP_REWARD_POINTS = 100;
+const MEMBERSHIP_RENEWAL_INTERVAL_MS = 5 * 60 * 1000;
 
 @Injectable()
-export class MembershipSubscriptionService {
+export class MembershipSubscriptionService
+  implements OnModuleInit, OnModuleDestroy
+{
+  private readonly logger = new Logger(MembershipSubscriptionService.name);
+  private renewalTimer: NodeJS.Timeout | null = null;
+  private renewalInFlight = false;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly membershipStripeService: MembershipStripeService,
     private readonly paymentAccountService: PaymentAccountService,
+    private readonly rewardsService: RewardsService,
   ) {}
+
+  onModuleInit() {
+    this.renewalTimer = setInterval(() => {
+      void this.processDueRenewals();
+    }, MEMBERSHIP_RENEWAL_INTERVAL_MS);
+
+    void this.processDueRenewals();
+  }
+
+  onModuleDestroy() {
+    if (this.renewalTimer) {
+      clearInterval(this.renewalTimer);
+      this.renewalTimer = null;
+    }
+  }
 
   async getMyMembership(userId: string) {
     const childCount = await this.getChildCount(userId);
@@ -136,6 +167,15 @@ export class MembershipSubscriptionService {
       where: { userId },
       include: { plan: true },
     });
+    const proration = this.calculateProrationCredit(
+      existingSubscription,
+      plan,
+      childCount,
+    );
+    const amountToCharge = Math.max(
+      0,
+      Number((pricing.totalAmount - proration.creditAmount).toFixed(2)),
+    );
 
     if (
       dto.paymentIntentId &&
@@ -150,7 +190,7 @@ export class MembershipSubscriptionService {
         where: {
           userId,
           planName: plan.name,
-          amount: pricing.totalAmount,
+          amount: amountToCharge,
           currency: pricing.totalCurrency,
           status: TransactionStatus.SUCCESS,
           invoiceDate: {
@@ -200,7 +240,7 @@ export class MembershipSubscriptionService {
                 }
               : undefined,
             {
-              amount: pricing.totalAmount,
+              amount: amountToCharge,
               currency: pricing.totalCurrency,
               description: `${plan.name} membership for ${Math.max(
                 childCount,
@@ -209,6 +249,8 @@ export class MembershipSubscriptionService {
               metadata: {
                 childCount: String(childCount),
                 additionalChildren: String(pricing.additionalChildren),
+                prorationCredit: String(proration.creditAmount),
+                prorationSourcePlanId: proration.sourcePlanId || '',
               },
             },
           );
@@ -221,7 +263,7 @@ export class MembershipSubscriptionService {
         data: {
           userId,
           planName: plan.name,
-          amount: pricing.totalAmount,
+          amount: amountToCharge,
           currency: pricing.totalCurrency,
           status: TransactionStatus.FAILED,
           failureReason: message,
@@ -277,12 +319,19 @@ export class MembershipSubscriptionService {
       data: {
         userId,
         planName: plan.name,
-        amount: pricing.totalAmount,
+        amount: amountToCharge,
         currency: pricing.totalCurrency,
         status: TransactionStatus.SUCCESS,
         invoiceDate: now,
       },
     });
+
+    const yearlyReward = await this.awardYearlyMembershipReward(
+      userId,
+      subscription.id,
+      subscription.currentPeriodStart,
+      plan,
+    );
 
     return {
       message: `Successfully subscribed to ${plan.name}`,
@@ -290,7 +339,9 @@ export class MembershipSubscriptionService {
       subscription,
       invoice,
       pricing,
+      proration,
       billingRecipient,
+      yearlyReward,
       chargedPaymentMethod: paymentMethod
         ? {
             id: paymentMethod.id,
@@ -612,6 +663,70 @@ export class MembershipSubscriptionService {
     };
   }
 
+  async validateChildAddition(userId: string) {
+    const [existingChildren, subscription] = await Promise.all([
+      this.getChildCount(userId),
+      this.prisma.userSubscription.findUnique({
+        where: { userId },
+        include: { plan: true },
+      }),
+    ]);
+
+    const nextChildCount = existingChildren + 1;
+
+    if (!subscription || subscription.status === SubscriptionStatus.FREE_TRIAL) {
+      if (nextChildCount > FREE_PLAN_MAX_CHILDREN) {
+        throw new BadRequestException(
+          'Free membership allows only 1 child. Upgrade to a paid membership to add more children.',
+        );
+      }
+
+      return {
+        allowed: true,
+        additionalChildCharge: null,
+      };
+    }
+
+    const normalizedSubscription = await this.normalizeLifecycleState(subscription);
+    if (!normalizedSubscription) {
+      throw new NotFoundException('Membership record could not be initialized.');
+    }
+
+    if (
+      normalizedSubscription.status !== SubscriptionStatus.ACTIVE ||
+      normalizedSubscription.isCancelled ||
+      normalizedSubscription.isPaused ||
+      normalizedSubscription.isPaymentFailed
+    ) {
+      throw new BadRequestException(
+        'Only active memberships can add additional children.',
+      );
+    }
+
+    const includedChildren = Math.max(
+      normalizedSubscription.plan.maxChildren,
+      FREE_PLAN_MAX_CHILDREN,
+    );
+
+    if (nextChildCount <= includedChildren) {
+      return {
+        allowed: true,
+        additionalChildCharge: null,
+      };
+    }
+
+    const charge = await this.chargeAdditionalChildFee(
+      userId,
+      normalizedSubscription,
+      nextChildCount,
+    );
+
+    return {
+      allowed: true,
+      additionalChildCharge: charge,
+    };
+  }
+
   private async findDefaultTrialPlan() {
     const defaultPlan = await this.prisma.subscriptionPlan.findFirst({
       where: { isActive: true },
@@ -661,6 +776,391 @@ export class MembershipSubscriptionService {
   private getChildCount(userId: string) {
     return this.prisma.child.count({
       where: { parentUserId: userId },
+    });
+  }
+
+  private calculateProrationCredit(
+    existingSubscription:
+      | {
+          id: string;
+          planId: string;
+          status: SubscriptionStatus;
+          isCancelled: boolean;
+          isPaused: boolean;
+          isPaymentFailed: boolean;
+          currentPeriodStart: Date;
+          currentPeriodEnd: Date;
+          plan: {
+            id: string;
+            name: string;
+            price: number;
+            currency: string;
+            maxChildren: number;
+            interval: SubscriptionInterval;
+            additionalChildPrice: number | null;
+            additionalChildCurrency: string | null;
+            description: string | null;
+            badgeText: string | null;
+          };
+        }
+      | null,
+    targetPlan: {
+      id: string;
+      currency: string;
+    },
+    childCount: number,
+  ) {
+    if (!existingSubscription) {
+      return {
+        applies: false,
+        creditAmount: 0,
+        creditCurrency: (targetPlan.currency || 'AED').toUpperCase(),
+        sourcePlanId: null,
+        remainingDays: 0,
+      };
+    }
+
+    const isPaidActiveSubscription =
+      existingSubscription.status === SubscriptionStatus.ACTIVE &&
+      !existingSubscription.isCancelled &&
+      !existingSubscription.isPaused &&
+      !existingSubscription.isPaymentFailed;
+
+    if (
+      !isPaidActiveSubscription ||
+      existingSubscription.planId === targetPlan.id ||
+      !existingSubscription.currentPeriodEnd ||
+      existingSubscription.currentPeriodEnd <= new Date()
+    ) {
+      return {
+        applies: false,
+        creditAmount: 0,
+        creditCurrency: (targetPlan.currency || 'AED').toUpperCase(),
+        sourcePlanId: existingSubscription.planId,
+        remainingDays: 0,
+      };
+    }
+
+    const sourceCurrency = (existingSubscription.plan.currency || 'AED').toUpperCase();
+    const targetCurrency = (targetPlan.currency || 'AED').toUpperCase();
+    if (sourceCurrency !== targetCurrency) {
+      return {
+        applies: false,
+        creditAmount: 0,
+        creditCurrency: targetCurrency,
+        sourcePlanId: existingSubscription.planId,
+        remainingDays: 0,
+      };
+    }
+
+    const periodStartMs = existingSubscription.currentPeriodStart.getTime();
+    const periodEndMs = existingSubscription.currentPeriodEnd.getTime();
+    const nowMs = Date.now();
+    const totalPeriodMs = periodEndMs - periodStartMs;
+    const remainingMs = Math.max(0, periodEndMs - nowMs);
+
+    if (totalPeriodMs <= 0 || remainingMs <= 0) {
+      return {
+        applies: false,
+        creditAmount: 0,
+        creditCurrency: targetCurrency,
+        sourcePlanId: existingSubscription.planId,
+        remainingDays: 0,
+      };
+    }
+
+    const existingPricing = computeMembershipPricing(
+      existingSubscription.plan,
+      childCount,
+    );
+    const creditAmount = Number(
+      ((existingPricing.totalAmount * remainingMs) / totalPeriodMs).toFixed(2),
+    );
+
+    return {
+      applies: creditAmount > 0,
+      creditAmount,
+      creditCurrency: targetCurrency,
+      sourcePlanId: existingSubscription.planId,
+      remainingDays: Math.ceil(remainingMs / (1000 * 60 * 60 * 24)),
+    };
+  }
+
+  async processDueRenewals() {
+    if (this.renewalInFlight) {
+      return;
+    }
+
+    this.renewalInFlight = true;
+
+    try {
+      const dueSubscriptions = await this.prisma.userSubscription.findMany({
+        where: {
+          status: SubscriptionStatus.ACTIVE,
+          isCancelled: false,
+          isPaused: false,
+          isPaymentFailed: false,
+          nextBillingDate: { lte: new Date() },
+        },
+        include: { plan: true },
+        take: 25,
+        orderBy: { nextBillingDate: 'asc' },
+      });
+
+      for (const subscription of dueSubscriptions) {
+        await this.renewSubscription(subscription);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Membership auto-renewal scan failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    } finally {
+      this.renewalInFlight = false;
+    }
+  }
+
+  private async chargeAdditionalChildFee(
+    userId: string,
+    subscription: {
+      id: string;
+      planId: string;
+      plan: {
+        id: string;
+        name: string;
+        price: number;
+        currency: string;
+        interval: SubscriptionInterval;
+        additionalChildPrice: number | null;
+        additionalChildCurrency: string | null;
+      };
+    },
+    nextChildCount: number,
+  ) {
+    const additionalChildPrice = Number(
+      subscription.plan.additionalChildPrice ?? 0,
+    );
+    const additionalChildCurrency = (
+      subscription.plan.additionalChildCurrency ||
+      subscription.plan.currency ||
+      'AED'
+    ).toUpperCase();
+
+    if (additionalChildPrice <= 0) {
+      throw new BadRequestException(
+        'This membership plan does not allow adding more children.',
+      );
+    }
+
+    const stripeChargeSource =
+      await this.paymentAccountService.getStripeChargeSource(userId);
+
+    try {
+      if (this.membershipStripeService.isConfigured()) {
+        await this.membershipStripeService.ensureSucceededPaymentForPlan(
+          userId,
+          subscription.plan as any,
+          null,
+          stripeChargeSource,
+          undefined,
+          {
+            amount: additionalChildPrice,
+            currency: additionalChildCurrency,
+            description: `${subscription.plan.name} additional child charge for child #${nextChildCount}`,
+            metadata: {
+              chargeType: 'ADDITIONAL_CHILD',
+              nextChildCount: String(nextChildCount),
+            },
+          },
+        );
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Additional child payment failed';
+
+      await this.prisma.subscriptionInvoice.create({
+        data: {
+          userId,
+          planName: `${subscription.plan.name} Additional Child`,
+          amount: additionalChildPrice,
+          currency: additionalChildCurrency,
+          status: TransactionStatus.FAILED,
+          failureReason: message,
+          invoiceDate: new Date(),
+        },
+      });
+
+      throw new BadRequestException(
+        `Additional child payment is required before adding a new child: ${message}`,
+      );
+    }
+
+    await this.prisma.subscriptionInvoice.create({
+      data: {
+        userId,
+        planName: `${subscription.plan.name} Additional Child`,
+        amount: additionalChildPrice,
+        currency: additionalChildCurrency,
+        status: TransactionStatus.SUCCESS,
+        invoiceDate: new Date(),
+      },
+    });
+
+    return {
+      amount: additionalChildPrice,
+      currency: additionalChildCurrency,
+      childNumber: nextChildCount,
+    };
+  }
+
+  private async renewSubscription(subscription: {
+    id: string;
+    userId: string;
+    planId: string;
+    currentPeriodStart: Date;
+    currentPeriodEnd: Date;
+    nextBillingDate: Date | null;
+    plan: {
+      id: string;
+      name: string;
+      price: number;
+      currency: string;
+      interval: SubscriptionInterval;
+      additionalChildPrice: number | null;
+      additionalChildCurrency: string | null;
+      maxChildren: number;
+      description?: string | null;
+      badgeText?: string | null;
+    };
+  }) {
+    const childCount = await this.getChildCount(subscription.userId);
+    const pricing = computeMembershipPricing(subscription.plan, childCount);
+
+    try {
+      const stripeChargeSource =
+        await this.paymentAccountService.getStripeChargeSource(
+          subscription.userId,
+        );
+
+      if (!this.membershipStripeService.isConfigured()) {
+        throw new Error('Stripe integration is not configured.');
+      }
+
+      await this.membershipStripeService.ensureSucceededPaymentForPlan(
+        subscription.userId,
+        subscription.plan as any,
+        null,
+        stripeChargeSource,
+        undefined,
+        {
+          amount: pricing.totalAmount,
+          currency: pricing.totalCurrency,
+          description: `${subscription.plan.name} membership auto-renewal`,
+          metadata: {
+            renewalType: 'AUTO_RENEWAL',
+            childCount: String(childCount),
+            additionalChildren: String(pricing.additionalChildren),
+          },
+        },
+      );
+
+      const nextPeriodStart = subscription.nextBillingDate || new Date();
+      const nextPeriodEnd = this.periodEndForPlan(
+        nextPeriodStart,
+        subscription.plan.interval,
+      );
+
+      const updatedSubscription = await this.prisma.userSubscription.update({
+        where: { userId: subscription.userId },
+        data: {
+          currentPeriodStart: nextPeriodStart,
+          currentPeriodEnd: nextPeriodEnd,
+          nextBillingDate: nextPeriodEnd,
+          status: SubscriptionStatus.ACTIVE,
+          isPaused: false,
+          isPaymentFailed: false,
+        },
+        include: { plan: true },
+      });
+
+      await this.prisma.subscriptionInvoice.create({
+        data: {
+          userId: subscription.userId,
+          planName: subscription.plan.name,
+          amount: pricing.totalAmount,
+          currency: pricing.totalCurrency,
+          status: TransactionStatus.SUCCESS,
+          invoiceDate: new Date(),
+        },
+      });
+
+      await this.awardYearlyMembershipReward(
+        subscription.userId,
+        updatedSubscription.id,
+        updatedSubscription.currentPeriodStart,
+        updatedSubscription.plan,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Membership auto-renewal failed';
+
+      await this.prisma.subscriptionInvoice.create({
+        data: {
+          userId: subscription.userId,
+          planName: subscription.plan.name,
+          amount: pricing.totalAmount,
+          currency: pricing.totalCurrency,
+          status: TransactionStatus.FAILED,
+          failureReason: message,
+          invoiceDate: new Date(),
+        },
+      });
+
+      await this.prisma.userSubscription.update({
+        where: { userId: subscription.userId },
+        data: {
+          status: SubscriptionStatus.PAUSED,
+          isPaused: true,
+          pausedAt: new Date(),
+          isPaymentFailed: true,
+        },
+      });
+
+      this.logger.warn(
+        `Membership auto-renewal failed for user ${subscription.userId}: ${message}`,
+      );
+    }
+  }
+
+  private async awardYearlyMembershipReward(
+    userId: string,
+    subscriptionId: string,
+    periodStart: Date,
+    plan: {
+      id: string;
+      name: string;
+      interval: SubscriptionInterval;
+    },
+  ) {
+    if (plan.interval !== SubscriptionInterval.ANNUALLY) {
+      return null;
+    }
+
+    return this.rewardsService.awardActivityReward({
+      activityKey: 'MEMBERSHIP_YEARLY_SUBSCRIPTION',
+      userId,
+      sourceType: RewardLedgerSourceType.MANUAL_ADJUSTMENT,
+      sourceId: `membership-yearly-${subscriptionId}-${periodStart.getTime()}`,
+      defaultPoints: YEARLY_MEMBERSHIP_REWARD_POINTS,
+      description: 'Subscribed to yearly membership plan',
+      metadata: {
+        planId: plan.id,
+        planName: plan.name,
+        interval: plan.interval,
+        pointsReason: 'YEARLY_MEMBERSHIP_BONUS',
+      },
+      userRole: UserRole.PARENT,
     });
   }
 
