@@ -23,9 +23,8 @@ import { MembershipStripeService } from './membership-stripe.service';
 import { PaymentAccountService } from '../../payment/payment-account.service';
 import { computeMembershipPricing } from '../utils/membership-pricing.util';
 import { RewardsService } from '../../rewards/rewards.service';
+import { MembershipStorageService } from './membership-storage.service';
 
-const COMPLIMENTARY_TRIAL_DAYS = 14;
-const FREE_PLAN_MAX_CHILDREN = 1;
 const YEARLY_MEMBERSHIP_REWARD_POINTS = 100;
 const MEMBERSHIP_RENEWAL_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -41,6 +40,7 @@ export class MembershipSubscriptionService
     private readonly prisma: PrismaService,
     private readonly membershipStripeService: MembershipStripeService,
     private readonly paymentAccountService: PaymentAccountService,
+    private readonly membershipStorageService: MembershipStorageService,
     private readonly rewardsService: RewardsService,
   ) {}
 
@@ -70,7 +70,7 @@ export class MembershipSubscriptionService
       const defaultPlan = await this.findDefaultTrialPlan();
       const now = new Date();
       const trialEnds = new Date(
-        now.getTime() + COMPLIMENTARY_TRIAL_DAYS * 24 * 60 * 60 * 1000,
+        now.getTime() + defaultPlan.trialDayPeriod * 24 * 60 * 60 * 1000,
       );
 
       subscription = await this.prisma.userSubscription.create({
@@ -120,6 +120,8 @@ export class MembershipSubscriptionService
       !!subscription.trialEndsAt &&
       subscription.trialEndsAt > new Date();
     const pricing = computeMembershipPricing(subscription.plan, childCount);
+    const storageSummary =
+      await this.membershipStorageService.getStorageSummary(userId);
 
     return {
       id: subscription.id,
@@ -132,6 +134,7 @@ export class MembershipSubscriptionService
       displayPeriod: pricing.periodLabel,
       childCount,
       pricing,
+      storage: storageSummary,
       trialDescription: isTrialActive
         ? `Free trial active. The ${pricing.trialPlanLabel} will start automatically when your trial ends.`
         : null,
@@ -157,7 +160,7 @@ export class MembershipSubscriptionService
       where: { id: dto.planId },
     });
 
-    if (!plan || !plan.isActive) {
+    if (!plan || !plan.isActive || plan.isComplimentary) {
       throw new NotFoundException('Membership plan not found.');
     }
 
@@ -374,9 +377,15 @@ export class MembershipSubscriptionService
       plan = await this.findDefaultTrialPlan();
     }
 
+    if (!plan.isComplimentary) {
+      throw new BadRequestException(
+        'Only the complimentary/free plan can be used for trial access.',
+      );
+    }
+
     const now = new Date();
     const trialEnds = new Date(
-      now.getTime() + COMPLIMENTARY_TRIAL_DAYS * 24 * 60 * 60 * 1000,
+      now.getTime() + plan.trialDayPeriod * 24 * 60 * 60 * 1000,
     );
 
     const subscription = await this.prisma.userSubscription.upsert({
@@ -412,8 +421,8 @@ export class MembershipSubscriptionService
 
     return {
       message:
-        'Successfully claimed your 14-Day Complimentary Family Membership Trial!',
-      trialDaysRemaining: COMPLIMENTARY_TRIAL_DAYS,
+        `Successfully claimed your ${plan.trialDayPeriod}-day complimentary family membership trial!`,
+      trialDaysRemaining: plan.trialDayPeriod,
       subscription,
       currentPlan: 'Free Trial',
       childCount: await this.getChildCount(userId),
@@ -675,9 +684,13 @@ export class MembershipSubscriptionService
     const nextChildCount = existingChildren + 1;
 
     if (!subscription || subscription.status === SubscriptionStatus.FREE_TRIAL) {
-      if (nextChildCount > FREE_PLAN_MAX_CHILDREN) {
+      const complimentaryPlan =
+        subscription?.plan ?? (await this.findDefaultTrialPlan());
+      const freeChildLimit = complimentaryPlan.maxChildren;
+
+      if (freeChildLimit > 0 && nextChildCount > freeChildLimit) {
         throw new BadRequestException(
-          'Free membership allows only 1 child. Upgrade to a paid membership to add more children.',
+          `Free membership allows only ${freeChildLimit} child${freeChildLimit > 1 ? 'ren' : ''}. Upgrade to a paid membership to add more children.`,
         );
       }
 
@@ -705,7 +718,7 @@ export class MembershipSubscriptionService
 
     const includedChildren = Math.max(
       normalizedSubscription.plan.maxChildren,
-      FREE_PLAN_MAX_CHILDREN,
+      0,
     );
 
     if (nextChildCount <= includedChildren) {
@@ -729,12 +742,12 @@ export class MembershipSubscriptionService
 
   private async findDefaultTrialPlan() {
     const defaultPlan = await this.prisma.subscriptionPlan.findFirst({
-      where: { isActive: true },
+      where: { isActive: true, isComplimentary: true },
       orderBy: [{ sortOrder: 'asc' }, { interval: 'asc' }, { price: 'asc' }],
     });
 
     if (!defaultPlan) {
-      throw new NotFoundException('Membership plans not found.');
+      throw new NotFoundException('Complimentary membership plan not found.');
     }
 
     return defaultPlan;

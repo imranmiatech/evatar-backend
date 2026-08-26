@@ -8,6 +8,7 @@ import { ActivityStatus, MediaType, UserRole } from '@prisma/client';
 import type { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { StorageService } from '../../common/storage/storage.service';
 import { ManageSystemService } from '../manageSystem/manage-system.service';
+import { MembershipStorageService } from '../membership/services/membership-storage.service';
 import { RewardsService } from '../rewards/rewards.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NannyFeedbackQueryDto } from './dto/nanny-feedback-query.dto';
@@ -25,6 +26,7 @@ export class NannyFeedbackService {
     private readonly prisma: PrismaService,
     private readonly caregiverService: ManageSystemService,
     private readonly storageService: StorageService,
+    private readonly membershipStorageService: MembershipStorageService,
     private readonly rewardsService: RewardsService,
   ) {}
 
@@ -117,6 +119,7 @@ export class NannyFeedbackService {
                 id: true,
                 name: true,
                 avatar: true,
+                parentUserId: true,
               },
             },
           },
@@ -143,7 +146,12 @@ export class NannyFeedbackService {
 
     const status = dto.status ?? ActivityStatus.COMPLETED;
     const imageMedia = image
-      ? await this.createFeedbackImage(nannyUserId, dayActivityId, image)
+      ? await this.createFeedbackImage(
+          nannyUserId,
+          activity.dayPlan.child.parentUserId,
+          dayActivityId,
+          image,
+        )
       : null;
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -294,7 +302,12 @@ export class NannyFeedbackService {
     }
 
     const imageMedia = image
-      ? await this.createFeedbackImage(nannyUserId, dayActivityId, image)
+      ? await this.createFeedbackImage(
+          nannyUserId,
+          activity.dayPlan.child.parentUserId,
+          dayActivityId,
+          image,
+        )
       : null;
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -414,9 +427,15 @@ export class NannyFeedbackService {
 
   private async createFeedbackImage(
     nannyUserId: string,
+    accountOwnerId: string,
     dayActivityId: string,
     image: UploadedImageFile,
   ) {
+    await this.membershipStorageService.assertCanUploadPhotoVideo(
+      accountOwnerId,
+      image.size,
+    );
+
     const url = await this.storageService.uploadFile(
       image as Parameters<StorageService['uploadFile']>[0],
       'nanny-feedback-images',
@@ -453,6 +472,11 @@ export class NannyFeedbackService {
           select: {
             id: true,
             childId: true,
+            child: {
+              select: {
+                parentUserId: true,
+              },
+            },
           },
         },
         feedback: true,

@@ -26,7 +26,7 @@ export class MembershipBillingService {
       where: { id: dto.planId },
     });
 
-    if (!plan || !plan.isActive) {
+    if (!plan || !plan.isActive || plan.isComplimentary) {
       throw new BadRequestException('Membership plan not found.');
     }
 
@@ -97,7 +97,7 @@ export class MembershipBillingService {
       where: { id: planId },
     });
 
-    if (!plan || !plan.isActive) {
+    if (!plan || !plan.isActive || plan.isComplimentary) {
       throw new BadRequestException('Membership plan not found.');
     }
 

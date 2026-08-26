@@ -1,7 +1,15 @@
 model SubscriptionPlan {
   id                     String               @id @default(uuid())
   name                   String
+  isComplimentary        Boolean              @default(false)
   maxChildren            Int
+  trialDayPeriod         Int                  @default(14)
+  maxParents             Int                  @default(1)
+  maxFamilyMembers       Int                  @default(1)
+  maxNannies             Int                  @default(1)
+  photoVideoStorageGb    Int                  @default(5)
+  storyStorageCount      Int                  @default(3)
+  documentStorageGb      Int                  @default(2)
   price                  Float
   currency               String               @default("AED")
   interval               SubscriptionInterval @default(MONTHLY)

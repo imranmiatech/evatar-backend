@@ -6,6 +6,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsNumber,
+  IsBoolean,
   IsOptional,
   IsString,
   Min,
@@ -20,13 +21,84 @@ export class CreateMembershipPlanDto {
   @IsNotEmpty()
   name: string;
 
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Marks the plan as the complimentary/free plan used for trials',
+  })
+  @IsBoolean()
+  @IsOptional()
+  isComplimentary?: boolean;
+
   @ApiProperty({
     example: 2,
     description: 'Maximum number of children covered',
   })
   @IsInt()
-  @Min(1)
+  @Min(0)
   maxChildren: number;
+
+  @ApiPropertyOptional({
+    example: 14,
+    description: 'Number of complimentary trial days for the plan',
+  })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  trialDayPeriod?: number;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Maximum number of parents allowed. Use 0 for unlimited.',
+  })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  maxParents?: number;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Maximum number of family members allowed. Use 0 for unlimited.',
+  })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  maxFamilyMembers?: number;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Maximum number of nannies allowed. Use 0 for unlimited.',
+  })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  maxNannies?: number;
+
+  @ApiPropertyOptional({
+    example: 5,
+    description: 'Maximum photo and video storage in GB. Use 0 for unlimited.',
+  })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  photoVideoStorageGb?: number;
+
+  @ApiPropertyOptional({
+    example: 3,
+    description: 'Maximum number of bedtime stories. Use 0 for unlimited.',
+  })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  storyStorageCount?: number;
+
+  @ApiPropertyOptional({
+    example: 2,
+    description: 'Maximum document storage in GB. Use 0 for unlimited.',
+  })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  documentStorageGb?: number;
 
   @ApiProperty({ example: 60.0, description: 'Monthly or Annual price' })
   @IsNumber()

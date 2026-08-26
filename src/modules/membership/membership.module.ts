@@ -10,10 +10,15 @@ import { MembershipBillingService } from './services/membership-billing.service'
 import { MembershipPlanService } from './services/membership-plan.service';
 import { MembershipPaymentMethodService } from './services/membership-payment-method.service';
 import { MembershipStripeService } from './services/membership-stripe.service';
+import { MembershipStorageService } from './services/membership-storage.service';
 import { MembershipSubscriptionService } from './services/membership-subscription.service';
 
 @Module({
-  imports: [PrismaModule, forwardRef(() => PaymentModule), RewardsModule],
+  imports: [
+    PrismaModule,
+    forwardRef(() => PaymentModule),
+    forwardRef(() => RewardsModule),
+  ],
   controllers: [
     MembershipAdminController,
     MembershipBillingController,
@@ -25,8 +30,13 @@ import { MembershipSubscriptionService } from './services/membership-subscriptio
     MembershipPlanService,
     MembershipPaymentMethodService,
     MembershipStripeService,
+    MembershipStorageService,
     MembershipSubscriptionService,
   ],
-  exports: [MembershipBillingService, MembershipSubscriptionService],
+  exports: [
+    MembershipBillingService,
+    MembershipStorageService,
+    MembershipSubscriptionService,
+  ],
 })
 export class MembershipModule {}

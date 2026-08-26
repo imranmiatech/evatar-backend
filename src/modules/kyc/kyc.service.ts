@@ -20,6 +20,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateKycSessionDto } from './dto/create-kyc-session.dto';
 import { CreateLivenessActionDto } from './dto/create-liveness-action.dto';
 import { SubmitDocumentsDto } from './dto/submit-documents.dto';
+import { MembershipStorageService } from '../membership/services/membership-storage.service';
 import { SumsubService } from './sumsub.service';
 import { buildKycSummary } from './utils/kyc-summary.util';
 
@@ -41,6 +42,7 @@ export class KycService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly membershipStorageService: MembershipStorageService,
     private readonly sumsubService: SumsubService,
   ) {}
 
@@ -108,6 +110,11 @@ export class KycService {
   ) {
     const applicantId = await this.sumsubService.ensureApplicantProfile(userId);
     const normalized = this.normalizeDocumentSubmission(dto, files);
+
+    await this.membershipStorageService.assertCanUploadDocuments(
+      userId,
+      normalized.documents.map((document) => document.file.size),
+    );
 
     const verification = await this.prisma.kycVerification.create({
       data: {

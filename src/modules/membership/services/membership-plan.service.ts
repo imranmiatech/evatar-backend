@@ -17,6 +17,12 @@ import {
 @Injectable()
 export class MembershipPlanService implements OnModuleInit {
   private readonly logger = new Logger(MembershipPlanService.name);
+  private static readonly MANAGED_PLAN_KEYS = [
+    'free',
+    'monthly',
+    'yearly',
+    'global',
+  ] as const;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -25,6 +31,14 @@ export class MembershipPlanService implements OnModuleInit {
   }
 
   async seedDefaultPlans() {
+    const complimentaryFeatures = [
+      'Manage 1 child',
+      'Manage 1 parent',
+      'Manage 1 family member',
+      'Manage 1 nanny',
+      'Starter planning access',
+      'Basic support',
+    ];
     const globalFeatures = [
       'Up to 2 children',
       'Full AI Daily Planning',
@@ -47,12 +61,49 @@ export class MembershipPlanService implements OnModuleInit {
     try {
       await this.ensurePlan(
         {
+          isComplimentary: true,
+        },
+        {
+          name: 'Free',
+          isComplimentary: true,
+          maxChildren: 1,
+          trialDayPeriod: 14,
+          maxParents: 1,
+          maxFamilyMembers: 1,
+          maxNannies: 1,
+          photoVideoStorageGb: 5,
+          storyStorageCount: 3,
+          documentStorageGb: 2,
+          price: 0,
+          currency: 'AED',
+          interval: SubscriptionInterval.MONTHLY,
+          description: 'Complimentary family access with starter limits.',
+          badgeText: 'Free',
+          savingsText: null,
+          additionalChildPrice: 0,
+          additionalChildCurrency: 'AED',
+          sortOrder: 0,
+          features: complimentaryFeatures,
+          isActive: true,
+        },
+      );
+
+      await this.ensurePlan(
+        {
           name: 'Global',
           interval: SubscriptionInterval.MONTHLY,
         },
         {
           name: 'Global',
+          isComplimentary: false,
           maxChildren: 2,
+          trialDayPeriod: 14,
+          maxParents: 0,
+          maxFamilyMembers: 0,
+          maxNannies: 0,
+          photoVideoStorageGb: 0,
+          storyStorageCount: 0,
+          documentStorageGb: 0,
           price: 49,
           currency: 'USD',
           interval: SubscriptionInterval.MONTHLY,
@@ -74,7 +125,15 @@ export class MembershipPlanService implements OnModuleInit {
         },
         {
           name: 'Monthly',
+          isComplimentary: false,
           maxChildren: 2,
+          trialDayPeriod: 14,
+          maxParents: 2,
+          maxFamilyMembers: 3,
+          maxNannies: 2,
+          photoVideoStorageGb: 0,
+          storyStorageCount: 0,
+          documentStorageGb: 0,
           price: 399,
           currency: 'AED',
           interval: SubscriptionInterval.MONTHLY,
@@ -96,7 +155,15 @@ export class MembershipPlanService implements OnModuleInit {
         },
         {
           name: 'Yearly',
+          isComplimentary: false,
           maxChildren: 2,
+          trialDayPeriod: 14,
+          maxParents: 2,
+          maxFamilyMembers: 3,
+          maxNannies: 2,
+          photoVideoStorageGb: 0,
+          storyStorageCount: 0,
+          documentStorageGb: 0,
           price: 3990,
           currency: 'AED',
           interval: SubscriptionInterval.ANNUALLY,
@@ -121,13 +188,13 @@ export class MembershipPlanService implements OnModuleInit {
 
   getAllPlans() {
     return this.prisma.subscriptionPlan.findMany({
-      where: { isActive: true },
+      where: { isActive: true, isComplimentary: false },
       orderBy: [{ sortOrder: 'asc' }, { interval: 'asc' }, { price: 'asc' }],
     }).then((plans) =>
       this.deduplicatePlans(plans).map((plan) => {
         const pricing = computeMembershipPricing(plan, 0);
 
-        return {
+        return this.serializePlan({
           ...plan,
           additionalChildText: pricing.additionalChildText,
           formattedPrice: formatMoneyInline(plan.price, plan.currency),
@@ -135,15 +202,17 @@ export class MembershipPlanService implements OnModuleInit {
             plan.interval === SubscriptionInterval.ANNUALLY
               ? '/ per year'
               : '/ per month',
-        };
+        });
       }),
     );
   }
 
   async getPlanById(planId: string) {
-    return this.prisma.subscriptionPlan.findFirst({
+    const plan = await this.prisma.subscriptionPlan.findFirst({
       where: { id: planId, isActive: true },
     });
+
+    return plan ? this.serializePlan(plan) : null;
   }
 
   getAdminPlans() {
@@ -155,7 +224,7 @@ export class MembershipPlanService implements OnModuleInit {
         { price: 'asc' },
         { createdAt: 'desc' },
       ],
-    });
+    }).then((plans) => plans.map((plan) => this.serializePlan(plan)));
   }
 
   async getAdminPlanById(planId: string) {
@@ -167,16 +236,39 @@ export class MembershipPlanService implements OnModuleInit {
       throw new NotFoundException('Membership plan not found.');
     }
 
-    return plan;
+    return this.serializePlan(plan);
+  }
+
+  async getManagedPlanConfigs() {
+    const plans = await Promise.all(
+      MembershipPlanService.MANAGED_PLAN_KEYS.map((key) =>
+        this.resolvePresetPlan(key),
+      ),
+    );
+
+    return plans.map((plan) => this.serializePlan(plan));
+  }
+
+  async getManagedPlanConfig(key: string) {
+    const plan = await this.resolvePresetPlan(key);
+    return this.serializePlan(plan);
   }
 
   async createPlan(dto: CreateMembershipPlanDto) {
     await this.validatePlanPayload(dto);
 
-    return this.prisma.subscriptionPlan.create({
+    const plan = await this.prisma.subscriptionPlan.create({
       data: {
         name: dto.name,
+        isComplimentary: dto.isComplimentary ?? false,
         maxChildren: dto.maxChildren,
+        trialDayPeriod: dto.trialDayPeriod ?? 14,
+        maxParents: dto.maxParents ?? 1,
+        maxFamilyMembers: dto.maxFamilyMembers ?? 1,
+        maxNannies: dto.maxNannies ?? 1,
+        photoVideoStorageGb: dto.photoVideoStorageGb ?? 0,
+        storyStorageCount: dto.storyStorageCount ?? 0,
+        documentStorageGb: dto.documentStorageGb ?? 0,
         price: dto.price,
         currency: dto.currency || 'AED',
         description: dto.description || null,
@@ -189,6 +281,8 @@ export class MembershipPlanService implements OnModuleInit {
         features: dto.features,
       },
     });
+
+    return this.serializePlan(plan);
   }
 
   async updatePlan(planId: string, dto: UpdateMembershipPlanDto) {
@@ -202,11 +296,21 @@ export class MembershipPlanService implements OnModuleInit {
 
     await this.validatePlanPayload(dto, existing);
 
-    return this.prisma.subscriptionPlan.update({
+    const plan = await this.prisma.subscriptionPlan.update({
       where: { id: planId },
       data: {
         name: dto.name ?? existing.name,
+        isComplimentary: dto.isComplimentary ?? existing.isComplimentary,
         maxChildren: dto.maxChildren ?? existing.maxChildren,
+        trialDayPeriod: dto.trialDayPeriod ?? existing.trialDayPeriod,
+        maxParents: dto.maxParents ?? existing.maxParents,
+        maxFamilyMembers: dto.maxFamilyMembers ?? existing.maxFamilyMembers,
+        maxNannies: dto.maxNannies ?? existing.maxNannies,
+        photoVideoStorageGb:
+          dto.photoVideoStorageGb ?? existing.photoVideoStorageGb,
+        storyStorageCount: dto.storyStorageCount ?? existing.storyStorageCount,
+        documentStorageGb:
+          dto.documentStorageGb ?? existing.documentStorageGb,
         price: dto.price ?? existing.price,
         currency: dto.currency ?? existing.currency,
         description:
@@ -226,6 +330,16 @@ export class MembershipPlanService implements OnModuleInit {
         isActive: true,
       },
     });
+
+    return this.serializePlan(plan);
+  }
+
+  async updateManagedPlanConfig(key: string, dto: UpdateMembershipPlanDto) {
+    const plan = await this.resolvePresetPlan(key);
+    const enforcedDto =
+      this.normalizePresetPlanUpdate(key, dto, plan.isComplimentary);
+
+    return this.updatePlan(plan.id, enforcedDto);
   }
 
   async deletePlan(planId: string) {
@@ -248,12 +362,21 @@ export class MembershipPlanService implements OnModuleInit {
   private async ensurePlan(
     where: {
       name?: string;
+      isComplimentary?: boolean;
       interval?: SubscriptionInterval;
       currency?: string;
     },
     data: {
       name: string;
+      isComplimentary: boolean;
       maxChildren: number;
+      trialDayPeriod: number;
+      maxParents: number;
+      maxFamilyMembers: number;
+      maxNannies: number;
+      photoVideoStorageGb: number;
+      storyStorageCount: number;
+      documentStorageGb: number;
       price: number;
       currency: string;
       interval: SubscriptionInterval;
@@ -317,6 +440,7 @@ export class MembershipPlanService implements OnModuleInit {
     existing?: {
       id: string;
       name: string;
+      isComplimentary: boolean;
       interval: SubscriptionInterval;
       currency: string;
       features: string[];
@@ -330,6 +454,8 @@ export class MembershipPlanService implements OnModuleInit {
     }
 
     const name = dto.name?.trim() || existing?.name;
+    const isComplimentary =
+      dto.isComplimentary ?? existing?.isComplimentary ?? false;
     const interval = dto.interval ?? existing?.interval;
     const currency = (dto.currency || existing?.currency || 'AED').toUpperCase();
 
@@ -341,6 +467,7 @@ export class MembershipPlanService implements OnModuleInit {
       where: {
         id: existing ? { not: existing.id } : undefined,
         name,
+        isComplimentary,
         interval,
         currency,
         isActive: true,
@@ -352,5 +479,139 @@ export class MembershipPlanService implements OnModuleInit {
         'An active membership plan already exists with the same name, interval, and currency.',
       );
     }
+  }
+
+  private async resolvePresetPlan(key: string) {
+    const normalizedKey = key.trim().toLowerCase();
+    this.ensureManagedPlanKey(normalizedKey);
+
+    const presetWhere =
+      normalizedKey === 'free'
+        ? {
+            isComplimentary: true,
+          }
+        : normalizedKey === 'monthly'
+          ? {
+              isComplimentary: false,
+              interval: SubscriptionInterval.MONTHLY,
+              currency: 'AED',
+            }
+          : normalizedKey === 'yearly'
+            ? {
+                isComplimentary: false,
+                interval: SubscriptionInterval.ANNUALLY,
+                currency: 'AED',
+              }
+            : {
+                isComplimentary: false,
+                name: 'Global',
+                interval: SubscriptionInterval.MONTHLY,
+                currency: 'USD',
+              };
+
+    const plan = await this.prisma.subscriptionPlan.findFirst({
+      where: presetWhere,
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!plan) {
+      throw new NotFoundException(`Preset membership plan "${normalizedKey}" not found.`);
+    }
+
+    return plan;
+  }
+
+  private normalizePresetPlanUpdate(
+    key: string,
+    dto: UpdateMembershipPlanDto,
+    isComplimentary: boolean,
+  ): UpdateMembershipPlanDto {
+    const normalizedKey = key.trim().toLowerCase();
+    const defaultName =
+      normalizedKey === 'free'
+        ? 'Free'
+        : normalizedKey === 'monthly'
+          ? 'Monthly'
+          : normalizedKey === 'yearly'
+            ? 'Yearly'
+            : normalizedKey === 'global'
+              ? 'Global'
+              : dto.name;
+
+    const defaultCurrency =
+      normalizedKey === 'global' ? 'USD' : 'AED';
+    const defaultInterval =
+      normalizedKey === 'yearly'
+        ? SubscriptionInterval.ANNUALLY
+        : SubscriptionInterval.MONTHLY;
+
+    return {
+      ...dto,
+      name: defaultName,
+      isComplimentary,
+      currency: dto.currency ?? defaultCurrency,
+      interval: dto.interval ?? defaultInterval,
+    };
+  }
+
+  private ensureManagedPlanKey(key: string) {
+    if (
+      !MembershipPlanService.MANAGED_PLAN_KEYS.includes(
+        key as (typeof MembershipPlanService.MANAGED_PLAN_KEYS)[number],
+      )
+    ) {
+      throw new NotFoundException(
+        `Supported managed plan keys are: ${MembershipPlanService.MANAGED_PLAN_KEYS.join(', ')}.`,
+      );
+    }
+  }
+
+  private serializePlan<T extends Record<string, any>>(plan: T) {
+    return {
+      ...plan,
+      presetKey: this.detectPresetKey(plan),
+      limits: {
+        trialDayPeriod: plan.trialDayPeriod ?? 14,
+        maxChildren: plan.maxChildren ?? 0,
+        maxParents: plan.maxParents ?? 1,
+        maxFamilyMembers: plan.maxFamilyMembers ?? 1,
+        maxNannies: plan.maxNannies ?? 1,
+      },
+      storage: {
+        photoVideoStorageGb: plan.photoVideoStorageGb ?? 0,
+        storyStorageCount: plan.storyStorageCount ?? 0,
+        documentStorageGb: plan.documentStorageGb ?? 0,
+      },
+    };
+  }
+
+  private detectPresetKey(plan: Record<string, any>) {
+    if (plan.isComplimentary) {
+      return 'free';
+    }
+
+    if (
+      plan.name === 'Global' &&
+      plan.interval === SubscriptionInterval.MONTHLY &&
+      plan.currency === 'USD'
+    ) {
+      return 'global';
+    }
+
+    if (
+      plan.interval === SubscriptionInterval.MONTHLY &&
+      plan.currency === 'AED'
+    ) {
+      return 'monthly';
+    }
+
+    if (
+      plan.interval === SubscriptionInterval.ANNUALLY &&
+      plan.currency === 'AED'
+    ) {
+      return 'yearly';
+    }
+
+    return null;
   }
 }

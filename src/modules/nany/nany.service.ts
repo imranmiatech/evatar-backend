@@ -215,11 +215,79 @@ export class NanyService {
       status: ActivityStatus.COMPLETED,
     };
 
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        parentUser: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            profilePictureUrl: true,
+          },
+        },
+      },
+    });
+
+    const nanny = await this.prisma.user.findUnique({
+      where: { id: nannyUserId },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        profilePictureUrl: true,
+        role: true,
+        nannyProfile: {
+          include: {
+            experiences: {
+              orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
+            },
+            certifications: {
+              orderBy: [{ issuedAt: 'desc' }, { createdAt: 'desc' }],
+            },
+          },
+        },
+      },
+    });
+
+    const caregiverAccess = await this.prisma.caregiverAccess.findFirst({
+      where: {
+        childId,
+        invitedUserId: nannyUserId,
+        role: CaregiverAccessRole.NANNY,
+        status: CaregiverAccessStatus.ACCEPTED,
+      },
+      select: {
+        id: true,
+        acceptedAt: true,
+        createdAt: true,
+        manageDailyPlans: true,
+        manageGroceryLists: true,
+        editChildProfile: true,
+        accessChildInsights: true,
+      },
+    });
+
+    const nannyChildLink = await this.prisma.nannyChildLink.findUnique({
+      where: {
+        nannyUserId_childId: {
+          nannyUserId,
+          childId,
+        },
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        canViewStory: true,
+        canUpdateProof: true,
+      },
+    });
+
     const [
-      child,
-      nanny,
-      caregiverAccess,
-      nannyChildLink,
       completedTasks,
       mealsServed,
       activitiesDone,
@@ -233,75 +301,7 @@ export class NanyService {
       periodTasks,
       recentHighlights,
       rewardAccount,
-    ] = await this.prisma.$transaction([
-      this.prisma.child.findUnique({
-        where: { id: childId },
-        select: {
-          id: true,
-          name: true,
-          avatar: true,
-          parentUser: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-              profilePictureUrl: true,
-            },
-          },
-        },
-      }),
-      this.prisma.user.findUnique({
-        where: { id: nannyUserId },
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          phoneNumber: true,
-          profilePictureUrl: true,
-          role: true,
-          nannyProfile: {
-            include: {
-              experiences: {
-                orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
-              },
-              certifications: {
-                orderBy: [{ issuedAt: 'desc' }, { createdAt: 'desc' }],
-              },
-            },
-          },
-        },
-      }),
-      this.prisma.caregiverAccess.findFirst({
-        where: {
-          childId,
-          invitedUserId: nannyUserId,
-          role: CaregiverAccessRole.NANNY,
-          status: CaregiverAccessStatus.ACCEPTED,
-        },
-        select: {
-          id: true,
-          acceptedAt: true,
-          createdAt: true,
-          manageDailyPlans: true,
-          manageGroceryLists: true,
-          editChildProfile: true,
-          accessChildInsights: true,
-        },
-      }),
-      this.prisma.nannyChildLink.findUnique({
-        where: {
-          nannyUserId_childId: {
-            nannyUserId,
-            childId,
-          },
-        },
-        select: {
-          id: true,
-          createdAt: true,
-          canViewStory: true,
-          canUpdateProof: true,
-        },
-      }),
+    ] = await Promise.all([
       this.prisma.dayActivity.count({ where: nannyCompletedWhere }),
       this.prisma.dayActivity.count({
         where: {

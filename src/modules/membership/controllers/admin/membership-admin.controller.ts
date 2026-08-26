@@ -32,6 +32,31 @@ export class MembershipAdminController {
     return this.membershipPlanService.getAdminPlans();
   }
 
+  @Get('plan-configs')
+  @ApiOperation({
+    summary: 'Admin: get managed membership plan configs for free, monthly, yearly, and global',
+  })
+  getManagedPlanConfigs() {
+    return this.membershipPlanService.getManagedPlanConfigs();
+  }
+
+  @Get('plan-configs/:key')
+  @ApiOperation({ summary: 'Admin: get a managed membership plan config by key' })
+  getManagedPlanConfig(@Param('key') key: string) {
+    return this.membershipPlanService.getManagedPlanConfig(key);
+  }
+
+  @Patch('plan-configs/:key')
+  @ApiOperation({
+    summary: 'Admin: update a managed membership plan config by key',
+  })
+  updateManagedPlanConfig(
+    @Param('key') key: string,
+    @Body() dto: UpdateMembershipPlanDto,
+  ) {
+    return this.membershipPlanService.updateManagedPlanConfig(key, dto);
+  }
+
   @Get('plans/:id')
   @ApiOperation({ summary: 'Admin: get a single membership plan by id' })
   getPlanById(@Param('id') planId: string) {

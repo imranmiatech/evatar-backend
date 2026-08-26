@@ -25,6 +25,7 @@ import type { CurrentUserPayload } from '../../common/decorators/current-user.de
 import { StorageService } from '../../common/storage/storage.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ManageSystemService } from '../manageSystem/manage-system.service';
+import { MembershipStorageService } from '../membership/services/membership-storage.service';
 import { CreateRewardOfferDto } from './dto/create-reward-offer.dto';
 import {
   CreatePartnerStoreDto,
@@ -68,6 +69,7 @@ export class RewardsService {
     private readonly prisma: PrismaService,
     private readonly caregiverService: ManageSystemService,
     private readonly storageService: StorageService,
+    private readonly membershipStorageService: MembershipStorageService,
   ) {}
 
   async getRewardHub(user: CurrentUserPayload) {
@@ -219,7 +221,9 @@ export class RewardsService {
           select: {
             childId: true,
             date: true,
-            child: { select: { id: true, name: true } },
+            child: {
+              select: { id: true, name: true, parentUserId: true },
+            },
           },
         },
         proofs: {
@@ -239,7 +243,12 @@ export class RewardsService {
     );
 
     const uploadedProof = image
-      ? await this.createTaskProofImage(userId, dayActivityId, image)
+      ? await this.createTaskProofImage(
+          userId,
+          activity.dayPlan.child.parentUserId,
+          dayActivityId,
+          image,
+        )
       : null;
 
     await this.prisma.dayActivity.update({
@@ -1365,9 +1374,15 @@ export class RewardsService {
 
   private async createTaskProofImage(
     userId: string,
+    accountOwnerId: string,
     dayActivityId: string,
     image: Express.Multer.File,
   ) {
+    await this.membershipStorageService.assertCanUploadPhotoVideo(
+      accountOwnerId,
+      image.size,
+    );
+
     const url = await this.storageService.uploadFile(
       image,
       'reward-task-proofs',

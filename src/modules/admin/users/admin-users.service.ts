@@ -253,7 +253,7 @@ export class AdminUsersService {
    */
   async getSubscriptionPlans() {
     const plans = await this.prisma.subscriptionPlan.findMany({
-      where: { isActive: true },
+      where: { isActive: true, isComplimentary: false },
       orderBy: [{ sortOrder: 'asc' }, { price: 'asc' }],
     });
 
@@ -269,6 +269,13 @@ export class AdminUsersService {
       additionalChildPrice: p.additionalChildPrice,
       additionalChildCurrency: p.additionalChildCurrency,
       additionalChildText: computeMembershipPricing(p, 0).additionalChildText,
+      trialDayPeriod: p.trialDayPeriod,
+      maxParents: p.maxParents,
+      maxFamilyMembers: p.maxFamilyMembers,
+      maxNannies: p.maxNannies,
+      photoVideoStorageGb: p.photoVideoStorageGb,
+      storyStorageCount: p.storyStorageCount,
+      documentStorageGb: p.documentStorageGb,
       features: p.features || [],
     }));
   }
@@ -557,9 +564,9 @@ export class AdminUsersService {
 
     const newTrialEnd = new Date(baseDate.getTime() + dto.days * 24 * 60 * 60 * 1000);
 
-    // Get default Starter or Family plan for trial if no plan set
     const defaultPlan = await this.prisma.subscriptionPlan.findFirst({
-      where: { name: { contains: 'Starter', mode: 'insensitive' } },
+      where: { isActive: true, isComplimentary: true },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
 
     const planIdToUse = user.userSubscription?.planId || defaultPlan?.id;
@@ -616,6 +623,12 @@ export class AdminUsersService {
 
     if (!plan) {
       throw new BadRequestException('Target subscription plan not found.');
+    }
+
+    if (plan.isComplimentary) {
+      throw new BadRequestException(
+        'The complimentary/free plan cannot be assigned as a paid membership.',
+      );
     }
 
     const now = new Date();

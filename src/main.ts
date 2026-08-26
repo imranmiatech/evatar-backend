@@ -202,6 +202,22 @@ async function bootstrap() {
   );
 
   expressApp.get(
+    ['/membership-plan-configs', '/membership-plan-configs-ui'],
+    (req: any, res: any) => {
+      const fs = require('fs');
+      const path = require('path');
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'public/membership-plan-configs.html'),
+        path.resolve(__dirname, '../public/membership-plan-configs.html'),
+        path.resolve(__dirname, '../../public/membership-plan-configs.html'),
+      ];
+      const targetPath =
+        possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
+      res.sendFile(targetPath);
+    },
+  );
+
+  expressApp.get(
     ['/partner-offers', '/partner-offers-ui'],
     (req: any, res: any) => {
       const fs = require('fs');
