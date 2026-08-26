@@ -252,7 +252,8 @@ export class ScheduleService {
     const skip = (page - 1) * limit;
 
     const today = this.resolveDate();
-    const selectedDate = query.date ? this.resolveDate(query.date) : today;
+    const hasExplicitDate = !!query.date;
+    const selectedDate = hasExplicitDate ? this.resolveDate(query.date) : today;
     const view = query.view ?? ScheduleView.ALL;
 
     const whereBase = {
@@ -269,9 +270,15 @@ export class ScheduleService {
       date: selectedDate,
     };
 
-    const upcomingWhere = {
+    // otherWhere matches future schedules (date > today),
+    // and if dateSchedules is also being fetched for a specific date in view=ALL,
+    // exclude selectedDate so the item isn't duplicated in both dateSchedules and otherSchedules
+    const otherWhere = {
       ...whereBase,
-      date: { gt: today },
+      date:
+        hasExplicitDate && view === ScheduleView.ALL
+          ? { gt: today, not: selectedDate }
+          : { gt: today },
     };
 
     const includeRelations = {
@@ -287,17 +294,19 @@ export class ScheduleService {
     const shouldFetchToday =
       view === ScheduleView.ALL || view === ScheduleView.TODAY;
     const shouldFetchDate =
-      view === ScheduleView.ALL || view === ScheduleView.DATE;
-    const shouldFetchUpcoming =
-      view === ScheduleView.ALL || view === ScheduleView.UPCOMING;
+      view === ScheduleView.DATE || (view === ScheduleView.ALL && hasExplicitDate);
+    const shouldFetchOther =
+      view === ScheduleView.ALL ||
+      view === ScheduleView.OTHER ||
+      view === ScheduleView.UPCOMING;
 
     const [
       todaySchedules,
       dateSchedules,
-      upcomingSchedules,
+      otherSchedules,
       todayCount,
       dateCount,
-      upcomingCount,
+      otherCount,
     ] = await Promise.all([
       shouldFetchToday
         ? this.prisma.childSchedule.findMany({
@@ -319,9 +328,9 @@ export class ScheduleService {
           })
         : Promise.resolve([]),
 
-      shouldFetchUpcoming
+      shouldFetchOther
         ? this.prisma.childSchedule.findMany({
-            where: upcomingWhere,
+            where: otherWhere,
             include: includeRelations,
             orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
             skip,
@@ -337,20 +346,21 @@ export class ScheduleService {
         ? this.prisma.childSchedule.count({ where: dateWhere })
         : Promise.resolve(0),
 
-      shouldFetchUpcoming
-        ? this.prisma.childSchedule.count({ where: upcomingWhere })
+      shouldFetchOther
+        ? this.prisma.childSchedule.count({ where: otherWhere })
         : Promise.resolve(0),
     ]);
 
-    const formattedUpcomingSchedules = this.formatSchedules(upcomingSchedules);
+    const formattedToday = this.formatSchedules(todaySchedules);
+    const formattedDate = this.formatSchedules(dateSchedules);
+    const formattedOther = this.formatSchedules(otherSchedules);
 
     return {
       message: 'Schedules fetched successfully',
       data: {
-        todaySchedules: this.formatSchedules(todaySchedules),
-        dateSchedules: this.formatSchedules(dateSchedules),
-        upcomingSchedules: formattedUpcomingSchedules,
-        otherSchedules: formattedUpcomingSchedules,
+        todaySchedules: formattedToday,
+        dateSchedules: formattedDate,
+        otherSchedules: formattedOther,
       },
       meta: {
         view,
@@ -367,17 +377,11 @@ export class ScheduleService {
           limit,
           totalPages: Math.ceil(dateCount / limit),
         },
-        upcomingSchedules: {
-          total: upcomingCount,
-          page,
-          limit,
-          totalPages: Math.ceil(upcomingCount / limit),
-        },
         otherSchedules: {
-          total: upcomingCount,
+          total: otherCount,
           page,
           limit,
-          totalPages: Math.ceil(upcomingCount / limit),
+          totalPages: Math.ceil(otherCount / limit),
         },
       },
     };
