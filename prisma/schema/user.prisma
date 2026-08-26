@@ -41,6 +41,7 @@ model User {
   partnerOfferSaves             PartnerOfferSave[]
   partnerOfferRedemptions       PartnerOfferRedemption[]
   parentProfile                 ParentProfile?
+  createdDefaultPartnerProducts DefaultPartnerProduct[]
   partnerProducts               PartnerProduct[]
   supportTickets                SupportTicket[]
   ticketMessages                TicketMessage[]

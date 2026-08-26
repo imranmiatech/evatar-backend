@@ -640,14 +640,8 @@ export class AdminOfferService {
       qrPayload: this.isPublishedInStore(offer)
         ? this.qrPayload(offer.id)
         : null,
-      qrDownloads: this.isPublishedInStore(offer)
-        ? this.qrDownloadUrls(offer.id)
-        : null,
-      qrCodeDownloadUrl: this.isPublishedInStore(offer)
-        ? this.qrDownloadUrls(offer.id).png
-        : null,
-      pdfKitDownloadUrl: this.isPublishedInStore(offer)
-        ? this.qrDownloadUrls(offer.id).pdf
+      qrCodeMetaUrl: this.isPublishedInStore(offer)
+        ? this.qrMetaUrl(offer.id)
         : null,
       locations: offer.locations.map((location) => ({
         id: location.id,
@@ -673,8 +667,8 @@ export class AdminOfferService {
       return;
     }
 
-    const downloads = this.qrDownloadUrls(offer.id);
-    const absoluteDownloads = this.absoluteQrDownloadUrls(offer.id);
+    const qrMetaUrl = this.qrMetaUrl(offer.id);
+    const absoluteQrMetaUrl = `${this.apiBaseUrl()}${qrMetaUrl}`;
     const partnerName =
       offer.partnerUser.partnerProfile?.businessName ??
       offer.partnerUser.fullName;
@@ -684,12 +678,12 @@ export class AdminOfferService {
       type: NotificationType.PARTNER_OFFER,
       title: 'Offer Published!',
       message:
-        'Your in-store offer is live. Download the QR code and display it at your store counter.',
+        'Your in-store offer is live. Open the QR assets and display them at your store counter.',
       iconType: 'GIFT',
       avatarUrl:
         offer.heroImageUrl ?? offer.partnerUser.profilePictureUrl ?? undefined,
-      actionText: 'Download QR Code',
-      actionUrl: downloads.png,
+      actionText: 'View QR Assets',
+      actionUrl: qrMetaUrl,
       metadata: {
         event: 'ADMIN_IN_STORE_OFFER_PUBLISHED',
         offerId: offer.id,
@@ -699,9 +693,7 @@ export class AdminOfferService {
         redemptionFlow: offer.redemptionFlow,
         qrPayload: this.qrPayload(offer.id),
         qrShortCode: this.qrShortCode(offer.id),
-        qrDownloads: downloads,
-        qrCodeDownloadUrl: downloads.png,
-        pdfKitDownloadUrl: downloads.pdf,
+        qrCodeMetaUrl: qrMetaUrl,
       },
     });
 
@@ -713,12 +705,9 @@ export class AdminOfferService {
           `Hi ${partnerName},`,
           '',
           `Your in-store offer "${offer.title}" has been published by the Alurei admin team.`,
-          'Download and display the QR code at your store counter so families can scan and accept the offer.',
+          'Open the QR asset link and display the QR code at your store counter so families can scan and accept the offer.',
           '',
-          `PNG: ${absoluteDownloads.png}`,
-          `JPG: ${absoluteDownloads.jpg}`,
-          `JPEG: ${absoluteDownloads.jpeg}`,
-          `PDF: ${absoluteDownloads.pdf}`,
+          `QR assets: ${absoluteQrMetaUrl}`,
           '',
           `QR code: ${this.qrShortCode(offer.id)}`,
           'Thank you.',
@@ -750,25 +739,8 @@ export class AdminOfferService {
     return `ALUREI-QR-${offerId.slice(0, 6).toUpperCase()}`;
   }
 
-  private qrDownloadUrls(offerId: string) {
-    return {
-      png: `/api/v1/partner/offers/${offerId}/qr-code`,
-      jpg: `/api/v1/partner/offers/${offerId}/qr-code/jpg`,
-      jpeg: `/api/v1/partner/offers/${offerId}/qr-code/jpeg`,
-      pdf: `/api/v1/partner/offers/${offerId}/pdf-kit`,
-    };
-  }
-
-  private absoluteQrDownloadUrls(offerId: string) {
-    const baseUrl = this.apiBaseUrl();
-    const downloads = this.qrDownloadUrls(offerId);
-
-    return {
-      png: `${baseUrl}${downloads.png}`,
-      jpg: `${baseUrl}${downloads.jpg}`,
-      jpeg: `${baseUrl}${downloads.jpeg}`,
-      pdf: `${baseUrl}${downloads.pdf}`,
-    };
+  private qrMetaUrl(offerId: string) {
+    return `/api/v1/partner/offers/${offerId}/qr-code`;
   }
 
   private apiBaseUrl() {

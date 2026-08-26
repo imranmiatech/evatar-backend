@@ -6,7 +6,6 @@ import {
   Patch,
   Post,
   Query,
-  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -21,7 +20,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
-import type { Response } from 'express';
 import {
   CurrentUser,
   type CurrentUserPayload,
@@ -103,64 +101,15 @@ export class PartnerOfferController {
 
   @Get(':offerId/qr-code')
   @Roles(UserRole.PARTNER, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Download approved offer QR code as PNG' })
-  @ApiParam({ name: 'offerId' })
-  async downloadQrCode(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('offerId') offerId: string,
-    @Res() res: Response,
-  ) {
-    const file = await this.partnerOfferService.getQrCodeFile(user, offerId);
-    res.setHeader('Content-Type', file.contentType);
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${file.filename}"`,
-    );
-    res.send(file.buffer);
-  }
-
-  @Get(':offerId/qr-code/:format')
-  @Roles(UserRole.PARTNER, UserRole.ADMIN)
   @ApiOperation({
-    summary: 'Download approved offer QR code as PNG, JPG, or JPEG',
+    summary: 'Get approved offer QR code metadata and download URLs',
   })
   @ApiParam({ name: 'offerId' })
-  @ApiParam({ name: 'format', enum: ['png', 'jpg', 'jpeg'] })
-  async downloadQrCodeByFormat(
+  getQrCodeMeta(
     @CurrentUser() user: CurrentUserPayload,
     @Param('offerId') offerId: string,
-    @Param('format') format: 'png' | 'jpg' | 'jpeg',
-    @Res() res: Response,
   ) {
-    const file = await this.partnerOfferService.getQrCodeFile(
-      user,
-      offerId,
-      format,
-    );
-    res.setHeader('Content-Type', file.contentType);
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${file.filename}"`,
-    );
-    res.send(file.buffer);
-  }
-
-  @Get(':offerId/pdf-kit')
-  @Roles(UserRole.PARTNER, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Download approved offer printable PDF kit' })
-  @ApiParam({ name: 'offerId' })
-  async downloadPdfKit(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('offerId') offerId: string,
-    @Res() res: Response,
-  ) {
-    const file = await this.partnerOfferService.getPdfKitFile(user, offerId);
-    res.setHeader('Content-Type', file.contentType);
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${file.filename}"`,
-    );
-    res.send(file.buffer);
+    return this.partnerOfferService.getQrCodeMeta(user, offerId);
   }
 
   @Post(':offerId/scan')

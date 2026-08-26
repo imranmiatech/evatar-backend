@@ -1,23 +1,48 @@
 model PartnerProduct {
-  id            String                     @id @default(uuid())
-  partnerUserId String
-  productName   String
-  category      PartnerProductCategory
-  sku           String?
-  tags          String[]
-  price         Decimal                    @db.Decimal(10, 2)
-  unit          PartnerProductUnit
-  availability  PartnerProductAvailability @default(IN_STOCK)
-  status        PartnerProductStatus       @default(DRAFT)
-  createdAt     DateTime                   @default(now())
-  updatedAt     DateTime                   @updatedAt
-  offers        PartnerOffer[]
-  partnerUser   User                       @relation(fields: [partnerUserId], references: [id], onDelete: Cascade)
+  id               String                     @id @default(uuid())
+  partnerUserId    String
+  defaultProductId String?
+  productName      String
+  category         PartnerProductCategory
+  sku              String?
+  tags             String[]
+  price            Decimal                    @db.Decimal(10, 2)
+  unit             PartnerProductUnit
+  availability     PartnerProductAvailability @default(IN_STOCK)
+  status           PartnerProductStatus       @default(DRAFT)
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+  offers           PartnerOffer[]
+  defaultProduct   DefaultPartnerProduct?     @relation(fields: [defaultProductId], references: [id], onDelete: SetNull)
+  partnerUser      User                       @relation(fields: [partnerUserId], references: [id], onDelete: Cascade)
 
   @@unique([partnerUserId, sku])
+  @@unique([partnerUserId, defaultProductId])
   @@index([partnerUserId, status, createdAt])
   @@index([partnerUserId, category])
+  @@index([defaultProductId])
   @@map("partner_products")
+}
+
+model DefaultPartnerProduct {
+  id           String                     @id @default(uuid())
+  createdById  String?
+  productName  String
+  category     PartnerProductCategory
+  sku          String?
+  tags         String[]
+  price        Decimal                    @db.Decimal(10, 2)
+  unit         PartnerProductUnit
+  availability PartnerProductAvailability @default(IN_STOCK)
+  isActive     Boolean                    @default(true)
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+  createdBy    User?                      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  partnerItems PartnerProduct[]
+
+  @@unique([sku])
+  @@index([category, isActive, createdAt])
+  @@map("default_partner_products")
 }
 
 model PartnerOffer {

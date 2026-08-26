@@ -403,6 +403,39 @@ export class PartnerOfferService {
     };
   }
 
+  async getQrCodeMeta(user: CurrentUserPayload, offerId: string) {
+    const offer = await this.getDownloadableOffer(user, offerId);
+    const qrFile = await this.getQrCodeFile(user, offerId, 'png');
+    const pdfFile = await this.getPdfKitFile(user, offerId);
+    const routeUrl = `${this.apiBaseUrl()}${this.qrMetaUrl(offer.id)}`;
+    const [qrImageUrl, pdfKitUrl] = await Promise.all([
+      this.uploadGeneratedAsset(qrFile, 'partner-offers/qr-assets'),
+      this.uploadGeneratedAsset(pdfFile, 'partner-offers/qr-assets'),
+    ]);
+
+    return {
+      success: true,
+      message: 'Offer QR code assets fetched successfully',
+      data: {
+        offerId: offer.id,
+        title: offer.title,
+        shortCode: this.qrShortCode(offer.id),
+        payload: this.qrPayload(offer.id),
+        routeUrl,
+        qrImage: {
+          fileName: qrFile.filename,
+          mimeType: qrFile.contentType,
+          url: qrImageUrl,
+        },
+        pdfKit: {
+          fileName: pdfFile.filename,
+          mimeType: pdfFile.contentType,
+          url: pdfKitUrl,
+        },
+      },
+    };
+  }
+
   async acceptScannedOffer(user: CurrentUserPayload, offerId: string) {
     const offer = await this.prisma.partnerOffer.findFirst({
       where: {
@@ -1015,14 +1048,8 @@ export class PartnerOfferService {
       qrShortCode: this.isPublishedInStore(offer)
         ? this.qrShortCode(offer.id)
         : null,
-      qrDownloads: this.isPublishedInStore(offer)
-        ? this.qrDownloadUrls(offer.id)
-        : null,
-      qrCodeDownloadUrl: this.isPublishedInStore(offer)
-        ? this.qrDownloadUrls(offer.id).png
-        : null,
-      pdfKitDownloadUrl: this.isPublishedInStore(offer)
-        ? this.qrDownloadUrls(offer.id).pdf
+      qrCodeMetaUrl: this.isPublishedInStore(offer)
+        ? this.qrMetaUrl(offer.id)
         : null,
       locations: offer.locations,
       product: offer.partnerProduct
@@ -1073,9 +1100,7 @@ export class PartnerOfferService {
     const qrMetadata = isInStore
       ? {
           qrPayload: this.qrPayload(offer.id),
-          qrDownloads: this.qrDownloadUrls(offer.id),
-          qrCodeDownloadUrl: this.qrDownloadUrls(offer.id).png,
-          pdfKitDownloadUrl: this.qrDownloadUrls(offer.id).pdf,
+          qrCodeMetaUrl: this.qrMetaUrl(offer.id),
         }
       : {};
 
@@ -1159,13 +1184,43 @@ export class PartnerOfferService {
     });
   }
 
-  private qrDownloadUrls(offerId: string) {
-    return {
-      png: `/api/v1/partner/offers/${offerId}/qr-code`,
-      jpg: `/api/v1/partner/offers/${offerId}/qr-code/jpg`,
-      jpeg: `/api/v1/partner/offers/${offerId}/qr-code/jpeg`,
-      pdf: `/api/v1/partner/offers/${offerId}/pdf-kit`,
-    };
+  private qrMetaUrl(offerId: string) {
+    return `/api/v1/partner/offers/${offerId}/qr-code`;
+  }
+
+  private apiBaseUrl() {
+    return (
+      process.env.PUBLIC_API_BASE_URL ||
+      process.env.API_BASE_URL ||
+      `http://localhost:${process.env.PORT ?? 5000}`
+    ).replace(/\/$/, '');
+  }
+
+  private async uploadGeneratedAsset(
+    file: { filename: string; contentType: string; buffer: Buffer },
+    folder: string,
+  ) {
+    const ext = file.filename.split('.').pop() || 'bin';
+    const uploadFile = {
+      fieldname: 'file',
+      originalname: file.filename,
+      encoding: '7bit',
+      mimetype: file.contentType,
+      size: file.buffer.length,
+      buffer: file.buffer,
+      destination: '',
+      filename: file.filename,
+      path: '',
+      stream: undefined as any,
+    } satisfies Express.Multer.File;
+
+    return this.storageService.uploadFile(
+      {
+        ...uploadFile,
+        originalname: `${this.slug(file.filename.replace(/\.[^.]+$/, ''))}.${ext}`,
+      },
+      folder,
+    );
   }
 
   private qrShortCode(offerId: string) {

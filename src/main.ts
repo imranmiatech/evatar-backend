@@ -202,7 +202,11 @@ async function bootstrap() {
   );
 
   expressApp.get(
-    ['/membership-plan-configs', '/membership-plan-configs-ui'],
+    [
+      '/membership-plan-configs',
+      '/membership-plan-configs-ui',
+      '/membership-admin-ui',
+    ],
     (req: any, res: any) => {
       const fs = require('fs');
       const path = require('path');

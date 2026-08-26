@@ -30,6 +30,10 @@ import {
   PartnerProductQueryDto,
   UpdatePartnerProductDto,
 } from './dto/create-partner-product.dto';
+import {
+  DefaultPartnerProductQueryDto,
+  ImportDefaultPartnerProductDto,
+} from './dto/default-partner-product.dto';
 import { PartnerProductService } from './partner-product.service';
 
 @ApiTags('Partner Products')
@@ -51,6 +55,39 @@ export class PartnerProductController {
     @Query() query: PartnerProductQueryDto,
   ) {
     return this.partnerProductService.getProducts(user, query);
+  }
+
+  @Get('default-catalog/list')
+  @ApiOperation({
+    summary: 'Get admin-managed default products for partner import',
+    description:
+      'Lists the in-app default product catalog so a partner can add products into their own product list.',
+  })
+  getDefaultCatalog(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query() query: DefaultPartnerProductQueryDto,
+  ) {
+    return this.partnerProductService.getDefaultProductsForPartner(user, query);
+  }
+
+  @Post('default-catalog/:defaultProductId/add')
+  @ApiOperation({
+    summary: 'Add one default product into my partner products',
+  })
+  @ApiParam({
+    name: 'defaultProductId',
+    description: 'Admin default product ID',
+  })
+  addDefaultCatalogProduct(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('defaultProductId') defaultProductId: string,
+    @Body() dto: ImportDefaultPartnerProductDto,
+  ) {
+    return this.partnerProductService.importDefaultProductToPartner(
+      user,
+      defaultProductId,
+      dto,
+    );
   }
 
   @Get(':productId')

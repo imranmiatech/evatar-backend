@@ -5,6 +5,7 @@ import { PartnerDashboardController } from './dashboard/partner-dashboard.contro
 import { PartnerDashboardService } from './dashboard/partner-dashboard.service';
 import { AdminOfferService } from './offer/admin-offer.service';
 import { AdminPartnerOfferController } from './offer/admin-partner-offer.controller';
+import { AdminDefaultPartnerProductController } from './product/admin-default-partner-product.controller';
 import { PartnerOfferController } from './offer/partner-offer.controller';
 import { PartnerOfferService } from './offer/partner-offer.service';
 import { PartnerOrderController } from './order/partner-order.controller';
@@ -16,6 +17,7 @@ import { PartnerProductService } from './product/partner-product.service';
   imports: [NotificationModule, MailModule],
   controllers: [
     PartnerProductController,
+    AdminDefaultPartnerProductController,
     PartnerOfferController,
     AdminPartnerOfferController,
     PartnerDashboardController,
