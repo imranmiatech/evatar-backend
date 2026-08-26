@@ -13,6 +13,7 @@ export enum ScheduleView {
   ALL = 'ALL',
   TODAY = 'TODAY',
   DATE = 'DATE',
+  OTHER = 'OTHER',
   UPCOMING = 'UPCOMING',
 }
 
@@ -36,7 +37,7 @@ export class ScheduleQueryDto {
   @ApiPropertyOptional({
     enum: ScheduleView,
     description:
-      'ALL returns today, selected date, and upcoming. TODAY returns only today. DATE requires/uses date. UPCOMING returns schedules after today.',
+      'ALL returns today and other schedules (plus date-specific schedules without duplication). TODAY returns only today. DATE returns only selected date. OTHER/UPCOMING returns schedules after today.',
     example: ScheduleView.ALL,
     default: ScheduleView.ALL,
   })
