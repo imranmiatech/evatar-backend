@@ -64,14 +64,14 @@ export class ScheduleController {
 
   @Get()
   @ApiOperation({
-    summary: "Get today's, date-based, and upcoming schedules",
+    summary: "Get today's, date-based, and other (upcoming) schedules",
     description:
-      'Returns todaySchedules, dateSchedules, and upcomingSchedules separately. Use view=TODAY, view=DATE, or view=UPCOMING when only one list is needed.',
+      'Returns todaySchedules, dateSchedules, and otherSchedules without duplicate entries.',
   })
   @ApiQuery({
     name: 'view',
     required: false,
-    enum: ['ALL', 'TODAY', 'DATE', 'UPCOMING'],
+    enum: ['ALL', 'TODAY', 'DATE', 'OTHER', 'UPCOMING'],
     example: 'ALL',
   })
   @ApiResponse({ status: 200, description: 'Schedules returned.' })
